@@ -67,137 +67,15 @@ enum  { defaultUpTimeMS = 3000, defaultTopLevelWindowTimeoutMS = 30000,
 
 // List the examples to test (Gui examples only).
 struct Example {
-    const char *name;
-    const char *directory;
-    const char *binary;
+    QByteArray name;
+    QByteArray directory;
+    QByteArray binary;
     unsigned priority; // 0-highest
     int upTimeMS;
 };
 
-const struct Example examples[] = {
-    {"animation/animatedtiles Example", "animation/animatedtiles", "animatedtiles", 0, -1},
-    {"animation/appchooser Example", "animation/appchooser", "appchooser", 10, -1},
-    {"animation/easing Example", "animation/easing", "easing", 10, -1},
-    {"animation/moveblocks Example", "animation/moveblocks", "moveblocks", 10, -1},
-    {"animation/states Example", "animation/states", "states", 10, -1},
-    {"animation/stickman Example", "animation/stickman", "stickman", 10, -1},
-    {"designer/calculatorbuilder Example", "designer/calculatorbuilder", "calculatorbuilder", 10, -1},
-    {"dialogs/standarddialogs Example", "dialogs/standarddialogs", "standarddialogs", 10, -1},
-    {"draganddrop/dropsite Example", "draganddrop/dropsite", "dropsite", 10, -1},
-    {"draganddrop/fridgemagnets Example", "draganddrop/fridgemagnets", "fridgemagnets", 10, -1},
-    {"draganddrop/puzzle Example", "draganddrop/puzzle", "puzzle", 10, -1},
-    {"effects/blurpicker Example", "effects/blurpicker", "blurpicker", 10, -1},
-    {"effects/customshader Example", "effects/customshader", "customshader", 10, -1},
-    {"effects/fademessage Example", "effects/fademessage", "fademessage", 10, -1},
-    {"effects/lighting Example", "effects/lighting", "lighting", 10, -1},
-    {"graphicsview/anchorlayout Example", "graphicsview/anchorlayout", "anchorlayout", 10, -1},
-    {"graphicsview/basicgraphicslayouts Example", "graphicsview/basicgraphicslayouts", "basicgraphicslayouts", 0, -1},
-    {"graphicsview/collidingmice Example", "graphicsview/collidingmice", "collidingmice", 10, -1},
-    {"graphicsview/diagramscene Example", "graphicsview/diagramscene", "diagramscene", 10, -1},
-    {"graphicsview/dragdroprobot Example", "graphicsview/dragdroprobot", "dragdroprobot", 10, -1},
-    {"graphicsview/elasticnodes Example", "graphicsview/elasticnodes", "elasticnodes", 10, -1},
-    {"graphicsview/flowlayout Example", "graphicsview/flowlayout", "flowlayout", 10, -1},
-    {"graphicsview/padnavigator Example", "graphicsview/padnavigator", "padnavigator", 0, -1},
-    {"graphicsview/portedasteroids Example", "graphicsview/portedasteroids", "portedasteroids", 10, -1},
-    {"graphicsview/portedcanvas Example", "graphicsview/portedcanvas", "portedcanvas", 10, -1},
-    {"graphicsview/weatheranchorlayout Example", "graphicsview/weatheranchorlayout", "weatheranchorlayout", 10, -1},
-    {"itemviews/addressbook Example", "itemviews/addressbook", "addressbook", 0, -1},
-    {"itemviews/basicsortfiltermodel Example", "itemviews/basicsortfiltermodel", "basicsortfiltermodel", 10, -1},
-    {"itemviews/chart Example", "itemviews/chart", "chart", 0, -1},
-    {"itemviews/coloreditorfactory Example", "itemviews/coloreditorfactory", "coloreditorfactory", 10, -1},
-    {"itemviews/combowidgetmapper Example", "itemviews/combowidgetmapper", "combowidgetmapper", 6, -1},
-    {"itemviews/customsortfiltermodel Example", "itemviews/customsortfiltermodel", "customsortfiltermodel", 6, -1},
-    {"itemviews/dirview Example", "itemviews/dirview", "dirview", 0, -1},
-    {"itemviews/editabletreemodel Example", "itemviews/editabletreemodel", "editabletreemodel", 0, -1},
-    {"itemviews/fetchmore Example", "itemviews/fetchmore", "fetchmore", 10, -1},
-    {"itemviews/frozencolumn Example", "itemviews/frozencolumn", "frozencolumn", 10, -1},
-    {"itemviews/pixelator Example", "itemviews/pixelator", "pixelator", 10, -1},
-    {"itemviews/puzzle Example", "itemviews/puzzle", "puzzle", 10, -1},
-    {"itemviews/simpledommodel Example", "itemviews/simpledommodel", "simpledommodel", 10, -1},
-    {"itemviews/simpletreemodel Example", "itemviews/simpletreemodel", "simpletreemodel", 10, -1},
-    {"itemviews/simplewidgetmapper Example", "itemviews/simplewidgetmapper", "simplewidgetmapper", 10, -1},
-    {"itemviews/spinboxdelegate Example", "itemviews/spinboxdelegate", "spinboxdelegate", 0, -1},
-    {"itemviews/stardelegate Example", "itemviews/stardelegate", "stardelegate", 10, -1},
-    {"layouts/basiclayouts Example", "layouts/basiclayouts", "basiclayouts", 0, -1},
-    {"layouts/borderlayout Example", "layouts/borderlayout", "borderlayout", 10, -1},
-    {"layouts/dynamiclayouts Example", "layouts/dynamiclayouts", "dynamiclayouts", 10, -1},
-    {"layouts/flowlayout Example", "layouts/flowlayout", "flowlayout", 10, -1},
-    {"mainwindows/application Example", "mainwindows/application", "application", 6, -1},
-    {"mainwindows/dockwidgets Example", "mainwindows/dockwidgets", "dockwidgets", 0, -1},
-    {"mainwindows/mdi Example", "mainwindows/mdi", "mdi", 0, -1},
-    {"mainwindows/menus Example", "mainwindows/menus", "menus", 10, -1},
-    {"mainwindows/recentfiles Example", "mainwindows/recentfiles", "recentfiles", 10, -1},
-    {"mainwindows/sdi Example", "mainwindows/sdi", "sdi", 10, -1},
-    {"touch/dials Example", "touch/dials", "dials", 10, -1},
-    {"touch/fingerpaint Example", "touch/fingerpaint", "fingerpaint", 10, -1},
-    {"touch/knobs Example", "touch/knobs", "knobs", 10, -1},
-    {"touch/pinchzoom Example", "touch/pinchzoom", "pinchzoom", 10, -1},
-    {"opengl/2dpainting Example", "opengl/2dpainting", "2dpainting", 10, -1},
-    {"opengl/grabber Example", "opengl/grabber", "grabber", 10, -1},
-    {"opengl/hellogl Example", "opengl/hellogl", "hellogl", 10, -1},
-    {"opengl/overpainting Example", "opengl/overpainting", "overpainting", 10, -1},
-    {"opengl/samplebuffers Example", "opengl/samplebuffers", "samplebuffers", 10, -1},
-    {"opengl/textures Example", "opengl/textures", "textures", 10, -1},
-    {"painting/basicdrawing Example", "painting/basicdrawing", "basicdrawing", 10, -1},
-    {"painting/concentriccircles Example", "painting/concentriccircles", "concentriccircles", 0, -1},
-    {"painting/fontsampler Example", "painting/fontsampler", "fontsampler", 0, -1},
-    {"painting/imagecomposition Example", "painting/imagecomposition", "imagecomposition", 10, -1},
-    {"painting/painterpaths Example", "painting/painterpaths", "painterpaths", 10, -1},
-    {"painting/svggenerator Example", "painting/svggenerator", "svggenerator", 10, -1},
-    {"painting/svgviewer Example", "painting/svgviewer", "svgviewer", 0, -1},
-    {"painting/transformations Example", "painting/transformations", "transformations", 0, -1},
-    {"qtconcurrent/imagescaling Example", "qtconcurrent/imagescaling", "imagescaling", 10, -1},
-    {"richtext/calendar Example", "richtext/calendar", "calendar", 0, -1},
-    {"richtext/orderform Example", "richtext/orderform", "orderform", 10, -1},
-    {"richtext/syntaxhighlighter Example", "richtext/syntaxhighlighter", "syntaxhighlighter", 0, -1},
-    {"richtext/textobject Example", "richtext/textobject", "textobject", 10, -1},
-    {"script/calculator Example", "script/calculator", "calculator", 6, -1},
-    {"script/qstetrix Example", "script/qstetrix", "qstetrix", 0, -1},
-    {"statemachine/eventtransitions Example", "statemachine/eventtransitions", "eventtransitions", 10, -1},
-    {"statemachine/rogue Example", "statemachine/rogue", "rogue", 10, -1},
-    {"statemachine/trafficlight Example", "statemachine/trafficlight", "trafficlight", 0, -1},
-    {"statemachine/twowaybutton Example", "statemachine/twowaybutton", "twowaybutton", 10, -1},
-    {"tutorials/addressbook/part7 Example", "tutorials/addressbook/part7", "part7", 0, -1},
-    {"webkit/fancybrowser Example", "webkit/fancybrowser", "fancybrowser", 0, 7000},
-    {"widgets/analogclock Example", "widgets/analogclock", "analogclock", 6, -1},
-    {"widgets/calculator Example", "widgets/calculator", "calculator", 6, -1},
-    {"widgets/calendarwidget Example", "widgets/calendarwidget", "calendarwidget", 10, -1},
-    {"widgets/charactermap Example", "widgets/charactermap", "charactermap", 10, -1},
-    {"widgets/codeeditor Example", "widgets/codeeditor", "codeeditor", 0, -1},
-    {"widgets/digitalclock Example", "widgets/digitalclock", "digitalclock", 10, -1},
-    {"widgets/groupbox Example", "widgets/groupbox", "groupbox", 10, -1},
-    {"widgets/icons Example", "widgets/icons", "icons", 10, -1},
-    {"widgets/imageviewer Example", "widgets/imageviewer", "imageviewer", 10, -1},
-    {"widgets/lineedits Example", "widgets/lineedits", "lineedits", 10, -1},
-    {"widgets/scribble Example", "widgets/scribble", "scribble", 10, -1},
-    {"widgets/sliders Example", "widgets/sliders", "sliders", 10, -1},
-    {"widgets/spinboxes Example", "widgets/spinboxes", "spinboxes", 10, -1},
-    {"widgets/styles Example", "widgets/styles", "styles", 0, -1},
-    {"widgets/stylesheet Example", "widgets/stylesheet", "stylesheet", 0, -1},
-    {"widgets/tablet Example", "widgets/tablet", "tablet", 10, -1},
-    {"widgets/tetrix Example", "widgets/tetrix", "tetrix", 0, -1},
-    {"widgets/tooltips Example", "widgets/tooltips", "tooltips", 10, -1},
-    {"widgets/validators Example", "widgets/validators", "validators", 10, -1},
-    {"widgets/wiggly Example", "widgets/wiggly", "wiggly", 10, -1}
-};
-
-const struct Example demos[] = {
-    {"Affine Demo", "affine", "affine", 0, -1},
-    {"Books Demo", "books", "books", 0, -1},
-    {"Browser Demo", "browser", "browser", 0, 0000},
-    {"Chip Demo", "chip", "chip", 0, -1},
-    {"Composition Demo", "composition", "composition", 0, -1},
-    {"Deform Demo", "deform", "deform", 0, -1},
-    {"Embeddeddialogs Demo", "embeddeddialogs", "embeddeddialogs", 0, -1},
-    {"Gradients Demo", "gradients", "gradients", 0, -1},
-    {"Interview Demo", "interview", "interview", 0, -1},
-    {"Mainwindow Demo", "mainwindow", "mainwindow", 0, -1},
-    {"PathStroke Demo", "pathstroke", "pathstroke", 0, -1},
-    {"Spreadsheet Demo", "spreadsheet", "spreadsheet", 0, -1},
-    {"Sub-Attac Demo", "sub-attaq", "sub-attaq", 0, -1},
-    {"TextEdit Demo", "textedit", "textedit", 0, -1},
-    {"Undo Demo", "undo", "undo", 0, -1}
-};
+QList<Example> examples;
+QList<Example> demos;
 
 // Data struct used in tests, specifying paths and timeouts
 struct AppLaunchData {
@@ -350,15 +228,43 @@ static inline QString guiBinary(QString in)
 void tst_GuiAppLauncher::run_data()
 {
     QTest::addColumn<AppLaunchData>("data");
-    foreach(const TestDataEntry &data, testData())
+    foreach(const TestDataEntry &data, testData()) {
+        qDebug() << data.first << data.second.binary;
         QTest::newRow(data.first) << data.second;
+    }
+}
+
+static QList<Example> readDataEntriesFromFile(const QString &fileName)
+{
+    QList<Example> ret;
+    QFile file(fileName);
+    if (!file.open(QFile::ReadOnly))
+        return ret;
+
+    QByteArray line;
+    QRegExp lineMatcher("\"([^\"]*)\", *\"([^\"]*)\", *\"([^\"]*)\", *([-0-9]*), *([-0-9]*)");
+    for (line = file.readLine(); !line.isEmpty(); line = file.readLine()) {
+        int matchPos = lineMatcher.indexIn(QString::fromLatin1(line));
+        if (matchPos < 0)
+            break;
+
+        Example example;
+        example.name = lineMatcher.cap(1).toLatin1();
+        example.directory = lineMatcher.cap(2).toLatin1();
+        example.binary = lineMatcher.cap(3).toLatin1();
+        example.priority = lineMatcher.cap(4).toUInt();
+        example.upTimeMS = lineMatcher.cap(5).toInt();
+        ret << example;
+    }
+
+    return ret;
 }
 
 // Read out the examples array structures and convert to test data.
 static tst_GuiAppLauncher::TestDataEntries exampleData(unsigned priority,
                                                        const QString &path,
                                                        bool debug,
-                                                       const Example *exArray,
+                                                       const QList<Example> exArray,
                                                        unsigned n)
 {
     Q_UNUSED(debug)
@@ -369,16 +275,16 @@ static tst_GuiAppLauncher::TestDataEntries exampleData(unsigned priority,
         const Example &example = exArray[e];
         if (example.priority <= priority) {
             data.clear();
-            const QString examplePath = path + slash + QLatin1String(example.directory);
+            const QString examplePath = path + slash + example.directory;
             data.binary = examplePath + slash;
 #ifdef Q_OS_WIN
             data.binary += debug? QLatin1String("debug/") : QLatin1String("release/");
 #endif
-            data.binary += guiBinary(QLatin1String(example.binary));
+            data.binary += guiBinary(example.binary);
             data.workingDirectory = examplePath;
             if (example.upTimeMS > 0)
                 data.upTimeMS = example.upTimeMS;
-            rc.append(tst_GuiAppLauncher::TestDataEntry(example.name, data));
+            rc.append(tst_GuiAppLauncher::TestDataEntry(example.name.constData(), data));
         }
     }
     return rc;
@@ -390,6 +296,7 @@ tst_GuiAppLauncher::TestDataEntries tst_GuiAppLauncher::testData() const
     const QChar slash = QLatin1Char('/');
     const QString binPath = QLibraryInfo::location(QLibraryInfo::BinariesPath) + slash;
     const bool debug = QLibraryInfo::buildKey().contains(QLatin1String("debug"));
+    const QString path = qgetenv("QT_MODULE_TO_TEST");
     Q_UNUSED(debug)
 
     AppLaunchData data;
@@ -413,15 +320,17 @@ tst_GuiAppLauncher::TestDataEntries tst_GuiAppLauncher::testData() const
         data.binary = binPath + guiBinary(QLatin1String("qtdemo"));
         rc.append(TestDataEntry("Qt Demo", data));
 
-        const QString demosPath = QLibraryInfo::location(QLibraryInfo::DemosPath);
-        if (!demosPath.isEmpty())
-            rc += exampleData(m_examplePriority, demosPath, debug, demos, sizeof(demos)/sizeof(Example));
+        if (!path.isEmpty()) {
+            demos = readDataEntriesFromFile(path + "/tests/auto/guiapplauncher/demos.txt");
+            rc += exampleData(m_examplePriority, path, debug, demos, demos.size());
+        }
     }
 
     if (m_testMask & TestExamples) {
-        const QString examplesPath = QLibraryInfo::location(QLibraryInfo::ExamplesPath);
-        if (!examplesPath.isEmpty())
-            rc += exampleData(m_examplePriority, examplesPath, debug, examples, sizeof(examples)/sizeof(Example));
+        if (!path.isEmpty()) {
+            examples = readDataEntriesFromFile(path + "/tests/auto/guiapplauncher/examples.txt");
+            rc += exampleData(m_examplePriority, path, debug, examples, examples.size());
+        }
     }
     qDebug("Running %d tests...", rc.size());
     return rc;
