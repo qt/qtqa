@@ -43,6 +43,8 @@
 #include <QtCore/QtCore>
 #include <QtTest/QtTest>
 
+#include "global.h"
+
 #ifdef QT_NAMESPACE
 #define STRINGIFY_HELPER(s) #s
 #define STRINGIFY(s) STRINGIFY_HELPER(s)
@@ -55,9 +57,42 @@ class tst_Symbols: public QObject
 {
     Q_OBJECT
 private slots:
+    void initTestCase();
+    void cleanupTestCase();
+
     void prefix();
     void globalObjects();
+
+private:
+    QString qtModuleDir;
+    QString qtBaseDir;
+    QHash<QString, QString> modules;
+    QStringList keys;
 };
+
+void tst_Symbols::initTestCase()
+{
+    qtModuleDir = QString::fromLocal8Bit(qgetenv("QT_MODULE_TO_TEST"));
+    QVERIFY2(!qtModuleDir.isEmpty(), "This test needs $QT_MODULE_TO_TEST, we need it to search data and etc.");
+
+    QString configFile = qtModuleDir + "/tests/global/global.cfg";
+    modules = qt_tests_shared_global_get_modules(configFile);
+
+    QVERIFY2(modules.size() > 0, "Something is wrong in the global config file.");
+
+    qtBaseDir = QString::fromLocal8Bit(qgetenv("QT_MODULE_KERNEL"));
+    QVERIFY2(!qtBaseDir.isEmpty(), "This test needs $QT_MODULE_KERNEL, we need it to search libs.");
+
+    keys = modules.keys();
+    QList<QString>::iterator i;
+    for (i = keys.begin(); i != keys.end(); ++i)
+        *i = "lib" + *i + ".so";
+    qDebug() << keys;
+}
+
+void tst_Symbols::cleanupTestCase()
+{
+}
 
 /* Computes the line number from a symbol */
 static QString symbolToLine(const QString &symbol, const QString &lib)
@@ -111,11 +146,14 @@ void tst_Symbols::globalObjects()
 
     bool isFailed = false;
 
-    QDir dir(QLibraryInfo::location(QLibraryInfo::LibrariesPath), "*.so");
+    QDir dir(qtBaseDir + "/lib", "*.so");
     QStringList files = dir.entryList();
     QVERIFY(!files.isEmpty());
 
     foreach (QString lib, files) {
+        if (!keys.contains(lib))
+            continue;
+
         if (lib == "libQtCLucene.so") {
             // skip this library, it's 3rd-party C++
             continue;
@@ -124,6 +162,9 @@ void tst_Symbols::globalObjects()
             // we're not going to fix these issues anyway, so skip this library
             continue;
         }
+
+        qDebug() << lib
+                 << ", " << dir.absolutePath();
 
         QProcess proc;
         proc.start("nm",
@@ -288,16 +329,22 @@ void tst_Symbols::prefix()
     excusedPrefixes["phonon"] =
         QStringList() << ns + "Phonon";
 
-    QDir dir(qgetenv("QTDIR") + "/lib", "*.so");
+    QDir dir(qtBaseDir + "/lib", "*.so");
     QStringList files = dir.entryList();
     QVERIFY(!files.isEmpty());
 
     bool isFailed = false;
     foreach (QString lib, files) {
+        if (!keys.contains(lib))
+            continue;
+
         if (lib.contains("Designer") || lib.contains("QtCLucene") || lib.contains("XmlPatternsSDK"))
             continue;
 
         bool isPhonon = lib.contains("phonon");
+
+        qDebug() << lib
+                 << ", " << dir.absolutePath();
 
         QProcess proc;
         proc.start("nm",
