@@ -1,4 +1,5 @@
 load(qttest_p4)
+INCLUDEPATH += ../../shared
 SOURCES += tst_bic.cpp qbic.cpp
 QT = core
 

@@ -49,6 +49,8 @@ QTEST_NOOP_MAIN
 
 #include "qbic.h"
 
+#include "global.h"
+
 #include <stdlib.h>
 
 class tst_Bic: public QObject
@@ -62,14 +64,17 @@ public:
     QHash<QString, QBic::Info> cachedCurrentInfo;
 
 private slots:
-    void initTestCase_data();
     void initTestCase();
+    void cleanupTestCase();
 
     void sizesAndVTables_data();
     void sizesAndVTables();
 
 private:
     QBic bic;
+    QString qtModuleDir;
+    QHash<QString, QString> modules;
+    QStringList incPaths;
 };
 
 typedef QPair<QString, QString> QStringPair;
@@ -140,40 +145,35 @@ tst_Bic::tst_Bic()
     bic.addBlacklistedClass(QLatin1String("QDeclarativePrivate::RegisterType"));
 }
 
-void tst_Bic::initTestCase_data()
-{
-    QTest::addColumn<QString>("libName");
-
-    QTest::newRow("QtCore") << "QtCore";
-    QTest::newRow("QtGui") << "QtGui";
-
-    QTest::newRow("Qt3Support") << "Qt3Support";
-#ifndef QT_NO_DBUS
-    QTest::newRow("QtDBus") << "QtDBus";
-#endif
-    QTest::newRow("QtDesigner") << "QtDesigner";
-    QTest::newRow("QtDeclarative") << "QtDeclarative";
-    QTest::newRow("QtMultimedia") << "QtMultimedia";
-    QTest::newRow("QtNetwork") << "QtNetwork";
-    QTest::newRow("QtOpenGL") << "QtOpenGL";
-    QTest::newRow("QtScript") << "QtScript";
-    QTest::newRow("QtScriptTools") << "QtScriptTools";
-    QTest::newRow("QtSql") << "QtSql";
-    QTest::newRow("QtSvg") << "QtSvg";
-    QTest::newRow("QtTest") << "QtTest";
-    QTest::newRow("QtWebKit") << "QtWebKit";
-    QTest::newRow("QtXml") << "QtXml";
-    QTest::newRow("QtXmlPatterns") << "QtXmlPatterns";
-    QTest::newRow("phonon") << "phonon";
-}
-
 void tst_Bic::initTestCase()
 {
-    QString qtDir = QString::fromLocal8Bit(qgetenv("QTDIR"));
-    QVERIFY2(!qtDir.isEmpty(), "This test needs $QTDIR");
+    QTest::qWarn("This test needs the correct qmake in PATH, we need it to generate INCPATH for qt modules.");
+
+    qtModuleDir = QString::fromLocal8Bit(qgetenv("QT_MODULE_TO_TEST"));
+    QVERIFY2(!qtModuleDir.isEmpty(), "This test needs $QT_MODULE_TO_TEST, we need it to search data and etc.");
 
     if (qgetenv("PATH").contains("teambuilder"))
         QTest::qWarn("This test might not work with teambuilder, consider switching it off.");
+
+    QString configFile = qtModuleDir + "/tests/global/global.cfg";
+    modules = qt_tests_shared_global_get_modules(configFile);
+
+    QVERIFY2(modules.size() > 0, "Something is wrong in the global config file.");
+
+    QString workDir = qtModuleDir + "/tests/global";
+    incPaths = qt_tests_shared_global_get_include_paths(workDir, modules);
+
+    QVERIFY2(incPaths.size() > 0, "Parse INCPATH failed.");
+
+    QTest::addColumn<QString>("libName");
+
+    QStringList keys = modules.keys();
+    for (int i = 0; i < keys.size(); ++i)
+        QTest::newRow(keys.at(i).toLatin1()) << keys.at(i);
+}
+
+void tst_Bic::cleanupTestCase()
+{
 }
 
 void tst_Bic::sizesAndVTables_data()
@@ -211,7 +211,7 @@ void tst_Bic::sizesAndVTables_data()
     for (int i = 0; i <= minor; ++i) {
         if (i != minor || patch)
             QTest::newRow("4." + QByteArray::number(i))
-                << (QString(SRCDIR "data/%1.4.")
+                << (QString(qtModuleDir + "/tests/auto/bic/data/%1.4.")
                     + QString::number(i)
                     + QString(".0." FILESUFFIX ".txt"))
                 << (i == minor && patch);
@@ -233,15 +233,11 @@ QBic::Info tst_Bic::getCurrentInfo(const QString &libName)
     tmpQFile.write(tmpFileContents);
     tmpQFile.flush();
 
-    QString qtDir = QString::fromLocal8Bit(qgetenv("QTDIR"));
-#ifdef Q_OS_WIN
-    qtDir.replace('\\', '/');
-#endif
     QString compilerName = "g++";
 
     QStringList args;
     args << "-c"
-         << "-I" + qtDir + "/include"
+         << incPaths
 #ifdef Q_OS_MAC
         << "-arch" << "i386" // Always use 32-bit data on Mac.
 #endif
