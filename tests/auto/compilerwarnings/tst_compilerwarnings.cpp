@@ -51,6 +51,8 @@
 QTEST_NOOP_MAIN
 #else
 
+#include "global.h"
+
 #include <stdlib.h>
 
 QT_USE_NAMESPACE
@@ -60,11 +62,18 @@ class tst_CompilerWarnings: public QObject
     Q_OBJECT
 
 private slots:
+    void initTestCase();
+    void cleanupTestCase();
+
     void warnings_data();
     void warnings();
 
 private:
     bool shouldIgnoreWarning(QString const&);
+
+    QString qtModuleDir;
+    QHash<QString, QString> modules;
+    QStringList incPaths;
 };
 
 #if 0
@@ -109,6 +118,28 @@ static QStringList getFeatures()
 }
 #endif
 
+void tst_CompilerWarnings::initTestCase()
+{
+    QTest::qWarn("This test needs the correct qmake in PATH, we need it to generate INCPATH for qt modules.");
+
+    qtModuleDir = QString::fromLocal8Bit(qgetenv("QT_MODULE_TO_TEST"));
+    QVERIFY2(!qtModuleDir.isEmpty(), "This test needs $QT_MODULE_TO_TEST, we need it to search data and etc.");
+
+    QString configFile = qtModuleDir + "/tests/global/global.cfg";
+    modules = qt_tests_shared_global_get_modules(configFile);
+
+    QVERIFY2(modules.size() > 0, "Something is wrong in the global config file.");
+
+    QString workDir = qtModuleDir + "/tests/global";
+    incPaths = qt_tests_shared_global_get_include_paths(workDir, modules);
+
+    QVERIFY2(incPaths.size() > 0, "Parse INCPATH failed.");
+}
+
+void tst_CompilerWarnings::cleanupTestCase()
+{
+}
+
 void tst_CompilerWarnings::warnings_data()
 {
     QTest::addColumn<QStringList>("cflags");
@@ -133,6 +164,12 @@ void tst_CompilerWarnings::warnings_data()
 
 void tst_CompilerWarnings::warnings()
 {
+    QString workDir = qtModuleDir + "/tests/auto/compilerwarnings";
+    if (!QDir::setCurrent(workDir)) {
+        QTest::qWarn("Change working dir failed.");
+        return;
+    }
+
     QFETCH(QStringList, cflags);
 
 #if !defined(Q_CC_INTEL) && defined(Q_CC_GNU) && __GNUC__ == 3
@@ -149,12 +186,13 @@ void tst_CompilerWarnings::warnings()
     /*static*/ QString tmpSourceFile;
     bool openResult = true;
     const QString tmpBaseName("XXXXXX-test.cpp");
+    const QString cppFileName(workDir + "/data/test_cpp.txt");
     QString templatePath = QDir::temp().absoluteFilePath(tmpBaseName);
     QFile tmpQSourceFile(templatePath);
     if (tmpSourceFile.isEmpty()) {
         tmpQSourceFile.open(QIODevice::ReadWrite | QIODevice::Truncate);
         tmpSourceFile = tmpQSourceFile.fileName();
-        QFile cppSource(":/test_cpp.txt");
+        QFile cppSource(cppFileName);
         bool openResult = cppSource.open(QIODevice::ReadOnly);
         if (openResult)
         {
@@ -164,18 +202,15 @@ void tst_CompilerWarnings::warnings()
         }
     }
     tmpQSourceFile.close();
-    QVERIFY2(openResult, "Need resource temporary \"test_cpp.txt\"");
+    QVERIFY2(openResult, QString("Need data file \"" + cppFileName + "\"").toLatin1());
 
     QStringList args;
     QString compilerName;
 
-    static QString qtDir = QString::fromLocal8Bit(qgetenv("QTDIR"));
-    QVERIFY2(!qtDir.isEmpty(), "This test needs $QTDIR");
-
     args << cflags;
 #if !defined(Q_CC_INTEL) && defined(Q_CC_GNU)
     compilerName = "g++";
-    args << "-I" + qtDir + "/include";
+    args << incPaths;
     args << "-I/usr/X11R6/include/";
 #ifdef Q_OS_HPUX
     args << "-I/usr/local/mesa/aCC-64/include";
@@ -189,7 +224,7 @@ void tst_CompilerWarnings::warnings()
          << tmpSourceFile;
 #elif defined(Q_CC_XLC)
     compilerName = "xlC_r";
-    args << "-I" + qtDir + "/include"
+    args << incPaths
 # if QT_POINTER_SIZE == 8
          << "-q64"
 # endif
@@ -198,13 +233,13 @@ void tst_CompilerWarnings::warnings()
          << tmpSourceFile;
 #elif defined(Q_CC_MSVC)
     compilerName = "cl";
-    args << "-I" + qtDir + "/include"
+    args << incPaths
          << "-nologo" << "-W3"
          << tmpSourceFile;
 #elif defined (Q_CC_SUN)
     compilerName = "CC";
     // +w or +w2 outputs too much bogus
-    args << "-I" + qtDir + "/include"
+    args << incPaths
 # if QT_POINTER_SIZE == 8
          << "-xarch=v9"
 # endif
@@ -212,7 +247,7 @@ void tst_CompilerWarnings::warnings()
          << tmpSourceFile;
 #elif defined (Q_CC_HPACC)
     compilerName = "aCC";
-    args << "-I" + qtDir + "/include"
+    args << incPaths
          << "-I/usr/local/mesa/aCC-64/include"
          << "-I/opt/graphics/OpenGL/include"
 # if QT_POINTER_SIZE == 8 && !defined __ia64
@@ -224,7 +259,7 @@ void tst_CompilerWarnings::warnings()
          << tmpSourceFile;
 #elif defined(Q_CC_MIPS)
     compilerName = "CC";
-    args << "-I" + qtDir + "/include"
+    args << incPaths
          << "-c"
          << "-woff" << "3303" // const qualifier on return
          << "-o" << tmpFile
