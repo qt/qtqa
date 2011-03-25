@@ -74,7 +74,7 @@ private:
     const QRegExp copyrightPattern;
     const QRegExp licensePattern;
     const QRegExp moduleTest;
-    QString qtSrcDir;
+    QString qtModuleDir;
 };
 
 tst_Headers::tst_Headers() :
@@ -125,16 +125,19 @@ QStringList tst_Headers::getQDocFiles(const QString &path)
 
 void tst_Headers::initTestCase()
 {
-    qtSrcDir = QString::fromLocal8Bit(qgetenv("QTSRCDIR").isEmpty()
-               ? qgetenv("QTDIR")
-               : qgetenv("QTSRCDIR"));
+    qtModuleDir = QString::fromLocal8Bit(qgetenv("QT_MODULE_TO_TEST"));
+    QVERIFY2(!qtModuleDir.isEmpty(), "This test needs $QT_MODULE_TO_TEST, we need it to search data and etc.");
 
-    headers = getHeaders(qtSrcDir + "/src");
+    if (!qtModuleDir.contains("phonon") && !qtModuleDir.contains("qttools")) {
+        headers = getHeaders(qtModuleDir + "/src");
 
 #ifndef Q_OS_WINCE
-    // Windows CE does not have any headers on the test device
-    QVERIFY2(!headers.isEmpty(), "No headers were found, something is wrong with the auto test setup.");
+        // Windows CE does not have any headers on the test device
+        QVERIFY2(!headers.isEmpty(), "No headers were found, something is wrong with the auto test setup.");
 #endif
+    } else {
+        QTest::qWarn("Some test functions will be skipped, because we ignore them for phonon and qttools.");
+    }
 
     QVERIFY(copyrightPattern.isValid());
     QVERIFY(licensePattern.isValid());
@@ -159,11 +162,11 @@ void tst_Headers::allSourceFilesData()
     };
 
     for (int i = 0; i < sizeof(subdirs) / sizeof(subdirs[0]); ++i) {
-        sourceFiles << getCppFiles(qtSrcDir + subdirs[i]);
+        sourceFiles << getCppFiles(qtModuleDir + subdirs[i]);
         if (subdirs[i] != QLatin1String("/tests"))
-            sourceFiles << getQmlFiles(qtSrcDir + subdirs[i]);
-        sourceFiles << getHeaders(qtSrcDir + subdirs[i]);
-        sourceFiles << getQDocFiles(qtSrcDir + subdirs[i]);
+            sourceFiles << getQmlFiles(qtModuleDir + subdirs[i]);
+        sourceFiles << getHeaders(qtModuleDir + subdirs[i]);
+        sourceFiles << getQDocFiles(qtModuleDir + subdirs[i]);
     }
 
     foreach (QString sourceFile, sourceFiles) {
@@ -171,7 +174,7 @@ void tst_Headers::allSourceFilesData()
             || sourceFile.contains("/tests/auto/qmake/testdata/bundle-spaces/main.cpp")
             || sourceFile.contains("/demos/embedded/fluidlauncher/pictureflow.cpp")
             || sourceFile.contains("/tools/porting/src/")
-            || sourceFile.contains("/tools/assistant/lib/fulltextsearch/")
+            || sourceFile.contains("/src/assistant/lib/fulltextsearch/")
             || sourceFile.endsWith("_pch.h.cpp")
             || sourceFile.endsWith(".ui.h")
             || sourceFile.endsWith("/src/corelib/global/qconfig.h")
@@ -190,7 +193,7 @@ void tst_Headers::allHeadersData()
     QTest::addColumn<QString>("header");
 
     if (headers.isEmpty())
-        QSKIP("can't find any headers in your $QTDIR/src", SkipAll);
+        QSKIP("can't find any headers in your $QT_MODULE_TO_TEST/src.", SkipAll);
 
     foreach (QString hdr, headers) {
         if (hdr.contains("/3rdparty/") || hdr.endsWith("/src/tools/uic/qclass_lib_map.h"))
@@ -283,6 +286,7 @@ void tst_Headers::macros()
         || header.contains("global/qconfig-") || header.endsWith("/qconfig.h")
         || header.contains("/src/tools/") || header.contains("/src/plugins/")
         || header.contains("/src/imports/")
+        || header.contains("/src/uitools/")
         || header.endsWith("/qiconset.h") || header.endsWith("/qfeatures.h")
         || header.endsWith("qt_windows.h"))
         return;
