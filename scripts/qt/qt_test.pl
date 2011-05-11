@@ -89,12 +89,6 @@ sub run_init_repository
         push @init_repository_arguments, '-nokia-developer';
     }
 
-    # The git cloning of webkit seems to break sometimes in Pulse.  It may be
-    # a bug in the git wrapper script git_mirror.pl.  Remove this
-    # -no-webkit after that problem is understood and fixed.
-    warn "Warning: webkit will not yet be tested due to unresolved git issues";
-    push @init_repository_arguments, '-no-webkit';
-
     $self->exe( 'perl', './init-repository', @init_repository_arguments );
 
     return;
