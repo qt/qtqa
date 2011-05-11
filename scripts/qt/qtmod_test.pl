@@ -121,9 +121,6 @@ sub run_git_checkout
         push @init_repository_arguments, '-nokia-developer';
     }
 
-    # FIXME: remove this after we start testing modules which depend on webkit.
-    push @init_repository_arguments, '-no-webkit';
-
     # FIXME: this implementation clones all the modules, even those we don't need.
     # It should be improved to get only those modules we need (if at all possible ...)
     $self->exe( 'perl', './init-repository', @init_repository_arguments );
