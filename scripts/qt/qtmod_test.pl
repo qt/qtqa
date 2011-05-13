@@ -162,13 +162,6 @@ sub run_compile
 
     $self->exe( $configure, split(/\s+/, "$qt_configure_args $qt_configure_extra_args") );
 
-    # TEMPORARY: qtactiveqt is skipped on platforms other than Windows.
-    # There are pending changes in qt5 and qtactiveqt which will make this unnecessary.
-    if ($qt_gitmodule eq 'qtactiveqt' && $OSNAME !~ qr{win32}i) {
-        warn "`qtactiveqt' testing is skipped.";
-        return;
-    }
-
     # `configure' is expected to generate a makefile with a `module-FOO'
     # target for every module.  That target should have correct module
     # dependency information, so now issuing a `make module-FOO' should
