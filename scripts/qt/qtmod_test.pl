@@ -36,9 +36,33 @@ my @PROPERTIES = (
 
     q{qt.repository}           => q{giturl of Qt superproject},
 
+    q{qt.tests.enabled}        => q{if 1, run the autotests (for this module only)},
+
     q{make.bin}                => q{`make' command (e.g. `make', `nmake', `jom' ...)},
 
     q{make.args}               => q{extra arguments passed to `make' command (e.g. `-j25')},
+);
+
+# gitmodules for which `make check' is not yet safe.
+# These should be removed one-by-one as modules are verified to work correctly.
+# See task QTQAINFRA-142
+my %MAKE_CHECK_BLACKLIST = map { $_ => 1 } qw(
+    qlalr
+    qtactiveqt
+    qtbase
+    qtdeclarative
+    qtdoc
+    qtlocation
+    qtmultimedia
+    qtphonon
+    qtqa
+    qtrepotools
+    qtscript
+    qttools
+    qttranslations
+    qtwebkit
+    qtwebkit-examples-and-demos
+    qtxmlpatterns
 );
 
 sub run
@@ -48,6 +72,7 @@ sub run
     $self->read_and_store_configuration;
     $self->run_git_checkout;
     $self->run_compile;
+    $self->run_autotests;
 
     return;
 }
@@ -72,6 +97,22 @@ sub default_qt_repository
          :                                  'git://qt.gitorious.org/qt/qt5.git';
 }
 
+sub default_qt_tests_enabled
+{
+    my ($self) = @_;
+
+    my $qt_gitmodule = $self->{ 'qt.gitmodule' };
+
+    # By default, avoid the modules known to be bad.
+    # See task QTQAINFRA-142
+    if ($MAKE_CHECK_BLACKLIST{$qt_gitmodule}) {
+        warn "Autotests are not yet runnable for $qt_gitmodule";
+        return 0;
+    }
+
+    return 1;
+}
+
 sub read_and_store_configuration
 {
     my $self = shift;
@@ -88,6 +129,7 @@ sub read_and_store_configuration
         'qt.gitmodule'            => undef                                       ,
         'qt.configure.args'       => q{-opensource -confirm-license}             ,
         'qt.configure.extra_args' => q{}                                         ,
+        'qt.tests.enabled'        => \&default_qt_tests_enabled                  ,
     );
 
     # for convenience only - this should not be overridden
@@ -168,6 +210,27 @@ sub run_compile
     # automatically build the module and all deps, as parallel as possible.
     # XXX: this will not work for modules which aren't hosted in qt/qt5.git
     $self->exe( $make_bin, split(/ /, $make_args), "module-$qt_gitmodule" );
+
+    return;
+}
+
+sub run_autotests
+{
+    my ($self) = @_;
+
+    return if (!$self->{ 'qt.tests.enabled' });
+
+    my $qt_gitmodule            = $self->{ 'qt.gitmodule'     };
+    my $qt_gitmodule_dir        = $self->{ 'qt.gitmodule.dir' };
+    my $make_bin                = $self->{ 'make.bin'         };
+
+    $self->exe( $make_bin,
+        '-C',               # in the gitmodule's directory ...
+        $qt_gitmodule_dir,
+        '-j1',              # in serial (autotests are generally parallel-unsafe)
+        '-k',               # keep going after failure (to get as many results as possible)
+        'check',            # run the autotests :)
+    );
 
     return;
 }
