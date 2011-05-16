@@ -103,9 +103,11 @@ sub all_required_cpan_modules
 {
     return qw(
         IO::CaptureOutput
+        Perl::Critic
         Test::Exception
         Test::Exit
         Test::More
+        Test::Perl::Critic
         Text::Diff
     );
 }

@@ -53,6 +53,8 @@ sub run
     # If this were a real script, the implementation would go here ...
 
     print "Frobnitz successfully completed!\n";
+
+    return;
 }
 
 SimpleScript->new(@ARGV)->run if (!caller);
