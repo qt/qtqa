@@ -150,7 +150,10 @@ void tst_Bic::initTestCase()
     QTest::qWarn("This test needs the correct qmake in PATH, we need it to generate INCPATH for qt modules.");
 
     qtModuleDir = QString::fromLocal8Bit(qgetenv("QT_MODULE_TO_TEST"));
-    QVERIFY2(!qtModuleDir.isEmpty(), "This test needs $QT_MODULE_TO_TEST, we need it to search data and etc.");
+    if (qtModuleDir.isEmpty()) {
+        QSKIP("$QT_MODULE_TO_TEST is unset - nothing to test.  Set QT_MODULE_TO_TEST to the path "
+              "of a Qt module to test.", SkipAll);
+    }
 
     if (qgetenv("PATH").contains("teambuilder"))
         QTest::qWarn("This test might not work with teambuilder, consider switching it off.");
