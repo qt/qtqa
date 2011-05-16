@@ -55,7 +55,6 @@ my %MAKE_CHECK_BLACKLIST = map { $_ => 1 } qw(
     qtlocation
     qtmultimedia
     qtphonon
-    qtqa
     qtrepotools
     qtscript
     qttools
