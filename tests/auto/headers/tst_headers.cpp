@@ -126,7 +126,10 @@ QStringList tst_Headers::getQDocFiles(const QString &path)
 void tst_Headers::initTestCase()
 {
     qtModuleDir = QString::fromLocal8Bit(qgetenv("QT_MODULE_TO_TEST"));
-    QVERIFY2(!qtModuleDir.isEmpty(), "This test needs $QT_MODULE_TO_TEST, we need it to search data and etc.");
+    if (qtModuleDir.isEmpty()) {
+        QSKIP("$QT_MODULE_TO_TEST is unset - nothing to test.  Set QT_MODULE_TO_TEST to the path "
+              "of a Qt module to test.", SkipAll);
+    }
 
     if (!qtModuleDir.contains("phonon") && !qtModuleDir.contains("qttools")) {
         headers = getHeaders(qtModuleDir + "/src");
