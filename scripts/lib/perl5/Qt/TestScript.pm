@@ -165,7 +165,7 @@ sub exe
     # especially on Windows where quoting issues were common.  So it has not been
     # ported for now.
 
-    $self->print_when_verbose(1, '+ ', @command);
+    $self->print_when_verbose(1, '+ ', join(' ', @command), "\n");
     my $status = system( @command );
     if ($status != 0) {
         croak "@command exited with status $status";

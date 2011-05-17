@@ -1,0 +1,33 @@
+Usage:
+      $ ./simple.pl [options]
+
+    Frobnitz the quux via usage of blargle.
+
+    Crungy factor may be taken into consideration if the operand density is
+    sufficiently cromulent.
+
+ Standard options:
+
+    --help
+
+      Print this help.
+
+    --verbose
+
+      Be more verbose. Specify multiple times for more verbosity.
+
+ Options specific to this script:
+
+    [fast] --fast <value>
+
+      If 1, sacrifice accuracy for speed
+
+    [quux.inplace] --quux-inplace <value>
+
+      If 1, do the frobnitz in-place, instead of copying the quux first
+      (use with care!)
+
+    [quux.style] --quux-style <value>
+
+      Style of the quux to be frobnitzed (e.g. `cheesy', `purple')
+
