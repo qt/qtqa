@@ -422,6 +422,14 @@ sub run
 {
     my $self = shift;
 
+    # Close STDIN to ensure that all modules and subprocesses do not try to do interactive
+    # prompts, etc.
+    #
+    # Without this, it is possible that certain modules will attempt to read from STDIN
+    # and block indefinitely (even though we have not asked pip, cpan to run in interactive
+    # mode).
+    close( STDIN ) || die "close STDIN: $OS_ERROR";
+
     my $ok = 1;
 
     print "\nChecking python modules ...\n";
