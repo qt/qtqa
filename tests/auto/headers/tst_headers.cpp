@@ -164,7 +164,7 @@ void tst_Headers::allSourceFilesData()
         "/util"
     };
 
-    for (int i = 0; i < sizeof(subdirs) / sizeof(subdirs[0]); ++i) {
+    for (size_t i = 0; i < sizeof(subdirs) / sizeof(subdirs[0]); ++i) {
         sourceFiles << getCppFiles(qtModuleDir + subdirs[i]);
         if (subdirs[i] != QLatin1String("/tests"))
             sourceFiles << getQmlFiles(qtModuleDir + subdirs[i]);
