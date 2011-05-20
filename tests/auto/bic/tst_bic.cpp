@@ -247,7 +247,7 @@ QBic::Info tst_Bic::getCurrentInfo(const QString &libName)
 #ifndef Q_OS_WIN
          << "-I/usr/X11R6/include/"
 #endif
-         << "-DQT_NO_STL" << "-DQT3_SUPPORT"
+         << "-DQT_NO_STL"
          << "-xc++"
 #if !defined(Q_OS_AIX) && !defined(Q_OS_WIN)
          << "-o" << "/dev/null"
