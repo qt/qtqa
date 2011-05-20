@@ -43,20 +43,20 @@
 if [ "$#" -lt 2 ]; then
     echo "$0 - Generates reference files for b/c autotest"
     echo "Usage: $0 [module|-all] [platform]"
-    echo "Examples: $0 -all 4.1.0.macx-gcc-ppc32"
-    echo "          $0 QtGui 4.0.0.linux-gcc-ia32"
+    echo "Examples: $0 -all 5.1.0.macx-gcc-ppc32"
+    echo "          $0 QtGui 5.0.0.linux-gcc-ia32"
     exit 1
 fi
 
 if [ "$1" = "-all" ]; then
-    modules="QtCore QtGui Qt3Support QtDBus QtDesigner QtHelp QtMultimedia QtNetwork QtOpenGL QtScript QtScriptTools QtSql QtSvg QtTest QtWebKit QtXml QtXmlPatterns phonon"
+    modules="QtCore QtGui QtDBus QtDesigner QtHelp QtMultimedia QtNetwork QtOpenGL QtScript QtScriptTools QtSql QtSvg QtTest QtWebKit QtXml QtXmlPatterns phonon"
 else
     modules="$1"
 fi
 
 for module in $modules; do
     echo "#include <$module/$module>" >test.cpp
-    g++ -c -I$QTDIR/include -DQT_NO_STL -DQT3_SUPPORT -fdump-class-hierarchy test.cpp
+    g++ -c -I$QTDIR/include -DQT_NO_STL -fdump-class-hierarchy test.cpp
     mv test.cpp*.class $module.$2.txt
     # Remove template classes from the output
     perl -pi -e '$skip = 1 if (/^(Class|Vtable).*</);

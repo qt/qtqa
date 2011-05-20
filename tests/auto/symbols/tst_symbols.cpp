@@ -161,10 +161,6 @@ void tst_Symbols::globalObjects()
             // skip this library, it's 3rd-party C++
             continue;
         }
-        if (lib == "libQt3Support.so") {
-            // we're not going to fix these issues anyway, so skip this library
-            continue;
-        }
 
         qDebug() << lib
                  << ", " << dir.absolutePath();
