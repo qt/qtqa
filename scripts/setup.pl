@@ -112,6 +112,7 @@ sub all_required_cpan_modules
         Test::More
         Test::Perl::Critic
         Text::Diff
+        autodie
     );
 }
 
