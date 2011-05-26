@@ -58,7 +58,6 @@ my %MAKE_CHECK_BLACKLIST = map { $_ => 1 } qw(
     qtmultimedia
     qtphonon
     qtrepotools
-    qtscript
     qtwebkit
     qtxmlpatterns
 );
