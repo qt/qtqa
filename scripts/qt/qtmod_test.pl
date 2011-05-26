@@ -8,9 +8,11 @@ use lib "$FindBin::Bin/../lib/perl5";
 package Qt::ModuleTest;
 use base qw(Qt::TestScript);
 
-use Cwd;
+use Carp;
+use Cwd     qw( abs_path );
 use English qw( -no_match_vars );
 use File::Spec::Functions;
+use FindBin;
 use autodie;
 
 # All properties used by this script.
@@ -37,6 +39,10 @@ my @PROPERTIES = (
     q{qt.repository}           => q{giturl of Qt superproject},
 
     q{qt.tests.enabled}        => q{if 1, run the autotests (for this module only)},
+
+    q{qt.tests.timeout}        => q{maximum runtime permitted for each autotest, in seconds; any }
+                                . q{test which does not completed within this time will be }
+                                . q{killed and considered a failure},
 
     q{make.bin}                => q{`make' command (e.g. `make', `nmake', `jom' ...)},
 
@@ -122,6 +128,7 @@ sub read_and_store_configuration
         'qt.configure.args'       => q{-opensource -confirm-license}             ,
         'qt.configure.extra_args' => q{}                                         ,
         'qt.tests.enabled'        => \&default_qt_tests_enabled                  ,
+        'qt.tests.timeout'        => 60*15                                       ,
     );
 
     # for convenience only - this should not be overridden
@@ -214,14 +221,30 @@ sub run_autotests
 
     my $qt_gitmodule            = $self->{ 'qt.gitmodule'     };
     my $qt_gitmodule_dir        = $self->{ 'qt.gitmodule.dir' };
+    my $qt_tests_timeout        = $self->{ 'qt.tests.timeout' };
     my $make_bin                = $self->{ 'make.bin'         };
 
+    my $testrunner = catfile( $FindBin::Bin, '..', '..', 'bin', 'testrunner' );
+    $testrunner    = abs_path( $testrunner );
+
+    # sanity check
+    confess( "internal error: $testrunner does not exist" ) if (! -e $testrunner);
+
+    my $testrunner_with_args = join(' ',
+        $testrunner,        # run the tests through our testrunner script ...
+        '--timeout',
+        $qt_tests_timeout,  # kill any test which takes longer than this ...
+        '--'                # this is the last argument to be handled by testrunner
+    );
+
     $self->exe( $make_bin,
-        '-C',               # in the gitmodule's directory ...
+        '-C',                               # in the gitmodule's directory ...
         $qt_gitmodule_dir,
-        '-j1',              # in serial (autotests are generally parallel-unsafe)
-        '-k',               # keep going after failure (to get as many results as possible)
-        'check',            # run the autotests :)
+        '-j1',                              # in serial (autotests are generally parallel-unsafe)
+        '-k',                               # keep going after failure
+                                            # (to get as many results as possible)
+        "TESTRUNNER=$testrunner_with_args", # use our testrunner script
+        'check',                            # run the autotests :)
     );
 
     return;

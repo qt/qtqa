@@ -102,8 +102,11 @@ my $HTTP_CPANMINUS =
 sub all_required_cpan_modules
 {
     return qw(
+        Capture::Tiny
         IO::CaptureOutput
         Perl::Critic
+        Proc::Reliable
+        Readonly
         Test::Exception
         Test::Exit
         Test::More
