@@ -59,7 +59,6 @@ my %MAKE_CHECK_BLACKLIST = map { $_ => 1 } qw(
     qtphonon
     qtrepotools
     qtwebkit
-    qtxmlpatterns
 );
 
 sub run
