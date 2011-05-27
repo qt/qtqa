@@ -55,7 +55,6 @@ my @PROPERTIES = (
 my %MAKE_CHECK_BLACKLIST = map { $_ => 1 } qw(
     qtbase
     qtdeclarative
-    qtmultimedia
     qtphonon
     qtrepotools
     qtwebkit
