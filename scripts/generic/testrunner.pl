@@ -144,7 +144,7 @@ sub print_info
 
     # Prefix every line with __PACKAGE__ so it is clear where this message comes from
     my $prefix = __PACKAGE__ . ': ';
-    $msg =~ s{ \n (?! \z ) }{$prefix}xms;   # replace all newlines except the trailing one
+    $msg =~ s{ \n (?! \z ) }{\n$prefix}xms;   # replace all newlines except the trailing one
     $msg = $prefix.$msg;
 
     print STDERR $msg;
