@@ -117,8 +117,11 @@ sub do_subprocess
     my $proc = Proc::Reliable->new( );
 
     $proc->stdin_error_ok( 1 );                 # OK if child does not read all stdin
-    $proc->num_tries     ( 1 );                 # don't automatically retry on error
-    $proc->maxtime       ( $self->{timeout} );  # don't run for longer than this
+    $proc->num_tries( 1 );                      # don't automatically retry on error
+    $proc->child_exit_time( 0 );                # don't consider it an error if the test
+                                                # doesn't quit soon after closing stdout
+    $proc->time_per_try( $self->{timeout} );    # don't run for longer than this
+    $proc->maxtime( $self->{timeout} );         # ...and again (need to set both)
 
     # Print all output as we receive it;
     # The first parameter to the callback is the correct IO handle (STDOUT or STDERR)
