@@ -122,6 +122,7 @@ sub do_subprocess
                                                 # doesn't quit soon after closing stdout
     $proc->time_per_try( $self->{timeout} );    # don't run for longer than this
     $proc->maxtime( $self->{timeout} );         # ...and again (need to set both)
+    $proc->want_single_list( 0 );               # force stdout/stderr handled separately
 
     # Print all output as we receive it;
     # The first parameter to the callback is the correct IO handle (STDOUT or STDERR)
