@@ -90,6 +90,10 @@ use Pod::Usage            qw( pod2usage           );
 my $HTTP_CPANMINUS =
     'http://cpansearch.perl.org/src/MIYAGAWA/App-cpanminus-1.4005/bin/cpanm';
 
+# Null device understood by system shell redirection
+my $DEVNULL = ($OSNAME =~ m{win32}i) ? 'NUL'
+            :                          '/dev/null';
+
 #====================== perl stuff ============================================
 
 # Returns a list of all CPAN modules needed (including those which
@@ -124,9 +128,13 @@ sub all_required_cpan_modules
 # Therefore it is crucial that modules must not have significant side effects
 # merely from being used.
 #
+# Parameters:
+#  an optional hashref to be passed to run_module_test
+#
 sub missing_required_cpan_modules
 {
-    my $self = shift;
+    my ($self, $arg_ref) = @_;
+
     my @all = $self->all_required_cpan_modules;
 
     my @need_install = ();
@@ -146,11 +154,9 @@ sub missing_required_cpan_modules
 
     foreach my $module (@all) {
         print "$module - ";
-        my @cmd = ('perl', "-m$module", '-e1');
-        if (0 == system(@cmd)) {
-            print "OK\n";
-        }
-        else {
+        my $cmd = "perl -m$module -e1";
+
+        if (!$self->run_module_test( $cmd, $arg_ref )) {
             push @need_install, $module;
         }
     }
@@ -324,20 +330,22 @@ sub all_required_python_modules
 # Therefore it is crucial that modules must not have significant side effects
 # merely from being imported.
 #
+# Parameters:
+#  an optional hashref to be passed to run_module_test
+#
 sub missing_required_python_modules
 {
-    my $self = shift;
+    my ($self, $arg_ref) = @_;
+
     my @all = $self->all_required_python_modules;
 
     my @need_install = ();
 
     foreach my $module (@all) {
         print "$module - ";
-        my @cmd = ('python', '-c', "import $module");
-        if (0 == system(@cmd)) {
-            print "OK\n";
-        }
-        else {
+        my $cmd = "python -c \"import $module\"";
+
+        if (!$self->run_module_test( $cmd, $arg_ref )) {
             push @need_install, $module;
         }
     }
@@ -488,7 +496,7 @@ sub try_hard_to_install
 
     my $name = $args{name};
 
-    my @need = $args{need_sub}($self);
+    my @need = $args{need_sub}($self, { quiet => 1 });
 
     unless (@need) {
         print "\nIt looks like your $name setup is complete :)\n";
@@ -511,7 +519,7 @@ sub try_hard_to_install
         print "\n\nInstallation failed :(\n";
         print "Checking if any progress was made...\n\n";
 
-        my %newneed = map { $_ => 1 } $args{need_sub}($self);
+        my %newneed = map { $_ => 1 } $args{need_sub}($self, { quiet => 1 });
         my @installed = grep { !$newneed{$_} } @need;
 
         if (@installed) {
@@ -532,12 +540,14 @@ sub try_hard_to_install
             }
         }
         else {
-            print "\nNope, looks like no progress was made.  Giving up :(\n";
+            print "\nNope, looks like no progress was made.  See errors:\n";
+            $args{need_sub}($self, { quiet => 0 });
+            print "\nGiving up :(\n";
             return 0;
         }
     }
 
-    @need = $args{need_sub}($self);
+    @need = $args{need_sub}($self, { quiet => 0 });
     if (@need) {
         print "Installation completed successfully, but you still seem to "
              ."be missing some $name modules: @need\n";
@@ -547,6 +557,36 @@ sub try_hard_to_install
     return 1;
 }
 
+# Run a module test command, and return true if it succeeds.
+#
+# Parameters:
+#   $cmd     -  the command to run; will be run via shell, so be careful with quotes
+#   $arg_ref -  hashref with the following keys:
+#     quiet  => if true, hide stderr from the command
+#
+sub run_module_test
+{
+    my ($self, $cmd, $arg_ref) = @_;
+
+    my $quiet = $arg_ref->{ quiet };
+
+    if ($quiet) {
+        $cmd .= " 2>$DEVNULL";
+    }
+
+    if (0 == system($cmd)) {
+        print "OK\n";
+        return 1;
+    }
+
+    # if we hid errors, then we'll print a summary;
+    # otherwise, we expect that the module test command printed something.
+    if ($quiet) {
+        print "NOT OK\n";
+    }
+
+    return 0;
+}
 
 #==============================================================================
 
