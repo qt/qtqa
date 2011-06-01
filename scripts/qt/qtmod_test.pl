@@ -54,7 +54,6 @@ my @PROPERTIES = (
 # See task QTQAINFRA-142
 my %MAKE_CHECK_BLACKLIST = map { $_ => 1 } qw(
     qtbase
-    qtdeclarative
     qtrepotools
     qtwebkit
 );
