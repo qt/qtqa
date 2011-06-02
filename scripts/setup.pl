@@ -106,6 +106,7 @@ my $DEVNULL = ($OSNAME =~ m{win32}i) ? 'NUL'
 sub all_required_cpan_modules
 {
     return qw(
+        BSD::Resource
         Capture::Tiny
         IO::CaptureOutput
         Perl::Critic
