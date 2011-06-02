@@ -149,6 +149,10 @@ sub run_prove
         #
         '--state=save',
 
+        # Let tests freely use modules under lib/perl5
+        '-I',
+        "$FindBin::Bin/lib/perl5",
+
         # Run all tests under the directory in which test.pl is located
         '--recurse',
         $FindBin::Bin

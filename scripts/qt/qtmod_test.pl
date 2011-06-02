@@ -9,10 +9,12 @@ package Qt::ModuleTest;
 use base qw(Qt::TestScript);
 
 use Carp;
-use Cwd     qw( abs_path );
+use Cwd qw( abs_path );
+use Data::Dumper;
 use English qw( -no_match_vars );
 use File::Spec::Functions;
 use FindBin;
+use List::MoreUtils qw( any );
 use autodie;
 
 # All properties used by this script.
@@ -43,6 +45,16 @@ my @PROPERTIES = (
     q{qt.tests.timeout}        => q{maximum runtime permitted for each autotest, in seconds; any }
                                 . q{test which does not completed within this time will be }
                                 . q{killed and considered a failure},
+
+    q{qt.tests.capture_logs}   => q{if set to a directory name, capture all test logs into this }
+                                . q{directory.  For example, setting qt.tests.capture_logs=}
+                                . q{$HOME/test-logs will create one file in $HOME/test-logs for }
+                                . q{each autotest which is run.  If neither this nor }
+                                . q{qt.tests.tee_logs are used, tests print to STDOUT/STDERR }
+                                . q{as normal},
+
+    q{qt.tests.tee_logs}       => q{like qt.tests.capture_logs, but also print the test logs to }
+                                . q{STDOUT/STDERR as normal while the tests are running},
 
     q{make.bin}                => q{`make' command (e.g. `make', `nmake', `jom' ...)},
 
@@ -124,10 +136,18 @@ sub read_and_store_configuration
         'qt.configure.extra_args' => q{}                                         ,
         'qt.tests.enabled'        => \&default_qt_tests_enabled                  ,
         'qt.tests.timeout'        => 60*15                                       ,
+        'qt.tests.capture_logs'   => q{}                                         ,
+        'qt.tests.tee_logs'       => q{}                                         ,
     );
 
     # for convenience only - this should not be overridden
     $self->{'qt.gitmodule.dir'}   =  catfile( $self->{'qt.dir'}, $self->{'qt.gitmodule'} );
+
+    if ($self->{'qt.tests.capture_logs'} && $self->{'qt.tests.tee_logs'}) {
+        delete $self->{'qt.tests.capture_logs'};
+        warn 'qt.tests.capture_logs and qt.tests.tee_logs were both specified; '
+            .'tee_logs takes precedence';
+    }
 
     return;
 }
@@ -208,6 +228,54 @@ sub run_compile
     return;
 }
 
+# Returns a testrunner command
+sub get_testrunner_command
+{
+    my ($self) = @_;
+
+    my $qt_tests_timeout        = $self->{ 'qt.tests.timeout' };
+    my $qt_tests_capture_logs   = $self->{ 'qt.tests.capture_logs' };
+    my $qt_tests_tee_logs       = $self->{ 'qt.tests.tee_logs' };
+
+    my $testrunner = catfile( $FindBin::Bin, '..', '..', 'bin', 'testrunner' );
+    $testrunner    = abs_path( $testrunner );
+
+    # sanity check
+    confess( "internal error: $testrunner does not exist" ) if (! -e $testrunner);
+
+    my @testrunner_with_args = (
+        $testrunner,        # run the tests through our testrunner script ...
+        '--timeout',
+        $qt_tests_timeout,  # kill any test which takes longer than this ...
+    );
+
+    # capture or tee logs to a given directory
+    if ($qt_tests_capture_logs) {
+        push @testrunner_with_args, '--capture-logs', $qt_tests_capture_logs;
+    }
+    elsif ($qt_tests_tee_logs) {
+        push @testrunner_with_args, '--tee-logs', $qt_tests_tee_logs;
+    }
+
+    push @testrunner_with_args, '--'; # no more args
+
+    # We cannot handle passing arguments with spaces into `make TESTRUNNER...',
+    # so detect and abort right now if that's the case.
+    #
+    # Handling this properly by quoting the arguments is really quite difficult
+    # (it depends on exactly which shell is going to be invoked by make, which may
+    # be affected by the value of the PATH environment variable when make is run, etc...),
+    # so we will not do it unless it becomes necessary.
+    #
+    if (any { /\s/ } @testrunner_with_args) {
+        confess( "Some arguments to testrunner contain spaces, which is currently not supported.\n"
+                ."Try removing spaces from build / log paths, if there are any.\n"
+                .'testrunner and arguments: '.Dumper(\@testrunner_with_args)."\n" );
+    }
+
+    return join(' ', @testrunner_with_args);
+}
+
 sub run_autotests
 {
     my ($self) = @_;
@@ -216,21 +284,9 @@ sub run_autotests
 
     my $qt_gitmodule            = $self->{ 'qt.gitmodule'     };
     my $qt_gitmodule_dir        = $self->{ 'qt.gitmodule.dir' };
-    my $qt_tests_timeout        = $self->{ 'qt.tests.timeout' };
     my $make_bin                = $self->{ 'make.bin'         };
 
-    my $testrunner = catfile( $FindBin::Bin, '..', '..', 'bin', 'testrunner' );
-    $testrunner    = abs_path( $testrunner );
-
-    # sanity check
-    confess( "internal error: $testrunner does not exist" ) if (! -e $testrunner);
-
-    my $testrunner_with_args = join(' ',
-        $testrunner,        # run the tests through our testrunner script ...
-        '--timeout',
-        $qt_tests_timeout,  # kill any test which takes longer than this ...
-        '--'                # this is the last argument to be handled by testrunner
-    );
+    my $testrunner_command = $self->get_testrunner_command( );
 
     $self->exe( $make_bin,
         '-C',                               # in the gitmodule's directory ...
@@ -238,7 +294,7 @@ sub run_autotests
         '-j1',                              # in serial (autotests are generally parallel-unsafe)
         '-k',                               # keep going after failure
                                             # (to get as many results as possible)
-        "TESTRUNNER=$testrunner_with_args", # use our testrunner script
+        "TESTRUNNER=$testrunner_command",   # use our testrunner script
         'check',                            # run the autotests :)
     );
 

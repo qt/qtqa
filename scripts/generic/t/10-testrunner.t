@@ -23,6 +23,9 @@ use Readonly;
 use Test::More;
 use Capture::Tiny qw( capture );
 
+use lib "$FindBin::Bin/../../lib/perl5";
+use Qt::Test::More qw( is_or_like );
+
 # FIXME: avoid this module on Windows, or will it be emulated?
 use BSD::Resource qw( setrlimit RLIMIT_CORE );
 
@@ -113,22 +116,6 @@ Readonly my %TESTSCRIPT_ARGUMENTS => (
         ] => encode_utf8( q{$VAR1 = '早上好';$VAR2 = '你好马？';} ),
     ],
 );
-
-# `is' and `like' from Test::More combined into one:
-# `expected' may be either a Regexp (in which case the function is `like'),
-# or it may be a string (in which case the function is `is')
-sub is_or_like
-{
-    my ($actual, $expected, $testname) = @_;
-
-    return if !defined($expected);
-
-    if (ref($expected) eq 'Regexp') {
-        goto &like;
-    }
-
-    goto &is;
-}
 
 # Do a single test of Qt::App::TestRunner->run( )
 sub test_run

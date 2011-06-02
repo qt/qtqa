@@ -108,7 +108,9 @@ sub all_required_cpan_modules
     return qw(
         BSD::Resource
         Capture::Tiny
+        File::Slurp
         IO::CaptureOutput
+        List::MoreUtils
         Perl::Critic
         Proc::Reliable
         Readonly
