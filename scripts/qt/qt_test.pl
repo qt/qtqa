@@ -5,8 +5,8 @@ use warnings;
 use FindBin;
 use lib "$FindBin::Bin/../lib/perl5";
 
-package Qt::Qt5Test;
-use base qw(Qt::TestScript);
+package QtQA::Qt5Test;
+use base qw(QtQA::TestScript);
 
 use Cwd;
 use English qw( -no_match_vars );
@@ -60,10 +60,10 @@ sub read_and_store_configuration
     my $self = shift;
 
     $self->read_and_store_properties(
-        'base.dir'                => \&Qt::TestScript::default_common_property   ,
-        'location'                => \&Qt::TestScript::default_common_property   ,
-        'make.args'               => \&Qt::TestScript::default_common_property   ,
-        'make.bin'                => \&Qt::TestScript::default_common_property   ,
+        'base.dir'                => \&QtQA::TestScript::default_common_property ,
+        'location'                => \&QtQA::TestScript::default_common_property ,
+        'make.args'               => \&QtQA::TestScript::default_common_property ,
+        'make.bin'                => \&QtQA::TestScript::default_common_property ,
 
         'qt.configure.args'       => q{-opensource -confirm-license}             ,
         'qt.configure.extra_args' => q{}                                         ,
@@ -119,13 +119,13 @@ sub run_compile
 
 sub main
 {
-    my $test = Qt::Qt5Test->new(@ARGV);
+    my $test = QtQA::Qt5Test->new(@ARGV);
     $test->run;
 
     return;
 }
 
-Qt::Qt5Test->main unless caller;
+QtQA::Qt5Test->main unless caller;
 1;
 
 __END__

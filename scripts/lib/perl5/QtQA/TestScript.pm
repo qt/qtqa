@@ -1,4 +1,4 @@
-package Qt::TestScript;
+package QtQA::TestScript;
 use strict;
 use warnings;
 
@@ -399,11 +399,11 @@ __END__
 
 =head1 NAME
 
-Qt::TestScript - base class for Qt test scripts
+QtQA::TestScript - base class for Qt test scripts
 
 =head1 SYNOPSIS
 
-  use base qw(Qt::TestScript);
+  use base qw(QtQA::TestScript);
   ...
 
 This is the recommended base class for all new test scripts for Qt test
@@ -582,7 +582,7 @@ Similar to the L<autodie> module.
 
 =item properties passed to child script
 
-If the script being called is also a Qt::TestScript, it will automatically
+If the script being called is also a QtQA::TestScript, it will automatically
 get the same values for all properties which are set in the currently
 running script.
 

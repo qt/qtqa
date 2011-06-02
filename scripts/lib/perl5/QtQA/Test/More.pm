@@ -1,4 +1,4 @@
-package Qt::Test::More;
+package QtQA::Test::More;
 use strict;
 use warnings;
 
@@ -32,17 +32,17 @@ sub is_or_like      ## no critic (Subroutines::RequireArgUnpacking) - needed for
 
 =head1 NAME
 
-Qt::Test::More  -   a handful of test utilities in the spirit of Test::More
+QtQA::Test::More -  a handful of test utilities in the spirit of Test::More
 
 =head1 SYNOPSIS
 
   use Test::More;
-  use Qt::Test::More;
+  use QtQA::Test::More;
 
   # use regular Test::More functions where appropriate...
   is( $actual, $expected, 'value is as expected' );
 
-  # ... and additional Qt::Test::More functions where useful
+  # ... and additional QtQA::Test::More functions where useful
   is_or_like( $actual, $expected, 'value matches expected' );
 
 This module holds various test helper functions which have been found useful

@@ -35,7 +35,7 @@ use Test::More;
 use Time::HiRes qw( sleep );
 
 use lib "$FindBin::Bin/../../lib/perl5";
-use Qt::Test::More qw( is_or_like );
+use QtQA::Test::More qw( is_or_like );
 
 # Stream markers for use in TEST_OUTPUT
 Readonly my $STREAM_OUTPUT        => 1;  # well-behaved output, to stdout or to -o testlog
@@ -400,7 +400,7 @@ sub run
         expected_logtext => encode_utf8(
             "1:testlog:早上好\n2:testlog:你好马？\n"
            ."3:testlog:早上好\n4:testlog:你好马？\n"
-           ."\nQt::App::TestRunner: test output additional content directly to stdout/stderr:\n"
+           ."\nQtQA::App::TestRunner: test output additional content directly to stdout/stderr:\n"
            ."1:stderr:早上好\n2:stderr:你好马？\n"
            ."1:stdout:早上好\n2:stdout:你好马？\n"
            ."3:stdout:早上好\n4:stdout:你好马？\n"
@@ -415,7 +415,7 @@ sub run
         expected_logtext =>
             "1:testlog\n2:testlog\n"
            ."3:testlog\n4:testlog\n"
-           ."\nQt::App::TestRunner: test output additional content directly to stdout/stderr:\n"
+           ."\nQtQA::App::TestRunner: test output additional content directly to stdout/stderr:\n"
            ."1:stderr\n2:stderr\n"
            ."1:stdout\n2:stdout\n"
            ."3:stdout\n4:stdout\n"
@@ -430,7 +430,7 @@ sub run
         expected_logtext =>
             "1:testlog\n2:testlog\n"
            ."3:testlog\n4:testlog\n"
-           ."\nQt::App::TestRunner: test output additional content directly to stdout/stderr:\n"
+           ."\nQtQA::App::TestRunner: test output additional content directly to stdout/stderr:\n"
            ."1:stderr\n2:stderr\n"
            ."1:stdout\n2:stdout\n"
            ."3:stdout\n4:stdout\n"
@@ -494,8 +494,8 @@ sub run
         expected_success => 0,  # failure should be forced even though exit code of test is 0
         expected_logfile => "$tempdir/perl-testlog-00.log",
         expected_logtext =>
-            "Qt::App::TestRunner: FAIL! Test was badly behaved, the `-o' argument was ignored.\n"
-           ."Qt::App::TestRunner: stdout/stderr follows:\n"
+            "QtQA::App::TestRunner: FAIL! Test was badly behaved, the `-o' argument was ignored.\n"
+           ."QtQA::App::TestRunner: stdout/stderr follows:\n"
            ."1:testlog\n2:testlog\n"
            ."1:stderr\n2:stderr\n"
            ."1:stdout\n2:stdout\n"
@@ -512,8 +512,8 @@ sub run
         expected_success => 0,
         expected_logfile => "$tempdir/perl-testlog.log-00.txt",
         expected_logtext => encode_utf8(
-            "Qt::App::TestRunner: FAIL! Test was badly behaved, the `-o' argument was ignored.\n"
-           ."Qt::App::TestRunner: stdout/stderr follows:\n"
+            "QtQA::App::TestRunner: FAIL! Test was badly behaved, the `-o' argument was ignored.\n"
+           ."QtQA::App::TestRunner: stdout/stderr follows:\n"
            ."1:testlog:早上好\n2:testlog:你好马？\n"
            ."1:stderr:早上好\n2:stderr:你好马？\n"
            ."1:stdout:早上好\n2:stdout:你好马？\n"
@@ -527,8 +527,8 @@ sub run
         testrunner_args  => [ '--tee-logs', $tempdir, '--' ],
         command_args     => [ '-o', 'testlog.log.txt', '--skip-log', 'mixed_nonascii' ],
         expected_logtext => encode_utf8(
-            "Qt::App::TestRunner: FAIL! Test was badly behaved, the `-o' argument was ignored.\n"
-           ."Qt::App::TestRunner: stdout/stderr follows:\n"
+            "QtQA::App::TestRunner: FAIL! Test was badly behaved, the `-o' argument was ignored.\n"
+           ."QtQA::App::TestRunner: stdout/stderr follows:\n"
            ."1:testlog:早上好\n2:testlog:你好马？\n"
            ."1:stderr:早上好\n2:stderr:你好马？\n"
            ."1:stdout:早上好\n2:stdout:你好马？\n"
@@ -559,7 +559,7 @@ sub run
         testrunner_args  => [ '--capture-logs', $tempdir, '--'],
         command          => [ 'command_which_does_not_exist' ],
         expected_logfile => "$tempdir/command_which_does_not_exist-00.txt",
-        expected_logtext => 'Qt::App::TestRunner: command_which_does_not_exist: '
+        expected_logtext => 'QtQA::App::TestRunner: command_which_does_not_exist: '
                            ."No such file or directory\n",
         expected_stderr  => "",
         expected_success => 0,
@@ -569,15 +569,15 @@ sub run
         testrunner_args  => [ '--tee-logs', $tempdir, '--'],
         command          => [ 'command_which_does_not_exist' ],
         expected_logfile => "$tempdir/command_which_does_not_exist-01.txt",
-        expected_logtext => 'Qt::App::TestRunner: command_which_does_not_exist: '
+        expected_logtext => 'QtQA::App::TestRunner: command_which_does_not_exist: '
                            ."No such file or directory\n",
-        expected_stderr  => 'Qt::App::TestRunner: command_which_does_not_exist: '
+        expected_stderr  => 'QtQA::App::TestRunner: command_which_does_not_exist: '
                            ."No such file or directory\n",
         expected_success => 0,
     });
 
     my $crash_rx
-        = qr{\AQt::App::TestRunner: Process exited due to signal 11(; dumped core)?\n\z}ms;
+        = qr{\AQtQA::App::TestRunner: Process exited due to signal 11(; dumped core)?\n\z}ms;
     run_one_test({
         testname         => 'capture error crashing',
         testrunner_args  => [ '--capture-logs', $tempdir, '--'],

@@ -4,7 +4,7 @@ use warnings;
 
 =head1 NAME
 
-10-TestScript.t - test Qt::TestScript module
+10-TestScript.t - test QtQA::TestScript module
 
 =cut
 
@@ -17,7 +17,7 @@ use Test::Exception;
 use Test::Exit;
 use Test::More;
 
-BEGIN { use_ok 'Qt::TestScript'; }
+BEGIN { use_ok 'QtQA::TestScript'; }
 
 #==============================================================================
 
@@ -40,7 +40,7 @@ my $TEST_EXE_ARGS1_DUMP = Dumper(\@TEST_EXE_ARGS1);
 # Test that `property' will die in various ways
 sub test_property_death
 {
-    my $script = Qt::TestScript->new;
+    my $script = QtQA::TestScript->new;
 
     # Should die if called before set_permitted_properties
     throws_ok { $script->property('foo.bar'       ) } qr/set_permitted_properties/;
@@ -61,7 +61,7 @@ sub test_property_death
 # Test that `property' will use the `default' parameter appropriately
 sub test_property_get_defaults
 {
-    my $script = Qt::TestScript->new;
+    my $script = QtQA::TestScript->new;
     $script->set_permitted_properties(%TEST_PERMITTED_PROPERTIES);
 
     # Should be able to get defaults
@@ -83,7 +83,7 @@ sub test_property_get_defaults
 # Test that `property' will get the property values from `PULSE_...' environment variables
 sub test_property_get_from_env
 {
-    my $script = Qt::TestScript->new;
+    my $script = QtQA::TestScript->new;
     $script->set_permitted_properties(%TEST_PERMITTED_PROPERTIES);
 
     my $value;
@@ -111,7 +111,7 @@ sub test_property_get_from_env
 # Test that `property' will get the properties from command-line arguments
 sub test_property_get_from_args
 {
-    my $script = Qt::TestScript->new;
+    my $script = QtQA::TestScript->new;
     $script->set_permitted_properties(%TEST_PERMITTED_PROPERTIES);
 
     my @args = ('--dog-color', 'green', '--cat-color', 'dark red');
@@ -129,7 +129,7 @@ sub test_property_get_from_args
 # Trivial test of default_common_property function
 sub test_default_common_property
 {
-    my $script = Qt::TestScript->new;
+    my $script = QtQA::TestScript->new;
 
     # Here, we basically test that default common properties returns
     # anything at all for a known property, and nothing for an unknown property.
@@ -144,7 +144,7 @@ sub test_default_common_property
 # Test interaction between `print_verbose' and `--verbose' command-line option
 sub test_verbosity
 {
-    my $script = Qt::TestScript->new;
+    my $script = QtQA::TestScript->new;
 
     my $stdout;
     my $stderr;
@@ -182,7 +182,7 @@ sub test_verbosity
 # Basic test of command-line parsing
 sub test_get_options_from_array
 {
-    my $script = Qt::TestScript->new;
+    my $script = QtQA::TestScript->new;
 
     # `--help' is tested by 20-TestScript-autodocs.t
     # `--verbose' is tested by test_verbosity
@@ -212,7 +212,7 @@ sub test_get_options_from_array
 # Test that exe logs, dies and passes arguments correctly
 sub test_exe
 {
-    my $script = Qt::TestScript->new;
+    my $script = QtQA::TestScript->new;
 
     # Any non-zero exit code should make the script die
     dies_ok( sub { $script->exe('/bin/false') }, 'non-zero exit code implies death' );
