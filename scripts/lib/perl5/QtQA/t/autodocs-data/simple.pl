@@ -24,7 +24,7 @@ use FindBin;
 use lib "$FindBin::Bin/../../..";
 
 package SimpleScript;
-use base qw(Qt::TestScript);
+use base qw(QtQA::TestScript);
 
 my @PROPERTIES = (
     q{quux.style}        =>  q{Style of the quux to be frobnitzed (e.g. `cheesy', `purple')},

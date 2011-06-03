@@ -4,7 +4,7 @@ use warnings;
 
 =head1 NAME
 
-20-TestScript-autodocs - test Qt::TestScript module `usage' feature
+20-TestScript-autodocs - test QtQA::TestScript module `usage' feature
 
 =head1 SYNOPSIS
 

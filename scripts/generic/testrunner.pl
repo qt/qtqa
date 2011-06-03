@@ -3,7 +3,7 @@ use 5.010;
 use strict;
 use warnings;
 
-package Qt::App::TestRunner;
+package QtQA::App::TestRunner;
 
 =head1 NAME
 
@@ -766,6 +766,6 @@ sub exit_appropriately
     exit( $exitcode );
 }
 
-Qt::App::TestRunner->new( )->run( @ARGV ) if (!caller);
+QtQA::App::TestRunner->new( )->run( @ARGV ) if (!caller);
 1;
 

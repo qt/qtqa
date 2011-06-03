@@ -24,7 +24,7 @@ use Test::More;
 use Capture::Tiny qw( capture );
 
 use lib "$FindBin::Bin/../../lib/perl5";
-use Qt::Test::More qw( is_or_like );
+use QtQA::Test::More qw( is_or_like );
 
 # FIXME: avoid this module on Windows, or will it be emulated?
 use BSD::Resource qw( setrlimit RLIMIT_CORE );
@@ -48,7 +48,7 @@ Readonly my $TESTSCRIPT_CRASH
 
 # expected STDERR when wrapping the above
 Readonly my $TESTERROR_CRASH
-    => "Qt::App::TestRunner: Process exited due to signal 11\n";
+    => "QtQA::App::TestRunner: Process exited due to signal 11\n";
 
 # perl to print @ARGV unambiguously and hang
 Readonly my $TESTSCRIPT_HANG
@@ -60,8 +60,8 @@ Readonly my $TIMEOUT
 
 # expected STDERR when wrapping the above
 Readonly my $TESTERROR_HANG
-    => "Qt::App::TestRunner: Timed out after $TIMEOUT seconds\n"
-      ."Qt::App::TestRunner: Process exited due to signal 15\n";
+    => "QtQA::App::TestRunner: Timed out after $TIMEOUT seconds\n"
+      ."QtQA::App::TestRunner: Process exited due to signal 15\n";
 
 
 # Various interesting sets of arguments, with their expected serialization from
@@ -117,7 +117,7 @@ Readonly my %TESTSCRIPT_ARGUMENTS => (
     ],
 );
 
-# Do a single test of Qt::App::TestRunner->run( )
+# Do a single test of QtQA::App::TestRunner->run( )
 sub test_run
 {
     my ($params_ref) = @_;

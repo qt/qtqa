@@ -5,8 +5,8 @@ use warnings;
 use FindBin;
 use lib "$FindBin::Bin/../lib/perl5";
 
-package Qt::ModuleTest;
-use base qw(Qt::TestScript);
+package QtQA::ModuleTest;
+use base qw(QtQA::TestScript);
 
 use Carp;
 use Cwd qw( abs_path );
@@ -123,10 +123,10 @@ sub read_and_store_configuration
     my $self = shift;
 
     $self->read_and_store_properties(
-        'base.dir'                => \&Qt::TestScript::default_common_property   ,
-        'location'                => \&Qt::TestScript::default_common_property   ,
-        'make.args'               => \&Qt::TestScript::default_common_property   ,
-        'make.bin'                => \&Qt::TestScript::default_common_property   ,
+        'base.dir'                => \&QtQA::TestScript::default_common_property ,
+        'location'                => \&QtQA::TestScript::default_common_property ,
+        'make.args'               => \&QtQA::TestScript::default_common_property ,
+        'make.bin'                => \&QtQA::TestScript::default_common_property ,
 
         'qt.dir'                  => sub { catfile( $self->{'base.dir'}, 'qt' ) },
         'qt.repository'           => \&default_qt_repository                     ,
@@ -303,13 +303,13 @@ sub run_autotests
 
 sub main
 {
-    my $test = Qt::ModuleTest->new(@ARGV);
+    my $test = QtQA::ModuleTest->new(@ARGV);
     $test->run;
 
     return;
 }
 
-Qt::ModuleTest->main unless caller;
+QtQA::ModuleTest->main unless caller;
 1;
 
 __END__
