@@ -108,6 +108,7 @@ sub all_required_cpan_modules
     return qw(
         BSD::Resource
         Capture::Tiny
+        Env::Path
         File::Slurp
         IO::CaptureOutput
         List::MoreUtils

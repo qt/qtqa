@@ -282,11 +282,21 @@ sub run_autotests
 
     return if (!$self->{ 'qt.tests.enabled' });
 
+    my $qt_dir                  = $self->{ 'qt.dir'           };
     my $qt_gitmodule            = $self->{ 'qt.gitmodule'     };
     my $qt_gitmodule_dir        = $self->{ 'qt.gitmodule.dir' };
     my $make_bin                = $self->{ 'make.bin'         };
 
     my $testrunner_command = $self->get_testrunner_command( );
+
+    # Add both qtbase/bin (core tools) and this qtmodule's bin to PATH.
+    # FIXME: at some point, we should be doing `make install'.  If that is done,
+    # the PATH used here should be the install path rather than build path.
+    local $ENV{ PATH } = $ENV{ PATH };
+    Env::Path->PATH->Prepend(
+        catfile( $qt_dir, 'qtbase', 'bin' ),
+        catfile( $qt_gitmodule_dir, 'bin' ),
+    );
 
     $self->exe( $make_bin,
         '-C',                               # in the gitmodule's directory ...
