@@ -12,6 +12,7 @@ use Carp;
 use Cwd qw( abs_path );
 use Data::Dumper;
 use English qw( -no_match_vars );
+use Env::Path;
 use File::Spec::Functions;
 use FindBin;
 use List::MoreUtils qw( any );
