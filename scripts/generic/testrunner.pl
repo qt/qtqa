@@ -98,6 +98,25 @@ Exactly like C<--capture-logs directory>, except that stdout/stderr from the aut
 are also written to stdout/stderr of the testrunner, rather than only being written
 to the captured log file.
 
+=item B<--plugin> <plugin>
+
+Loads the specified testrunner plugin to customize behavior.
+
+May be specified multiple times to load multiple plugins.
+
+Plugins customize the behavior of the testrunner in various ways.  The exact
+list of plugins is platform-specific and undefined.  Some plugins which may
+be available include:
+
+=over
+
+=item core
+
+Attempt to intercept core dumps from any crashing process, and append a backtrace
+to the test log.  (Linux only)
+
+=back
+
 =back
 
 =head1 CAVEATS
@@ -133,6 +152,8 @@ use Getopt::Long qw(
     :config pass_through require_order
 );
 
+use Carp;
+use Cwd qw( realpath );
 use English qw( -no_match_vars );
 use File::Basename;
 use File::Path qw( mkpath );
@@ -141,6 +162,8 @@ use IO::Handle;
 use Pod::Usage qw( pod2usage );
 use Proc::Reliable;
 use Readonly;
+
+#use Smart::Comments;    # uncomment for debugging
 
 # a long time, but not forever
 Readonly my $LONG_TIME => 60*60*24*7;
@@ -182,6 +205,7 @@ sub run
         'help|?'            =>  sub { pod2usage(1) },
         'timeout=i'         =>  \$self->{ timeout      },
         'capture-logs=s'    =>  \$self->{ capture_logs },
+        'plugin=s'          =>  \@{$self->{ plugin_names }},
         'tee-logs=s'        =>  \$tee_logs,
     ) || pod2usage(2);
 
@@ -191,8 +215,10 @@ sub run
         $self->{ tee          } = 1;
     }
 
-    my $proc = $self->do_subprocess( @args );
-    $self->exit_appropriately( $proc );
+    $self->plugins_init( );
+
+    $self->do_subprocess( @args );
+    $self->exit_appropriately( );
 
     return;
 }
@@ -259,7 +285,7 @@ sub generate_unique_logfile_name
     # This would be indicative of some problem with the test setup.
     #
     my $suffix   = $args_ref->{ suffix } || '.txt';
-    my $basename = basename( $self->{command_and_args}->[0] );
+    my $basename = basename( ($self->command())[0] );
 
     # basename is now e.g. tst_qstring
 
@@ -388,7 +414,7 @@ sub setup_stream_to_file_logging
 # Attempt to parse the subprocess arguments as testlib-style arguments,
 # and rewrite them in such a way that logs may be captured.
 #
-# May rewrite $self->{ command_and_args }.
+# May change the executed command.
 #
 # Returns a reference to a hash with at least the following keys:
 #
@@ -398,7 +424,7 @@ sub parse_and_rewrite_testlib_args_for_logging
 {
     my ($self) = @_;
 
-    my @args    = @{$self->{ command_and_args }};
+    my @args    = $self->command( );
     my $command = shift @args;
 
     my $out = {};
@@ -489,9 +515,9 @@ sub parse_and_rewrite_testlib_args_for_logging
         }
     }
 
-    # Overwrite command_and_args iff we found and munged the -o option
+    # Overwrite command iff we found and munged the -o option
     if ($out->{ replaced_output }) {
-        $self->{ command_and_args } = [ $command, @rewritten_args ];
+        $self->set_command( $command, @rewritten_args );
     }
 
     return $out;
@@ -500,9 +526,11 @@ sub parse_and_rewrite_testlib_args_for_logging
 # Set up for logging of $proc, which should not yet be started.
 sub setup_logging
 {
-    my ($self, $proc) = @_;
+    my ($self) = @_;
 
     return if (!$self->{ capture_logs });
+
+    my $proc = $self->proc( );
 
     # We need to check if the test is being run with a `-o' option to write to a particular
     # log file.  If it is, then we will rewrite that option and expect the test script to
@@ -523,7 +551,9 @@ sub setup_logging
 # Additional messages about $proc may be printed if errors occurred.
 sub finalize_logging
 {
-    my ($self, $proc) = @_;
+    my ($self) = @_;
+
+    my $proc = $self->proc( );
 
     # Extra text to put to the log.
     my $extra_log = "";
@@ -560,7 +590,7 @@ sub finalize_logging
     # This is racy and not guaranteed to be correct.
     my $exitcode = ($status >> 8);
     if ($exitcode == 255) {
-        my $command = $self->{command_and_args}[0];
+        my $command = ($self->command( ))[0];
         if (! -e $command) {
             $extra_log .= $self->format_info( "$command: No such file or directory\n" );
         }
@@ -679,17 +709,19 @@ sub proc_reliable_print_to_logbuffer
     return;
 }
 
-# Run a subprocess for the given @command_and_args, and do all appropriate logging.
+# Run a subprocess for the given @command, and do all appropriate logging.
 # A Proc::Reliable encapsulating the process is returned, after the process completes.
 sub do_subprocess
 {
-    my ($self, @command_and_args) = @_;
+    my ($self, @command) = @_;
 
-    @command_and_args || die 'not enough arguments';
+    @command || die 'not enough arguments';
 
-    $self->{command_and_args} = \@command_and_args;
+    $self->set_command( @command );
 
     my $proc = Proc::Reliable->new( );
+
+    $self->set_proc( $proc );
 
     $proc->stdin_error_ok( 1 );                 # OK if child does not read all stdin
     $proc->num_tries( 1 );                      # don't automatically retry on error
@@ -704,11 +736,15 @@ sub do_subprocess
     $proc->stdout_cb( sub { $self->proc_reliable_print_to_handle(@_) } );
     $proc->stderr_cb( sub { $self->proc_reliable_print_to_handle(@_) } );
 
-    $self->setup_logging( $proc );  # this is allowed to modify command_and_args
+    $self->setup_logging( );  # this is allowed to modify the command
 
-    $proc->run( $self->{command_and_args} );
+    $self->plugins_about_to_run( );
 
-    $self->finalize_logging( $proc );
+    $proc->run( [ $self->command( ) ] );
+
+    $self->plugins_run_completed( );
+
+    $self->finalize_logging( );
 
     return $proc;
 }
@@ -748,7 +784,9 @@ sub print_info
 # unusual error has occurred.
 sub exit_appropriately
 {
-    my ($self, $proc) = @_;
+    my ($self) = @_;
+
+    my $proc = $self->proc( );
 
     my $status = $proc->status( );
     if ($status == -1) {
@@ -768,6 +806,126 @@ sub exit_appropriately
 
     exit( $exitcode );
 }
+
+sub proc
+{
+    my ($self) = @_;
+
+    return $self->{ proc };
+}
+
+sub set_proc
+{
+    my ($self, $proc) = @_;
+
+    $self->{ proc } = $proc;
+
+    return;
+}
+
+sub command
+{
+    my ($self) = @_;
+
+    return @{$self->{ command_and_args }};
+}
+
+sub set_command
+{
+    my ($self, @command) = @_;
+
+    $self->{ command_and_args } = \@command;
+
+    return;
+}
+
+#============================== functions relating to plugins =====================================
+
+# Any .pm file in the testrunner-plugins directory is a plugin.
+# For example, a file named `core.pm' will be loaded if testrunner is run with `--plugin core'.
+#
+# The plugin interface consists of:
+#
+#   new( testrunner => $self )
+#     Called as each plugin is created.  `testrunner' is a reference to the testrunner object.
+#
+#   about_to_run( )
+#     Called prior to running the process.
+#
+#   run_completed( )
+#     Called after running the process.
+#
+# Plugins are permitted to do anything.  So, take care :)
+
+sub plugins_init
+{
+    my ($self) = @_;
+
+    my @plugin_names = @{$self->{ plugin_names } // []};
+
+    my $plugin_dir = catfile(
+        dirname( realpath( $0 ) ),  # directory containing this script (symlinks resolved)
+        'testrunner-plugins',
+    );
+
+    ### Requested plugins: @plugin_names
+    ### Looking in       : $plugin_dir
+
+    foreach my $plugin_name (@plugin_names) {
+        my $plugin_file = catfile( $plugin_dir, "$plugin_name.pm" );
+        if (! -f $plugin_file) {
+            croak "requested plugin $plugin_name does not exist (looked at $plugin_file)";
+        }
+
+        require $plugin_file;
+
+        my $plugin_class  = __PACKAGE__ . "::Plugin::$plugin_name";
+        my $plugin_object = eval {
+            $plugin_class->new( testrunner => $self )
+        };
+
+        if (! $plugin_object) {
+            croak "internal error: $plugin_file loaded OK, "
+                 ."but $plugin_class could not be instantiated: $@";
+        }
+
+        ### Loaded plugin: $plugin_class
+
+        push @{$self->{ plugin_objects }}, $plugin_object;
+    }
+
+    return;
+}
+
+sub plugins_about_to_run
+{
+    my ($self, @args) = @_;
+
+    foreach my $plugin (@{$self->{ plugin_objects }}) {
+        ### about_to_run on plugin: $plugin
+        if ($plugin->can( 'about_to_run' )) {
+            $plugin->about_to_run( @args )
+        }
+    }
+
+    return;
+}
+
+sub plugins_run_completed
+{
+    my ($self, @args) = @_;
+
+    foreach my $plugin (@{$self->{ plugin_objects }}) {
+        ### run_completed on plugin: $plugin
+        if ($plugin->can( 'run_completed' )) {
+            $plugin->run_completed( @args );
+        }
+    }
+
+    return;
+}
+
+#==================================================================================================
 
 QtQA::App::TestRunner->new( )->run( @ARGV ) if (!caller);
 1;
