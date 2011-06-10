@@ -36,6 +36,12 @@ my @PROPERTIES = (
     q{qt.dir}                  => q{top-level source directory of Qt superproject; }
                                 . q{the script will clone qt.repository into this location},
 
+    q{qt.make_install}         => q{if 1, perform a `make install' step after building Qt. }
+                                . q{Generally this should only be done if (1) the `-prefix' }
+                                . q{configure option has been used appropriately, and (2) }
+                                . q{neither `-nokia-developer' nor `-developer-build' configure }
+                                . q{arguments were used},
+
     q{qt.gitmodule}            => q{(mandatory) git module name of the module under test }
                                 . q{(e.g. `qtbase')},
 
@@ -79,6 +85,7 @@ sub run
     $self->run_git_checkout;
     $self->run_compile;
     $self->run_autotests;
+    $self->run_install;
 
     return;
 }
@@ -135,6 +142,7 @@ sub read_and_store_configuration
         'qt.gitmodule'            => undef                                       ,
         'qt.configure.args'       => q{-opensource -confirm-license}             ,
         'qt.configure.extra_args' => q{}                                         ,
+        'qt.make_install'         => 0                                           ,
         'qt.tests.enabled'        => \&default_qt_tests_enabled                  ,
         'qt.tests.timeout'        => 60*15                                       ,
         'qt.tests.capture_logs'   => q{}                                         ,
@@ -225,6 +233,25 @@ sub run_compile
     # automatically build the module and all deps, as parallel as possible.
     # XXX: this will not work for modules which aren't hosted in qt/qt5.git
     $self->exe( $make_bin, split(/ /, $make_args), "module-$qt_gitmodule" );
+
+    return;
+}
+
+sub run_install
+{
+    my ($self) = @_;
+
+    my $make_bin        = $self->{ 'make.bin' };
+    my $qt_dir          = $self->{ 'qt.dir' };
+    my $qt_gitmodule    = $self->{ 'qt.gitmodule' };
+    my $qt_make_install = $self->{ 'qt.make_install' };
+
+    return if (!$qt_make_install);
+
+    chdir( $qt_dir );
+
+    # XXX: this will not work for modules which aren't hosted in qt/qt5.git
+    $self->exe( $make_bin, "module-$qt_gitmodule-install_subtargets" );
 
     return;
 }
