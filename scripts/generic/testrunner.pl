@@ -142,9 +142,12 @@ use Pod::Usage qw( pod2usage );
 use Proc::Reliable;
 use Readonly;
 
+# a long time, but not forever
+Readonly my $LONG_TIME => 60*60*24*7;
+
 # default values for some command-line options
 Readonly my %DEFAULTS => (
-    timeout =>  60*60*24*7, # a long time, but not forever
+    timeout => $LONG_TIME,
 );
 
 # exit code for strange process issues, such as a failure to fork
@@ -690,7 +693,7 @@ sub do_subprocess
 
     $proc->stdin_error_ok( 1 );                 # OK if child does not read all stdin
     $proc->num_tries( 1 );                      # don't automatically retry on error
-    $proc->child_exit_time( 0 );                # don't consider it an error if the test
+    $proc->child_exit_time( $LONG_TIME );       # don't consider it an error if the test
                                                 # doesn't quit soon after closing stdout
     $proc->time_per_try( $self->{timeout} );    # don't run for longer than this
     $proc->maxtime( $self->{timeout} );         # ...and again (need to set both)
