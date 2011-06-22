@@ -59,9 +59,14 @@ Readonly my $TIMEOUT
     =>  2;
 
 # expected STDERR when wrapping the above
-Readonly my $TESTERROR_HANG
-    => "QtQA::App::TestRunner: Timed out after $TIMEOUT seconds\n"
-      ."QtQA::App::TestRunner: Process exited due to signal 15\n";
+Readonly my $TESTERROR_HANG => qr{
+
+        \A
+        QtQA::App::TestRunner:\ Timed\ out\ after\ \d+\ seconds?\n
+        QtQA::App::TestRunner:\ Process\ exited\ due\ to\ signal\ 15\n
+        \z
+
+}xms;
 
 
 # Various interesting sets of arguments, with their expected serialization from
