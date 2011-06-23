@@ -26,9 +26,6 @@ use Capture::Tiny qw( capture );
 use lib "$FindBin::Bin/../../lib/perl5";
 use QtQA::Test::More qw( is_or_like );
 
-# FIXME: avoid this module on Windows, or will it be emulated?
-use BSD::Resource qw( setrlimit RLIMIT_CORE );
-
 # perl to print @ARGV unambiguously from a subprocess
 # (not used directly)
 Readonly my $TESTSCRIPT_BASE
@@ -46,9 +43,11 @@ Readonly my $TESTSCRIPT_FAIL
 Readonly my $TESTSCRIPT_CRASH
     => $TESTSCRIPT_BASE . 'kill 11, $$';
 
-# expected STDERR when wrapping the above
+# expected STDERR when wrapping the above;
+# note that we have no way to control if the system will create core dumps or not,
+# so we will accept either case
 Readonly my $TESTERROR_CRASH
-    => "QtQA::App::TestRunner: Process exited due to signal 11\n";
+    => qr{\AQtQA::App::TestRunner: Process exited due to signal 11(?:; dumped core)?\n\z};
 
 # perl to print @ARGV unambiguously and hang
 Readonly my $TESTSCRIPT_HANG
@@ -266,13 +265,6 @@ sub test_arg_parsing
 
 sub run
 {
-    # Turn off core dumps for subprocesses, to ensure that crashing tests have
-    # predictable messages.  (We cannot turn _on_ core dumps for testing, since
-    # the system hard limit could potentially be 0)
-    if (!setrlimit( RLIMIT_CORE, 0, 0 )) {
-        diag( "setrlimit: $!\nCould not disable core dumps, test output could be unstable" );
-    }
-
     test_arg_parsing;
 
     test_success;
