@@ -10,7 +10,7 @@ test.pl - run autotests for the Qt QA scripts
 
 =head1 SYNOPSIS
 
-  ./test.pl [ --clean ] [ --rerun-tests ]
+  ./test.pl [ --clean ]
 
 Run the automated test suite in this repository.
 
@@ -27,13 +27,6 @@ in a temporary directory, and delete it after the test completes.
 This is the most accurate way to test that all prerequisites are
 correctly specified in setup.pl.  However, it significantly increases
 the test time.
-
-=item --rerun-tests
-
-After running all of the autotests, run again any which have failed.
-This is a simple way to quickly show up any tests which are highly
-unstable, and to make it easier to read the output to see which
-tests have failed.
 
 =back
 
@@ -57,12 +50,10 @@ sub new
 
     my %self = (
         'clean'       =>  0,
-        'rerun-tests' =>  0,
     );
 
     GetOptionsFromArray(\@args,
         "clean"         =>  \$self{ 'clean'       },
-        "rerun-tests"   =>  \$self{ 'rerun-tests' },
         "help"          =>  sub { pod2usage(1) },
     ) || pod2usage(2);
 
@@ -130,8 +121,17 @@ sub run_prove
     mkdir($tmpdir) || die "mkdir $tmpdir: $OS_ERROR";
     local $ENV{TMPDIR} = $tmpdir;
 
+    # options always passed to `prove'
+    my @prove_options = (
+        # Let tests freely use modules under lib/perl5
+        '-I',
+        "$FindBin::Bin/lib/perl5",
+    );
+
     my @prove = (
         'prove',
+
+        @prove_options,
 
         # Use `--merge' because we have some tests which are expected to output a
         # lot of stderr which look like errors (e.g. test for the Pulse::x handling
@@ -139,8 +139,8 @@ sub run_prove
         # confusing to e.g. the CI system, which will extract these "errors" into
         # report emails.
         #
-        # If we are re-running the tests later, we won't use `--merge', so failing
-        # tests will still have all the details available.
+        # If there is a failure, we will re-run the tests later without `--merge',
+        # so failing tests will still have all the details available.
         '--merge',
 
         # Use `--state=save' so, if running manually, the user can easily
@@ -158,29 +158,26 @@ sub run_prove
         $FindBin::Bin
     );
 
-    if (!$self->{'rerun-tests'}) {
-        $self->system_or_die(@prove);
-    }
-    else {
-        eval { $self->system_or_die(@prove) };
-        my $error = $@;
-        if ($error) {
-            print "\n\nI'm going to run only the failed tests again:\n";
-            $self->system_or_die(
-                'prove',
+    eval { $self->system_or_die(@prove) };
+    my $error = $@;
+    if ($error) {
+        print "\n\nI'm going to run only the failed tests again:\n";
+        $self->system_or_die(
+            'prove',
 
-                # This will run only the tests which were marked as failing ...
-                '--state=failed,save',
+            @prove_options,
 
-                # ...and this will be quite verbose, to aid in
-                # figuring out the problem.
-                '--verbose',
-            );
+            # This will run only the tests which were marked as failing ...
+            '--state=failed,save',
 
-            # The second attempt may have passed, in the case of unstable
-            # tests, but we still should consider this a fatal error.
-            die $error;
-        }
+            # ...and this will be quite verbose, to aid in
+            # figuring out the problem.
+            '--verbose',
+        );
+
+        # The second attempt may have passed, in the case of unstable
+        # tests, but we still should consider this a fatal error.
+        die $error;
     }
 
     return;
