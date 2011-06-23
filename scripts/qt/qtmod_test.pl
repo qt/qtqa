@@ -63,6 +63,10 @@ my @PROPERTIES = (
     q{qt.tests.tee_logs}       => q{like qt.tests.capture_logs, but also print the test logs to }
                                 . q{STDOUT/STDERR as normal while the tests are running},
 
+    q{qt.tests.backtraces}     => q{if 1, attempt to capture backtraces from crashing tests; }
+                                . q{currently, this requires gdb, and is likely to work only on }
+                                . q{Linux},
+
     q{make.bin}                => q{`make' command (e.g. `make', `nmake', `jom' ...)},
 
     q{make.args}               => q{extra arguments passed to `make' command (e.g. `-j25')},
@@ -126,6 +130,12 @@ sub default_qt_tests_enabled
     return 1;
 }
 
+sub default_qt_tests_backtraces
+{
+    my ($self) = @_;
+    return ($OSNAME =~ m{linux}i);
+}
+
 sub read_and_store_configuration
 {
     my $self = shift;
@@ -147,6 +157,7 @@ sub read_and_store_configuration
         'qt.tests.timeout'        => 60*15                                       ,
         'qt.tests.capture_logs'   => q{}                                         ,
         'qt.tests.tee_logs'       => q{}                                         ,
+        'qt.tests.backtraces'     => \&default_qt_tests_backtraces               ,
     );
 
     # for convenience only - this should not be overridden
@@ -264,6 +275,7 @@ sub get_testrunner_command
     my $qt_tests_timeout        = $self->{ 'qt.tests.timeout' };
     my $qt_tests_capture_logs   = $self->{ 'qt.tests.capture_logs' };
     my $qt_tests_tee_logs       = $self->{ 'qt.tests.tee_logs' };
+    my $qt_tests_backtraces     = $self->{ 'qt.tests.backtraces' };
 
     my $testrunner = catfile( $FindBin::Bin, '..', '..', 'bin', 'testrunner' );
     $testrunner    = abs_path( $testrunner );
@@ -283,6 +295,10 @@ sub get_testrunner_command
     }
     elsif ($qt_tests_tee_logs) {
         push @testrunner_with_args, '--tee-logs', $qt_tests_tee_logs;
+    }
+
+    if ($qt_tests_backtraces) {
+        push @testrunner_with_args, '--plugin', 'core';
     }
 
     push @testrunner_with_args, '--'; # no more args
