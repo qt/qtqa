@@ -208,13 +208,27 @@ sub run_git_checkout
         'git',
         'submodule',
         'foreach',
-        'if test $name != qtwebkit; then git reset --hard origin/master; fi'
+
+        # init-repository is expected to initialize any nested gitmodules where
+        # necessary; however, since we are changing the tracked SHA1 here, we
+        # need to redo a `submodule update' in case any gitmodule content is
+        # affected.  Note that the `submodule update' is a no-op in the usual case
+        # of no nested gitmodules.
+        q{
+            if test $name != qtwebkit; then
+                git reset --hard origin/master;
+                git submodule update --recursive --init;
+            fi
+        },
     );
 
     # Now we need to set the submodule content equal to our tested module's base.dir
     chdir( $qt_gitmodule );
     $self->exe( 'git', 'fetch', $base_dir, '+HEAD:refs/heads/testing' );
     $self->exe( 'git', 'reset', '--hard', 'testing' );
+
+    # Again, since we changed the SHA1, we potentially need to update any submodules.
+    $self->exe( 'git', 'submodule', 'update', '--recursive', '--init' );
 
     return;
 }
