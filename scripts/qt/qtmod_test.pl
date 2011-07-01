@@ -201,8 +201,9 @@ sub run_git_checkout
     # It should be improved to get only those modules we need (if at all possible ...)
     $self->exe( 'perl', './init-repository', @init_repository_arguments );
 
-    # FIXME: currently we support testing a module only against the `master' of all
-    # other modules.  Later, this should also support parsing of sync.profile.
+    # FIXME: currently we support testing a module only against some tracking branch
+    # (usually `master') of all other modules.
+    # Later, this should also support parsing of sync.profile.
     # Also, this code assumes that init-repository always uses `origin' as the remote.
     $self->exe(
         'git',
@@ -215,10 +216,12 @@ sub run_git_checkout
         # affected.  Note that the `submodule update' is a no-op in the usual case
         # of no nested gitmodules.
         q{
-            if test $name != qtwebkit; then
-                git reset --hard origin/master;
-                git submodule update --recursive --init;
-            fi
+            branch=master;
+            if test $name = qtwebkit; then
+                branch=qt-modularization-base;
+            fi;
+            git reset --hard origin/$branch;
+            git submodule update --recursive --init;
         },
     );
 
