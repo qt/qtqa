@@ -171,6 +171,23 @@ sub read_and_store_configuration
     return;
 }
 
+sub read_dependencies
+{
+    our (%dependencies);
+    my $dependency_file = shift;
+    if (! -e $dependency_file ) {
+        # default in event of no sync.profile
+        %dependencies = ( 'qtbase' => 'refs/heads/master' );
+    }
+    else {
+        unless ( do $dependency_file ) {
+            confess "I couldn't parse $dependency_file, which I need to determine dependencies.\nThe error was $@\n" if $@;
+            confess "I couldn't execute $dependency_file, which I need to determine dependencies.\nThe error was $!\n" if $!;
+        }
+    }
+    return %dependencies;
+}
+
 sub run_git_checkout
 {
     my ($self) = @_;
@@ -188,6 +205,9 @@ sub run_git_checkout
     $self->exe( 'git', 'clone', '--branch', $qt_branch, $qt_repository, $qt_dir );
     chdir( $qt_dir );
 
+    # Load sync.profile for this module
+    my %dependencies = $self->read_dependencies( "$base_dir/sync.profile" );
+
     my @init_repository_arguments;
     if (defined( $location ) && ($location eq 'brisbane')) {
         push @init_repository_arguments, '-brisbane-nokia-developer';
@@ -196,33 +216,35 @@ sub run_git_checkout
         push @init_repository_arguments, '-nokia-developer';
     }
 
-    # FIXME: this implementation clones all the modules, even those we don't need.
-    # It should be improved to get only those modules we need (if at all possible ...)
+    # Tell init-repository to only use the modules specified as dependencies
+    my $modules = join( q{,}, keys(%dependencies), $qt_gitmodule );
+    push @init_repository_arguments, "--module-subset=$modules";
+
     $self->exe( 'perl', './init-repository', @init_repository_arguments );
 
-    # FIXME: currently we support testing a module only against some tracking branch
-    # (usually `master') of all other modules.
-    # Later, this should also support parsing of sync.profile.
+    # Checkout dependencies as specified in the sync.profile, which specifies the sha1s/refs within them
     # Also, this code assumes that init-repository always uses `origin' as the remote.
-    $self->exe(
-        'git',
-        'submodule',
-        'foreach',
+    while ( my ($module, $ref) = each %dependencies ) {
+        chdir( $module );
+        # FIXME how do we guarantee we have this SHA1?
+        # If it's not reachable from a branch obtained from a default `clone', it could be missing.
+        if ( $ref =~ /^[0-9a-f]{40}$/) { # Is a SHA1, else is a ref and may need to be fetched
+            $self->exe( 'git', 'reset', '--hard', $ref );
+        }
+        else {
+            $self->exe( 'git', 'fetch', '--verbose', 'origin', "+$ref:refs/qtmod_test" );
+            $self->exe( 'git', 'reset', '--hard', 'refs/qtmod_test' );
+        }
 
         # init-repository is expected to initialize any nested gitmodules where
         # necessary; however, since we are changing the tracked SHA1 here, we
         # need to redo a `submodule update' in case any gitmodule content is
         # affected.  Note that the `submodule update' is a no-op in the usual case
         # of no nested gitmodules.
-        q{
-            branch=master;
-            if test $name = qtwebkit; then
-                branch=qt-modularization-base;
-            fi;
-            git reset --hard origin/$branch;
-            git submodule update --recursive --init;
-        },
-    );
+        $self->exe( 'git', 'submodule', 'update', '--recursive', '--init' );
+
+        chdir( '..' );
+    }
 
     # Now we need to set the submodule content equal to our tested module's base.dir
     chdir( $qt_gitmodule );
