@@ -251,6 +251,157 @@ sub test_exe
     return;
 }
 
+# Test that exe_qx works like exe and also captures output.
+sub test_exe_qx
+{
+    my $script = QtQA::TestScript->new;
+
+    # Any non-zero exit code should make the script die
+    dies_ok( sub { $script->exe_qx('/bin/false') }, 'non-zero exit code implies death' );
+
+    # Note that there are two sets of output: the output from the child process
+    # (which we expect to be returned), and the output from this process
+    # (which is empty in the non-verbose case, and should never be returned).
+
+    # From child process:
+    my $stdout;
+    my $stderr;
+    my $merged;
+
+    # From this process:
+    my $log_stdout;
+    my $log_stderr;
+
+    my $test_stdout = $TEST_EXE_ARGS1_DUMP;
+    my $test_stderr = "Some stderr\n";
+    my $test_merged = $test_stdout.$test_stderr;
+
+    my @good_cmd = (
+        'perl',
+        '-e',
+        '$|++; use Data::Dumper; print Dumper(\@ARGV); print STDERR qq{Some stderr\n};',
+        @TEST_EXE_ARGS1,
+    );
+
+    lives_ok(
+        sub {
+            capture { ($stdout, $stderr) = $script->exe_qx(@good_cmd) } \$log_stdout, \$log_stderr;
+            capture { $merged = $script->exe_qx(@good_cmd) };           # discard any log output
+        },
+        'successful command lives'
+    );
+
+    is( $stdout, $test_stdout, 'exe_qx passes arguments correctly' );
+    is( $stderr, $test_stderr, 'stderr OK'                         );
+    is( $merged, $test_merged, 'merged output OK'                  );
+
+    ok( !$log_stdout, 'no log output (verbose1)' );
+    ok( !$log_stderr, 'no log error (verbose1)'  );
+
+
+
+    # If verbose 1, makes no difference (exe_qx is intentionally quieter than exe)
+    $script->get_options_from_array(['--verbose']);
+
+    lives_ok(
+        sub {
+            capture { ($stdout, $stderr) = $script->exe_qx(@good_cmd) } \$log_stdout, \$log_stderr;
+            capture { $merged = $script->exe_qx(@good_cmd) };           # discard any log output
+        },
+        'successful command lives (verbose1)'
+    );
+
+    is( $stdout, $test_stdout, 'exe_qx passes arguments correctly (verbose1)' );
+    is( $stderr, $test_stderr, 'stderr OK (verbose1)'                         );
+    is( $merged, $test_merged, 'merged output OK (verbose1)'                  );
+
+    ok( !$log_stdout, 'no log output (verbose1)' );
+    ok( !$log_stderr, 'no log error (verbose1)'  );
+
+
+
+    # If verbose 2, command will be logged before it is run.
+    # Note this `--verbose' accumulates on top of the previous.
+    $script->get_options_from_array(['--verbose']);
+
+    lives_ok(
+        sub {
+            capture { ($stdout, $stderr) = $script->exe_qx(@good_cmd) } \$log_stdout, \$log_stderr;
+            capture { $merged = $script->exe_qx(@good_cmd) };           # discard any log output
+        },
+        'successful command lives (verbose2)'
+    );
+
+    is( $stdout, $test_stdout, 'exe_qx passes arguments correctly (verbose2)' );
+    is( $stderr, $test_stderr, 'stderr OK (verbose2)'                         );
+    is( $merged, $test_merged, 'merged output OK (verbose2)'                  );
+
+    is( $log_stdout, "qx @good_cmd\n", 'log output OK (verbose2)' );
+    ok( !$log_stderr,                  'no log error (verbose2)'  );
+
+
+
+    # If verbose 3, command will be logged before it is run, and stdout/stderr is logged
+    # after it is run.  We need to test the log for merged vs non-merged independently here.
+    $script->get_options_from_array(['--verbose']);
+
+    my $log_stdout_merged;
+    my $log_stderr_merged;
+
+    my $expected_log_stdout = "qx @good_cmd\n" . <<'EOF';
+qx stdout:
+$VAR1 = [
+          'arg1',
+          'arg two',
+          'arg the third',
+          'arg \'with quotes\'',
+          'arg "with dquotes"',
+          'arg with $shell ^meta %characters%'
+        ];
+
+qx stderr:
+Some stderr
+
+EOF
+
+    my $expected_log_stdout_merged = "qx @good_cmd\n" . <<'EOF';
+qx stdout & stderr:
+$VAR1 = [
+          'arg1',
+          'arg two',
+          'arg the third',
+          'arg \'with quotes\'',
+          'arg "with dquotes"',
+          'arg with $shell ^meta %characters%'
+        ];
+Some stderr
+
+EOF
+
+    lives_ok(
+        sub {
+            capture { ($stdout, $stderr) = $script->exe_qx(@good_cmd) }
+                \$log_stdout,        \$log_stderr;
+
+            capture { $merged = $script->exe_qx(@good_cmd) }
+                \$log_stdout_merged, \$log_stderr_merged;
+        },
+        'successful command lives (verbose2)'
+    );
+
+    is( $stdout, $test_stdout, 'exe_qx passes arguments correctly (verbose2)' );
+    is( $stderr, $test_stderr, 'stderr OK (verbose2)'                         );
+    is( $merged, $test_merged, 'merged output OK (verbose2)'                  );
+
+    is( $log_stdout, $expected_log_stdout, 'log output OK (verbose2)' );
+    ok( !$log_stderr,                      'no log error (verbose2)'  );
+
+    is( $log_stdout_merged, $expected_log_stdout_merged, 'log output OK (verbose2, merged)' );
+    ok( !$log_stderr,                                    'no log error (verbose2, merged)'  );
+
+    return;
+}
+
 # Run all the tests
 sub run_test
 {
@@ -266,6 +417,7 @@ sub run_test
     test_get_options_from_array;
 
     test_exe;
+    test_exe_qx;
 
     return;
 }

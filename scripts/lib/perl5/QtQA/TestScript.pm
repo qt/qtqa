@@ -2,8 +2,10 @@ package QtQA::TestScript;
 use strict;
 use warnings;
 
+use Capture::Tiny       qw(capture capture_merged);
 use Carp                qw(confess croak);
 use Cwd                 qw();
+use Data::Dumper        qw();
 use Getopt::Long        qw(GetOptionsFromArray);
 use IO::Socket::INET    qw();
 use Pod::Simple::Text   qw();
@@ -172,6 +174,39 @@ sub exe
     }
 
     return;
+}
+
+
+sub exe_qx
+{
+    my ($self, @command) = @_;
+
+    $self->print_when_verbose(2, "qx @command\n");
+
+    my $stdout;
+    my $stderr;
+    my $status;
+
+    if (wantarray) {
+        ($stdout, $stderr) = capture {
+            $status = system( @command );
+        };
+        $self->print_when_verbose(3, "qx stdout:\n$stdout\n"
+                                    ."qx stderr:\n$stderr\n");
+    }
+    else {
+        $stdout = capture_merged {
+            $status = system( @command );
+        };
+        $self->print_when_verbose(3, "qx stdout & stderr:\n$stdout\n" );
+    }
+
+    if ($status != 0) {
+        croak( Data::Dumper->new( [\@command], ['command'] )->Indent( 0 )->Dump( )
+             . qq{ exited with status $status} );
+    }
+
+    return wantarray ? ($stdout, $stderr) : $stdout;
 }
 
 
@@ -587,6 +622,54 @@ get the same values for all properties which are set in the currently
 running script.
 
 =back
+
+
+
+=item B<exe_qx>( LIST )
+
+Run an external program, die if it fails, and return the standard output
+(and maybe standard error).
+
+When called in array context, a list containing (stdout, stderr) will be
+returned.  In scalar context, a scalar containing merged stdout and stderr
+will be returned.
+
+  # save stdout, discard stderr
+  my ($stdout, undef) = $self->exe_qx( qw(find / -name quux.pl) );
+
+  # save stdout and stderr separately
+  my ($stdout, $stderr) = $self->exe_qx( qw(find / -name quux.pl) );
+
+  # save merged stdout and stderr
+  my $output = $self->exe_qx( qw(find / -name quux.pl) );
+
+This function behaves like the built-in qx() or backticks, with the following
+improvements:
+
+=over
+
+=item verbosity
+
+May log both the command, and its output, depending on verbosity settings of the
+test script.
+
+=item automatic death
+
+Like B<exe>(), automatically dies if the command exits with a non-zero exit code.
+
+=item no shell quoting issues
+
+Like system(), supports the safe list syntax for the command (backticks/qx only
+support a single string, which leads to quoting issues).
+
+=item cleanly get stderr
+
+Can return stdout/stderr separately.
+
+=back
+
+If this function does not meet your needs, consider using L<Capture::Tiny> in
+conjunction with B<exe>.
 
 
 
