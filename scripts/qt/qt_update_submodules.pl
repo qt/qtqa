@@ -40,8 +40,9 @@ Readonly my %SUBMODULE_TRACKING_REF => (
     qtwebkit    =>  'refs/heads/qt-modularization-base',
 );
 
-# Author to be used for commits by this script.
-Readonly my $COMMIT_AUTHOR => 'Qt Submodule Update Automaton <qt-info@nokia.com>';
+# Author and committer to be used for commits by this script.
+Readonly my $GIT_USER_NAME  => 'Qt Submodule Update Bot';
+Readonly my $GIT_USER_EMAIL => 'qt_submodule_update_bot@ovi.com';
 
 # Message to be used for commits by this script.
 Readonly my $COMMIT_MESSAGE => 'Updated submodules.';
@@ -68,7 +69,7 @@ sub read_and_store_configuration
         'location'                => \&QtQA::TestScript::default_common_property,
         'qt.git.push'             => 0,
         'qt.git.push.dry-run'     => 0,
-        'qt.git.url'              => 'ssh://codereview.qt.nokia.com:29418/qt/qt5',
+        'qt.git.url'              => 'ssh://qt_submodule_update_bot@codereview.qt.nokia.com:29418/qt/qt5',
         'qt.git.ref'              => 'refs/for/master',
     );
 
@@ -128,10 +129,14 @@ sub git_commit
     };
 
     # Yes, there is a diff. Do the commit.
+    # Ensure author, committer are set to the right values.
+    local $ENV{ GIT_AUTHOR_NAME }     = $GIT_USER_NAME;
+    local $ENV{ GIT_COMMITTER_NAME }  = $GIT_USER_NAME;
+    local $ENV{ GIT_AUTHOR_EMAIL }    = $GIT_USER_EMAIL;
+    local $ENV{ GIT_COMMITTER_EMAIL } = $GIT_USER_EMAIL;
     $self->exe(
         'git',
         'commit',
-        "--author=$COMMIT_AUTHOR",
         '-m',
         $self->commit_message(),
         '--only',
@@ -183,19 +188,19 @@ sub change_id
     my $base_dir = $self->{ 'base.dir' };
 
     # Find the most recent commit from this author
-    my $author_pattern = $COMMIT_AUTHOR;
+    my $author = "$GIT_USER_NAME <$GIT_USER_EMAIL>";
     my ($change_id) = trim $self->exe_qx(
         'git',
         "--git-dir=$base_dir/.git",
         'rev-list',
         '-n1',
         '--fixed-strings',
-        "--author=$author_pattern",
+        "--author=$author",
         'HEAD',
     );
 
     if (!$change_id) {
-        warn "It seems like this repo currently has no commits from $COMMIT_AUTHOR";
+        warn "It seems like this repo currently has no commits from $author";
 
         # Use hash of this script for an arbitrary but stable Change-Id
         ($change_id) = trim $self->exe_qx( 'git', 'hash-object', '--', $0 );
