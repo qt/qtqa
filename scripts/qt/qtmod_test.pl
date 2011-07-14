@@ -76,7 +76,6 @@ my @PROPERTIES = (
 # These should be removed one-by-one as modules are verified to work correctly.
 # See task QTQAINFRA-142
 my %MAKE_CHECK_BLACKLIST = map { $_ => 1 } qw(
-    qtbase
     qtrepotools
     qtwebkit
 );
