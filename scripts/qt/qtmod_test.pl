@@ -173,11 +173,13 @@ sub read_and_store_configuration
 
 sub read_dependencies
 {
+    my ($self, $dependency_file) = @_;
     our (%dependencies);
-    my $dependency_file = shift;
     if (! -e $dependency_file ) {
         # default in event of no sync.profile
         %dependencies = ( 'qtbase' => 'refs/heads/master' );
+        warn "$dependency_file doesn't exist, so I have assumed this module depends on: "
+            .Data::Dumper->new([\%dependencies], ['dependencies'])->Indent(0)->Dump();
     }
     else {
         unless ( do $dependency_file ) {
