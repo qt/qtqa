@@ -383,8 +383,8 @@ sub run_autotests
     );
 
     $self->exe( $make_bin,
-        '-C',                               # in the autotest gitmodule's directory ...
-        catfile( $qt_gitmodule_dir, 'tests', 'auto' ),
+        '-C',                               # in the gitmodule's directory ...
+        $qt_gitmodule_dir,
         '-j1',                              # in serial (autotests are generally parallel-unsafe)
         '-k',                               # keep going after failure
                                             # (to get as many results as possible)
