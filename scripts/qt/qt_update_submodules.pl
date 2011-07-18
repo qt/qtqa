@@ -38,6 +38,7 @@ Readonly my @PROPERTIES => (
 # When omitted, defaults to `refs/heads/master'.
 Readonly my %SUBMODULE_TRACKING_REF => (
     qtwebkit    =>  'refs/heads/qt-modularization-base',
+    qtquick3d   =>  'refs/heads/qml2',
 );
 
 # Author and committer to be used for commits by this script.
