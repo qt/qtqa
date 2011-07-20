@@ -110,6 +110,11 @@ Loads the specified testrunner plugin to customize behavior.
 
 May be specified multiple times to load multiple plugins.
 
+When multiple plugins are specified, they are activated in the order they are given
+on the command line.  This may have no effect, or it may alter the ordering of some
+output, or it may have more profound effects, depending on the behavior of the
+plugins.
+
 Plugins customize the behavior of the testrunner in various ways.  The exact
 list of plugins is platform-specific and undefined.  Some plugins which may
 be available include:
@@ -120,6 +125,10 @@ be available include:
 
 Attempt to intercept core dumps from any crashing process, and append a backtrace
 to the test log.  (Linux only)
+
+=item flaky
+
+When a test fails, run it again, to help determine if it is unstable.
 
 =back
 
@@ -628,7 +637,7 @@ sub finalize_logging
 
     if (! -f $logfile) {
         # It is considered an error if the test failed to create the logfile.
-        $self->{ force_failure_exitcode } = $EXIT_LOGGING_ERROR;
+        $self->{ force_failure_exitcode } ||= $EXIT_LOGGING_ERROR;
         $self->append_logbuffer_to_logfile( $extra_log . $self->format_info(
             "FAIL! Test was badly behaved, the `-o' argument was ignored.\n"
            ."stdout/stderr follows:\n"
@@ -814,11 +823,42 @@ sub do_subprocess
 
     $self->setup_logging( );  # this is allowed to modify the command
 
-    $self->plugins_about_to_run( );
+    my $keep_running = 1;
+    my $attempt = 1;
+    my $force_failure_exitcode;
 
-    $proc->run( [ $self->command( ) ] );
+    while ($keep_running) {
 
-    $self->plugins_run_completed( );
+        # Plugins may ask us to force a failure.
+        # We clear this at each run so that we only consider forced failures
+        # during the _last_ run.
+        $force_failure_exitcode = 0;
+
+        $self->plugins_about_to_run( );
+
+        {
+            # Put the attempt number into the environment for these reasons:
+            #
+            #  - makes it easier to write autotests for this feature
+            #
+            #  - (hopefully) captures the information in core dumps etc
+            #    about how many times the test has been run
+            #
+            local $ENV{ QTQA_APP_TESTRUNNER_ATTEMPT } = $attempt;
+
+            $proc->run( [ $self->command( ) ] );
+        }
+
+        my $result = $self->plugins_run_completed( );
+
+        $force_failure_exitcode = $result->{ force_failure_exitcode };
+
+        # We may retry the test any number of times, if some plugin asks us to.
+        $keep_running = $result->{ retry };
+        ++$attempt;
+    }
+
+    $self->{ force_failure_exitcode } ||= $force_failure_exitcode;
 
     $self->finalize_logging( );
 
@@ -924,12 +964,18 @@ sub set_command
 #
 #   new( testrunner => $self )
 #     Called as each plugin is created.  `testrunner' is a reference to the testrunner object.
+#     Should return a plugin object.
 #
 #   about_to_run( )
 #     Called prior to running the process.
+#     Should return nothing.
 #
 #   run_completed( )
 #     Called after running the process.
+#     Should return nothing, or a hashref with the following keys:
+#       retry                  =>  if 1, testrunner is requested to run this test again
+#       force_failure_exitcode =>  if non-zero, the exit code of testrunner is forced to this,
+#                                  even if the test succeeded
 #
 # Plugins are permitted to do anything.  So, take care :)
 
@@ -991,14 +1037,32 @@ sub plugins_run_completed
 {
     my ($self, @args) = @_;
 
+    # These are the keys understood in the return value of run_completed
+    my @possible_option_keys = qw(
+        force_failure_exitcode
+        retry
+    );
+
+    # All options are disabled by default
+    my %options = map { $_ => 0 } @possible_option_keys;
+
     foreach my $plugin (@{$self->{ plugin_objects }}) {
+        my $plugin_options;
+
         ### run_completed on plugin: $plugin
         if ($plugin->can( 'run_completed' )) {
-            $plugin->run_completed( @args );
+            $plugin_options = $plugin->run_completed( @args );
+        }
+
+        if ($plugin_options && ref($plugin_options) eq 'HASH') {
+            %options = map {
+                # plugins may turn options on, never off
+                $_ => ($options{$_} || $plugin_options->{$_})
+            } @possible_option_keys;
         }
     }
 
-    return;
+    return \%options;
 }
 
 #==================================================================================================
