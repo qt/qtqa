@@ -108,9 +108,11 @@ sub all_required_cpan_modules
     # available on all platforms...
     my @out = qw(
         Capture::Tiny
+        Class::Factory::Util
         Env::Path
         File::Slurp
         IO::CaptureOutput
+        Lingua::EN::Numbers
         List::MoreUtils
         Params::Validate
         Perl::Critic
@@ -118,9 +120,11 @@ sub all_required_cpan_modules
         Test::Exception
         Test::Exit
         Test::More
+        Test::NoWarnings
         Test::Perl::Critic
         Text::Diff
         Text::Trim
+        Tie::IxHash
         autodie
     );
 

@@ -2,14 +2,22 @@ package QtQA::TestScript;
 use strict;
 use warnings;
 
-use Capture::Tiny       qw(capture capture_merged);
-use Carp                qw(confess croak);
-use Cwd                 qw();
-use Data::Dumper        qw();
-use Getopt::Long        qw(GetOptionsFromArray);
-use IO::Socket::INET    qw();
-use Pod::Simple::Text   qw();
-use Pod::Usage          qw(pod2usage);
+use feature 'state';
+
+use Capture::Tiny qw(capture capture_merged);
+use Carp;
+use Config;
+use Cwd qw();
+use Data::Dumper qw();
+use Getopt::Long qw(GetOptionsFromArray);
+use IO::Socket::INET;
+use Lingua::EN::Numbers qw(num2en_ordinal);
+use List::MoreUtils qw(zip);
+use Params::Validate qw(validate);
+use Pod::Simple::Text;
+use Pod::Usage qw(pod2usage);
+
+use QtQA::Proc::Reliable;
 
 #======================== private variables ===================================
 
@@ -151,6 +159,17 @@ sub exe
 {
     my ($self, @command) = @_;
 
+    # First element may be an OPTIONS hashref
+    my %options = do {
+        my @raw_options;
+        if (scalar(@command) >= 1 && ref($command[0]) eq 'HASH') {
+            @raw_options = (shift @command);
+        }
+        validate( @raw_options, {
+            reliable    =>  { default => 1 },
+        });
+    };
+
     # We are going to add values to env for all properties which are defined.
     # This ensures that the parent script always has full control over default
     # values of properties.  Otherwise, parent and child scripts could have
@@ -160,15 +179,16 @@ sub exe
 
     local @ENV{@property_env_keys} = values %{$self->{resolved_property}};
 
-    # XXX important missing feature compared to Pulse::x - automatic retry.
-    #
-    # Pulse::x supported parsing of command output and automatically retrying
-    # on certain types of errors.  Unfortunately the code for that was very fragile,
-    # especially on Windows where quoting issues were common.  So it has not been
-    # ported for now.
-
     $self->print_when_verbose(1, '+ ', join(' ', @command), "\n");
-    my $status = system( @command );
+    $self->_reliable_exe( \%options, @command );
+
+    return;
+}
+
+sub _handle_exe_status
+{
+    my ($self, $status, @command) = @_;
+
     if ($status != 0) {
         croak "@command exited with status $status";
     }
@@ -176,6 +196,145 @@ sub exe
     return;
 }
 
+sub _simple_exe
+{
+    my ($self, @command) = @_;
+
+    my $status = system( @command );
+    $self->_handle_exe_status( $status, @command );
+
+    return;
+}
+
+sub _reliable_exe
+{
+    my ($self, $options_ref, @command) = @_;
+
+    my $proc = QtQA::Proc::Reliable->new( $options_ref, @command );
+    if (!$proc) {
+        # No reliable strategy, fall back to simple mechanism
+        $self->_simple_exe( @command );
+        return;
+    }
+
+    # Whenever we retry the command, log it
+    $proc->retry_cb( sub { $self->_log_exe_retry( @_ ) } );
+
+    # internally, run() may retry many times, but it only returns the last status
+    my $status = $proc->run( );
+    $self->_handle_exe_status( $status );
+
+    return;
+}
+
+sub _log_exe_retry
+{
+    my ($self, $arg_ref) = @_;
+
+    my $proc    = $arg_ref->{ proc };
+    my $status  = $arg_ref->{ status };
+    my $reason  = $arg_ref->{ reason };
+    my $attempt = $arg_ref->{ attempt };
+
+    my @command = $proc->command( );
+
+    my $status_string = $self->_format_status( $status );
+
+    my $message
+        = 'The '.num2en_ordinal( $attempt )." attempt at running this command:\n"
+        . '    '.Data::Dumper->new([\@command], ['command'])->Indent(0)->Dump()."\n"
+        . "... failed with $status_string.\n"
+        . "It will be retried because $reason\n"
+    ;
+
+    $self->_warn( $message );
+
+    return;
+}
+
+sub _format_status
+{
+    my ($self, $status) = @_;
+
+    my $signal   = ($status & 127);
+    my $coredump = ($status & 128);
+    my $exitcode = ($status >> 8);
+
+    if ($signal) {
+        my $out = $self->_format_signal( $signal );
+        if ($coredump) {
+            $out .= ' (dumped core)';
+        }
+        return $out;
+    }
+
+    return "exit code $exitcode";
+}
+
+sub _format_signal
+{
+    my ($self, $signal) = @_;
+
+    state $signal_number_to_name = (sub {
+        #
+        # numbers is e.g. '0 1 2 3 4 5 6 7 8 9 10 11 12 13 3 4 ', may contain duplicates.
+        # names is e.g.   'ZERO HUP INT QUIT ', no duplicates.
+        #
+        # We reverse these because we report only one name per number, and we consider the _first_
+        # name for a given number to be the most significant name, which means it should be the
+        # _last_ name assigned during the hash assignment.
+        #
+        my @signal_numbers = reverse split(' ', $Config{ sig_num });  # e.g. '1 2 3 4 5 3 4 '
+        my @signal_names   = reverse split(' ', $Config{ sig_name }); # e.g. 'HUP SEGV BUS INT '
+
+        my %out = zip @signal_numbers, @signal_names;
+        \%out;
+    })->();
+
+    my $signal_name = $signal_number_to_name->{ $signal };
+
+    # Examples:
+    #
+    #   signal 11
+    #   signal 11 (SIGSEGV)
+    #
+    return
+        "signal $signal"
+       .( $signal_name ? " (SIG$signal_name)" : "")
+    ;
+}
+
+# Warn with $message, and prefix each line with the package name so that it is obvious where
+# this message is coming from.  Also, carp is used so that the message hopefully ends up
+# pointing out a relevant line in the actual test script.
+sub _warn
+{
+    my ($self, $message) = @_;
+
+    my $prefix = __PACKAGE__ . ': ';
+
+    $message =~ s{\n}{\n$prefix}g;
+    $message = $prefix . $message;
+
+    # Try hard to make sure Carp logs this message relative to the test script.
+    # We do this here in _warn, rather than using @CARP_NOT, to ensure that only
+    # "controlled" warnings have this smart logic - any kind of unexpected warnings
+    # from internal coding errors should not be munged.
+
+    local %Carp::Internal = %Carp::Internal;
+
+    foreach my $package (qw(
+        QtQA::Proc::Reliable
+        QtQA::TestScript
+        Capture::Tiny
+    )) {
+        $Carp::Internal{ $package }++;
+    }
+
+    carp $message;
+
+    return;
+}
 
 sub exe_qx
 {
@@ -598,6 +757,8 @@ invoking the script with:
 
 =item B<exe>( LIST )
 
+=item B<exe>( OPTIONS, LIST )
+
 Run an external program, and die if it fails.  LIST is interpreted the same way as
 in the builtin L<system> function.
 
@@ -615,11 +776,31 @@ The command is printed before it is run, if the verbosity setting is >= 1.
 If the program does not exit with a 0 exit code, the script will die.
 Similar to the L<autodie> module.
 
+=item automatic retry
+
+Many commands may be automatically retried if they fail with errors assumed
+to be unrelated to the code under test.  See the L<RELIABLE COMMANDS> section
+for discussion of this topic.
+
 =item properties passed to child script
 
 If the script being called is also a QtQA::TestScript, it will automatically
 get the same values for all properties which are set in the currently
 running script.
+
+=back
+
+The behavior may be customized by passing an OPTIONS hashref with
+the following keys:
+
+=over
+
+=item reliable
+
+Controls the reliable heuristics applied to the command.
+Set to 0 to completely disable automatic retry.
+
+Please see the L<RELIABLE COMMANDS> section for further discussion.
 
 =back
 
@@ -698,6 +879,130 @@ LIST is interpreted the same way as for the L<print> builtin.
 
 Returns a true value if anything was printed, false otherwise.
 
+
+
 =back
+
+
+
+=head1 RELIABLE COMMANDS
+
+B<exe> is able to automatically retry failing commands for various
+reasons.  This is useful in the case of transient errors which are not related
+to the code under test, and hence should not affect the outcome of the test.
+
+A command is considered as failed if it exits with a non-zero exit code,
+and it is typically considered as requiring a retry if the stdout or stderr
+from the command matches some internally predefined set of patterns.
+
+Whenever a command is retried, a warning is printed with details about the
+problem.
+
+The most common usage for this feature is to avoid failures due to temporary
+network problems.  Some simple examples include:
+
+=over
+
+=item *
+
+You want to `git clone' a repository hosted on a remote server.  The repository
+is very large, and the network connection is occasionally interrupted.  When
+this happens, you want the test script to retry a few times until it works,
+rather than failing.
+
+=item *
+
+You want to do an aggressively parallelized build by using distributed
+compilation software.  The distributed compile tool is unfortunately not robust
+in the case that someone trips over the power cord on one of the build
+machines.  When this happens, you want to resume compilation rather than
+failing the build.
+
+=back
+
+By default, B<exe> will automatically decide the reliable strategy based on
+the command which is being run - as determined by the first element of LIST.
+For example:
+
+    exe( 'git', 'clone', 'git://example.com/myproject' );
+
+...will enable the reliable handler for `git', automatically retrying the
+clone if git fails and outputs messages which appear to be indicative of
+network timeouts or similar problems.
+
+This reliability feature is largely based on heuristics, gradually tweaked
+over time from experience, and the exact behavior is deliberately undefined.
+The intention is to silently do the right thing in most cases and allow the
+script writer to focus on the test procedure without having to code for the
+dozens of possible bogus error cases from every command.
+
+However, in some cases it will be beneficial to disable or customize this
+behavior, in which case the following values can be provided for the `reliable'
+option to B<exe>:
+
+=over
+
+=item reliable => 1   (default)
+
+Enable whatever automatic reliable strategies apply to the executed
+command.  The command is determined by looking at the first element of
+the LIST passed to B<exe>.
+
+=item reliable => 0
+
+Completely disable the reliable special handling.
+
+Use this for pathological situations where the parsing of stdout/stderr is
+unacceptable for you (see L<CAVEATS>), or you know that the command can't
+be cleanly retried.
+
+=item reliable => ['cmd1', 'cmd2', ...]
+
+Enable all of the named reliable strategies.
+
+These may be arbitrary strings, but they are usually named after the command
+to which they should be applied.  For example, 'git', 'wget', 'make'.
+
+Enabling multiple reliable strategies is useful when some complex process
+is being initiated which will run several sub-commands, each of which has
+its own applicable reliable strategy.
+
+For instance, consider a project where running `make upload-results'
+compiles and runs a set of autotests and uploads results to some remote host
+using scp:
+
+  $self->exe( {reliable => [
+    'gcc',      # attempt to recover from silly compiler segfaults ...
+    'scp',      # ...and annoying network problems on scp upload
+  ]}, 'make', 'upload-testresults' );
+
+
+=item reliable => 'cmd'
+
+Shorthand for reliable => ['cmd'].
+
+This is useful when the default command detection will not work due to
+indirect execution of a command.  For example, if git is being run via
+/bin/sh, the `git' reliable strategy will not be applied by default, so
+something like the following may be appropriate:
+
+  $self->exe(
+    { reliable => 'git' },
+    '/bin/sh',
+    '-c',
+    'set -e; for i in $(seq 3 5); do git clone git://gitorious.org/qt/qt$i.git; done'
+  );
+
+=back
+
+
+=head1 CAVEATS
+
+When B<exe> is used with a reliable strategy, which is the default for some commands
+(see L<RELIABLE COMMANDS>), the script will retain a full copy of the stdout/stderr from
+the child process until it completes.  This could be unacceptable if the run command
+is expected to generate a lot of output.  In other words, if a command is run via
+via B<exe>, and it generates 100MB of output, then the memory usage of Qt::TestScript
+will increase by (at least) 100MB during the execution of that command.
 
 =cut
