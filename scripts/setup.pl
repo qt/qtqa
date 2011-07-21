@@ -105,8 +105,8 @@ my $DEVNULL = ($OSNAME =~ m{win32}i) ? 'NUL'
 #
 sub all_required_cpan_modules
 {
-    return qw(
-        BSD::Resource
+    # available on all platforms...
+    my @out = qw(
         Capture::Tiny
         Env::Path
         File::Slurp
@@ -124,6 +124,13 @@ sub all_required_cpan_modules
         Tie::Sysctl
         autodie
     );
+
+    # available everywhere but Windows
+    push @out, qw(
+        BSD::Resource
+    ) unless ($OSNAME =~ m{win32}i);
+
+    return @out;
 }
 
 # Returns the subset of modules from `all_required_cpan_modules'
