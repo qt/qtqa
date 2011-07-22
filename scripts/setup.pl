@@ -114,7 +114,6 @@ sub all_required_cpan_modules
         List::MoreUtils
         Params::Validate
         Perl::Critic
-        Proc::Reliable
         Readonly
         Test::Exception
         Test::Exit
@@ -122,13 +121,16 @@ sub all_required_cpan_modules
         Test::Perl::Critic
         Text::Diff
         Text::Trim
-        Tie::Sysctl
         autodie
     );
 
     # available everywhere but Windows
+    # (actually, some of these modules are possible to install on Windows but
+    # don't make sense or are too buggy to be safely used)
     push @out, qw(
         BSD::Resource
+        Proc::Reliable
+        Tie::Sysctl
     ) unless ($OSNAME =~ m{win32}i);
 
     return @out;

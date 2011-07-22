@@ -52,6 +52,8 @@ Print this message.
 If the test takes longer than <value> seconds, it will be killed, and
 the testrunner will exit with a non-zero exit code to indicate failure.
 
+B<NOTE>: not yet supported on Windows.
+
 =item B<--capture-logs> <directory>
 
 The output of the test will be stored in a file under the given <directory>.
@@ -92,11 +94,15 @@ For example, if the following command is run:
 ...and if $HOME/test-logs/qstring-testlog-00.txt does not exist when the test completes,
 the test will be considered a failure.
 
+B<NOTE>: not yet supported on Windows.
+
 =item B<--tee-logs> <directory>
 
 Exactly like C<--capture-logs directory>, except that stdout/stderr from the autotest
 are also written to stdout/stderr of the testrunner, rather than only being written
 to the captured log file.
+
+B<NOTE>: not yet supported on Windows.
 
 =item B<--plugin> <plugin>
 
@@ -160,8 +166,15 @@ use File::Path qw( mkpath );
 use File::Spec::Functions;
 use IO::Handle;
 use Pod::Usage qw( pod2usage );
-use Proc::Reliable;
 use Readonly;
+
+BEGIN {
+    # Proc::Reliable is not reliable on Windows
+    if ($OSNAME !~ m{win32}i) {
+        require Proc::Reliable;
+        Proc::Reliable->import( );
+    }
+}
 
 #use Smart::Comments;    # uncomment for debugging
 
@@ -201,12 +214,17 @@ sub run
 
     my $tee_logs;
 
+    my $win = ($OSNAME =~ m{win32}i);
+    my $disable = sub {
+        warn "FIXME: option `$_[0]' is currently not implemented on $OSNAME";
+    };
+
     GetOptionsFromArray( \@args,
         'help|?'            =>  sub { pod2usage(1) },
-        'timeout=i'         =>  \$self->{ timeout      },
-        'capture-logs=s'    =>  \$self->{ capture_logs },
+        'timeout=i'         =>  ($win ? $disable : \$self->{ timeout }),
+        'capture-logs=s'    =>  ($win ? $disable : \$self->{ capture_logs }),
         'plugin=s'          =>  \@{$self->{ plugin_names }},
-        'tee-logs=s'        =>  \$tee_logs,
+        'tee-logs=s'        =>  ($win ? $disable : \$tee_logs),
     ) || pod2usage(2);
 
     # tee-logs implies that we both capture the logs, and print the output like `tee'
@@ -709,19 +727,18 @@ sub proc_reliable_print_to_logbuffer
     return;
 }
 
-# Run a subprocess for the given @command, and do all appropriate logging.
-# A Proc::Reliable encapsulating the process is returned, after the process completes.
-sub do_subprocess
+# Creates and returns a process object.
+# On all platforms other than Windows, this is a Proc::Reliable object.
+# On Windows, it is currently a stub missing many features.
+sub create_proc
 {
-    my ($self, @command) = @_;
+    my ($self) = @_;
 
-    @command || die 'not enough arguments';
-
-    $self->set_command( @command );
+    if ($OSNAME =~ m{win32}i) {
+        return $self->create_proc_win32( );
+    }
 
     my $proc = Proc::Reliable->new( );
-
-    $self->set_proc( $proc );
 
     $proc->stdin_error_ok( 1 );                 # OK if child does not read all stdin
     $proc->num_tries( 1 );                      # don't automatically retry on error
@@ -735,6 +752,65 @@ sub do_subprocess
     # The logging setup function is permitted to change these callbacks.
     $proc->stdout_cb( sub { $self->proc_reliable_print_to_handle(@_) } );
     $proc->stderr_cb( sub { $self->proc_reliable_print_to_handle(@_) } );
+
+    return $proc;
+}
+
+sub create_proc_win32
+{
+    my ($self) = @_;
+
+    return do {
+        package QtQA::App::TestRunner::SimpleProc;  ## no critic
+
+        # Implements the minimal subset of Proc::Reliable's API
+        # in order to allow testrunner to run the process and not crash
+
+        sub new {  ## no critic
+            my ($class) = @_;
+
+            my $self = bless {
+                status => 0,
+            }, $class;
+
+            return $self;
+        }
+
+        sub run {
+            my ($self, $command_ref) = @_;
+
+            $self->{ status } = system( @{$command_ref} );
+
+            return;
+        }
+
+        sub status {
+            my ($self) = @_;
+
+            return $self->{ status };
+        }
+
+        sub msg {
+            return;
+        }
+
+        QtQA::App::TestRunner::SimpleProc->new( );
+    };
+}
+
+# Run a subprocess for the given @command, and do all appropriate logging.
+# A Proc::Reliable encapsulating the process is returned, after the process completes.
+sub do_subprocess
+{
+    my ($self, @command) = @_;
+
+    @command || die 'not enough arguments';
+
+    $self->set_command( @command );
+
+    my $proc = $self->create_proc();
+
+    $self->set_proc( $proc );
 
     $self->setup_logging( );  # this is allowed to modify the command
 

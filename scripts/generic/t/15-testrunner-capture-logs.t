@@ -259,6 +259,10 @@ sub run_from_subprocess
 # Primary entry point for the test.
 sub run
 {
+    if ($OSNAME =~ m{win32}i) {
+        plan 'skip_all', "capture-logs feature is not yet implemented for $OSNAME";
+    }
+
     my $debug;
 
     GetOptions(

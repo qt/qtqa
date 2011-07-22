@@ -2,13 +2,19 @@ package QtQA::App::TestRunner::Plugin::core;
 use strict;
 use warnings;
 
-use BSD::Resource;
 use Capture::Tiny qw( capture_merged );
 use Carp;
 use Data::Dumper;
 use English qw( -no_match_vars );
 use Readonly;
-use Tie::Sysctl;
+
+# not available on Windows; allow syntax check to work, at least
+BEGIN {
+    if ($OSNAME !~ m{win32}i) {
+        require BSD::Resource; BSD::Resource->import( );
+        require Tie::Sysctl;   Tie::Sysctl->import( );
+    }
+}
 
 #use Smart::Comments;   # uncomment for debugging
 

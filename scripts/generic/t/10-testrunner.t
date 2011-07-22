@@ -18,6 +18,7 @@ types of subprocesses and verify that behavior is as expected.
 =cut
 
 use Encode;
+use English qw( -no_match_vars );
 use FindBin;
 use Readonly;
 use Test::More;
@@ -25,6 +26,9 @@ use Capture::Tiny qw( capture );
 
 use lib "$FindBin::Bin/../../lib/perl5";
 use QtQA::Test::More qw( is_or_like );
+
+# 1 if Windows
+Readonly my $WINDOWS => ($OSNAME =~ m{win32}i);
 
 # perl to print @ARGV unambiguously from a subprocess
 # (not used directly)
@@ -153,13 +157,19 @@ sub test_run
 sub test_success
 {
     while (my ($testdata_name, $testdata_ref) = each %TESTSCRIPT_ARGUMENTS) {
-        test_run({
-            args                =>  [ 'perl', '-e', $TESTSCRIPT_SUCCESS, @{$testdata_ref->[0]} ],
-            expected_stdout     =>  $testdata_ref->[1],
-            expected_stderr     =>  q{},
-            expected_success    =>  1,
-            testname            =>  "successful $testdata_name",
-        });
+        TODO: {
+            if ($WINDOWS && $testdata_name =~ m{metacharacters}) {
+                todo_skip( 'handling of shell metacharacters not yet defined on Windows', 1 );
+            }
+
+            test_run({
+                args                =>  [ 'perl', '-e', $TESTSCRIPT_SUCCESS, @{$testdata_ref->[0]} ],
+                expected_stdout     =>  $testdata_ref->[1],
+                expected_stderr     =>  q{},
+                expected_success    =>  1,
+                testname            =>  "successful $testdata_name",
+            });
+        }
     }
 
     return;
@@ -168,13 +178,19 @@ sub test_success
 sub test_normal_nonzero_exitcode
 {
     while (my ($testdata_name, $testdata_ref) = each %TESTSCRIPT_ARGUMENTS) {
-        test_run({
-            args                =>  [ 'perl', '-e', $TESTSCRIPT_FAIL, @{$testdata_ref->[0]} ],
-            expected_stdout     =>  $testdata_ref->[1],
-            expected_stderr     =>  q{},
-            expected_success    =>  0,
-            testname            =>  "failure $testdata_name",
-        });
+        TODO: {
+            if ($WINDOWS && $testdata_name =~ m{metacharacters}) {
+                todo_skip( 'handling of shell metacharacters not yet defined on Windows', 1 );
+            }
+
+            test_run({
+                args                =>  [ 'perl', '-e', $TESTSCRIPT_FAIL, @{$testdata_ref->[0]} ],
+                expected_stdout     =>  $testdata_ref->[1],
+                expected_stderr     =>  q{},
+                expected_success    =>  0,
+                testname            =>  "failure $testdata_name",
+            });
+        }
     }
 
     return;
@@ -246,19 +262,27 @@ sub test_arg_parsing
     test_run({
         args                =>  [ '--', '--help' ],
         expected_stdout     =>  q{},
-        expected_stderr     =>  qr{--help: No such file or directory},
+        expected_stderr     =>  (
+            !$WINDOWS
+                ? qr{--help: No such file or directory}
+                : qr{'--help' is not recognized as }
+        ),
         expected_success    =>  0,
         testname            =>  "-- stops argument processing",
     });
 
     # test that testrunner.pl stops parsing at the first non-option argument
-    test_run({
-        args                =>  [ '--timeout', '10', 'perl', '--help' ],
-        expected_stdout     =>  qr{ ^ Usage: \s+ perl \s }xms,
-        expected_stderr     =>  q{},
-        expected_success    =>  1,  # perl --help exits successfully
-        testname            =>  "parsing stops at first non-option",
-    });
+    TODO: {
+        todo_skip( '--timeout option does not work on Windows', 1 ) if $WINDOWS;
+
+        test_run({
+            args                =>  [ '--timeout', '10', 'perl', '--help' ],
+            expected_stdout     =>  qr{ ^ Usage: \s+ perl \s }xms,
+            expected_stderr     =>  q{},
+            expected_success    =>  1,  # perl --help exits successfully
+            testname            =>  "parsing stops at first non-option",
+        });
+    }
 
     return;
 }
@@ -269,8 +293,20 @@ sub run
 
     test_success;
     test_normal_nonzero_exitcode;
-    test_crashing;
-    test_hanging;
+
+    TODO: {
+        # This is skipped because "crashing" is not really the same on Windows and Unix;
+        # Windows doesn't have the same kind of signals.
+        # Doing a `kill 11, $pid' on Windows simply makes the process exit with exit code 11.
+        # It is possible that there's a sensible way to rewrite this test for Windows.
+        todo_skip( 'simulating crashes does not yet work on Windows', 1 ) if $WINDOWS;
+        test_crashing;
+    }
+
+    TODO: {
+        todo_skip( '--timeout option does not work on Windows', 1 ) if $WINDOWS;
+        test_hanging;
+    }
 
     done_testing;
 
