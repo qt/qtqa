@@ -216,11 +216,6 @@ sub run
 {
     my ($self) = @_;
 
-    if ($OSNAME =~ m{win32}i) {
-        print "SKIP: sorry, this script does not yet support Windows :(\n";
-        return;
-    }
-
     # localize in case we modify these in the below block.
     local $ENV{VIRTUAL_ENV} = $ENV{VIRTUAL_ENV};
     local $ENV{PATH}        = $ENV{PATH};
