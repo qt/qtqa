@@ -112,6 +112,7 @@ sub all_required_cpan_modules
         File::Slurp
         IO::CaptureOutput
         List::MoreUtils
+        Params::Validate
         Perl::Critic
         Proc::Reliable
         Readonly
