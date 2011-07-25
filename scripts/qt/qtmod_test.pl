@@ -273,7 +273,7 @@ sub run_compile
     chdir( $qt_dir );
 
     my $configure
-        = ($OSNAME =~ /win32/i) ? './configure.bat'
+        = ($OSNAME =~ /win32/i) ? 'configure.bat'
           :                       './configure';
 
     $self->exe( $configure, split(/\s+/, "$qt_configure_args $qt_configure_extra_args") );
