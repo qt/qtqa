@@ -52,8 +52,6 @@ Print this message.
 If the test takes longer than <value> seconds, it will be killed, and
 the testrunner will exit with a non-zero exit code to indicate failure.
 
-B<NOTE>: not yet supported on Windows.
-
 =item B<--capture-logs> <directory>
 
 The output of the test will be stored in a file under the given <directory>.
@@ -177,11 +175,18 @@ use IO::Handle;
 use Pod::Usage qw( pod2usage );
 use Readonly;
 
+use FindBin;
+use lib "$FindBin::Bin/../lib/perl5";
+
 BEGIN {
     # Proc::Reliable is not reliable on Windows
     if ($OSNAME !~ m{win32}i) {
         require Proc::Reliable;
         Proc::Reliable->import( );
+    }
+    else {
+        require QtQA::Proc::Reliable::Win32;
+        QtQA::Proc::Reliable::Win32->import( );
     }
 }
 
@@ -230,7 +235,7 @@ sub run
 
     GetOptionsFromArray( \@args,
         'help|?'            =>  sub { pod2usage(1) },
-        'timeout=i'         =>  ($win ? $disable : \$self->{ timeout }),
+        'timeout=i'         =>  \$self->{ timeout },
         'capture-logs=s'    =>  ($win ? $disable : \$self->{ capture_logs }),
         'plugin=s'          =>  \@{$self->{ plugin_names }},
         'tee-logs=s'        =>  ($win ? $disable : \$tee_logs),
@@ -744,7 +749,9 @@ sub create_proc
     my ($self) = @_;
 
     if ($OSNAME =~ m{win32}i) {
-        return $self->create_proc_win32( );
+        my $proc = $self->create_proc_win32( );
+        $proc->maxtime( $self->{timeout} );
+        return $proc;
     }
 
     my $proc = Proc::Reliable->new( );
@@ -769,42 +776,7 @@ sub create_proc_win32
 {
     my ($self) = @_;
 
-    return do {
-        package QtQA::App::TestRunner::SimpleProc;  ## no critic
-
-        # Implements the minimal subset of Proc::Reliable's API
-        # in order to allow testrunner to run the process and not crash
-
-        sub new {  ## no critic
-            my ($class) = @_;
-
-            my $self = bless {
-                status => 0,
-            }, $class;
-
-            return $self;
-        }
-
-        sub run {
-            my ($self, $command_ref) = @_;
-
-            $self->{ status } = system( @{$command_ref} );
-
-            return;
-        }
-
-        sub status {
-            my ($self) = @_;
-
-            return $self->{ status };
-        }
-
-        sub msg {
-            return;
-        }
-
-        QtQA::App::TestRunner::SimpleProc->new( );
-    };
+    return QtQA::Proc::Reliable::Win32->new( );
 }
 
 # Run a subprocess for the given @command, and do all appropriate logging.

@@ -77,7 +77,7 @@ See `perldoc L<local::lib>' for more details.
 package QtQASetup;
 
 use English               qw( -no_match_vars      );
-use File::Spec::Functions qw( catfile             );
+use File::Spec::Functions qw( catfile devnull     );
 use File::Temp            qw( tempfile            );
 use Getopt::Long          qw( GetOptionsFromArray );
 use LWP::UserAgent        qw(                     );
@@ -90,9 +90,7 @@ use Pod::Usage            qw( pod2usage           );
 my $HTTP_CPANMINUS =
     'http://cpansearch.perl.org/src/MIYAGAWA/App-cpanminus-1.4005/bin/cpanm';
 
-# Null device understood by system shell redirection
-my $DEVNULL = ($OSNAME =~ m{win32}i) ? 'NUL'
-            :                          '/dev/null';
+my $WINDOWS = ($OSNAME =~ m{win32}i);
 
 #====================== perl stuff ============================================
 
@@ -135,7 +133,12 @@ sub all_required_cpan_modules
         BSD::Resource
         Proc::Reliable
         Tie::Sysctl
-    ) unless ($OSNAME =~ m{win32}i);
+    ) unless $WINDOWS;
+
+    # available _only_ on Windows
+    push @out, qw(
+        Win32::Job
+    ) if $WINDOWS;
 
     return @out;
 }
@@ -428,8 +431,8 @@ sub new
 {
     my ($class, @args) = @_;
 
-    my $home = ($OSNAME =~ m{win32}i) ? catfile($ENV{HOMEDRIVE}, $ENV{HOMEPATH})
-             :                          $ENV{HOME};
+    my $home = $WINDOWS ? catfile($ENV{HOMEDRIVE}, $ENV{HOMEPATH})
+             :            $ENV{HOME};
 
     my %self = (
         install     =>  0,
@@ -591,7 +594,7 @@ sub run_module_test
     my $quiet = $arg_ref->{ quiet };
 
     if ($quiet) {
-        $cmd .= " 2>$DEVNULL";
+        $cmd .= ' 2>'.devnull();
     }
 
     if (0 == system($cmd)) {
