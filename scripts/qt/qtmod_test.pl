@@ -333,8 +333,6 @@ sub get_testrunner_command
         $testrunner,        # run the tests through our testrunner script ...
         '--timeout',
         $qt_tests_timeout,  # kill any test which takes longer than this ...
-        '--plugin',
-        'flaky',            # give more info about unstable / flaky tests ...
     );
 
     # capture or tee logs to a given directory
@@ -348,6 +346,9 @@ sub get_testrunner_command
     if ($qt_tests_backtraces) {
         push @testrunner_with_args, '--plugin', 'core';
     }
+
+    # give more info about unstable / flaky tests
+    push @testrunner_with_args, '--plugin', 'flaky';
 
     push @testrunner_with_args, '--'; # no more args
 
