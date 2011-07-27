@@ -43,6 +43,17 @@ sub is_or_like
         goto &like;
     }
 
+    elsif (ref($expected) eq 'ARRAY') {
+        my @expected = @{$expected};
+        my $out = 1;
+        my $i = 0;
+        while ($out && @expected) {
+            $out &&= is_or_like( $actual, shift( @expected ), "$testname ($i)" );
+            ++$i;
+        }
+        return $out;
+    }
+
     if ($testname) {
         $testname .= ' (exact match)';
         $_[2]      = $testname;
@@ -246,10 +257,16 @@ This module does not export any methods by default.
 If EXPECTED is a reference to a Regexp, calls L<Test::More::like> with the given
 parameters.
 
-Otherwise, calls L<Test::More::is>.
+If EXPECTED is a scalar, calls L<Test::More::is>.
+
+If EXPECTED is a reference to an Array, calls B<is_or_like> once for each element
+in the array (stopping at the first failure).  This is mostly provided as an
+alternative to writing extremely complicated regular expressions.
 
 In the testlog, TESTNAME will have the string ' (exact match)' or ' (regex match)'
 appended to it, so that it is clear which form of comparison was used.
+If the Array-reference form is used, the TESTNAME will also have the current array index
+appended.
 
 This function is intended for use in specifying sets of testdata where most of the
 data can be specified precisely, but some cases require matching instead.  For
@@ -279,6 +296,18 @@ example:
     is_or_like( $stderr, $testdata->{ expected_stderr } );
   }
 
+Another example, demonstrating usage of the arrayref form:
+
+  my $output = qx(perl -e "print qq{Hello\n}; print STDERR qq{Warning!\n}; print qq{World\n}" 2>&1);
+
+  # We cannot 100% guarantee the order in which the stdout/stderr arrived,
+  # but we can guarantee that the "Hello" line comes before "World" and that
+  # there are 3 lines
+  is_or_like( $output, [
+    qr{(\A|\n)Warning!\n}ms,               # STDERR line is present
+    qr{(\A|\n)Hello\n.*?(?<=\n)World\n}ms, # STDOUT lines are present, in the right order
+    qr{\A([^\n]+\n){3}\z}ms,               # exactly three lines are present
+  ]);
 
 
 =item B<create_mock_command>( OPTIONS )

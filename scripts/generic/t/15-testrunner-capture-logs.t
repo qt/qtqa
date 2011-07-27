@@ -256,6 +256,86 @@ sub run_from_subprocess
 
 #==================================================================================================
 
+# Calculate a set of regular expressions to match sequences of lines.
+#
+# Input: a list of arrayrefs, each containing a sequence of lines (strings, _without_ trailing \n)
+#
+# Returns: an arrayref containing a set of regular expressions.  Some text satisfies _all_ the
+# line sequences only if _all_ the regular expressions match.
+#
+# The primary use case for this function is to match the output of commands/logs where
+# both STDOUT and STDERR should be separately checked.  In this case, there are multiple output
+# streams, and the order of output from each stream can be guaranteed but the order of output
+# _between_ streams cannot.
+#
+# Example:
+#
+#   my $rx = rx_for_lines(
+#       [
+#           "stdout line one",
+#           "stdout line two",
+#       ],
+#       [
+#           "stderr line one",
+#           "stderr line two",
+#       ],
+#   );
+#   is_or_like( $some_text, $rx );
+#
+# In this example, is_or_like will pass only if the following is true:
+#
+#   - $some_text contains exactly 4 lines of output
+#   - $some_text contains both "stdout line one\n" and "stdout line two\n", in that order
+#   - $some_text contains both "stderr line one\n" and "stderr line two\n", in that order
+#
+# The comparison will succeed regardless of the order of stdout/stderr interleaving
+# (as long as line-based flushing was used on stdout/stderr).
+#
+sub rx_for_lines
+{
+    my (@line_refs) = @_;
+
+    my @out;
+
+    my $line_count = 0;
+
+    foreach my $lines (@line_refs) {
+        my @rx_lines = map { quotemeta($_).'\n' } @{$lines};
+        $line_count += scalar( @rx_lines );
+
+        my $rx;
+
+        # First line
+        $rx .= q{
+            (?:         # First line may appear in two cases:
+                \A      # (1) very first line in the text
+                |
+                \n      # (2) not the first line in the text
+            )
+        };
+
+        # Rest of lines
+        $rx .= join( q{
+            .*?       # 0 or more of any character between lines
+            (?<=\n)   # lines must follow a \n (but that must not be consumed, because
+                      # it may be the \n at the end of the previously matched line)
+        }, @rx_lines );
+
+        push @out, qr{$rx}xms;
+    }
+
+    # The above regular expressions ensure we get all lines in the correct order.
+    # Finally, add an rx to make sure we got exactly the correct amount of lines.
+    push @out, qr/
+        \A                             # beginning ...
+        (?: [^\n]* \n ){$line_count}   # exactly $line_count newline characters
+        [^\n]*                         # maybe some other stuff between last \n and end of text
+        \z                             # end
+    /xms;
+
+    return \@out;
+}
+
 # Primary entry point for the test.
 sub run
 {
@@ -337,13 +417,23 @@ sub run
         command_args     => [ '--exitcode', 3, 'mixed_nonascii' ],
         expected_success => 0,
         expected_logfile => "$tempdir/perl-00.txt",
-        expected_logtext => encode_utf8(
-            "1:testlog:早上好\n2:testlog:你好马？\n"
-           ."1:stderr:早上好\n2:stderr:你好马？\n"
-           ."1:stdout:早上好\n2:stdout:你好马？\n"
-           ."3:stdout:早上好\n4:stdout:你好马？\n"
-           ."3:stderr:早上好\n4:stderr:你好马？\n"
-           ."3:testlog:早上好\n4:testlog:你好马？\n"
+        expected_logtext => rx_for_lines(
+            [map { encode_utf8($_) } qw(
+                1:testlog:早上好
+                2:testlog:你好马？
+                1:stdout:早上好
+                2:stdout:你好马？
+                3:stdout:早上好
+                4:stdout:你好马？
+                3:testlog:早上好
+                4:testlog:你好马？
+            )],
+            [map { encode_utf8($_) } qw(
+                1:stderr:早上好
+                2:stderr:你好马？
+                3:stderr:早上好
+                4:stderr:你好马？
+            )],
         ),
     });
     run_one_test({
@@ -362,13 +452,23 @@ sub run
             "1:stderr:早上好\n2:stderr:你好马？\n"
            ."3:stderr:早上好\n4:stderr:你好马？\n"
         ),
-        expected_logtext => encode_utf8(
-            "1:testlog:早上好\n2:testlog:你好马？\n"
-           ."1:stderr:早上好\n2:stderr:你好马？\n"
-           ."1:stdout:早上好\n2:stdout:你好马？\n"
-           ."3:stdout:早上好\n4:stdout:你好马？\n"
-           ."3:stderr:早上好\n4:stderr:你好马？\n"
-           ."3:testlog:早上好\n4:testlog:你好马？\n"
+        expected_logtext => rx_for_lines(
+            [map { encode_utf8($_) } qw(
+                1:testlog:早上好
+                2:testlog:你好马？
+                1:stdout:早上好
+                2:stdout:你好马？
+                3:stdout:早上好
+                4:stdout:你好马？
+                3:testlog:早上好
+                4:testlog:你好马？
+            )],
+            [map { encode_utf8($_) } qw(
+                1:stderr:早上好
+                2:stderr:你好马？
+                3:stderr:早上好
+                4:stderr:你好马？
+            )],
         ),
     });
     run_one_test({
@@ -376,14 +476,24 @@ sub run
         testrunner_args  => [ '--capture-logs', $tempdir, '--'],
         command_args     => [ 'mixed' ],
         expected_logfile => "$tempdir/perl-02.txt",
-        expected_logtext =>
-            "1:testlog\n2:testlog\n"
-           ."1:stderr\n2:stderr\n"
-           ."1:stdout\n2:stdout\n"
-           ."3:stdout\n4:stdout\n"
-           ."3:stderr\n4:stderr\n"
-           ."3:testlog\n4:testlog\n"
-        ,
+        expected_logtext => rx_for_lines(
+            [qw(
+                1:testlog
+                2:testlog
+                1:stdout
+                2:stdout
+                3:stdout
+                4:stdout
+                3:testlog
+                4:testlog
+            )],
+            [qw(
+                1:stderr
+                2:stderr
+                3:stderr
+                4:stderr
+            )],
+        ),
     });
 
 
@@ -401,14 +511,28 @@ sub run
         expected_success => 0,
         # note the naming convention with -o is to reuse the basename and extension
         expected_logfile => "$tempdir/perl-testlog-00.log",
-        expected_logtext => encode_utf8(
-            "1:testlog:早上好\n2:testlog:你好马？\n"
-           ."3:testlog:早上好\n4:testlog:你好马？\n"
-           ."\nQtQA::App::TestRunner: test output additional content directly to stdout/stderr:\n"
-           ."1:stderr:早上好\n2:stderr:你好马？\n"
-           ."1:stdout:早上好\n2:stdout:你好马？\n"
-           ."3:stdout:早上好\n4:stdout:你好马？\n"
-           ."3:stderr:早上好\n4:stderr:你好马？\n"
+        expected_logtext => rx_for_lines(
+            [map { encode_utf8($_) } qw(
+                1:testlog:早上好
+                2:testlog:你好马？
+                3:testlog:早上好
+                4:testlog:你好马？
+                ),
+                q{},
+                qq{QtQA::App::TestRunner: test output additional content directly to stdout/stderr:},
+            ],
+            [map { encode_utf8($_) } qw(
+                1:stderr:早上好
+                2:stderr:你好马？
+                3:stderr:早上好
+                4:stderr:你好马？
+            )],
+            [map { encode_utf8($_) } qw(
+                1:stdout:早上好
+                2:stdout:你好马？
+                3:stdout:早上好
+                4:stdout:你好马？
+            )],
         ),
     });
     run_one_test({
@@ -416,30 +540,58 @@ sub run
         testrunner_args  => [ '--capture-logs', $tempdir, '--' ],
         command_args     => [ '-o', 'testlog.log', 'mixed' ],
         expected_logfile => "$tempdir/perl-testlog-01.log",
-        expected_logtext =>
-            "1:testlog\n2:testlog\n"
-           ."3:testlog\n4:testlog\n"
-           ."\nQtQA::App::TestRunner: test output additional content directly to stdout/stderr:\n"
-           ."1:stderr\n2:stderr\n"
-           ."1:stdout\n2:stdout\n"
-           ."3:stdout\n4:stdout\n"
-           ."3:stderr\n4:stderr\n"
-        ,
+        expected_logtext => rx_for_lines(
+            [qw(
+                1:testlog
+                2:testlog
+                3:testlog
+                4:testlog
+                ),
+                q{},
+                qq{QtQA::App::TestRunner: test output additional content directly to stdout/stderr:},
+            ],
+            [qw(
+                1:stderr
+                2:stderr
+                3:stderr
+                4:stderr
+            )],
+            [qw(
+                1:stdout
+                2:stdout
+                3:stdout
+                4:stdout
+            )],
+        ),
     });
     run_one_test({
         testname         => 'mixed with capture and -o and tee',
         testrunner_args  => [ '--tee-logs', $tempdir, '--' ],
         command_args     => [ '-o', 'testlog.log', 'mixed' ],
         expected_logfile => "$tempdir/perl-testlog-02.log",
-        expected_logtext =>
-            "1:testlog\n2:testlog\n"
-           ."3:testlog\n4:testlog\n"
-           ."\nQtQA::App::TestRunner: test output additional content directly to stdout/stderr:\n"
-           ."1:stderr\n2:stderr\n"
-           ."1:stdout\n2:stdout\n"
-           ."3:stdout\n4:stdout\n"
-           ."3:stderr\n4:stderr\n"
-        ,
+        expected_logtext => rx_for_lines(
+            [qw(
+                1:testlog
+                2:testlog
+                3:testlog
+                4:testlog
+                ),
+                q{},
+                qq{QtQA::App::TestRunner: test output additional content directly to stdout/stderr:},
+            ],
+            [qw(
+                1:stderr
+                2:stderr
+                3:stderr
+                4:stderr
+            )],
+            [qw(
+                1:stdout
+                2:stdout
+                3:stdout
+                4:stdout
+            )],
+        ),
         expected_stdout  =>
             "1:stdout\n2:stdout\n"
            ."3:stdout\n4:stdout\n"
@@ -462,13 +614,23 @@ sub run
         expected_success => 0,
         expected_logfile => "$tempdir/perl-00.txt",
         # despite appearances, there was no -o option, so we expect a "raw" capture of everything
-        expected_logtext => encode_utf8(
-            "1:testlog:早上好\n2:testlog:你好马？\n"
-           ."1:stderr:早上好\n2:stderr:你好马？\n"
-           ."1:stdout:早上好\n2:stdout:你好马？\n"
-           ."3:stdout:早上好\n4:stdout:你好马？\n"
-           ."3:stderr:早上好\n4:stderr:你好马？\n"
-           ."3:testlog:早上好\n4:testlog:你好马？\n"
+        expected_logtext => rx_for_lines(
+            [map { encode_utf8($_) } qw(
+                1:testlog:早上好
+                2:testlog:你好马？
+                1:stdout:早上好
+                2:stdout:你好马？
+                3:stdout:早上好
+                4:stdout:你好马？
+                3:testlog:早上好
+                4:testlog:你好马？
+            )],
+            [map { encode_utf8($_) } qw(
+                1:stderr:早上好
+                2:stderr:你好马？
+                3:stderr:早上好
+                4:stderr:你好马？
+            )],
         ),
     });
     run_one_test({
@@ -476,14 +638,24 @@ sub run
         testrunner_args  => [ '--capture-logs', $tempdir, '--' ],
         command_args     => [ '-maxwarnings', '-o', 'mixed' ],
         expected_logfile => "$tempdir/perl-01.txt",
-        expected_logtext =>
-            "1:testlog\n2:testlog\n"
-           ."1:stderr\n2:stderr\n"
-           ."1:stdout\n2:stdout\n"
-           ."3:stdout\n4:stdout\n"
-           ."3:stderr\n4:stderr\n"
-           ."3:testlog\n4:testlog\n"
-        ,
+        expected_logtext => rx_for_lines(
+            [qw(
+                1:testlog
+                2:testlog
+                1:stdout
+                2:stdout
+                3:stdout
+                4:stdout
+                3:testlog
+                4:testlog
+            )],
+            [qw(
+                1:stderr
+                2:stderr
+                3:stderr
+                4:stderr
+            )],
+        ),
     });
 
 
@@ -497,16 +669,28 @@ sub run
         command_args     => [ '-o', 'testlog.log', '--skip-log', 'mixed' ],
         expected_success => 0,  # failure should be forced even though exit code of test is 0
         expected_logfile => "$tempdir/perl-testlog-00.log",
-        expected_logtext =>
-            "QtQA::App::TestRunner: FAIL! Test was badly behaved, the `-o' argument was ignored.\n"
-           ."QtQA::App::TestRunner: stdout/stderr follows:\n"
-           ."1:testlog\n2:testlog\n"
-           ."1:stderr\n2:stderr\n"
-           ."1:stdout\n2:stdout\n"
-           ."3:stdout\n4:stdout\n"
-           ."3:stderr\n4:stderr\n"
-           ."3:testlog\n4:testlog\n"
-        ,
+        expected_logtext => rx_for_lines(
+            [
+                q{QtQA::App::TestRunner: FAIL! Test was badly behaved, the `-o' argument was ignored.},
+                q{QtQA::App::TestRunner: stdout/stderr follows:},
+                qw(
+                    1:testlog
+                    2:testlog
+                    1:stdout
+                    2:stdout
+                    3:stdout
+                    4:stdout
+                    3:testlog
+                    4:testlog
+                )
+            ],
+            [qw(
+                1:stderr
+                2:stderr
+                3:stderr
+                4:stderr
+            )],
+        ),
     });
     run_one_test({
         testname         => 'mixed_nonascii with capture and ignored -o',
@@ -515,30 +699,54 @@ sub run
                               '--skip-log', 'mixed_nonascii' ],
         expected_success => 0,
         expected_logfile => "$tempdir/perl-testlog.log-00.txt",
-        expected_logtext => encode_utf8(
-            "QtQA::App::TestRunner: FAIL! Test was badly behaved, the `-o' argument was ignored.\n"
-           ."QtQA::App::TestRunner: stdout/stderr follows:\n"
-           ."1:testlog:早上好\n2:testlog:你好马？\n"
-           ."1:stderr:早上好\n2:stderr:你好马？\n"
-           ."1:stdout:早上好\n2:stdout:你好马？\n"
-           ."3:stdout:早上好\n4:stdout:你好马？\n"
-           ."3:stderr:早上好\n4:stderr:你好马？\n"
-           ."3:testlog:早上好\n4:testlog:你好马？\n"
+        expected_logtext => rx_for_lines(
+            [
+                q{QtQA::App::TestRunner: FAIL! Test was badly behaved, the `-o' argument was ignored.},
+                q{QtQA::App::TestRunner: stdout/stderr follows:},
+                map { encode_utf8($_) } qw(
+                    1:testlog:早上好
+                    2:testlog:你好马？
+                    1:stdout:早上好
+                    2:stdout:你好马？
+                    3:stdout:早上好
+                    4:stdout:你好马？
+                    3:testlog:早上好
+                    4:testlog:你好马？
+                )
+            ],
+            [map { encode_utf8($_) } qw(
+                1:stderr:早上好
+                2:stderr:你好马？
+                3:stderr:早上好
+                4:stderr:你好马？
+            )],
         ),
     });
     run_one_test({
         testname         => 'mixed_nonascii with capture and ignored -o and tee',
         testrunner_args  => [ '--tee-logs', $tempdir, '--' ],
         command_args     => [ '-o', 'testlog.log.txt', '--skip-log', 'mixed_nonascii' ],
-        expected_logtext => encode_utf8(
-            "QtQA::App::TestRunner: FAIL! Test was badly behaved, the `-o' argument was ignored.\n"
-           ."QtQA::App::TestRunner: stdout/stderr follows:\n"
-           ."1:testlog:早上好\n2:testlog:你好马？\n"
-           ."1:stderr:早上好\n2:stderr:你好马？\n"
-           ."1:stdout:早上好\n2:stdout:你好马？\n"
-           ."3:stdout:早上好\n4:stdout:你好马？\n"
-           ."3:stderr:早上好\n4:stderr:你好马？\n"
-           ."3:testlog:早上好\n4:testlog:你好马？\n"
+        expected_logtext => rx_for_lines(
+            [
+                q{QtQA::App::TestRunner: FAIL! Test was badly behaved, the `-o' argument was ignored.},
+                q{QtQA::App::TestRunner: stdout/stderr follows:},
+                map { encode_utf8($_) } qw(
+                    1:testlog:早上好
+                    2:testlog:你好马？
+                    1:stdout:早上好
+                    2:stdout:你好马？
+                    3:stdout:早上好
+                    4:stdout:你好马？
+                    3:testlog:早上好
+                    4:testlog:你好马？
+                )
+            ],
+            [map { encode_utf8($_) } qw(
+                1:stderr:早上好
+                2:stderr:你好马？
+                3:stderr:早上好
+                4:stderr:你好马？
+            )],
         ),
         expected_stdout  => encode_utf8(
             "1:testlog:早上好\n2:testlog:你好马？\n"
