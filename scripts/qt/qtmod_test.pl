@@ -222,7 +222,13 @@ sub run_git_checkout
     my $modules = join( q{,}, keys(%dependencies), $qt_gitmodule );
     push @init_repository_arguments, "--module-subset=$modules";
 
-    $self->exe( 'perl', './init-repository', @init_repository_arguments );
+    # We use `-force' so that init-repository can be restarted if it hits an error
+    # halfway through.  Without this, it would refuse.
+    push @init_repository_arguments, '-force';
+
+    $self->exe( { reliable => 'git' },  # recover from transient git errors during init-repository
+        'perl', './init-repository', @init_repository_arguments
+    );
 
     # Checkout dependencies as specified in the sync.profile, which specifies the sha1s/refs within them
     # Also, this code assumes that init-repository always uses `origin' as the remote.
