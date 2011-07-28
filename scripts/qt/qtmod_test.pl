@@ -132,7 +132,7 @@ sub default_qt_tests_enabled
 sub default_qt_tests_backtraces
 {
     my ($self) = @_;
-    return ($OSNAME =~ m{linux}i);
+    return ($OSNAME =~ m{linux|darwin}i);
 }
 
 sub read_and_store_configuration
