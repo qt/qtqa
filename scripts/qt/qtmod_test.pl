@@ -25,7 +25,8 @@ my @PROPERTIES = (
     q{location}                => q{location hint for git mirrors (`oslo' or `brisbane'); }
                                 . q{only useful inside of Nokia LAN},
 
-    q{qt.branch}               => q{git branch of Qt superproject (e.g. `master')},
+    q{qt.branch}               => q{git branch of Qt superproject (e.g. `master'); only used }
+                                . q{if qt.gitmodule != "qt5"},
 
     q{qt.configure.args}       => q{space-separated arguments passed to Qt's configure},
 
@@ -43,11 +44,14 @@ my @PROPERTIES = (
                                 . q{arguments were used},
 
     q{qt.gitmodule}            => q{(mandatory) git module name of the module under test }
-                                . q{(e.g. `qtbase')},
+                                . q{(e.g. `qtbase').  Use special value `qt5' for testing of }
+                                . q{all modules together in the qt5 superproject},
 
-    q{qt.repository}           => q{giturl of Qt superproject},
+    q{qt.repository}           => q{giturl of Qt superproject; only used if }
+                                . q{qt.gitmodule != "qt5"},
 
-    q{qt.tests.enabled}        => q{if 1, run the autotests (for this module only)},
+    q{qt.tests.enabled}        => q{if 1, run the autotests (for this module only, or all }
+                                . q{modules if qt.gitmodule == "qt5")},
 
     q{qt.tests.timeout}        => q{maximum runtime permitted for each autotest, in seconds; any }
                                 . q{test which does not completed within this time will be }
@@ -78,6 +82,7 @@ my @PROPERTIES = (
 my %MAKE_CHECK_BLACKLIST = map { $_ => 1 } qw(
     qtrepotools
     qtwebkit
+    qt5
 );
 
 sub run
@@ -135,6 +140,17 @@ sub default_qt_tests_backtraces
     return ($OSNAME =~ m{linux|darwin}i);
 }
 
+sub default_qt_dir
+{
+    my ($self) = @_;
+
+    if ($self->{ 'qt.gitmodule' } eq 'qt5' ) {
+        return $self->{ 'base.dir' };
+    }
+
+    return catfile( $self->{'base.dir'}, 'qt' );
+}
+
 sub read_and_store_configuration
 {
     my $self = shift;
@@ -145,10 +161,10 @@ sub read_and_store_configuration
         'make.args'               => \&QtQA::TestScript::default_common_property ,
         'make.bin'                => \&QtQA::TestScript::default_common_property ,
 
-        'qt.dir'                  => sub { catfile( $self->{'base.dir'}, 'qt' ) },
+        'qt.gitmodule'            => undef                                       ,
+        'qt.dir'                  => \&default_qt_dir                            ,
         'qt.repository'           => \&default_qt_repository                     ,
         'qt.branch'               => q{master}                                   ,
-        'qt.gitmodule'            => undef                                       ,
         'qt.configure.args'       => q{-opensource -confirm-license}             ,
         'qt.configure.extra_args' => q{}                                         ,
         'qt.make_install'         => 0                                           ,
@@ -160,7 +176,10 @@ sub read_and_store_configuration
     );
 
     # for convenience only - this should not be overridden
-    $self->{'qt.gitmodule.dir'}   =  catfile( $self->{'qt.dir'}, $self->{'qt.gitmodule'} );
+    $self->{'qt.gitmodule.dir'} = ($self->{'qt.gitmodule'} eq 'qt5')
+        ? $self->{'qt.dir'}
+        : catfile( $self->{'qt.dir'}, $self->{'qt.gitmodule'} )
+    ;
 
     if ($self->{'qt.tests.capture_logs'} && $self->{'qt.tests.tee_logs'}) {
         delete $self->{'qt.tests.capture_logs'};
@@ -204,11 +223,15 @@ sub run_git_checkout
     chdir( $base_dir );
 
     # Clone the Qt superproject
-    $self->exe( 'git', 'clone', '--branch', $qt_branch, $qt_repository, $qt_dir );
+    if ($qt_gitmodule ne 'qt5') {
+        $self->exe( 'git', 'clone', '--branch', $qt_branch, $qt_repository, $qt_dir );
+    }
+
     chdir( $qt_dir );
 
     # Load sync.profile for this module
-    my %dependencies = $self->read_dependencies( "$base_dir/sync.profile" );
+    my %dependencies = ($qt_gitmodule ne 'qt5') ? $self->read_dependencies( "$base_dir/sync.profile" )
+                     : ();
 
     my @init_repository_arguments;
     if (defined( $location ) && ($location eq 'brisbane')) {
@@ -219,8 +242,10 @@ sub run_git_checkout
     }
 
     # Tell init-repository to only use the modules specified as dependencies
-    my $modules = join( q{,}, keys(%dependencies), $qt_gitmodule );
-    push @init_repository_arguments, "--module-subset=$modules";
+    if (%dependencies) {
+        my $modules = join( q{,}, keys(%dependencies), $qt_gitmodule );
+        push @init_repository_arguments, "--module-subset=$modules";
+    }
 
     # We use `-force' so that init-repository can be restarted if it hits an error
     # halfway through.  Without this, it would refuse.
@@ -255,12 +280,14 @@ sub run_git_checkout
     }
 
     # Now we need to set the submodule content equal to our tested module's base.dir
-    chdir( $qt_gitmodule );
-    $self->exe( 'git', 'fetch', $base_dir, '+HEAD:refs/heads/testing' );
-    $self->exe( 'git', 'reset', '--hard', 'testing' );
+    if ($qt_gitmodule ne 'qt5') {
+        chdir( $qt_gitmodule );
+        $self->exe( 'git', 'fetch', $base_dir, '+HEAD:refs/heads/testing' );
+        $self->exe( 'git', 'reset', '--hard', 'testing' );
 
-    # Again, since we changed the SHA1, we potentially need to update any submodules.
-    $self->exe( 'git', 'submodule', 'update', '--recursive', '--init' );
+        # Again, since we changed the SHA1, we potentially need to update any submodules.
+        $self->exe( 'git', 'submodule', 'update', '--recursive', '--init' );
+    }
 
     return;
 }
@@ -284,12 +311,18 @@ sub run_compile
 
     $self->exe( $configure, split(/\s+/, "$qt_configure_args $qt_configure_extra_args") );
 
+    my @make_args = split(/ /, $make_args);
+
     # `configure' is expected to generate a makefile with a `module-FOO'
     # target for every module.  That target should have correct module
     # dependency information, so now issuing a `make module-FOO' should
     # automatically build the module and all deps, as parallel as possible.
     # XXX: this will not work for modules which aren't hosted in qt/qt5.git
-    $self->exe( $make_bin, split(/ /, $make_args), "module-$qt_gitmodule" );
+    if ($qt_gitmodule ne 'qt5') {
+        push @make_args, "module-$qt_gitmodule";
+    }
+
+    $self->exe( $make_bin, @make_args );
 
     return;
 }
@@ -308,7 +341,10 @@ sub run_install
     chdir( $qt_dir );
 
     # XXX: this will not work for modules which aren't hosted in qt/qt5.git
-    $self->exe( $make_bin, "module-$qt_gitmodule-install_subtargets" );
+    my @make_args = ($qt_gitmodule eq 'qt5') ? ('install')
+                  :                            ("module-$qt_gitmodule-install_subtargets");
+
+    $self->exe( $make_bin, @make_args );
 
     return;
 }
