@@ -53,6 +53,8 @@ my @PROPERTIES = (
     q{qt.tests.enabled}        => q{if 1, run the autotests (for this module only, or all }
                                 . q{modules if qt.gitmodule == "qt5")},
 
+    q{qt.tests.insignificant}  => q{if 1, ignore all failures from autotests},
+
     q{qt.tests.timeout}        => q{maximum runtime permitted for each autotest, in seconds; any }
                                 . q{test which does not completed within this time will be }
                                 . q{killed and considered a failure},
@@ -169,6 +171,7 @@ sub read_and_store_configuration
         'qt.configure.extra_args' => q{}                                         ,
         'qt.make_install'         => 0                                           ,
         'qt.tests.enabled'        => \&default_qt_tests_enabled                  ,
+        'qt.tests.insignificant'  => 0                                           ,
         'qt.tests.timeout'        => 60*15                                       ,
         'qt.tests.capture_logs'   => q{}                                         ,
         'qt.tests.tee_logs'       => q{}                                         ,
@@ -411,10 +414,11 @@ sub run_autotests
 
     return if (!$self->{ 'qt.tests.enabled' });
 
-    my $qt_dir                  = $self->{ 'qt.dir'           };
-    my $qt_gitmodule            = $self->{ 'qt.gitmodule'     };
+    my $qt_dir                  = $self->{ 'qt.dir' };
+    my $qt_gitmodule            = $self->{ 'qt.gitmodule' };
     my $qt_gitmodule_dir        = $self->{ 'qt.gitmodule.dir' };
-    my $make_bin                = $self->{ 'make.bin'         };
+    my $qt_tests_insignificant  = $self->{ 'qt.tests.insignificant' };
+    my $make_bin                = $self->{ 'make.bin' };
 
     my $testrunner_command = $self->get_testrunner_command( );
 
@@ -427,15 +431,29 @@ sub run_autotests
         catfile( $qt_gitmodule_dir, 'bin' ),
     );
 
-    $self->exe( $make_bin,
-        '-C',                               # in the gitmodule's directory ...
-        $qt_gitmodule_dir,
-        '-j1',                              # in serial (autotests are generally parallel-unsafe)
-        '-k',                               # keep going after failure
-                                            # (to get as many results as possible)
-        "TESTRUNNER=$testrunner_command",   # use our testrunner script
-        'check',                            # run the autotests :)
-    );
+    my $run = sub {
+        $self->exe( $make_bin,
+            '-C',                               # in the gitmodule's directory ...
+            $qt_gitmodule_dir,
+            '-j1',                              # in serial (autotests are generally parallel-unsafe)
+            '-k',                               # keep going after failure
+                                                # (to get as many results as possible)
+            "TESTRUNNER=$testrunner_command",   # use our testrunner script
+            'check',                            # run the autotests :)
+        );
+    };
+
+    if ($qt_tests_insignificant) {
+        eval { $run->() };
+        if ($EVAL_ERROR) {
+            warn "$EVAL_ERROR\n"
+                .q{This is a warning, not an error, because the `qt.tests.insignificant' option }
+                .q{was used.  This means the tests are currently permitted to fail};
+        }
+    }
+    else {
+        $run->();
+    }
 
     return;
 }
