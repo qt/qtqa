@@ -94,8 +94,8 @@ sub run
     $self->read_and_store_configuration;
     $self->run_git_checkout;
     $self->run_compile;
-    $self->run_autotests;
     $self->run_install;
+    $self->run_autotests;
 
     return;
 }
