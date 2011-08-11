@@ -125,7 +125,6 @@ my @PROPERTIES = (
 my %MAKE_CHECK_BLACKLIST = map { $_ => 1 } qw(
     qtrepotools
     qtwebkit
-    qt5
 );
 
 sub run
