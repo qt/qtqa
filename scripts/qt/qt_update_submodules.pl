@@ -128,6 +128,7 @@ sub run
     if ($self->git_commit && $self->{ 'qt.git.push' }) {
         $self->git_push;
     }
+    $self->post_git_submodule_summary;
 
     return;
 }
@@ -370,6 +371,117 @@ sub submodules
     }
 
     return @{$self->{ submodules }};
+}
+
+# Given a giturl pointing to gerrit, decompose it into parts
+sub gerrit_giturl_split
+{
+    my ($self, $giturl) = @_;
+
+    my %out;
+
+    if ($giturl =~ m{
+        \A
+        ssh://
+        (?:
+            ([\w\-]+) @     # optional username
+        )?
+        (
+            [\w\-.]+        # hostname
+        )
+        (?:
+            : (\d+)         # optional port number
+        )?
+        (?:
+            /
+            ( [\w\/]+? )    # project name, e.g. qt/qt5
+            (?: \.git )?    # possible useless .git at the end
+        )
+        \z
+    }xms) {
+        %out = (
+            user    =>  $1,
+            host    =>  $2,
+            port    =>  $3,
+            project =>  $4,
+        );
+    }
+    else {
+        warn "Could not figure out gerrit details from giturl `$giturl'";
+    }
+
+    return %out;
+}
+
+# Assumes that HEAD is the commit we've just created
+sub post_git_submodule_summary
+{
+    my ($self) = @_;
+
+    my $qt_git_url          = $self->{ 'qt.git.url' };
+    my $qt_git_push         = $self->{ 'qt.git.push' };
+    my $qt_git_push_dry_run = $self->{ 'qt.git.push.dry-run' };
+
+    my ($summary) = trim $self->exe_qx( qw(git submodule summary HEAD^) );
+
+    print "Summary of changes:\n$summary\n";
+
+    # Indent all text by two spaces, causing gerrit to consider it preformatted
+    $summary = q{  }.join(qq{\n  }, split( qq{\n}, $summary ) );
+
+    # Quote the text for posting to gerrit.
+    # gerrit's quoting is quite bizarre.  This quoting should be unnecessary
+    # since we are passing this as a separate argument anyway, but gerrit seems to
+    # join all the arguments and parse them again, requiring double quoting.
+    $summary =~ s{"}{}g;
+    $summary = qq{"$summary"};
+
+
+    my %gerrit = $self->gerrit_giturl_split( $qt_git_url );
+    if (!$gerrit{ host }) {
+        # not gerrit, nothing to be done
+        return;
+    }
+
+    if (!$qt_git_push) {
+        # didn't really push, nothing to be done
+        return;
+    };
+
+    my ($head) = trim $self->exe_qx( qw(git rev-parse HEAD) );
+
+    my @ssh_post_comment = (
+        'ssh',
+        '-oBatchMode=yes',
+
+        $gerrit{ port }
+            ? ('-p', $gerrit{ port })
+            : ()
+        ,
+
+        $gerrit{ user }
+            ? $gerrit{ user }.'@'.$gerrit{ host }
+            : $gerrit{ host }
+        ,
+
+        'gerrit',
+        'review',
+        $head,
+        '--message', $summary,
+        '--project', $gerrit{ project },
+        '--code-review', '0',
+    );
+
+    # dry run requested, just print what we would do
+    if ($qt_git_push_dry_run) {
+        warn 'qt.git.push.dry-run is set; if it were not, I would now run: '
+            .join(' ', @ssh_post_comment);
+        return;
+    }
+
+    $self->exe( @ssh_post_comment );
+
+    return;
 }
 
 QtQA::QtUpdateSubmodules->new(@ARGV)->run unless caller;
