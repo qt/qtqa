@@ -81,6 +81,8 @@ Readonly my $IS_SUPERUSER
     =>  ($EFFECTIVE_USER_ID == 0)          # unix:    are we root?
      || ($OSNAME            =~ m{win32}i)  # windows: no sane way to tell for now, so be safe
                                            #          and always act like we're an admin
+     || ($OSNAME            =~ m{darwin}i) # mac:     users other than root may have elevated
+                                           #          permissions, so play it safe
 ;
 
 # Do a test run for a single dataset.
@@ -391,7 +393,7 @@ sub run
     ###############################################################################################
     # Test simple capture error cases without -o
     SKIP: {
-        skip( 'unsafe to run this test as superuser' ) if ($IS_SUPERUSER);
+        skip( 'unsafe to run this test as superuser', 1 ) if ($IS_SUPERUSER);
 
         # We've assumed that /some_notexist_dir:
         #   - does not exist, and
