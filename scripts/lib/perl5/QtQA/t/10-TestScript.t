@@ -230,6 +230,7 @@ sub test_exe
         'use Data::Dumper; print Dumper(\@ARGV);',
         @TEST_EXE_ARGS1,
     );
+    my $expected_log = "+ @good_cmd\n$TEST_EXE_ARGS1_DUMP";
 
     # We invoke a subprocess which uses Data::Dumper to print out all
     # arguments.  This is a simple way to check unambiguously what args
@@ -239,7 +240,7 @@ sub test_exe
 
     TODO: {
         local $TODO = 'fix or document argument passing on Windows' if $WINDOWS;
-        is( $stdout, $TEST_EXE_ARGS1_DUMP, 'exe passes arguments correctly'   );
+        is( $stdout, $expected_log, 'exe passes arguments correctly'   );
     }
     is( $stderr, q{},                  'no unexpected warnings or stderr' );
 
@@ -251,7 +252,6 @@ sub test_exe
     # exe should print out one line before running the command, like this:
     #   + cmd with each arg separated by space
     # Note it currently does not attempt to print args with whitespace unambiguously
-    my $expected_log = "+ @good_cmd\n$TEST_EXE_ARGS1_DUMP";
     TODO: {
         local $TODO = 'fix or document argument passing on Windows' if $WINDOWS;
         is( $stdout, $expected_log, 'exe logs correctly' );
@@ -313,7 +313,7 @@ sub test_exe_qx
 
 
 
-    # If verbose 1, makes no difference (exe_qx is intentionally quieter than exe)
+    # If verbose 1, command will be logged before it is run.
     $script->get_options_from_array(['--verbose']);
 
     lives_ok(
@@ -331,36 +331,12 @@ sub test_exe_qx
         is( $merged, $test_merged, 'merged output OK (verbose1)'                  );
     }
 
-    ok( !$log_stdout, 'no log output (verbose1)' );
-    ok( !$log_stderr, 'no log error (verbose1)'  );
+    is( $log_stdout, "qx @good_cmd\n", 'log output OK (verbose1)' );
+    ok( !$log_stderr,                  'no log error (verbose1)'  );
 
 
 
-    # If verbose 2, command will be logged before it is run.
-    # Note this `--verbose' accumulates on top of the previous.
-    $script->get_options_from_array(['--verbose']);
-
-    lives_ok(
-        sub {
-            capture { ($stdout, $stderr) = $script->exe_qx(@good_cmd) } \$log_stdout, \$log_stderr;
-            capture { $merged = $script->exe_qx(@good_cmd) };           # discard any log output
-        },
-        'successful command lives (verbose2)'
-    );
-
-    is( $stderr, $test_stderr, 'stderr OK (verbose2)' );
-    TODO: {
-        local $TODO = 'fix or document argument passing on Windows' if $WINDOWS;
-        is( $stdout, $test_stdout, 'exe_qx passes arguments correctly (verbose2)' );
-        is( $merged, $test_merged, 'merged output OK (verbose2)'                  );
-    }
-
-    is( $log_stdout, "qx @good_cmd\n", 'log output OK (verbose2)' );
-    ok( !$log_stderr,                  'no log error (verbose2)'  );
-
-
-
-    # If verbose 3, command will be logged before it is run, and stdout/stderr is logged
+    # If verbose 2, command will be logged before it is run, and stdout/stderr is logged
     # after it is run.  We need to test the log for merged vs non-merged independently here.
     $script->get_options_from_array(['--verbose']);
 

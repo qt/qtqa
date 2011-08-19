@@ -220,7 +220,7 @@ sub exe
 
     local @ENV{@property_env_keys} = values %{$self->{resolved_property}};
 
-    $self->print_when_verbose(1, '+ ', join(' ', @command), "\n");
+    $self->print_when_verbose(0, '+ ', join(' ', @command), "\n");
     $self->_reliable_exe( \%options, @command );
 
     return;
@@ -381,7 +381,7 @@ sub exe_qx
 {
     my ($self, @command) = @_;
 
-    $self->print_when_verbose(2, "qx @command\n");
+    $self->print_when_verbose(1, "qx @command\n");
 
     my $stdout;
     my $stderr;
@@ -391,14 +391,14 @@ sub exe_qx
         ($stdout, $stderr) = capture {
             $status = system( @command );
         };
-        $self->print_when_verbose(3, "qx stdout:\n$stdout\n"
+        $self->print_when_verbose(2, "qx stdout:\n$stdout\n"
                                     ."qx stderr:\n$stderr\n");
     }
     else {
         $stdout = capture_merged {
             $status = system( @command );
         };
-        $self->print_when_verbose(3, "qx stdout & stderr:\n$stdout\n" );
+        $self->print_when_verbose(2, "qx stdout & stderr:\n$stdout\n" );
     }
 
     if ($status != 0) {

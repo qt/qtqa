@@ -87,6 +87,13 @@ sub run_one_test
         );
     };
 
+    # First line of stdout should always be the command.
+    my $logged_command = quotemeta( '+ '.join(' ', @{$command}) );
+    like( $stdout, qr{\A $logged_command \n}xms, "$testname stdout first line looks correct" );
+
+    # Remove first line for subsequent comparison
+    $stdout =~ s{\A [^\n]+ \n}{}xms;
+
     is_or_like( $stdout,  $expected_stdout,  "$testname stdout looks correct" );
     is_or_like( $stderr,  $expected_stderr,  "$testname stderr looks correct" );
 
