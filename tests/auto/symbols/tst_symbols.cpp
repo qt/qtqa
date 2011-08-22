@@ -65,7 +65,7 @@ private slots:
 
 private:
     QString qtModuleDir;
-    QString qtBaseDir;
+    QString qtLibDir;
     QHash<QString, QString> modules;
     QStringList keys;
 };
@@ -83,14 +83,19 @@ void tst_Symbols::initTestCase()
 
     QVERIFY2(modules.size() > 0, "Something is wrong in the global config file.");
 
-    qtBaseDir = QString::fromLocal8Bit(qgetenv("QT_MODULE_KERNEL"));
-    QVERIFY2(!qtBaseDir.isEmpty(), "This test needs $QT_MODULE_KERNEL, we need it to search libs.");
+    qtLibDir = QLibraryInfo::location( QLibraryInfo::LibrariesPath );
+    QFileInfo qtLibDirInfo(qtLibDir);
+    QVERIFY2(qtLibDirInfo.isDir(), qPrintable(
+        QString("QLibraryInfo::LibrariesPath `%1' %2\nIs your build complete and installed?")
+        .arg(qtLibDir)
+        .arg(!qtLibDirInfo.exists() ? "doesn't exist" : "isn't a directory")
+    ));
 
     keys = modules.keys();
     QList<QString>::iterator i;
     for (i = keys.begin(); i != keys.end(); ++i)
         *i = "lib" + *i + ".so";
-    qDebug() << keys;
+    qDebug() << qtLibDir << keys;
 }
 
 void tst_Symbols::cleanupTestCase()
@@ -149,7 +154,7 @@ void tst_Symbols::globalObjects()
 
     bool isFailed = false;
 
-    QDir dir(qtBaseDir + "/lib", "*.so");
+    QDir dir(qtLibDir, "*.so");
     QStringList files = dir.entryList();
     QVERIFY(!files.isEmpty());
 
@@ -328,7 +333,7 @@ void tst_Symbols::prefix()
     excusedPrefixes["phonon"] =
         QStringList() << ns + "Phonon";
 
-    QDir dir(qtBaseDir + "/lib", "*.so");
+    QDir dir(qtLibDir, "*.so");
     QStringList files = dir.entryList();
     QVERIFY(!files.isEmpty());
 
