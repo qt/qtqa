@@ -58,6 +58,7 @@ use File::Spec::Functions;
 use FindBin;
 use List::MoreUtils qw( any );
 use autodie;
+use Text::Trim;
 
 # All properties used by this script.
 my @PROPERTIES = (
@@ -114,6 +115,15 @@ my @PROPERTIES = (
                                 . q{currently, this requires gdb, and is likely to work only on }
                                 . q{Linux},
 
+    q{qt.qtqa-tests.enabled}   => q{if 1, run the shared autotests in qtqa (over this module }
+                                . q{only, or all modules if qt.gitmodule == "qt5").  The qtqa }
+                                . q{tests are run after the other autotests.  All qt.tests.* }
+                                . q{settings are also applied to the qtqa tests},
+
+    q{qt.qtqa-tests.insignificant}
+                               => q{overrides the setting of qt.tests.insignificant, for the }
+                                . q{shared autotests in qtqa},
+
     q{make.bin}                => q{`make' command (e.g. `make', `nmake', `jom' ...)},
 
     q{make.args}               => q{extra arguments passed to `make' command (e.g. `-j25')},
@@ -136,6 +146,7 @@ sub run
     $self->run_compile;
     $self->run_install;
     $self->run_autotests;
+    $self->run_qtqa_autotests;
 
     return;
 }
@@ -182,6 +193,12 @@ sub default_qt_tests_backtraces
     return ($OSNAME =~ m{linux|darwin}i);
 }
 
+sub default_qt_qtqa_tests_insignificant
+{
+    my ($self) = @_;
+    return $self->{ 'qt.tests.insignificant' };
+}
+
 sub default_qt_dir
 {
     my ($self) = @_;
@@ -216,6 +233,9 @@ sub read_and_store_configuration
         'qt.tests.capture_logs'   => q{}                                         ,
         'qt.tests.tee_logs'       => q{}                                         ,
         'qt.tests.backtraces'     => \&default_qt_tests_backtraces               ,
+
+        'qt.qtqa-tests.enabled'         => 0                                     ,
+        'qt.qtqa-tests.insignificant'   => \&default_qt_qtqa_tests_insignificant ,
     );
 
     # for convenience only - this should not be overridden
@@ -519,27 +539,100 @@ sub run_autotests
 
     return if (!$self->{ 'qt.tests.enabled' });
 
-    my $qt_dir                  = $self->{ 'qt.dir' };
-    my $qt_gitmodule            = $self->{ 'qt.gitmodule' };
-    my $qt_gitmodule_dir        = $self->{ 'qt.gitmodule.dir' };
-    my $qt_tests_insignificant  = $self->{ 'qt.tests.insignificant' };
-    my $make_bin                = $self->{ 'make.bin' };
+    my $qt_gitmodule_dir = $self->{ 'qt.gitmodule.dir' };
+
+    # Add this module's `bin' directory to PATH.
+    # FIXME: verify if this is really needed (should each module's tools build directly
+    # into the prefix `bin' ?)
+    local $ENV{ PATH } = $ENV{ PATH };
+    Env::Path->PATH->Prepend( catfile( $qt_gitmodule_dir, 'bin' ) );
+
+    return $self->_run_autotests_impl(
+        tests_dir            =>  $qt_gitmodule_dir,
+        insignificant_option =>  'qt.tests.insignificant',
+    );
+}
+
+sub run_qtqa_autotests
+{
+    my ($self) = @_;
+
+    return if (!$self->{ 'qt.qtqa-tests.enabled' });
+
+    my $qt_gitmodule     = $self->{ 'qt.gitmodule' };
+    my $qt_gitmodule_dir = $self->{ 'qt.gitmodule.dir' };
+
+    # path to the qtqa autotests.
+    my $qtqa_tests_dir = catfile( $FindBin::Bin, qw(.. .. tests auto) );
+
+    # director(ies) of modules we want to test
+    my @module_dirs;
+
+    if ($qt_gitmodule ne 'qt5') {
+        # testing just one module
+        push @module_dirs, $qt_gitmodule_dir;
+    }
+    else {
+        # we're testing all modules;
+        # we judge that the qtqa tests are applicable to any module with a tests/global/global.cfg
+        chdir $qt_gitmodule_dir;
+
+        my ($testable_modules) = trim $self->exe_qx(
+            'git',
+            'submodule',
+            '--quiet',
+            'foreach',
+            'if test -f tests/global/global.cfg; then echo $path; fi',
+        );
+        my @testable_modules = split(/\n/, $testable_modules);
+
+        print __PACKAGE__ . ": qtqa autotests will be run over modules: @testable_modules\n";
+
+        push @module_dirs, map { catfile( $qt_gitmodule_dir, $_ ) } @testable_modules;
+    }
+
+
+    foreach my $module_dir (@module_dirs) {
+        print __PACKAGE__ . ": now running qtqa autotests over $module_dir\n";
+
+        # qtqa autotests use this environment variable to locate the sources of the
+        # module under test.
+        local $ENV{ QT_MODULE_TO_TEST } = $module_dir;
+
+        $self->_run_autotests_impl(
+            tests_dir            =>  $qtqa_tests_dir,
+            insignificant_option =>  'qt.qtqa-tests.insignificant',
+        );
+    }
+
+    return;
+}
+
+sub _run_autotests_impl
+{
+    my ($self, %args) = @_;
+
+    # global settings
+    my $qt_dir   = $self->{ 'qt.dir' };
+    my $make_bin = $self->{ 'make.bin' };
+
+    # settings for this autotest run
+    my $tests_dir            = $args{ tests_dir };
+    my $insignificant_option = $args{ insignificant_option };
+    my $insignificant        = $self->{ $insignificant_option };
 
     my $testrunner_command = $self->get_testrunner_command( );
 
-    # Add both qtbase/bin (core tools) and this qtmodule's bin to PATH.
+    # Add qtbase/bin (core tools) to PATH.
     # FIXME: at some point, we should be doing `make install'.  If that is done,
     # the PATH used here should be the install path rather than build path.
     local $ENV{ PATH } = $ENV{ PATH };
-    Env::Path->PATH->Prepend(
-        catfile( $qt_dir, 'qtbase', 'bin' ),
-        catfile( $qt_gitmodule_dir, 'bin' ),
-    );
+    Env::Path->PATH->Prepend( catfile( $qt_dir, 'qtbase', 'bin' ) );
 
     my $run = sub {
         $self->exe( $make_bin,
             '-C',                               # in the gitmodule's directory ...
-            $qt_gitmodule_dir,
+            $tests_dir,
             '-j1',                              # in serial (autotests are generally parallel-unsafe)
             '-k',                               # keep going after failure
                                                 # (to get as many results as possible)
@@ -548,12 +641,12 @@ sub run_autotests
         );
     };
 
-    if ($qt_tests_insignificant) {
+    if ($insignificant) {
         eval { $run->() };
         if ($EVAL_ERROR) {
             warn "$EVAL_ERROR\n"
-                .q{This is a warning, not an error, because the `qt.tests.insignificant' option }
-                .q{was used.  This means the tests are currently permitted to fail};
+                .qq{This is a warning, not an error, because the `$insignificant_option' option }
+                . q{was used.  This means the tests are currently permitted to fail};
         }
     }
     else {
