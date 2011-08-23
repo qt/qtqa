@@ -237,18 +237,30 @@ sub read_dependencies
 {
     my ($self, $dependency_file) = @_;
     our (%dependencies);
+
+    my %default_dependencies = ( 'qtbase' => 'refs/heads/master' );
+    my $default_reason;
+
     if (! -e $dependency_file ) {
-        # default in event of no sync.profile
-        %dependencies = ( 'qtbase' => 'refs/heads/master' );
-        warn "$dependency_file doesn't exist, so I have assumed this module depends on: "
-            .Data::Dumper->new([\%dependencies], ['dependencies'])->Indent(0)->Dump();
+        $default_reason = "$dependency_file doesn't exist";
     }
     else {
         unless ( do $dependency_file ) {
             confess "I couldn't parse $dependency_file, which I need to determine dependencies.\nThe error was $@\n" if $@;
             confess "I couldn't execute $dependency_file, which I need to determine dependencies.\nThe error was $!\n" if $!;
         }
+        if (! %dependencies) {
+            $default_reason = "Although $dependency_file exists, it did not specify any \%dependencies";
+        }
     }
+
+    if ($default_reason) {
+        %dependencies = %default_dependencies;
+        warn __PACKAGE__ . ": $default_reason, so I have assumed this module depends on:\n  "
+            .Data::Dumper->new([\%dependencies], ['dependencies'])->Indent(0)->Dump()
+            ."\n";
+    }
+
     return %dependencies;
 }
 
@@ -272,9 +284,12 @@ sub run_git_checkout
 
     chdir( $qt_dir );
 
-    # Load sync.profile for this module
-    my %dependencies = ($qt_gitmodule ne 'qt5') ? $self->read_dependencies( "$base_dir/sync.profile" )
-                     : ();
+    # Load sync.profile for this module.
+    # qt5 and qtbase never have dependencies.
+    my %dependencies = ();
+    if ($qt_gitmodule ne 'qt5' && $qt_gitmodule ne 'qtbase') {
+        %dependencies = $self->read_dependencies( "$base_dir/sync.profile" );
+    }
 
     my @init_repository_arguments;
     if (defined( $location ) && ($location eq 'brisbane')) {
@@ -286,8 +301,11 @@ sub run_git_checkout
 
     # Tell init-repository to only use the modules specified as dependencies
     if (%dependencies) {
-        my $modules = join( q{,}, keys(%dependencies), $qt_gitmodule );
-        push @init_repository_arguments, "--module-subset=$modules";
+        my @modules = keys( %dependencies );
+        if (-d $qt_gitmodule) {
+            push @modules, $qt_gitmodule;
+        }
+        push @init_repository_arguments,' --module-subset='.join(q{,}, @modules);
     }
 
     # We use `-force' so that init-repository can be restarted if it hits an error
@@ -324,12 +342,27 @@ sub run_git_checkout
 
     # Now we need to set the submodule content equal to our tested module's base.dir
     if ($qt_gitmodule ne 'qt5') {
-        chdir( $qt_gitmodule );
-        $self->exe( 'git', 'fetch', $base_dir, '+HEAD:refs/heads/testing' );
-        $self->exe( 'git', 'reset', '--hard', 'testing' );
+        if (-d $qt_gitmodule) {
+            # The module is hosted in qt5, so just update it.
+            chdir( $qt_gitmodule );
+            $self->exe( 'git', 'fetch', $base_dir, '+HEAD:refs/heads/testing' );
+            $self->exe( 'git', 'reset', '--hard', 'testing' );
 
-        # Again, since we changed the SHA1, we potentially need to update any submodules.
-        $self->exe( 'git', 'submodule', 'update', '--recursive', '--init' );
+            # Again, since we changed the SHA1, we potentially need to update any submodules.
+            $self->exe( 'git', 'submodule', 'update', '--recursive', '--init' );
+
+            $self->{ module_in_qt5 } = 1;
+        }
+        else {
+            # The module is not hosted in qt5, so we have to clone it anew.
+            $self->exe( 'git', 'clone', '--shared', $base_dir, $qt_gitmodule );
+
+            # Get submodules (if any)
+            chdir( $qt_gitmodule );
+            $self->exe( 'git', 'submodule', 'update', '--recursive', '--init' );
+
+            $self->{ module_in_qt5 } = 0;
+        }
     }
 
     return;
@@ -339,12 +372,16 @@ sub run_compile
 {
     my ($self) = @_;
 
+    # properties
     my $qt_dir                  = $self->{ 'qt.dir'                  };
     my $qt_gitmodule            = $self->{ 'qt.gitmodule'            };
     my $qt_configure_args       = $self->{ 'qt.configure.args'       };
     my $qt_configure_extra_args = $self->{ 'qt.configure.extra_args' };
     my $make_bin                = $self->{ 'make.bin'                };
     my $make_args               = $self->{ 'make.args'               };
+
+    # true iff the module is hosted in qt5.git (affects build procedure)
+    my $module_in_qt5 = $self->{ module_in_qt5 };
 
     chdir( $qt_dir );
 
@@ -355,17 +392,45 @@ sub run_compile
     $self->exe( $configure, split(/\s+/, "$qt_configure_args $qt_configure_extra_args") );
 
     my @make_args = split(/ /, $make_args);
+    my @commands;
 
-    # `configure' is expected to generate a makefile with a `module-FOO'
-    # target for every module.  That target should have correct module
-    # dependency information, so now issuing a `make module-FOO' should
-    # automatically build the module and all deps, as parallel as possible.
-    # XXX: this will not work for modules which aren't hosted in qt/qt5.git
-    if ($qt_gitmodule ne 'qt5') {
-        push @make_args, "module-$qt_gitmodule";
+    if ($qt_gitmodule eq 'qt5') {
+        # Building qt5; just do a `make' of all default targets in the top-level makefile.
+        push @commands, sub { $self->exe( $make_bin, @make_args ) };
+    }
+    elsif ($module_in_qt5) {
+        # Building a module hosted in qt5; `configure' is expected to have generated a
+        # makefile with a `module-FOO' target for this module, with correct dependency
+        # information. Issuing a `make module-FOO' should automatically build the module
+        # and all deps, as parallel as possible.
+        push @commands, sub { $self->exe( $make_bin, @make_args, "module-$qt_gitmodule" ) };
+    }
+    else {
+        # Building a module, hosted outside of qt5.
+        # We need to do three steps; first, build all the dependencies, then qmake this
+        # module, then make this module.
+        # The Makefile generated in qt5 doesn't know anything about this module.
+
+        # XXX this only works when all the module's dependencies are located in qt5.git.
+
+        # XXX this does not work if Qt is configured such that `make install' needs to be
+        # done on the dependencies.  At least the path to `qmake' will be wrong.
+
+        # First, we build all deps:
+        my %dependencies = $self->read_dependencies( "$qt_gitmodule/sync.profile" );
+        my @module_targets = map { "module-$_" } keys %dependencies;
+        push @commands, sub { $self->exe( $make_bin, @make_args, @module_targets ) };
+
+        # Then we qmake, make the module we're actually interested in
+        my $qmake_bin = catfile( $qt_dir, 'qtbase', 'bin', 'qmake' );
+        push @commands, sub { chdir( $qt_gitmodule ) };
+        push @commands, sub { $self->exe( $qmake_bin, '-r' ) };
+        push @commands, sub { $self->exe( $make_bin, @make_args ) };
     }
 
-    $self->exe( $make_bin, @make_args );
+    foreach my $command (@commands) {
+        $command->();
+    }
 
     return;
 }
