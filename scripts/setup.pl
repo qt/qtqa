@@ -150,6 +150,7 @@ sub all_required_cpan_modules
         Class::Factory::Util
         Env::Path
         File::Fetch
+        File::Find::Rule
         File::Slurp
         IO::CaptureOutput
         Lingua::EN::Inflect

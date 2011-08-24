@@ -55,10 +55,17 @@ use Data::Dumper;
 use English qw( -no_match_vars );
 use Env::Path;
 use File::Spec::Functions;
-use FindBin;
 use List::MoreUtils qw( any );
 use autodie;
+use Readonly;
 use Text::Trim;
+
+#Code coverage tools
+Readonly my $TESTCOCOON  => 'testcocoon';
+
+Readonly my %COVERAGE_TOOLS => (
+    $TESTCOCOON  =>  1,
+);
 
 # All properties used by this script.
 my @PROPERTIES = (
@@ -78,6 +85,12 @@ my @PROPERTIES = (
 
     q{qt.init-repository.args} => q{space-separated arguments passed to Qt5's init-repository }
                                 . q{script},
+
+    q{qt.coverage.tests_output}
+                               => q{full path to the file gathering results from coverage tool},
+
+    q{qt.coverage.tool}        => q{coverage tool name; giving a valid coverage tool name here will }
+                                . q{enable code coverage using the tool given here. e.g. testcocoon },
 
     q{qt.dir}                  => q{top-level source directory of Qt superproject; }
                                 . q{the script will clone qt.repository into this location},
@@ -153,6 +166,7 @@ sub run
     $self->run_compile;
     $self->run_install;
     $self->run_autotests;
+    $self->run_coverage;
     $self->run_qtqa_autotests;
 
     return;
@@ -254,6 +268,8 @@ sub read_and_store_configuration
         'qt.init-repository.args' => q{}                                         ,
         'qt.configure.args'       => q{-opensource -confirm-license}             ,
         'qt.configure.extra_args' => q{}                                         ,
+        'qt.coverage.tests_output'=> q{}                                         ,
+        'qt.coverage.tool'        => q{}                                         ,
         'qt.make_install'         => 0                                           ,
         'qt.tests.enabled'        => \&default_qt_tests_enabled                  ,
         'qt.tests.insignificant'  => 0                                           ,
@@ -278,6 +294,10 @@ sub read_and_store_configuration
         delete $self->{'qt.tests.capture_logs'};
         warn 'qt.tests.capture_logs and qt.tests.tee_logs were both specified; '
             .'tee_logs takes precedence';
+    }
+
+    if ($self->{'qt.coverage.tool'} && !$COVERAGE_TOOLS{ $self->{'qt.coverage.tool'} }) {
+        die "'$self->{'qt.coverage.tool'}' is not a valid Qt coverage tool; try one of ".join(q{,}, keys %COVERAGE_TOOLS);
     }
 
     return;
@@ -431,11 +451,16 @@ sub run_compile
     my $qt_gitmodule            = $self->{ 'qt.gitmodule'            };
     my $qt_configure_args       = $self->{ 'qt.configure.args'       };
     my $qt_configure_extra_args = $self->{ 'qt.configure.extra_args' };
+    my $qt_coverage_tool        = $self->{ 'qt.coverage.tool'        };
     my $make_bin                = $self->{ 'make.bin'                };
     my $make_args               = $self->{ 'make.args'               };
 
     # true iff the module is hosted in qt5.git (affects build procedure)
     my $module_in_qt5 = $self->{ module_in_qt5 };
+
+    if ($qt_coverage_tool) {
+        $qt_configure_extra_args .= " -$qt_coverage_tool";
+    }
 
     chdir( $qt_dir );
 
@@ -516,11 +541,15 @@ sub get_testrunner_command
 {
     my ($self) = @_;
 
-    my $qt_tests_timeout        = $self->{ 'qt.tests.timeout' };
-    my $qt_tests_capture_logs   = $self->{ 'qt.tests.capture_logs' };
-    my $qt_tests_tee_logs       = $self->{ 'qt.tests.tee_logs' };
-    my $qt_tests_backtraces     = $self->{ 'qt.tests.backtraces' };
-    my $qt_tests_flaky_mode     = $self->{ 'qt.tests.flaky_mode' };
+    my $qt_tests_timeout         = $self->{ 'qt.tests.timeout' };
+    my $qt_tests_capture_logs    = $self->{ 'qt.tests.capture_logs' };
+    my $qt_coverage_tool         = $self->{ 'qt.coverage.tool' };
+    my $qt_coverage_tests_output = $self->{ 'qt.coverage.tests_output' };
+    my $qt_gitmodule             = $self->{ 'qt.gitmodule' };
+    my $qt_gitmodule_dir         = $self->{ 'qt.gitmodule.dir' };
+    my $qt_tests_tee_logs        = $self->{ 'qt.tests.tee_logs' };
+    my $qt_tests_backtraces      = $self->{ 'qt.tests.backtraces' };
+    my $qt_tests_flaky_mode      = $self->{ 'qt.tests.flaky_mode' };
 
     my $testrunner = catfile( $FindBin::Bin, '..', '..', 'bin', 'testrunner' );
     $testrunner    = abs_path( $testrunner );
@@ -550,6 +579,16 @@ sub get_testrunner_command
     push @testrunner_with_args, '--plugin', 'flaky';
     if ($qt_tests_flaky_mode) {
         push @testrunner_with_args, '--flaky-mode', $qt_tests_flaky_mode;
+    }
+
+    if ($qt_coverage_tool) {
+        push @testrunner_with_args, '--plugin', $qt_coverage_tool;
+        push @testrunner_with_args, "--${qt_coverage_tool}-qt-gitmodule-dir", $qt_gitmodule_dir;
+        push @testrunner_with_args, "--${qt_coverage_tool}-qt-gitmodule", $qt_gitmodule;
+    }
+
+    if ($qt_coverage_tests_output) {
+        push @testrunner_with_args, "--${qt_coverage_tool}-tests-output", $qt_coverage_tests_output;
     }
 
     push @testrunner_with_args, '--'; # no more args
@@ -707,6 +746,37 @@ sub _run_autotests_impl
     else {
         $run->();
     }
+
+    return;
+}
+
+sub run_coverage
+{
+    my ($self) = @_;
+
+    return if ((!$self->{ 'qt.tests.enabled' }) or (!$self->{ 'qt.coverage.tool' }));
+
+    my $qt_coverage_tool         = $self->{ 'qt.coverage.tool' };
+    my $qt_coverage_tests_output = $self->{ 'qt.coverage.tests_output' };
+    my $qt_gitmodule             = $self->{ 'qt.gitmodule' };
+    my $qt_gitmodule_dir         = $self->{ 'qt.gitmodule.dir' };
+
+    my $coveragerunner = catfile( $FindBin::Bin, '..', '..', 'bin', "coveragerunner_$qt_coverage_tool" );
+    $coveragerunner    = abs_path( $coveragerunner );
+
+    # sanity check
+    confess( "internal error: $coveragerunner does not exist" ) if (! -e $coveragerunner);
+
+    my @coverage_runner_args = (
+        '--qt-gitmodule-dir',
+        $qt_gitmodule_dir,
+        '--qt-gitmodule',
+        $qt_gitmodule,
+        '--qtcoverage-tests-output',
+        $qt_coverage_tests_output
+    );
+
+    $self->exe($coveragerunner, @coverage_runner_args);
 
     return;
 }

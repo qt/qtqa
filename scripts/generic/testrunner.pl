@@ -201,6 +201,28 @@ When a test is flaky, ignore the result.
 
 See the flaky plugin's perldoc for more discussion.
 
+=item testcocoon
+
+After a test is run, it will check for the source coverage database csmes and the execution report csexe.
+If found the csexe is imported into the test csmes and a global csmes is created or updated.
+This global coverage database with execution report gathers all tests results. The "local" test csmes
+and csexe are deleted to save space. Note: It makes sense only if the module is built with coverage enabled.
+
+=over
+
+=item B<--testcocoon-tests-output> <fullpath>
+
+Full path to csmes database (to create) where all the tests coverage results are gathered.
+The file should not exist to avoid data corruption.
+
+=item B<--testcocoon-qt-gitmodule-dir> <directory>
+
+Full path of git dir module. Used to retrieve the plugins csmes.
+
+=back
+
+See the testcocoon plugin's perldoc for more discussion.
+
 =back
 
 =back
