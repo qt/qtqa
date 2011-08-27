@@ -325,7 +325,7 @@ sub run_git_checkout
         if (-d $qt_gitmodule) {
             push @modules, $qt_gitmodule;
         }
-        push @init_repository_arguments,' --module-subset='.join(q{,}, @modules);
+        push @init_repository_arguments, '--module-subset='.join(q{,}, @modules);
     }
 
     # We use `-force' so that init-repository can be restarted if it hits an error
