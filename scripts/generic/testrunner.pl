@@ -168,6 +168,25 @@ to the test log.  (Linux only)
 =item flaky
 
 When a test fails, run it again, to help determine if it is unstable.
+Accepts the following options:
+
+=over
+
+=item B<--flaky-mode worst>
+
+When a test is flaky, use the worst result (default).
+
+=item B<--flaky-mode best>
+
+When a test is flaky, use the best result.
+
+=item B<--flaky-mode ignore>
+
+When a test is flaky, ignore the result.
+
+=back
+
+See the flaky plugin's perldoc for more discussion.
 
 =back
 
@@ -288,7 +307,8 @@ sub run
         $self->{ tee          } = 1;
     }
 
-    $self->plugins_init( );
+    # note: plugins may consume additional arguments
+    $self->plugins_init( \@args );
 
     $self->do_subprocess( @args );
     $self->exit_appropriately( );
@@ -975,8 +995,11 @@ sub set_command
 #
 # The plugin interface consists of:
 #
-#   new( testrunner => $self )
-#     Called as each plugin is created.  `testrunner' is a reference to the testrunner object.
+#   new( testrunner => $self, argv => \@args )
+#     Called as each plugin is created.
+#     `testrunner' is a reference to the testrunner object.
+#     `argv' is a reference to any remaining unprocessed command line arguments.
+#     Plugins may use argv to implement additional options.
 #     Should return a plugin object.
 #
 #   about_to_run( )
@@ -994,7 +1017,7 @@ sub set_command
 
 sub plugins_init
 {
-    my ($self) = @_;
+    my ($self, $argv_ref) = @_;
 
     my @plugin_names = @{$self->{ plugin_names } // []};
 
@@ -1016,7 +1039,7 @@ sub plugins_init
 
         my $plugin_class  = __PACKAGE__ . "::Plugin::$plugin_name";
         my $plugin_object = eval {
-            $plugin_class->new( testrunner => $self )
+            $plugin_class->new( testrunner => $self, argv => $argv_ref )
         };
 
         if (! $plugin_object) {

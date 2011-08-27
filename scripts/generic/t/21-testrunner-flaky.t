@@ -58,6 +58,21 @@ QtQA::App::TestRunner:   first attempt:  exited with exit code 13
 QtQA::App::TestRunner: the test seems to be flaky, please fix this
 END_MESSAGE
 
+# above, in `pass' flaky mode
+Readonly my $ERROR_VANISHING_FAILURE_MODE_BEST => $ERROR_VANISHING_FAILURE . <<"END_MESSAGE";
+QtQA::App::TestRunner: this flaky test is being treated as a PASS
+END_MESSAGE
+
+# above, in `fail' flaky mode
+Readonly my $ERROR_VANISHING_FAILURE_MODE_WORST => $ERROR_VANISHING_FAILURE . <<"END_MESSAGE";
+QtQA::App::TestRunner: this flaky test is being treated as a FAIL
+END_MESSAGE
+
+# above, in `ignore' flaky mode
+Readonly my $ERROR_VANISHING_FAILURE_MODE_IGNORE => $ERROR_VANISHING_FAILURE . <<"END_MESSAGE";
+QtQA::App::TestRunner: this flaky test is being ignored
+END_MESSAGE
+
 # perl to simulate a test which fails by crashing, then succeeds.
 Readonly my $PERL_VANISHING_CRASH => <<'END_SCRIPT';
 $|++;
@@ -92,6 +107,7 @@ Readonly my $RE => {
 \QQtQA::App::TestRunner: test failed on first attempt and passed on second attempt!\E                       \n
 \QQtQA::App::TestRunner:   first attempt:  exited with signal 11\E                                          \n
 \QQtQA::App::TestRunner: the test seems to be flaky, please fix this\E                                      \n
+\QQtQA::App::TestRunner: this flaky test is being treated as a FAIL\E                                       \n
     }xms,
 };
 
@@ -163,6 +179,21 @@ QtQA::App::TestRunner:   second attempt: exited with exit code 22
 QtQA::App::TestRunner: the test seems to be flaky, please fix this
 END_MESSAGE
 
+# above, in `pass' flaky mode
+Readonly my $ERROR_DIFFERING_FAILURE_MODE_BEST => $ERROR_DIFFERING_FAILURE . <<"END_MESSAGE";
+QtQA::App::TestRunner: this flaky test is being treated as a FAIL
+END_MESSAGE
+
+# above, in `fail' flaky mode
+Readonly my $ERROR_DIFFERING_FAILURE_MODE_WORST => $ERROR_DIFFERING_FAILURE . <<"END_MESSAGE";
+QtQA::App::TestRunner: this flaky test is being treated as a FAIL
+END_MESSAGE
+
+# above, in `ignore' flaky mode
+Readonly my $ERROR_DIFFERING_FAILURE_MODE_IGNORE => $ERROR_DIFFERING_FAILURE . <<"END_MESSAGE";
+QtQA::App::TestRunner: this flaky test is being ignored
+END_MESSAGE
+
 # stdout & stderr mixed from the above
 Readonly my $LOG_DIFFERING_FAILURE => <<'END_MESSAGE';
 First attempt; failing...
@@ -172,6 +203,21 @@ QtQA::App::TestRunner: test failed on first and second attempts, but with differ
 QtQA::App::TestRunner:   first attempt:  exited with exit code 13
 QtQA::App::TestRunner:   second attempt: exited with exit code 22
 QtQA::App::TestRunner: the test seems to be flaky, please fix this
+END_MESSAGE
+
+# above, in `pass' flaky mode
+Readonly my $LOG_DIFFERING_FAILURE_MODE_BEST => $LOG_DIFFERING_FAILURE . <<"END_MESSAGE";
+QtQA::App::TestRunner: this flaky test is being treated as a FAIL
+END_MESSAGE
+
+# above, in `fail' flaky mode
+Readonly my $LOG_DIFFERING_FAILURE_MODE_WORST => $LOG_DIFFERING_FAILURE . <<"END_MESSAGE";
+QtQA::App::TestRunner: this flaky test is being treated as a FAIL
+END_MESSAGE
+
+# above, in `ignore' flaky mode
+Readonly my $LOG_DIFFERING_FAILURE_MODE_IGNORE => $LOG_DIFFERING_FAILURE . <<"END_MESSAGE";
+QtQA::App::TestRunner: this flaky test is being ignored
 END_MESSAGE
 
 
@@ -215,24 +261,40 @@ sub test_run
 sub test_testrunner_flaky
 {
     # control; check that `--plugin flaky' has no effect if a test doesn't fail
-    test_run({
-        testname         => 'plugin loads OK 0 exitcode',
-        args             => [ qw(--plugin flaky -- perl -e),
-                              'print STDOUT q{Hi}; print STDERR q{there!}' ],
-        expected_success => 1,
-        expected_stdout  => q{Hi},
-        expected_stderr  => q{there!},
-    });
+    # flaky-mode should have no effect
+    foreach my $mode_args (
+        [],
+        ['--flaky-mode', 'worst'],
+        ['--flaky-mode', 'best'],
+        ['--flaky-mode', 'ignore'],
+    ) {
+        test_run({
+            testname         => "plugin loads OK 0 exitcode (@{ $mode_args })",
+            args             => [ qw(--plugin flaky), @{ $mode_args }, qw(-- perl -e),
+                                  'print STDOUT q{Hi}; print STDERR q{there!}' ],
+            expected_success => 1,
+            expected_stdout  => q{Hi},
+            expected_stderr  => q{there!},
+        });
+    }
 
     # stable failure
-    test_run({
-        testname         => 'stable failure',
-        args             => [ qw(--plugin flaky -- perl -e),
-                              'print qq{Failing...\n}; exit 42' ],
-        expected_success => 0,
-        expected_stdout  => qq{Failing...\n} x 2,    # x 2 since retried once
-        expected_stderr  => $ERROR_STABLE_FAILURE,
-    });
+    # flaky-mode should have no effect
+    foreach my $mode_args (
+        [],
+        ['--flaky-mode', 'worst'],
+        ['--flaky-mode', 'best'],
+        ['--flaky-mode', 'ignore'],
+    ) {
+        test_run({
+            testname         => "stable failure (@{ $mode_args })",
+            args             => [ qw(--plugin flaky), @{ $mode_args }, qw(-- perl -e),
+                                  'print qq{Failing...\n}; exit 42' ],
+            expected_success => 0,
+            expected_stdout  => qq{Failing...\n} x 2,    # x 2 since retried once
+            expected_stderr  => $ERROR_STABLE_FAILURE,
+        });
+    }
 
     # test which fails once, then passes
     test_run({
@@ -240,7 +302,28 @@ sub test_testrunner_flaky
         args             => [ qw(--plugin flaky -- perl -e), $PERL_VANISHING_FAILURE ],
         expected_success => 0,
         expected_stdout  => $OUTPUT_VANISHING_FAILURE,
-        expected_stderr  => $ERROR_VANISHING_FAILURE,
+        expected_stderr  => $ERROR_VANISHING_FAILURE_MODE_WORST,
+    });
+    test_run({
+        testname         => 'vanishing failure (flaky-mode worst)',
+        args             => [ qw(--plugin flaky --flaky-mode worst -- perl -e), $PERL_VANISHING_FAILURE ],
+        expected_success => 0,
+        expected_stdout  => $OUTPUT_VANISHING_FAILURE,
+        expected_stderr  => $ERROR_VANISHING_FAILURE_MODE_WORST,
+    });
+    test_run({
+        testname         => 'vanishing failure (flaky-mode best)',
+        args             => [ qw(--plugin flaky --flaky-mode best -- perl -e), $PERL_VANISHING_FAILURE ],
+        expected_success => 1,
+        expected_stdout  => $OUTPUT_VANISHING_FAILURE,
+        expected_stderr  => $ERROR_VANISHING_FAILURE_MODE_BEST,
+    });
+    test_run({
+        testname         => 'vanishing failure (flaky-mode ignore)',
+        args             => [ qw(--plugin flaky --flaky-mode ignore -- perl -e), $PERL_VANISHING_FAILURE ],
+        expected_success => 1,
+        expected_stdout  => $OUTPUT_VANISHING_FAILURE,
+        expected_stderr  => $ERROR_VANISHING_FAILURE_MODE_IGNORE,
     });
 
     # test which fails once, then again in a different way
@@ -249,7 +332,28 @@ sub test_testrunner_flaky
         args             => [ qw(--plugin flaky -- perl -e), $PERL_DIFFERING_FAILURE ],
         expected_success => 0,
         expected_stdout  => $OUTPUT_DIFFERING_FAILURE,
-        expected_stderr  => $ERROR_DIFFERING_FAILURE,
+        expected_stderr  => $ERROR_DIFFERING_FAILURE_MODE_WORST,
+    });
+    test_run({
+        testname         => 'differing failure (flaky-mode worst)',
+        args             => [ qw(--plugin flaky --flaky-mode worst -- perl -e), $PERL_DIFFERING_FAILURE ],
+        expected_success => 0,
+        expected_stdout  => $OUTPUT_DIFFERING_FAILURE,
+        expected_stderr  => $ERROR_DIFFERING_FAILURE_MODE_WORST,
+    });
+    test_run({
+        testname         => 'differing failure (flaky-mode best)',
+        args             => [ qw(--plugin flaky --flaky-mode best -- perl -e), $PERL_DIFFERING_FAILURE ],
+        expected_success => 0,
+        expected_stdout  => $OUTPUT_DIFFERING_FAILURE,
+        expected_stderr  => $ERROR_DIFFERING_FAILURE_MODE_BEST,
+    });
+    test_run({
+        testname         => 'differing failure (flaky-mode ignore)',
+        args             => [ qw(--plugin flaky --flaky-mode ignore -- perl -e), $PERL_DIFFERING_FAILURE ],
+        expected_success => 1,
+        expected_stdout  => $OUTPUT_DIFFERING_FAILURE,
+        expected_stderr  => $ERROR_DIFFERING_FAILURE_MODE_IGNORE,
     });
 
     my $tempdir = tempdir( basename($0).'.XXXXXX', TMPDIR => 1, CLEANUP => 1 );
@@ -274,7 +378,7 @@ sub test_testrunner_flaky
             expected_stdout  => q{},
             expected_stderr  => q{},
             expected_logfile => "$tempdir/perl-00.txt",
-            expected_logtext => $LOG_DIFFERING_FAILURE,
+            expected_logtext => $LOG_DIFFERING_FAILURE_MODE_WORST,
         });
     }
 

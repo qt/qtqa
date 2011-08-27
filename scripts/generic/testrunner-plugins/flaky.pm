@@ -44,12 +44,50 @@ use strict;
 use warnings;
 
 use Carp;
+use Getopt::Long qw(GetOptionsFromArray);
+use List::Util qw(max);
+use Readonly;
+
+# different flaky modes.
+
+# WORST: always take the worst result
+# (i.e. fail if an autotest fails at least once)
+Readonly my $WORST  => 'worst';
+
+# BEST: always take the best result
+# (i.e. pass if an autotest passes at least once)
+Readonly my $BEST   => 'best';
+
+# IGNORE: ignore result
+# (i.e. pass if the autotest is unstable, regardless of
+# the pass/fail result of the autotest)
+Readonly my $IGNORE => 'ignore';
+
+Readonly my %FLAKY_MODES => (
+    $WORST  =>  1,
+    $BEST   =>  1,
+    $IGNORE =>  1,
+);
 
 sub new
 {
     my ($class, %args) = @_;
 
     $args{ attempt } = 1;
+
+    # `WORST' is essentially equal to operating only in an advisory mode,
+    # so it is the safest default.
+    my $mode = $WORST;
+
+    GetOptionsFromArray( $args{ argv },
+        'flaky-mode=s'  =>  \$mode,
+    ) || pod2usage(1);
+
+    if (!$FLAKY_MODES{ $mode }) {
+        die "`$mode' is not a valid --flaky-mode; try one of ".join(q{,}, keys %FLAKY_MODES);
+    }
+
+    $args{ mode } = $mode;
 
     return bless \%args, $class;
 }
@@ -76,37 +114,61 @@ sub run_completed
         return;
     }
 
-    # Second try, test has succeeded...
-    if ($status == 0) {
-        $testrunner->print_info(
-            "test failed on first attempt and passed on second attempt!\n"
-           .'  first attempt:  exited with '.$self->format_status( $self->{ first_attempt_status } )."\n"
-           ."the test seems to be flaky, please fix this\n"
-        );
-
-        # We need to tell the caller to force a failure, otherwise it will
-        # consider that the test has passed.  We will reuse the status from
-        # the first failure.
-        my $exitcode = ($self->{ first_attempt_status } >> 8) || 1;
-        return { force_failure_exitcode => $exitcode };
-    }
-
-    # Second try, test failed the same way it failed the first time ...
+    # Second try, test gave same results both times...
     if ($status == $self->{ first_attempt_status }) {
         $testrunner->print_info( "test failure seems to be stable\n" );
         return;
     }
 
-    # Second try, test failed a different way than the first time ...
-    $testrunner->print_info(
-        "test failed on first and second attempts, but with different behavior each time:\n"
-       .'  first attempt:  exited with '.$self->format_status( $self->{ first_attempt_status } )."\n"
-       .'  second attempt: exited with '.$self->format_status( $status )."\n"
-       ."the test seems to be flaky, please fix this\n"
-    );
+    # Second try, test gave different results each time.
+    return $self->handle_flaky_test( $self->{ first_attempt_status }, $status );
+}
 
-    # Note, we are not forcing any particular exit code, so the status from the
-    # first test is what will be used.
+# Once a test has been determined as definitely being flaky,
+# this function will do something based on the current flaky mode.
+sub handle_flaky_test
+{
+    my ($self, $first_status, $second_status) = @_;
+
+    if ($first_status == 0) {
+        confess 'internal error: should not be called if test passed on first attempt';
+    }
+
+    my $testrunner = $self->{ testrunner };
+
+    if ($second_status == 0) {
+        $testrunner->print_info(
+            "test failed on first attempt and passed on second attempt!\n"
+           .'  first attempt:  exited with '.$self->format_status( $first_status )."\n"
+        );
+    }
+    else {
+        $testrunner->print_info(
+            "test failed on first and second attempts, but with different behavior each time:\n"
+           .'  first attempt:  exited with '.$self->format_status( $first_status )."\n"
+           .'  second attempt: exited with '.$self->format_status( $second_status )."\n"
+        );
+    }
+
+    $testrunner->print_info( "the test seems to be flaky, please fix this\n" );
+
+    if ($self->{ mode } eq $IGNORE) {
+        $testrunner->print_info( "this flaky test is being ignored\n" );
+        $testrunner->proc( )->{ status } = 0;
+    }
+    elsif ($self->{ mode } eq $BEST && $second_status == 0) {
+        $testrunner->print_info( "this flaky test is being treated as a PASS\n" );
+    }
+    else {
+        $testrunner->print_info( "this flaky test is being treated as a FAIL\n" );
+        # We need to tell the caller to force a failure, otherwise it will
+        # consider that the test has passed.  Take the "worst" exit code
+        # (well, a higher exit code doesn't necessarily imply worse results,
+        # but testlib uses the number of failures as an exitcode, and also high
+        # exitcodes stand out more easily in test logs).
+        my $exitcode = max( $first_status >> 8, $second_status >> 8 ) || 1;
+        return { force_failure_exitcode => $exitcode };
+    }
 
     return;
 }
@@ -149,6 +211,7 @@ QtQA::App::TestRunner::Plugin::flaky - try to handle unstable autotests
 
 =head1 SYNOPSIS
 
+  # default: advisory mode only
   $ testrunner --plugin flaky --capture-logs $HOME/test-logs -- tst_flaky; echo $?
   ********* Start testing of tst_Flaky *********
   Config: Using QTest library 5.0.0, Qt 5.0.0
@@ -167,7 +230,30 @@ QtQA::App::TestRunner::Plugin::flaky - try to handle unstable autotests
   ********* Finished testing of tst_Flaky *********
   QtQA::App::TestRunner: test failed on first attempt and passed on second attempt!
   QtQA::App::TestRunner: the test seems to be flaky, please fix this
+  QtQA::App::TestRunner: this flaky test is being treated as a FAIL
   1
+
+  # can also permit or ignore flaky tests ...
+  $ testrunner --plugin flaky --flaky-mode best -- tst_flaky; echo $?
+  ********* Start testing of tst_Flaky *********
+  Config: Using QTest library 5.0.0, Qt 5.0.0
+  PASS   : tst_Flaky::initTestCase()
+  FAIL!  : tst_Flaky::some_function() (The quux was not bar)
+  PASS   : tst_Flaky::cleanupTestCase()
+  Totals: 1 passed, 1 failed, 0 skipped
+  ********* Finished testing of tst_Flaky *********
+  QtQA::App::TestRunner: test failed, running again to see if it is flaky...
+  ********* Start testing of tst_Flaky *********
+  Config: Using QTest library 5.0.0, Qt 5.0.0
+  PASS   : tst_Flaky::initTestCase()
+  PASS   : tst_Flaky::some_function()
+  PASS   : tst_Flaky::cleanupTestCase()
+  Totals: 3 passed, 0 failed, 0 skipped
+  ********* Finished testing of tst_Flaky *********
+  QtQA::App::TestRunner: test failed on first attempt and passed on second attempt!
+  QtQA::App::TestRunner: the test seems to be flaky, please fix this
+  QtQA::App::TestRunner: this flaky test is being treated as a PASS
+  0
 
 =head1 DESCRIPTION
 
@@ -179,14 +265,44 @@ An autotest which fails twice in a row, but with a different exit status each ti
 is also considered unstable (example: a test which fails "normally" once, but
 segfaults at the second run).
 
-The plugin never overrides the pass/fail state of the test.  It only causes
-additional information to be added to the test logs in the case of failures.
+By default, the plugin does not override the pass/fail state of the test.
+This can be configured by the B<--flaky-mode> argument, which accepts the values:
+
+=over
+
+=item B<worst>
+
+Always take the worst result of an autotest as the canonical result (default).
+
+=item B<best>
+
+Always take the best result of an autotest as the canonical result.
+
+=item B<ignore>
+
+Ignore any autotest which gives unstable results.
+
+=back
+
+To aid in the understanding of the difference between these values,
+the following table is provided which enumerates all possible cases:
+
+  +======================================================================================+
+  | flaky-mode |  pass  | stable fail  |  fail then pass  |   fail then fail differently |
+  +============+========+==============+==================+==============================+
+  |  worst     |  PASS  |    FAIL      |      FAIL        |           FAIL               |
+  |  best      |  PASS  |    FAIL      |      PASS        |           FAIL               |
+  |  ignore    |  PASS  |    FAIL      |      PASS        |           PASS               |
+  +======================================================================================+
 
 =head1 CAVEATS
 
 Note that this can only prove when a test is I<unstable>.
 Even running a test successfully one trillion times wouldn't prove that it's
 stable.
+
+Use of any flaky-mode other than B<worst> may lead to genuine issues being hidden
+indefinitely.
 
 =cut
 

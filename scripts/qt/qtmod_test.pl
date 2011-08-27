@@ -115,6 +115,8 @@ my @PROPERTIES = (
                                 . q{currently, this requires gdb, and is likely to work only on }
                                 . q{Linux},
 
+    q{qt.tests.flaky_mode}     => q{how to handle flaky autotests ("best", "worst" or "ignore")},
+
     q{qt.qtqa-tests.enabled}   => q{if 1, run the shared autotests in qtqa (over this module }
                                 . q{only, or all modules if qt.gitmodule == "qt5").  The qtqa }
                                 . q{tests are run after the other autotests.  All qt.tests.* }
@@ -233,6 +235,7 @@ sub read_and_store_configuration
         'qt.tests.capture_logs'   => q{}                                         ,
         'qt.tests.tee_logs'       => q{}                                         ,
         'qt.tests.backtraces'     => \&default_qt_tests_backtraces               ,
+        'qt.tests.flaky_mode'     => q{}                                         ,
 
         'qt.qtqa-tests.enabled'         => 0                                     ,
         'qt.qtqa-tests.insignificant'   => \&default_qt_qtqa_tests_insignificant ,
@@ -486,6 +489,7 @@ sub get_testrunner_command
     my $qt_tests_capture_logs   = $self->{ 'qt.tests.capture_logs' };
     my $qt_tests_tee_logs       = $self->{ 'qt.tests.tee_logs' };
     my $qt_tests_backtraces     = $self->{ 'qt.tests.backtraces' };
+    my $qt_tests_flaky_mode     = $self->{ 'qt.tests.flaky_mode' };
 
     my $testrunner = catfile( $FindBin::Bin, '..', '..', 'bin', 'testrunner' );
     $testrunner    = abs_path( $testrunner );
@@ -513,6 +517,9 @@ sub get_testrunner_command
 
     # give more info about unstable / flaky tests
     push @testrunner_with_args, '--plugin', 'flaky';
+    if ($qt_tests_flaky_mode) {
+        push @testrunner_with_args, '--flaky-mode', $qt_tests_flaky_mode;
+    }
 
     push @testrunner_with_args, '--'; # no more args
 
