@@ -1,0 +1,75 @@
+[ '--summarize', "$DATADIR/raw-logs/qtpim-linux-autotest-compile-fail.txt" ]
+qtpim failed to compile for linux-g++-32 qpa developer-build Ubuntu
+10.04 x86 :(
+
+  moc tst_qorganizeritemasync.cpp
+  compiling tst_qorganizeritemasync.cpp
+  tst_qorganizeritemasync.cpp: In member function 'void tst_QOrganizerItemAsync::itemPartialSave()':
+  tst_qorganizeritemasync.cpp:1814: error: 'QOrganizerItemEmailAddress' was not declared in this scope
+  tst_qorganizeritemasync.cpp:1827: error: 'originalContacts' was not declared in this scope
+  tst_qorganizeritemasync.cpp:1827: error: expected primary-expression before '>' token
+  tst_qorganizeritemasync.cpp:1827: error: expected primary-expression before ')' token
+  tst_qorganizeritemasync.cpp:1831: error: expected ';' before 'email'
+  tst_qorganizeritemasync.cpp:1832: error: 'email' was not declared in this scope
+  tst_qorganizeritemasync.cpp:1835: error: expected primary-expression before '(' token
+  tst_qorganizeritemasync.cpp:1835: error: 'QOrganizerItemEmailAddress' is not a class or namespace
+  tst_qorganizeritemasync.cpp:1841: error: 'QOrganizerItemEmailAddress' cannot appear in a constant-expression
+  tst_qorganizeritemasync.cpp:1841: error: no matching function for call to 'QtAddOn::Pim::QOrganizerItem::detail()'
+  tst_qorganizeritemasync.cpp:1845: error: 'QOrganizerItemEmailAddress' cannot appear in a constant-expression
+  tst_qorganizeritemasync.cpp:1845: error: no matching function for call to 'QtAddOn::Pim::QOrganizerItem::details()'
+  tst_qorganizeritemasync.cpp:1847: error: 'phn' was not declared in this scope
+  tst_qorganizeritemasync.cpp:1849: error: 'QOrganizerItemEmailAddress' cannot appear in a constant-expression
+  tst_qorganizeritemasync.cpp:1849: error: no matching function for call to 'QtAddOn::Pim::QOrganizerItem::details()'
+  tst_qorganizeritemasync.cpp:1852: error: expected primary-expression before '(' token
+  tst_qorganizeritemasync.cpp:1852: error: 'QOrganizerItemEmailAddress' is not a class or namespace
+  tst_qorganizeritemasync.cpp:1858: error: 'QOrganizerItemEmailAddress' cannot appear in a constant-expression
+  tst_qorganizeritemasync.cpp:1858: error: no matching function for call to 'QtAddOn::Pim::QOrganizerItem::details()'
+  tst_qorganizeritemasync.cpp:1867: error: 'QOrganizerItemOnlineAccount' was not declared in this scope
+  tst_qorganizeritemasync.cpp:1876: error: 'QOrganizerItemEmailAddress' cannot appear in a constant-expression
+  tst_qorganizeritemasync.cpp:1876: error: no matching function for call to 'QtAddOn::Pim::QOrganizerItem::details()'
+  tst_qorganizeritemasync.cpp:1880: error: no match for 'operator==' in 'QtAddOn::Pim::QOrganizerItem::id() const() == 0'
+  ../../../../include/QtAddOnOrganizer/../../src/organizer/qorganizeritemid.h:79: note: candidates are: bool QtAddOn::Pim::QOrganizerItemId::operator==(const QtAddOn::Pim::QOrganizerItemId&) const
+  ../../../../../qtbase/include/QtCore/../../src/corelib/global/qglobal.h:1945: note:                 bool operator==(QBool, bool)
+  ../../../../../qtbase/include/QtCore/../../src/corelib/global/qglobal.h:1946: note:                 bool operator==(bool, QBool)
+  ../../../../../qtbase/include/QtCore/../../src/corelib/global/qglobal.h:1947: note:                 bool operator==(QBool, QBool)
+  ../../../../../qtbase/include/QtCore/../../src/corelib/tools/qchar.h:338: note:                 bool operator==(QChar, QChar)
+  ../../../../../qtbase/include/QtCore/../../src/corelib/tools/qbytearray.h:514: note:                 bool operator==(const QByteArray&, const QByteArray&)
+  ../../../../../qtbase/include/QtCore/../../src/corelib/tools/qbytearray.h:516: note:                 bool operator==(const QByteArray&, const char*)
+  ../../../../../qtbase/include/QtCore/../../src/corelib/tools/qbytearray.h:518: note:                 bool operator==(const char*, const QByteArray&)
+  ../../../../../qtbase/include/QtCore/../../src/corelib/tools/qstring.h:879: note:                 bool operator==(QString::Null, QString::Null)
+  ../../../../../qtbase/include/QtCore/../../src/corelib/tools/qstring.h:880: note:                 bool operator==(QString::Null, const QString&)
+  ../../../../../qtbase/include/QtCore/../../src/corelib/tools/qstring.h:881: note:                 bool operator==(const QString&, QString::Null)
+  ../../../../../qtbase/include/QtCore/../../src/corelib/tools/qstring.h:907: note:                 bool operator==(const char*, const QString&)
+  ../../../../../qtbase/include/QtCore/../../src/corelib/tools/qstring.h:920: note:                 bool operator==(const char*, const QLatin1String&)
+  ../../../../../qtbase/include/QtCore/../../src/corelib/tools/qstring.h:933: note:                 bool operator==(const QLatin1String&, const QLatin1String&)
+  ../../../../../qtbase/include/QtCore/../../src/corelib/tools/qstring.h:1148: note:                 bool operator==(const QStringRef&, const QStringRef&)
+  ../../../../../qtbase/include/QtCore/../../src/corelib/tools/qstring.h:1151: note:                 bool operator==(const QString&, const QStringRef&)
+  ../../../../../qtbase/include/QtCore/../../src/corelib/tools/qstring.h:1154: note:                 bool operator==(const QStringRef&, const QString&)
+  ../../../../../qtbase/include/QtCore/../../src/corelib/tools/qstring.h:1158: note:                 bool operator==(const QLatin1String&, const QStringRef&)
+  ../../../../../qtbase/include/QtCore/../../src/corelib/tools/qstring.h:1161: note:                 bool operator==(const QStringRef&, const QLatin1String&)
+  ../../../../../qtbase/include/QtCore/../../src/corelib/tools/qstring.h:1182: note:                 bool operator==(const char*, const QStringRef&)
+  ../../../../../qtbase/include/QtCore/../../src/corelib/tools/qstring.h:1184: note:                 bool operator==(const QStringRef&, const char*)
+  ../../../../../qtbase/include/QtCore/../../src/corelib/tools/qhash.h:198: note:                 bool operator==(const QHashDummyValue&, const QHashDummyValue&)
+  ../../../../../qtbase/include/QtCore/../../src/corelib/kernel/qvariant.h:471: note:                 bool operator==(const QVariant&, const QVariantComparisonHelper&)
+  ../../../../../qtbase/include/QtCore/../../src/corelib/tools/qpoint.h:155: note:                 bool operator==(const QPoint&, const QPoint&)
+  ../../../../../qtbase/include/QtCore/../../src/corelib/tools/qpoint.h:323: note:                 bool operator==(const QPointF&, const QPointF&)
+  ../../../../../qtbase/include/QtCore/../../src/corelib/tools/qmargins.h:121: note:                 bool operator==(const QMargins&, const QMargins&)
+  ../../../../../qtbase/include/QtCore/../../src/corelib/tools/qsize.h:156: note:                 bool operator==(const QSize&, const QSize&)
+  ../../../../../qtbase/include/QtCore/../../src/corelib/tools/qsize.h:314: note:                 bool operator==(const QSizeF&, const QSizeF&)
+  ../../../../../qtbase/include/QtCore/../../src/corelib/tools/qrect.h:466: note:                 bool operator==(const QRect&, const QRect&)
+  ../../../../../qtbase/include/QtCore/../../src/corelib/tools/qrect.h:803: note:                 bool operator==(const QRectF&, const QRectF&)
+  ../../../../../qtbase/include/QtGui/../../src/gui/kernel/qevent.h:739: note:                 bool operator==(QKeyEvent*, QKeySequence::StandardKey)
+  ../../../../../qtbase/include/QtGui/../../src/gui/kernel/qevent.h:740: note:                 bool operator==(QKeySequence::StandardKey, QKeyEvent*)
+  ../../../../../qtbase/include/QtGui/../../src/gui/kernel/qplatformwindowformat_qpa.h:171: note:                 bool operator==(const QPlatformWindowFormat&, const QPlatformWindowFormat&)
+  tst_qorganizeritemasync.cpp:1881: error: 'QOrganizerItemEmailAddress' cannot appear in a constant-expression
+  tst_qorganizeritemasync.cpp:1881: error: no matching function for call to 'QtAddOn::Pim::QOrganizerItem::details()'
+  tst_qorganizeritemasync.cpp:1894: error: 'QOrganizerItemEmailAddress' cannot appear in a constant-expression
+  tst_qorganizeritemasync.cpp:1894: error: no matching function for call to 'QtAddOn::Pim::QOrganizerItem::details()'
+  tst_qorganizeritemasync.cpp:1900: error: 'class QtAddOn::Pim::QOrganizerItemId' has no member named 'setManagerUri'
+  tst_qorganizeritemasync.cpp:1917: error: 'class QtAddOn::Pim::QOrganizerItemId' has no member named 'setLocalId'
+  make[5]: *** [.obj/debug-shared/tst_qorganizeritemasync.o] Error 1
+  make[4]: *** [sub-unittest-make_default] Error 2
+  make[3]: *** [sub-qorganizeritemasync-make_default] Error 2
+  make[2]: *** [sub-auto-make_default] Error 2
+  make[1]: *** [module-qtpim-tests-make_default-ordered] Error 2
+  make: *** [module-qtpim] Error 2

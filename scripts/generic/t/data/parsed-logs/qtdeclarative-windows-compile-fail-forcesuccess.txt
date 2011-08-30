@@ -1,0 +1,1 @@
+[ "$DATADIR/raw-logs/qtdeclarative-windows-compile-fail-forcesuccess.txt" ] # should be empty due to forcesuccess

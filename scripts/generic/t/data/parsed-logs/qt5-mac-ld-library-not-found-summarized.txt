@@ -1,0 +1,16 @@
+[ '--summarize', "$DATADIR/raw-logs/qt5-mac-ld-library-not-found.txt" ]
+qtfeedback failed to compile for macx-g++ qpa developer-build cocoa OSX
+10.7 x64 :(
+
+We were trying to test qt5.  One of the dependencies, qtfeedback,
+failed to compile.  qtfeedback will have to be fixed before qt5 can
+succeed.
+
+  ld: library not found for -lQtMultimediaKit
+  make[6]: *** [../../../../../qtbase/plugins/feedback/libqtfeedback_mmk.dylib] Error 1
+  make[5]: *** [release-all] Error 2
+  make[4]: *** [sub-mmk-make_default] Error 2
+  make[3]: *** [sub-feedback-make_default] Error 2
+  make[2]: *** [sub-plugins-make_default-ordered] Error 2
+  make[1]: *** [module-qtfeedback-src-make_default-ordered] Error 2
+  make: *** [module-qtfeedback-make_default] Error 2

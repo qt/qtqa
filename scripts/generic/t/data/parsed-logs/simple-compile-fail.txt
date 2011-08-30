@@ -1,0 +1,12 @@
+[ "$DATADIR/raw-logs/qtdeclarative-simple-compile-fail.txt" ]
+compiling quicktestresult.cpp
+quicktestresult.cpp: In member function 'void QuickTestResult::skipSingle(const QString&, const QString&, int)':
+quicktestresult.cpp:446: error: no matching function for call to 'QTestResult::addSkip(const char*, QTest::SkipMode, const char*, int&)'
+../../../qtbase/include/QtTest/5.0.0/QtTest/private/../../../../../src/testlib/qtestresult_p.h:96: note: candidates are: static void QTestResult::addSkip(const char*, const char*, int)
+quicktestresult.cpp: In member function 'void QuickTestResult::skipAll(const QString&, const QString&, int)':
+quicktestresult.cpp:453: error: no matching function for call to 'QTestResult::addSkip(const char*, QTest::SkipMode, const char*, int&)'
+../../../qtbase/include/QtTest/5.0.0/QtTest/private/../../../../../src/testlib/qtestresult_p.h:96: note: candidates are: static void QTestResult::addSkip(const char*, const char*, int)
+make[3]: *** [.obj/release-shared/quicktestresult.o] Error 1
+make[2]: *** [sub-qmltest-make_default-ordered] Error 2
+make[1]: *** [module-qtdeclarative-src-make_default] Error 2
+make: *** [module-qtdeclarative] Error 2

@@ -149,8 +149,10 @@ sub all_required_cpan_modules
         Capture::Tiny
         Class::Factory::Util
         Env::Path
+        File::Fetch
         File::Slurp
         IO::CaptureOutput
+        Lingua::EN::Inflect
         Lingua::EN::Numbers
         List::MoreUtils
         Params::Validate
@@ -163,6 +165,7 @@ sub all_required_cpan_modules
         Test::Perl::Critic
         Text::Diff
         Text::Trim
+        Text::Wrap
         Tie::IxHash
         autodie
     );

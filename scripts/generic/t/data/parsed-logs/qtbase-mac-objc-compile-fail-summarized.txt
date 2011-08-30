@@ -1,0 +1,17 @@
+[ '--summarize', "$DATADIR/raw-logs/qtbase-mac-objc-compile-fail.txt" ]
+qtbase failed to compile for macx-g++ qpa developer-build cocoa OSX
+10.7 x64 :(
+
+  ../../../../include/QtGui/../../src/gui/kernel/qplatformintegration_qpa.h:46:44: error: QtGui/private/qwindowsurface_p.h: No such file or directory
+  ../../../../include/QtGui/../../src/gui/kernel/qplatformintegration_qpa.h:47:41: error: QtGui/private/qpixmapdata_p.h: No such file or directory
+  ../../../../include/QtGui/../../src/gui/kernel/qplatformintegration_qpa.h:46:44: error: QtGui/private/qwindowsurface_p.h: No such file or directory
+  ../../../../include/QtGui/../../src/gui/kernel/qplatformintegration_qpa.h:47:41: error: QtGui/private/qpixmapdata_p.h: No such file or directory
+  ../../../../include/QtGui/../../src/gui/kernel/qplatformintegration_qpa.h:78: error: ‘createPixmapData’ declared as a ‘virtual’ field
+  ../../../../include/QtGui/../../src/gui/kernel/qplatformintegration_qpa.h:78: error: expected ‘;’ before ‘(’ token
+  qcocoaintegration.h:79: error: expected ‘;’ before ‘(’ token
+  make[5]: *** [.obj/debug-shared/main.o] Error 1
+  make[4]: *** [debug-all] Error 2
+  make[3]: *** [sub-cocoa-make_default] Error 2
+  make[2]: *** [sub-platforms-make_default] Error 2
+  make[1]: *** [sub-plugins-make_default-ordered] Error 2
+  make: *** [module-qtbase] Error 2
