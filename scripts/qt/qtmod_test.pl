@@ -323,7 +323,8 @@ sub run_git_checkout
     }
 
     # Tell init-repository to only use the modules specified as dependencies
-    if (%dependencies) {
+    # qtbase doesn't depend on anything
+    if (%dependencies || $qt_gitmodule eq 'qtbase') {
         my @modules = keys( %dependencies );
         if (-d $qt_gitmodule) {
             push @modules, $qt_gitmodule;
