@@ -183,9 +183,8 @@ tst_GuiAppLauncher::tst_GuiAppLauncher() :
 
 void tst_GuiAppLauncher::initTestCase()
 {   
-    QString message = QString::fromLatin1("### App Launcher test on %1 in %2 (%3)").
-                      arg(QDateTime::currentDateTime().toString(), QDir::currentPath()).
-                      arg(QLibraryInfo::buildKey());
+    QString message = QString::fromLatin1("### App Launcher test on %1 in %2").
+                      arg(QDateTime::currentDateTime().toString(), QDir::currentPath());
     qDebug("%s", qPrintable(message));
     qWarning("### PLEASE LEAVE THE MACHINE UNATTENDED WHILE THIS TEST IS RUNNING\n");
 
@@ -263,11 +262,9 @@ static QList<Example> readDataEntriesFromFile(const QString &fileName)
 // Read out the examples array structures and convert to test data.
 static tst_GuiAppLauncher::TestDataEntries exampleData(unsigned priority,
                                                        const QString &path,
-                                                       bool debug,
                                                        const QList<Example> exArray,
                                                        unsigned n)
 {
-    Q_UNUSED(debug)
     tst_GuiAppLauncher::TestDataEntries rc;
     const QChar slash = QLatin1Char('/');
     AppLaunchData data;
@@ -278,7 +275,8 @@ static tst_GuiAppLauncher::TestDataEntries exampleData(unsigned priority,
             const QString examplePath = path + slash + example.directory;
             data.binary = examplePath + slash;
 #ifdef Q_OS_WIN
-            data.binary += debug? QLatin1String("debug/") : QLatin1String("release/");
+            // FIXME: support debug version too?
+            data.binary += QLatin1String("release/");
 #endif
             data.binary += guiBinary(example.binary);
             data.workingDirectory = examplePath;
@@ -295,9 +293,7 @@ tst_GuiAppLauncher::TestDataEntries tst_GuiAppLauncher::testData() const
     TestDataEntries rc;
     const QChar slash = QLatin1Char('/');
     const QString binPath = QLibraryInfo::location(QLibraryInfo::BinariesPath) + slash;
-    const bool debug = QLibraryInfo::buildKey().contains(QLatin1String("debug"));
     const QString path = qgetenv("QT_MODULE_TO_TEST");
-    Q_UNUSED(debug)
 
     AppLaunchData data;
 
@@ -322,14 +318,14 @@ tst_GuiAppLauncher::TestDataEntries tst_GuiAppLauncher::testData() const
 
         if (!path.isEmpty()) {
             demos = readDataEntriesFromFile(path + "/tests/auto/guiapplauncher/demos.txt");
-            rc += exampleData(m_examplePriority, path, debug, demos, demos.size());
+            rc += exampleData(m_examplePriority, path, demos, demos.size());
         }
     }
 
     if (m_testMask & TestExamples) {
         if (!path.isEmpty()) {
             examples = readDataEntriesFromFile(path + "/tests/auto/guiapplauncher/examples.txt");
-            rc += exampleData(m_examplePriority, path, debug, examples, examples.size());
+            rc += exampleData(m_examplePriority, path, examples, examples.size());
         }
     }
     qDebug("Running %d tests...", rc.size());
