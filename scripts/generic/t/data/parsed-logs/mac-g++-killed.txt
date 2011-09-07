@@ -1,0 +1,8 @@
+[ "$DATADIR/raw-logs/mac-g++-killed.txt" ]
+compiling graphicsview/qgraphicstransform.cpp
+compiling graphicsview/qgraphicstransform.cpp
+/bin/sh: line 1: 52873 Killed: 9               g++ -c -pipe -fconstant-cfstrings -O2 -fvisibility=hidden -fvisibility-inlines-hidden -Wall -W -arch x86_64 -Xarch_x86_64 -mmacosx-version-min=10.5 -fPIC -DQT_SHARED -DQT_BUILD_GUI_LIB -DQT_NO_USING_NAMESPACE -DQT_NO_CAST_TO_ASCII -DQT_ASCII_CAST_WARNINGS -DQT_MOC_COMPAT -DQT_USE_QSTRINGBUILDER -DQT_USE_BUNDLED_LIBPNG -DPNG_NO_ASSEMBLER_CODE -DQT_NO_FONTCONFIG -DQT_NO_FREETYPE -DQT_NO_OPENTYPE -DQT_NO_STYLE_MAC -DQT_NO_STYLE_WINDOWSVISTA -DQT_NO_STYLE_WINDOWSXP -DQT_NO_STYLE_GTK -DQT_NO_STYLE_WINDOWSCE -DQT_NO_STYLE_WINDOWSMOBILE -DQT_NO_STYLE_S60 -DQ_INTERNAL_QAPP_SRC -DQT_NO_DEBUG -DQT_CORE_LIB -DQT_HAVE_MMX -DQT_HAVE_3DNOW -DQT_HAVE_SSE -DQT_HAVE_MMXEXT -DQT_HAVE_SSE2 -DQT_HAVE_SSE3 -DQT_HAVE_SSSE3 -DQT_HAVE_SSE4_1 -DQT_HAVE_SSE4_2 -D_LARGEFILE64_SOURCE -D_LARGEFILE_SOURCE -I../../mkspecs/macx-g++ -I. -I../../include/QtCore/5.0.0 -I../../include/QtCore/5.0.0/QtCore -I../../include/QtCore -I../../include -I../../include/QtGui/5.0.0 -I../../include/QtGui/5.0.0/QtGui -I../../include/QtGui -I../../include -I.rcc/debug-shared -Iimage -I../3rdparty/libpng -I../3rdparty/harfbuzz/src -Idialogs -I.moc/release-shared -I.uic/debug-shared -o .obj/release-shared/qgraphicstransform.o graphicsview/qgraphicstransform.cpp
+make[3]: *** [.obj/release-shared/qgraphicstransform.o] Error 137
+make[2]: *** [release-all] Error 2
+make[1]: *** [sub-gui-make_default-ordered] Error 2
+make: *** [module-qtbase] Error 2

@@ -261,11 +261,12 @@ my %RE = (
     # Examples:
     #   quicktestresult.cpp:453: error: no matching function for call to 'QTestResult::addSkip(const char*, QTest::SkipMode, const char*, int&)'
     #   c:\test\recipes\129373577\base\qt\qtsvg\src\svg\qsvgstyle_p.h(65) : fatal error C1083: Cannot open include file: 'qdebug.h': No such file or directory
+    #   /bin/sh: line 1: 52873 Killed: 9               g++ -c -pipe (...) graphicsview/qgraphicstransform.cpp
     #
     # Captures:
     #   file        -   name of the file in which error occurred (exactly as output by the
     #                   compiler - could be relative, absolute, or totally bogus)
-    #   line        -   line number at which the error occurred
+    #   line        -   line number at which the error occurred (if available)
     #   error       -   text of the error message
     #
     # Caveats:
@@ -297,6 +298,42 @@ my %RE = (
 
             (?<error>
                 error: .+
+            )
+
+            \z
+        )
+
+        |
+
+        # gcc killed for some reason
+        (?:
+            \A
+
+            # note, assumes `make' is using `/bin/sh' (probably safe assumption)
+            # /bin/sh: line 123: 456 Killed: 9
+            /bin/sh:
+            \s+
+
+            line \s \d+:
+            \s+
+
+            \d+             # pid
+            \s+
+
+            (?<error>
+                [^:]+       # description of the signal.  e.g. Killed, Aborted
+                :
+                \s+
+                \d+         # signal number
+            )
+
+            \s+
+
+            (?: gcc|g\+\+ ) # only catch gcc issues
+            .+?             # rest of command and arguments ...
+
+            (?<file>        # ...and assume file is the last argument (qmake-specific assumption)
+                [^\s]+
             )
 
             \z
