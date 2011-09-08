@@ -111,7 +111,7 @@ sub read_and_store_configuration
         'location'                => \&QtQA::TestScript::default_common_property,
         'qt.git.push'             => 0,
         'qt.git.push.dry-run'     => 0,
-        'qt.git.url'              => 'ssh://qt_submodule_update_bot@codereview.qt.nokia.com:29418/qt/qt5',
+        'qt.git.url'              => 'ssh://qt_submodule_update_bot@codereview.qt-project.org:29418/qt/qt5',
         'qt.git.ref'              => 'refs/for/master',
     );
 
