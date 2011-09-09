@@ -1,0 +1,33 @@
+[ '--summarize', "$DATADIR/raw-logs/qtdeclarative-mac-undefined-symbols.txt" ]
+qtbase failed to compile for macx-g++ qpa developer-build cocoa OSX
+10.6 x64 :(
+
+We were trying to test qtdeclarative.  One of the dependencies, qtbase,
+failed to compile.  qtbase will have to be fixed before qtdeclarative
+can succeed.
+
+  Undefined symbols:
+    "v8::internal::NativesCollection<(v8::internal::NativeType)0>::GetScriptSource(int)", referenced from:
+        v8::internal::Bootstrapper::NativesSourceLookup(int)  in bootstrapper.o
+        v8::internal::Bootstrapper::NativesSourceLookup(int)  in bootstrapper.o
+        v8::internal::Deserializer::ReadChunk(v8::internal::Object**, v8::internal::Object**, int, unsigned char*)in serialize.o
+    "v8::internal::NativesCollection<(v8::internal::NativeType)0>::GetBuiltinsCount()", referenced from:
+        v8::internal::Bootstrapper::NativesSourceLookup(int)  in bootstrapper.o
+        v8::internal::Genesis::InstallNatives()    in bootstrapper.o
+        v8::internal::Heap::CreateInitialObjects()    in heap.o
+        v8::internal::Serializer::ObjectSerializer::VisitExternalAsciiString(v8::String::ExternalAsciiStringResource**)     in serialize.o
+    "v8::internal::NativesCollection<(v8::internal::NativeType)0>::GetScriptName(int)", referenced from:
+        v8::internal::Genesis::CompileBuiltin(int) in bootstrapper.o
+        v8::internal::Genesis::InstallNatives()    in bootstrapper.o
+        v8::internal::Debug::CompileDebuggerScript(int) in debug.o
+    "v8::internal::NativesCollection<(v8::internal::NativeType)0>::GetDebuggerCount()", referenced from:
+        v8::internal::Genesis::InstallNatives()    in bootstrapper.o
+    "v8::internal::NativesCollection<(v8::internal::NativeType)0>::GetIndex(char const*)", referenced from:
+        v8::internal::Debug::Load()   in debug.o
+        v8::internal::Debug::Load()   in debug.o
+        v8::internal::Debug::Load()   in debug.o
+  ld: symbol(s) not found
+  make[3]: *** [../../lib/libQtV8_debug.5.0.0.dylib] Error 1
+  make[2]: *** [debug-all] Error 2
+  make[1]: *** [sub-v8-make_default-ordered] Error 2
+  make: *** [module-qtbase] Error 2

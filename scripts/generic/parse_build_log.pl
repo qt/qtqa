@@ -113,6 +113,7 @@ use File::Slurp qw();
 use Getopt::Long qw(GetOptionsFromArray);
 use Lingua::EN::Inflect qw(inflect PL WORDLIST);
 use Lingua::EN::Numbers qw(num2en);
+use List::MoreUtils qw(any);
 use Pod::Usage;
 use Readonly;
 use Text::Wrap;
@@ -422,37 +423,102 @@ my %RE = (
     #   ld: library not found for -lQtMultimediaKit
     #
     # Captures:
-    #   linker  -   the linker command (e.g. "ld")
+    #   linker  -   the linker command (e.g. "ld") (if any)
     #   error   -   text of the error message ("library not found for -lQtMultimediaKit")
     #   lib     -   the relevant library or object (if any)
     #
     linker_fail => qr{
-        \A
+        (?:
 
-        (?<linker>
-            ld              # basename only
-            |
-            /[^\s]+/ld      # full path
-        )
+            \A
 
-        :
-        \s
-
-        (?<error>
-            (?:
-                (?:
-                    \Qlibrary not found for \E
-                    |
-                    \Qcannot find \E
-                )
-                (?<lib>
-                    [\-\w]+
-                )
+            (?<linker>
+                ld              # basename only
+                |
+                /[^\s]+/ld      # full path
             )
-            # add others as discovered
+
+            :
+            \s
+
+            (?<error>
+                (?:
+                    (?:
+                        \Qlibrary not found for \E
+                        |
+                        \Qcannot find \E
+                    )
+                    (?<lib>
+                        [\-\w]+
+                    )
+                )
+
+                |
+
+                \Qsymbol(s) not found\E
+
+                # add others as discovered
+            )
+
+            \z
         )
 
-        \z
+        |
+
+        (?:
+            # `Undefined symbols' error message doesn't contain the linker name
+            # in the error message.  Therefore, there is a risk of false positives
+            # here (considered acceptable).
+            #
+            # Whole block of text looks like this, the lines after "Undefined symbols"
+            # can be caught by linker_fail_continuation:
+            #
+            #  Undefined symbols:
+            #   "v8::internal::NativesCollection<(v8::internal::NativeType)0>::GetScriptSource(int)", referenced from:
+            #       v8::internal::Bootstrapper::NativesSourceLookup(int)  in bootstrapper.o
+            #       v8::internal::Bootstrapper::NativesSourceLookup(int)  in bootstrapper.o
+            #       v8::internal::Deserializer::ReadChunk(v8::internal::Object**, v8::internal::Object**, int, unsigned char*)in serialize.o
+            #
+            \A
+            \s*
+            (?<error>
+                \QUndefined symbols:\E
+            )
+            \s*
+            \z
+        )
+    }xms,
+
+    # Line continuing a linker error message previously extracted.
+    #
+    # For example, in this whole block of text:
+    #  Undefined symbols:
+    #   "v8::internal::NativesCollection<(v8::internal::NativeType)0>::GetScriptSource(int)", referenced from:
+    #       v8::internal::Bootstrapper::NativesSourceLookup(int)  in bootstrapper.o
+    #       v8::internal::Bootstrapper::NativesSourceLookup(int)  in bootstrapper.o
+    #       v8::internal::Deserializer::ReadChunk(v8::internal::Object**, v8::internal::Object**, int, unsigned char*)in serialize.o
+    #
+    # ... the lines following `Undefined symbols' can be extracted by this pattern.
+    #
+    # Captures: nothing
+    #
+    # Caveats:
+    #   Like the similar compile_fail_continuation, has false positives,
+    #   so it should only be used in a narrow context (if you already "know" the
+    #   line has a high chance of being related to linker errors).
+    #
+    linker_fail_continuation => qr{
+        (?:
+            \Q, referenced from:\E
+        )
+
+        |
+
+        (?:
+            in [ ] [^ ]+\.o\b   # referring to a particular foo.o file
+        )
+
+        # add others as discovered
     }xms,
 
     # Line indicating a library is being linked.
@@ -867,25 +933,27 @@ sub identify_failures
         elsif ($line =~ $RE{ linker_fail }) {
             my $lib = $+{ lib };
 
-            $out->{ linker_fail }             = $line;
-            $out->{ linker_fail_lib }{ $lib } = $line;
+            $out->{ linker_fail } = $line;
 
             if ($out->{ qtmodule }) {
                 $out->{ linker_fail_qtmodule } = $out->{ qtmodule };
             }
 
-            # Did the linker refer to a library which was created _later_ in the build?
-            # (remember that we're parsing the log backwards)
+            if ($lib) {
+                $out->{ linker_fail_lib }{ $lib } = $line;
 
-            $lib =~ s{\A-l}{lib};  # -lQtCore -> libQtCore
+                # Did the linker refer to a library which was created _later_ in the build?
+                # (remember that we're parsing the log backwards)
+                $lib =~ s{\A-l}{lib};  # -lQtCore -> libQtCore
 
-            my $linked_lib = $out->{ linked_libs }{ $lib };
-            if ($linked_lib) {
-                $out->{ linker_attempted_to_link_too_early }{ $lib } = 1;
+                my $linked_lib = $out->{ linked_libs }{ $lib };
+                if ($linked_lib) {
+                    $out->{ linker_attempted_to_link_too_early }{ $lib } = 1;
 
-                # Also mark the line doing the linking as "significant" to show that
-                # the lib was linked in the wrong order
-                $out->{ significant_lines }{ $linked_lib } = 1;
+                    # Also mark the line doing the linking as "significant" to show that
+                    # the lib was linked in the wrong order
+                    $out->{ significant_lines }{ $linked_lib } = 1;
+                }
             }
 
             $out->{ significant_lines }{ $line } = 1;
@@ -954,7 +1022,7 @@ sub extract_and_output
 
 
     my $indent = q{};
-    my $previous_line_was_significant = 0;
+    my @continuation_patterns = ();
 
     if ($self->{ summarize }) {
         $self->output_summary( $fail );
@@ -973,10 +1041,18 @@ sub extract_and_output
         );
     }
 
-    # mark a line as significant and print it
+    # Mark a line as significant and print it.
+    #
+    # Parameters:
+    #  $line           -   the line to consider significant (and print)
+    #  @continuations  -   zero or more regular expressions which, if matched,
+    #                      will be considered a continuation of this significant
+    #                      message (e.g. for compile failures spanning multiple
+    #                      lines)
+    #
     my $line_is_significant = sub {
-        my ($line) = @_;
-        $previous_line_was_significant = 1;
+        my ($line, @continuations) = @_;
+        push @continuation_patterns, @continuations;
         print "$indent$line\n";
     };
 
@@ -1010,32 +1086,39 @@ sub extract_and_output
     while (@lines) {
         my $line = shift @lines;
 
+        # Compilation failure?
+        if ($fail->{ compile_fail } && $line =~ $compile_fail_source_re) {
+            if ($line !~ $RE{ compile_fail_exclude }) {
+                $line_is_significant->( $line, $RE{ compile_fail_continuation } );
+                next;
+            }
+        }
+
+        # Linker failure?
+        if ($fail->{ linker_fail } && $line =~ $RE{ linker_fail }) {
+            $line_is_significant->( $line, $RE{ linker_fail_continuation } );
+            next;
+        }
+
         # Have we explicitly stored this as a significant line already?
+        # Note, this must come after the more specific checks, since those may add
+        # specific continuations.
         if ($fail->{ significant_lines }{ $line }) {
             $line_is_significant->( $line );
             next;
         }
 
-        # Does the line relate to any source file which failed to compile?
-        if ($line =~ $compile_fail_source_re) {
-            if ($line !~ $RE{ compile_fail_exclude }) {
-                $line_is_significant->( $line );
-                next;
-            }
-        }
-
-        #==========================================================================================
+        #=============== KEEP THIS AT THE END OF THE LOOP =========================================
         #
-        # The remainder of the loop handles continuations of error messages over multiple lines.
+        # Any continuations of multiple-line error messages?
         #
-        next unless $previous_line_was_significant;
-
-        if ($line =~ $RE{ compile_fail_continuation }) {
+        if ( any { $line =~ $_ } @continuation_patterns ) {
             $line_is_significant->( $line );
             next;
         }
 
-        $previous_line_was_significant = 0;
+        # Nope, no error messages in progress.
+        @continuation_patterns = ();
     }
 
     return;
