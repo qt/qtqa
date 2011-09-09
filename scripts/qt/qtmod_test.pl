@@ -558,6 +558,7 @@ sub run_autotests
     return $self->_run_autotests_impl(
         tests_dir            =>  $qt_gitmodule_dir,
         insignificant_option =>  'qt.tests.insignificant',
+        do_compile           =>  0,
     );
 }
 
@@ -600,6 +601,8 @@ sub run_qtqa_autotests
     }
 
 
+    my $compiled_qtqa_tests = 0;    # whether or not the tests have been compiled
+
     foreach my $module_dir (@module_dirs) {
         print __PACKAGE__ . ": now running qtqa autotests over $module_dir\n";
 
@@ -610,7 +613,12 @@ sub run_qtqa_autotests
         $self->_run_autotests_impl(
             tests_dir            =>  $qtqa_tests_dir,
             insignificant_option =>  'qt.qtqa-tests.insignificant',
+
+            # Only need to `qmake', `make' the tests the first time.
+            do_compile           =>  !$compiled_qtqa_tests,
         );
+
+        $compiled_qtqa_tests = 1;
     }
 
     return;
@@ -621,12 +629,14 @@ sub _run_autotests_impl
     my ($self, %args) = @_;
 
     # global settings
-    my $qt_dir   = $self->{ 'qt.dir' };
-    my $make_bin = $self->{ 'make.bin' };
+    my $qt_dir    = $self->{ 'qt.dir' };
+    my $make_bin  = $self->{ 'make.bin' };
+    my $make_args = $self->{ 'make.args' };
 
     # settings for this autotest run
     my $tests_dir            = $args{ tests_dir };
     my $insignificant_option = $args{ insignificant_option };
+    my $do_compile           = $args{ do_compile };
     my $insignificant        = $self->{ $insignificant_option };
 
     my $testrunner_command = $self->get_testrunner_command( );
@@ -638,9 +648,14 @@ sub _run_autotests_impl
     Env::Path->PATH->Prepend( catfile( $qt_dir, 'qtbase', 'bin' ) );
 
     my $run = sub {
+        chdir( $tests_dir );
+
+        if ($do_compile) {
+            $self->exe( 'qmake' );
+            $self->exe( $make_bin, '-k', split(/ /, $make_args) );
+        }
+
         $self->exe( $make_bin,
-            '-C',                               # in the gitmodule's directory ...
-            $tests_dir,
             '-j1',                              # in serial (autotests are generally parallel-unsafe)
             '-k',                               # keep going after failure
                                                 # (to get as many results as possible)
