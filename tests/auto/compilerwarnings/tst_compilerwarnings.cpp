@@ -129,6 +129,15 @@ void tst_CompilerWarnings::initTestCase()
     }
 
     QString configFile = qtModuleDir + "/tests/global/global.cfg";
+    if (!QFile(configFile).exists()) {
+        QSKIP(
+            qPrintable(QString(
+                "%1 does not exist.  Create it if you want to run this test."
+            ).arg(configFile)),
+            SkipAll
+        );
+    }
+
     modules = qt_tests_shared_global_get_modules(configFile);
 
     QVERIFY2(modules.size() > 0, "Something is wrong in the global config file.");

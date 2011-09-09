@@ -591,7 +591,7 @@ sub run_qtqa_autotests
             'submodule',
             '--quiet',
             'foreach',
-            'if test -f tests/global/global.cfg; then echo $path; fi',
+            'echo $path',
         );
         my @testable_modules = split(/\n/, $testable_modules);
 

@@ -134,10 +134,10 @@ void tst_Headers::initTestCase()
     if (!qtModuleDir.contains("phonon") && !qtModuleDir.contains("qttools")) {
         headers = getHeaders(qtModuleDir + "/src");
 
-#ifndef Q_OS_WINCE
-        // Windows CE does not have any headers on the test device
-        QVERIFY2(!headers.isEmpty(), "No headers were found, something is wrong with the auto test setup.");
-#endif
+        if (headers.isEmpty()) {
+            QSKIP("It seems there are no headers in this module; this test is "
+                  "not applicable", SkipAll);
+        }
     } else {
         QTest::qWarn("Some test functions will be skipped, because we ignore them for phonon and qttools.");
     }
