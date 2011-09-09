@@ -19,13 +19,13 @@ any recent changes in the source code.
   PASS   : tst_QHostInfo::staticInformation()
   PASS   : tst_QHostInfo::lookupIPv4()
   SKIP   : tst_QHostInfo::lookupIPv6(WithCache:ipv6-net) This platform does not support IPv6 lookups
-  Loc: [tst_qhostinfo.cpp(338)]
+     Loc: [tst_qhostinfo.cpp(338)]
   PASS   : tst_QHostInfo::reverseLookup()
   PASS   : tst_QHostInfo::blockingLookup()
   PASS   : tst_QHostInfo::raceCondition()
   PASS   : tst_QHostInfo::threadSafety()
   FAIL!  : tst_QHostInfo::threadSafetyAsynchronousAPI(WithoutCache) 'threads.at(k)->wait(60000)' returned FALSE. ()
-  Loc: [tst_qhostinfo.cpp(509)]
+     Loc: [tst_qhostinfo.cpp(509)]
   QtQA::App::TestRunner: ============================== backtrace follows: ==============================
   QtQA::App::TestRunner: [New Thread 19753]
   QtQA::App::TestRunner: [New Thread 20785]
@@ -932,7 +932,7 @@ any recent changes in the source code.
   PASS   : tst_QHostInfo::staticInformation()
   PASS   : tst_QHostInfo::lookupIPv4()
   SKIP   : tst_QHostInfo::lookupIPv6(WithCache:ipv6-net) This platform does not support IPv6 lookups
-  Loc: [tst_qhostinfo.cpp(338)]
+     Loc: [tst_qhostinfo.cpp(338)]
   PASS   : tst_QHostInfo::reverseLookup()
   PASS   : tst_QHostInfo::blockingLookup()
   PASS   : tst_QHostInfo::raceCondition()

@@ -701,7 +701,7 @@ sub set_options_from_args
 
 # Given a raw log line, returns a normalized form of that line; for example:
 #  - strips Pulse-format timestamps
-#  - trims leading and trailing whitespace
+#  - trims trailing whitespace
 #
 # The purpose of this is to format lines in such a way that regular expressions
 # do not need to be written to explicitly handle things which may or may not
@@ -713,7 +713,6 @@ sub normalize_line
     $line =~ s/$RE{ pulse_timestamp }//;
 
     # Note: don't use Text::Trim here, it's surprisingly slow.
-    $line =~ s/\A\s+//;
     $line =~ s/\s+\z//;
 
     return $line;
