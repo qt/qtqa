@@ -1,0 +1,19 @@
+[ "$DATADIR/raw-logs/qtquick3d-linux-simple-compile-error.txt" ]
+compiling viewport.cpp
+viewport.cpp: In member function 'void Viewport::hoverEnterEvent(QGraphicsSceneHoverEvent*)':
+viewport.cpp:945: error: no matching function for call to 'Viewport::hoverEnterEvent(QGraphicsSceneHoverEvent*&)'
+../../../../qtdeclarative/include/QtDeclarative/../../src/declarative/items/qsgitem.h:366: note: candidates are: virtual void QSGItem::hoverEnterEvent(QHoverEvent*)
+viewport.cpp: In member function 'void Viewport::hoverMoveEvent(QGraphicsSceneHoverEvent*)':
+viewport.cpp:956: error: no matching function for call to 'Viewport::hoverMoveEvent(QGraphicsSceneHoverEvent*&)'
+../../../../qtdeclarative/include/QtDeclarative/../../src/declarative/items/qsgitem.h:367: note: candidates are: virtual void QSGItem::hoverMoveEvent(QHoverEvent*)
+viewport.cpp: In member function 'void Viewport::hoverLeaveEvent(QGraphicsSceneHoverEvent*)':
+viewport.cpp:969: error: no matching function for call to 'Viewport::hoverLeaveEvent(QGraphicsSceneHoverEvent*&)'
+../../../../qtdeclarative/include/QtDeclarative/../../src/declarative/items/qsgitem.h:368: note: candidates are: virtual void QSGItem::hoverLeaveEvent(QHoverEvent*)
+viewport.cpp: In member function 'void Viewport::wheelEvent(QGraphicsSceneWheelEvent*)':
+viewport.cpp:982: error: no matching function for call to 'Viewport::wheelEvent(QGraphicsSceneWheelEvent*&)'
+../../../../qtdeclarative/include/QtDeclarative/../../src/declarative/items/qsgitem.h:364: note: candidates are: virtual void QSGItem::wheelEvent(QWheelEvent*)
+make[4]: *** [.obj/release-shared/viewport.o] Error 1
+make[3]: *** [sub-threed-make_default-ordered] Error 2
+make[2]: *** [sub-imports-make_default-ordered] Error 2
+make[1]: *** [sub-src-make_default-ordered] Error 2
+make: *** [module-qtquick3d] Error 2

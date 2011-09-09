@@ -984,7 +984,23 @@ sub extract_and_output
     # Construct an RE matching any source which failed to compile
     my $compile_fail_source_re = $RE{ never_match };
     if ($fail->{ compile_fail_sources }) {
-        $compile_fail_source_re = join( q{|}, map( { quotemeta($_) } keys %{$fail->{ compile_fail_sources }} ) );
+        my @filename_patterns = keys %{$fail->{ compile_fail_sources }};
+
+        @filename_patterns = map( {
+
+            # We surround the source with \b to ensure we don't catch files
+            # whose names contain each other, e.g. do not extract moc_foo.cpp
+            # for errors relating to foo.cpp.
+            # \b alone is not sufficient because the source filename could possibly
+            # begin or end with a non-\w character (e.g. in a relative path, ../some/file,
+            # both ^ and . are considered non-word characters, so \b does not match).
+            '(?:\b|\A)'
+           .quotemeta($_)
+           .'(?:\b|\z)'
+
+        } @filename_patterns);
+
+        $compile_fail_source_re = join( q{|}, @filename_patterns );
         $compile_fail_source_re = qr{$compile_fail_source_re};
 
         if ($self->{ debug }) {
