@@ -54,8 +54,14 @@ use utf8;
 
 Runs parse_build_log over all the testdata under the `data' directory.
 
+  perl ./30-parse_build_log.t --update
+
+Runs the test as usual, and updates the testdata such that the test
+passes.  Use this with care for mass updating of multiple testdata.
+
 =cut
 
+use Getopt::Long qw( GetOptionsFromArray );
 use Capture::Tiny qw( capture );
 use English qw( -no_match_vars );
 use File::Basename;
@@ -75,7 +81,7 @@ Readonly my $PARSE_BUILD_LOG
 
 sub test_from_file
 {
-    my ($file) = @_;
+    my ($file, $update) = @_;
 
     my $testname = basename( $file );
 
@@ -121,20 +127,44 @@ sub test_from_file
         },
     );
 
-    ok( !$diff, "$testname - actual matches expected" )
-        || diag( $diff );
+    # Normal mode: just test.
+    if (!$update) {
+        ok( !$diff, "$testname - actual matches expected" )
+            || diag( $diff );
+
+        return;
+    }
+
+    # Update mode: update the testdata if necessary.
+    my $message = "$testname - actual matches expected";
+
+    if ($diff) {
+        open( my $fh, '>', $file );
+        print $fh $args_perl.$stdout;
+        close( $fh );
+        $message .= " - UPDATED!";
+    }
+
+    pass( $message );
 
     return;
 }
 
 sub run
 {
+    my (@args) = @_;
+
+    my $update;
+    GetOptionsFromArray( \@args,
+        update  =>  \$update,
+    ) || die $!;
+
     foreach my $file (glob "$DATADIR/parsed-logs/*") {
         # README.txt is not testdata; treat all other files as testdata
         next if ( basename( $file ) eq 'README.txt' );
         next if ( ! -f $file );
 
-        test_from_file( $file );
+        test_from_file( $file, $update );
     }
 
     done_testing;
@@ -142,6 +172,6 @@ sub run
     return;
 }
 
-run if (!caller);
+run( @ARGV ) if (!caller);
 1;
 
