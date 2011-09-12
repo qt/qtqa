@@ -2,12 +2,25 @@
 qtbase failed to compile for macx-g++ qpa developer-build cocoa OSX
 10.7 x64 :(
 
+  In file included from ../../../../include/QtGui/qplatformintegration_qpa.h:1,
+                   from ../../../../include/QtGui/QPlatformIntegration:1,
+                   from qcocoaintegration.h:49,
+                   from main.mm:45:
   ../../../../include/QtGui/../../src/gui/kernel/qplatformintegration_qpa.h:46:44: error: QtGui/private/qwindowsurface_p.h: No such file or directory
   ../../../../include/QtGui/../../src/gui/kernel/qplatformintegration_qpa.h:47:41: error: QtGui/private/qpixmapdata_p.h: No such file or directory
+  In file included from ../../../../include/QtGui/qplatformintegration_qpa.h:1,
+                   from ../../../../include/QtGui/QPlatformIntegration:1,
+                   from qcocoaintegration.h:49,
+                   from main.mm:45:
   ../../../../include/QtGui/../../src/gui/kernel/qplatformintegration_qpa.h:46:44: error: QtGui/private/qwindowsurface_p.h: No such file or directory
   ../../../../include/QtGui/../../src/gui/kernel/qplatformintegration_qpa.h:47:41: error: QtGui/private/qpixmapdata_p.h: No such file or directory
+  In file included from ../../../../include/QtGui/qplatformintegration_qpa.h:1,
+                   from ../../../../include/QtGui/QPlatformIntegration:1,
+                   from qcocoaintegration.h:49,
+                   from main.mm:45:
   ../../../../include/QtGui/../../src/gui/kernel/qplatformintegration_qpa.h:78: error: ‘createPixmapData’ declared as a ‘virtual’ field
   ../../../../include/QtGui/../../src/gui/kernel/qplatformintegration_qpa.h:78: error: expected ‘;’ before ‘(’ token
+  In file included from main.mm:45:
   qcocoaintegration.h:79: error: expected ‘;’ before ‘(’ token
   make[5]: *** [.obj/debug-shared/main.o] Error 1
   make[4]: *** [debug-all] Error 2

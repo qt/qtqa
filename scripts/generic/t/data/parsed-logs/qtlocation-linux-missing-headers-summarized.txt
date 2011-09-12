@@ -1,0 +1,96 @@
+[ '--summarize', "$DATADIR/raw-logs/qtlocation-linux-missing-headers.txt" ]
+qtlocation failed to compile for linux-g++-32 Ubuntu 10.04 x86 :(
+
+  g++ -c -pipe -g -O2 -fvisibility=hidden -fvisibility-inlines-hidden -Wall -W -D_REENTRANT -fPIC -DQT_SHARED -DQT_BUILD_LOCATION_LIB -DQT_MAKEDLL -DQT_NO_CAST_TO_ASCII -DQT_ASCII_CAST_WARNINGS -DQT_MOC_COMPAT -DQT_USE_QSTRINGBUILDER -DQT_NO_DEBUG -DQT_GUI_LIB -DQT_NETWORK_LIB -DQT_CORE_LIB -I/home/qt/.pulse2-agent/data/recipes/133464500/base/qt/qtbase/mkspecs/linux-g++ -I. -I/home/qt/.pulse2-agent/data/recipes/133464500/base/qt/qtbase/include/QtCore -I/home/qt/.pulse2-agent/data/recipes/133464500/base/qt/qtbase/include/QtNetwork -I/home/qt/.pulse2-agent/data/recipes/133464500/base/qt/qtbase/include/QtGui -I/home/qt/.pulse2-agent/data/recipes/133464500/base/qt/qtbase/include -I../../include/QtLocation/5.0.0/QtLocation -I../../include/QtLocation/5.0.0 -I../../include -I../../include/QtLocation -I../../include -I.rcc/release-shared -Imaps -Imapsgl -Imapsgl/map2d -Imapsgl/map3d -Iplaces -I.moc/release-shared -o .obj/release-shared/map2d_p.o mapsgl/map2d/map2d_p.cpp
+  g++ -c -pipe -g -O2 -fvisibility=hidden -fvisibility-inlines-hidden -Wall -W -D_REENTRANT -fPIC -DQT_SHARED -DQT_BUILD_LOCATION_LIB -DQT_MAKEDLL -DQT_NO_CAST_TO_ASCII -DQT_ASCII_CAST_WARNINGS -DQT_MOC_COMPAT -DQT_USE_QSTRINGBUILDER -DQT_NO_DEBUG -DQT_GUI_LIB -DQT_NETWORK_LIB -DQT_CORE_LIB -I/home/qt/.pulse2-agent/data/recipes/133464500/base/qt/qtbase/mkspecs/linux-g++ -I. -I/home/qt/.pulse2-agent/data/recipes/133464500/base/qt/qtbase/include/QtCore -I/home/qt/.pulse2-agent/data/recipes/133464500/base/qt/qtbase/include/QtNetwork -I/home/qt/.pulse2-agent/data/recipes/133464500/base/qt/qtbase/include/QtGui -I/home/qt/.pulse2-agent/data/recipes/133464500/base/qt/qtbase/include -I../../include/QtLocation/5.0.0/QtLocation -I../../include/QtLocation/5.0.0 -I../../include -I../../include/QtLocation -I../../include -I.rcc/release-shared -Imaps -Imapsgl -Imapsgl/map2d -Imapsgl/map3d -Iplaces -I.moc/release-shared -o .obj/release-shared/map3d_p.o mapsgl/map3d/map3d_p.cpp
+  g++ -c -pipe -g -O2 -fvisibility=hidden -fvisibility-inlines-hidden -Wall -W -D_REENTRANT -fPIC -DQT_SHARED -DQT_BUILD_LOCATION_LIB -DQT_MAKEDLL -DQT_NO_CAST_TO_ASCII -DQT_ASCII_CAST_WARNINGS -DQT_MOC_COMPAT -DQT_USE_QSTRINGBUILDER -DQT_NO_DEBUG -DQT_GUI_LIB -DQT_NETWORK_LIB -DQT_CORE_LIB -I/home/qt/.pulse2-agent/data/recipes/133464500/base/qt/qtbase/mkspecs/linux-g++ -I. -I/home/qt/.pulse2-agent/data/recipes/133464500/base/qt/qtbase/include/QtCore -I/home/qt/.pulse2-agent/data/recipes/133464500/base/qt/qtbase/include/QtNetwork -I/home/qt/.pulse2-agent/data/recipes/133464500/base/qt/qtbase/include/QtGui -I/home/qt/.pulse2-agent/data/recipes/133464500/base/qt/qtbase/include -I../../include/QtLocation/5.0.0/QtLocation -I../../include/QtLocation/5.0.0 -I../../include -I../../include/QtLocation -I../../include -I.rcc/release-shared -Imaps -Imapsgl -Imapsgl/map2d -Imapsgl/map3d -Iplaces -I.moc/release-shared -o .obj/release-shared/viewport.o mapsgl/map3d/viewport.cpp
+  g++ -c -pipe -g -O2 -fvisibility=hidden -fvisibility-inlines-hidden -Wall -W -D_REENTRANT -fPIC -DQT_SHARED -DQT_BUILD_LOCATION_LIB -DQT_MAKEDLL -DQT_NO_CAST_TO_ASCII -DQT_ASCII_CAST_WARNINGS -DQT_MOC_COMPAT -DQT_USE_QSTRINGBUILDER -DQT_NO_DEBUG -DQT_GUI_LIB -DQT_NETWORK_LIB -DQT_CORE_LIB -I/home/qt/.pulse2-agent/data/recipes/133464500/base/qt/qtbase/mkspecs/linux-g++ -I. -I/home/qt/.pulse2-agent/data/recipes/133464500/base/qt/qtbase/include/QtCore -I/home/qt/.pulse2-agent/data/recipes/133464500/base/qt/qtbase/include/QtNetwork -I/home/qt/.pulse2-agent/data/recipes/133464500/base/qt/qtbase/include/QtGui -I/home/qt/.pulse2-agent/data/recipes/133464500/base/qt/qtbase/include -I../../include/QtLocation/5.0.0/QtLocation -I../../include/QtLocation/5.0.0 -I../../include -I../../include/QtLocation -I../../include -I.rcc/release-shared -Imaps -Imapsgl -Imapsgl/map2d -Imapsgl/map3d -Iplaces -I.moc/release-shared -o .obj/release-shared/viewportcamera.o mapsgl/map3d/viewportcamera.cpp
+  g++ -c -pipe -g -O2 -fvisibility=hidden -fvisibility-inlines-hidden -Wall -W -D_REENTRANT -fPIC -DQT_SHARED -DQT_BUILD_LOCATION_LIB -DQT_MAKEDLL -DQT_NO_CAST_TO_ASCII -DQT_ASCII_CAST_WARNINGS -DQT_MOC_COMPAT -DQT_USE_QSTRINGBUILDER -DQT_NO_DEBUG -DQT_GUI_LIB -DQT_NETWORK_LIB -DQT_CORE_LIB -I/home/qt/.pulse2-agent/data/recipes/133464500/base/qt/qtbase/mkspecs/linux-g++ -I. -I/home/qt/.pulse2-agent/data/recipes/133464500/base/qt/qtbase/include/QtCore -I/home/qt/.pulse2-agent/data/recipes/133464500/base/qt/qtbase/include/QtNetwork -I/home/qt/.pulse2-agent/data/recipes/133464500/base/qt/qtbase/include/QtGui -I/home/qt/.pulse2-agent/data/recipes/133464500/base/qt/qtbase/include -I../../include/QtLocation/5.0.0/QtLocation -I../../include/QtLocation/5.0.0 -I../../include -I../../include/QtLocation -I../../include -I.rcc/release-shared -Imaps -Imapsgl -Imapsgl/map2d -Imapsgl/map3d -Iplaces -I.moc/release-shared -o .obj/release-shared/frustum.o mapsgl/frustum.cpp
+  g++ -c -pipe -g -O2 -fvisibility=hidden -fvisibility-inlines-hidden -Wall -W -D_REENTRANT -fPIC -DQT_SHARED -DQT_BUILD_LOCATION_LIB -DQT_MAKEDLL -DQT_NO_CAST_TO_ASCII -DQT_ASCII_CAST_WARNINGS -DQT_MOC_COMPAT -DQT_USE_QSTRINGBUILDER -DQT_NO_DEBUG -DQT_GUI_LIB -DQT_NETWORK_LIB -DQT_CORE_LIB -I/home/qt/.pulse2-agent/data/recipes/133464500/base/qt/qtbase/mkspecs/linux-g++ -I. -I/home/qt/.pulse2-agent/data/recipes/133464500/base/qt/qtbase/include/QtCore -I/home/qt/.pulse2-agent/data/recipes/133464500/base/qt/qtbase/include/QtNetwork -I/home/qt/.pulse2-agent/data/recipes/133464500/base/qt/qtbase/include/QtGui -I/home/qt/.pulse2-agent/data/recipes/133464500/base/qt/qtbase/include -I../../include/QtLocation/5.0.0/QtLocation -I../../include/QtLocation/5.0.0 -I../../include -I../../include/QtLocation -I../../include -I.rcc/release-shared -Imaps -Imapsgl -Imapsgl/map2d -Imapsgl/map3d -Iplaces -I.moc/release-shared -o .obj/release-shared/map.o mapsgl/map.cpp
+  g++ -c -pipe -g -O2 -fvisibility=hidden -fvisibility-inlines-hidden -Wall -W -D_REENTRANT -fPIC -DQT_SHARED -DQT_BUILD_LOCATION_LIB -DQT_MAKEDLL -DQT_NO_CAST_TO_ASCII -DQT_ASCII_CAST_WARNINGS -DQT_MOC_COMPAT -DQT_USE_QSTRINGBUILDER -DQT_NO_DEBUG -DQT_GUI_LIB -DQT_NETWORK_LIB -DQT_CORE_LIB -I/home/qt/.pulse2-agent/data/recipes/133464500/base/qt/qtbase/mkspecs/linux-g++ -I. -I/home/qt/.pulse2-agent/data/recipes/133464500/base/qt/qtbase/include/QtCore -I/home/qt/.pulse2-agent/data/recipes/133464500/base/qt/qtbase/include/QtNetwork -I/home/qt/.pulse2-agent/data/recipes/133464500/base/qt/qtbase/include/QtGui -I/home/qt/.pulse2-agent/data/recipes/133464500/base/qt/qtbase/include -I../../include/QtLocation/5.0.0/QtLocation -I../../include/QtLocation/5.0.0 -I../../include -I../../include/QtLocation -I../../include -I.rcc/release-shared -Imaps -Imapsgl -Imapsgl/map2d -Imapsgl/map3d -Iplaces -I.moc/release-shared -o .obj/release-shared/mapitem.o mapsgl/mapitem.cpp
+  g++ -c -pipe -g -O2 -fvisibility=hidden -fvisibility-inlines-hidden -Wall -W -D_REENTRANT -fPIC -DQT_SHARED -DQT_BUILD_LOCATION_LIB -DQT_MAKEDLL -DQT_NO_CAST_TO_ASCII -DQT_ASCII_CAST_WARNINGS -DQT_MOC_COMPAT -DQT_USE_QSTRINGBUILDER -DQT_NO_DEBUG -DQT_GUI_LIB -DQT_NETWORK_LIB -DQT_CORE_LIB -I/home/qt/.pulse2-agent/data/recipes/133464500/base/qt/qtbase/mkspecs/linux-g++ -I. -I/home/qt/.pulse2-agent/data/recipes/133464500/base/qt/qtbase/include/QtCore -I/home/qt/.pulse2-agent/data/recipes/133464500/base/qt/qtbase/include/QtNetwork -I/home/qt/.pulse2-agent/data/recipes/133464500/base/qt/qtbase/include/QtGui -I/home/qt/.pulse2-agent/data/recipes/133464500/base/qt/qtbase/include -I../../include/QtLocation/5.0.0/QtLocation -I../../include/QtLocation/5.0.0 -I../../include -I../../include/QtLocation -I../../include -I.rcc/release-shared -Imaps -Imapsgl -Imapsgl/map2d -Imapsgl/map3d -Iplaces -I.moc/release-shared -o .obj/release-shared/mapsphere.o mapsgl/mapsphere.cpp
+  g++ -c -pipe -g -O2 -fvisibility=hidden -fvisibility-inlines-hidden -Wall -W -D_REENTRANT -fPIC -DQT_SHARED -DQT_BUILD_LOCATION_LIB -DQT_MAKEDLL -DQT_NO_CAST_TO_ASCII -DQT_ASCII_CAST_WARNINGS -DQT_MOC_COMPAT -DQT_USE_QSTRINGBUILDER -DQT_NO_DEBUG -DQT_GUI_LIB -DQT_NETWORK_LIB -DQT_CORE_LIB -I/home/qt/.pulse2-agent/data/recipes/133464500/base/qt/qtbase/mkspecs/linux-g++ -I. -I/home/qt/.pulse2-agent/data/recipes/133464500/base/qt/qtbase/include/QtCore -I/home/qt/.pulse2-agent/data/recipes/133464500/base/qt/qtbase/include/QtNetwork -I/home/qt/.pulse2-agent/data/recipes/133464500/base/qt/qtbase/include/QtGui -I/home/qt/.pulse2-agent/data/recipes/133464500/base/qt/qtbase/include -I../../include/QtLocation/5.0.0/QtLocation -I../../include/QtLocation/5.0.0 -I../../include -I../../include/QtLocation -I../../include -I.rcc/release-shared -Imaps -Imapsgl -Imapsgl/map2d -Imapsgl/map3d -Iplaces -I.moc/release-shared -o .obj/release-shared/tilecache.o mapsgl/tilecache.cpp
+  g++ -c -pipe -g -O2 -fvisibility=hidden -fvisibility-inlines-hidden -Wall -W -D_REENTRANT -fPIC -DQT_SHARED -DQT_BUILD_LOCATION_LIB -DQT_MAKEDLL -DQT_NO_CAST_TO_ASCII -DQT_ASCII_CAST_WARNINGS -DQT_MOC_COMPAT -DQT_USE_QSTRINGBUILDER -DQT_NO_DEBUG -DQT_GUI_LIB -DQT_NETWORK_LIB -DQT_CORE_LIB -I/home/qt/.pulse2-agent/data/recipes/133464500/base/qt/qtbase/mkspecs/linux-g++ -I. -I/home/qt/.pulse2-agent/data/recipes/133464500/base/qt/qtbase/include/QtCore -I/home/qt/.pulse2-agent/data/recipes/133464500/base/qt/qtbase/include/QtNetwork -I/home/qt/.pulse2-agent/data/recipes/133464500/base/qt/qtbase/include/QtGui -I/home/qt/.pulse2-agent/data/recipes/133464500/base/qt/qtbase/include -I../../include/QtLocation/5.0.0/QtLocation -I../../include/QtLocation/5.0.0 -I../../include -I../../include/QtLocation -I../../include -I.rcc/release-shared -Imaps -Imapsgl -Imapsgl/map2d -Imapsgl/map3d -Iplaces -I.moc/release-shared -o .obj/release-shared/tile.o mapsgl/tile.cpp
+  In file included from mapsgl/map_p.h:59,
+                   from mapsgl/map2d/map2d_p.h:55,
+                   from mapsgl/map2d/map2d_p.cpp:41:
+  mapsgl/frustum_p.h:60:27: error: Qt3D/qplane3d.h: No such file or directory
+  mapsgl/map2d/map2d_p.cpp:47:32: error: Qt3D/qgeometrydata.h: No such file or directory
+  mapsgl/map2d/map2d_p.cpp:48:29: error: Qt3D/qglbuilder.h: No such file or directory
+  mapsgl/map2d/map2d_p.cpp:49:28: error: Qt3D/qglcamera.h: No such file or directory
+  make[3]: *** [.obj/release-shared/map2d_p.o] Error 1
+  In file included from mapsgl/map3d/sphere.cpp:41:
+  mapsgl/map3d/sphere_p.h:57:22: error: qplane3d.h: No such file or directory
+  make[3]: *** [.obj/release-shared/sphere.o] Error 1
+  In file included from mapsgl/map_p.h:59,
+                   from mapsgl/map3d/map3d_p.h:55,
+                   from mapsgl/map3d/map3d_p.cpp:42:
+  mapsgl/frustum_p.h:60:27: error: Qt3D/qplane3d.h: No such file or directory
+  mapsgl/map3d/map3d_p.cpp:47:27: error: qgeometrydata.h: No such file or directory
+  mapsgl/map3d/map3d_p.cpp:48:24: error: qglbuilder.h: No such file or directory
+  mapsgl/map3d/map3d_p.cpp:49:28: error: Qt3D/qglcamera.h: No such file or directory
+  make[3]: *** [.obj/release-shared/map3d_p.o] Error 1
+  In file included from mapsgl/map3d/viewport_p.h:58,
+                   from mapsgl/map3d/viewport.cpp:41:
+  mapsgl/frustum_p.h:60:27: error: Qt3D/qplane3d.h: No such file or directory
+  In file included from mapsgl/map3d/viewport.cpp:43:
+  mapsgl/map3d/sphere_p.h:57:22: error: qplane3d.h: No such file or directory
+  mapsgl/map3d/viewport.cpp:49:26: error: qglscenenode.h: No such file or directory
+  mapsgl/map3d/viewport.cpp:50:24: error: qglbuilder.h: No such file or directory
+  mapsgl/map3d/viewport.cpp:51:25: error: qglmaterial.h: No such file or directory
+  mapsgl/map3d/viewport.cpp:52:23: error: qglsphere.h: No such file or directory
+  make[3]: *** [.obj/release-shared/viewport.o] Error 1
+  In file included from mapsgl/map3d/viewporttilesold_p.h:57,
+                   from mapsgl/map3d/viewporttiles.cpp:44:
+  mapsgl/frustum_p.h:60:27: error: Qt3D/qplane3d.h: No such file or directory
+  In file included from mapsgl/map3d/viewporttiles.cpp:50:
+  mapsgl/map3d/sphere_p.h:57:22: error: qplane3d.h: No such file or directory
+  make[3]: *** [.obj/release-shared/viewporttiles.o] Error 1
+  In file included from mapsgl/map3d/viewportcamera_p.h:60,
+                   from mapsgl/map3d/viewportcamera.cpp:41:
+  mapsgl/frustum_p.h:60:27: error: Qt3D/qplane3d.h: No such file or directory
+  mapsgl/map3d/viewportcamera.cpp:47:23: error: qglcamera.h: No such file or directory
+  make[3]: *** [.obj/release-shared/viewportcamera.o] Error 1
+  In file included from mapsgl/map3d/viewporttilesold_p.h:57,
+                   from mapsgl/map3d/viewporttilesold.cpp:41:
+  mapsgl/frustum_p.h:60:27: error: Qt3D/qplane3d.h: No such file or directory
+  In file included from mapsgl/map3d/viewporttilesold.cpp:43:
+  mapsgl/map3d/sphere_p.h:57:22: error: qplane3d.h: No such file or directory
+  make[3]: *** [.obj/release-shared/viewporttilesold.o] Error 1
+  In file included from mapsgl/map3d/viewportcamera_p.h:60,
+                   from mapsgl/map3d/viewporttilesnew.cpp:43:
+  mapsgl/frustum_p.h:60:27: error: Qt3D/qplane3d.h: No such file or directory
+  In file included from mapsgl/map3d/viewporttilesnew.cpp:45:
+  mapsgl/map3d/sphere_p.h:57:22: error: qplane3d.h: No such file or directory
+  make[3]: *** [.obj/release-shared/viewporttilesnew.o] Error 1
+  In file included from mapsgl/frustum.cpp:41:
+  mapsgl/frustum_p.h:60:27: error: Qt3D/qplane3d.h: No such file or directory
+  mapsgl/frustum.cpp:45:28: error: Qt3D/qglcamera.h: No such file or directory
+  make[3]: *** [.obj/release-shared/frustum.o] Error 1
+  In file included from mapsgl/map_p.h:59,
+                   from mapsgl/map.cpp:42:
+  mapsgl/frustum_p.h:60:27: error: Qt3D/qplane3d.h: No such file or directory
+  mapsgl/map.cpp:55:26: error: qglscenenode.h: No such file or directory
+  mapsgl/map.cpp:56:27: error: qgeometrydata.h: No such file or directory
+  mapsgl/map.cpp:57:24: error: qglbuilder.h: No such file or directory
+  mapsgl/map.cpp:58:29: error: Qt3D/qglpainter.h: No such file or directory
+  mapsgl/map.cpp:59:28: error: Qt3D/qglcamera.h: No such file or directory
+  make[3]: *** [.obj/release-shared/map.o] Error 1
+  mapsgl/mapitem.cpp:43:31: error: Qt3D/qglscenenode.h: No such file or directory
+  mapsgl/mapitem.cpp:44:31: error: Qt3D/qgltexture2d.h: No such file or directory
+  mapsgl/mapitem.cpp:45:30: error: Qt3D/qglmaterial.h: No such file or directory
+  make[3]: *** [.obj/release-shared/mapitem.o] Error 1
+  In file included from mapsgl/map_p.h:59,
+                   from mapsgl/mapsphere.cpp:47:
+  mapsgl/frustum_p.h:60:27: error: Qt3D/qplane3d.h: No such file or directory
+  mapsgl/mapsphere.cpp:49:31: error: Qt3D/qglscenenode.h: No such file or directory
+  make[3]: *** [.obj/release-shared/mapsphere.o] Error 1
+  mapsgl/tile.cpp:43:31: error: Qt3D/qgltexture2d.h: No such file or directory
+  mapsgl/tile.cpp:44:31: error: Qt3D/qglscenenode.h: No such file or directory
+  make[3]: *** [.obj/release-shared/tile.o] Error 1
+  mapsgl/tilecache.cpp:54:31: error: Qt3D/qgltexture2d.h: No such file or directory
+  mapsgl/tilecache.cpp:55:31: error: Qt3D/qglscenenode.h: No such file or directory
+  make[3]: *** [.obj/release-shared/tilecache.o] Error 1
+  make[2]: *** [sub-location-make_default-ordered] Error 2
+  make[1]: *** [module-qtlocation-src-make_default] Error 2
+  make: *** [module-qtlocation] Error 2

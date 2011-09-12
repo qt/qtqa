@@ -263,6 +263,7 @@ my %RE = (
     #   quicktestresult.cpp:453: error: no matching function for call to 'QTestResult::addSkip(const char*, QTest::SkipMode, const char*, int&)'
     #   c:\test\recipes\129373577\base\qt\qtsvg\src\svg\qsvgstyle_p.h(65) : fatal error C1083: Cannot open include file: 'qdebug.h': No such file or directory
     #   /bin/sh: line 1: 52873 Killed: 9               g++ -c -pipe (...) graphicsview/qgraphicstransform.cpp
+    #   mapsgl/frustum_p.h:60:27: error: Qt3D/qplane3d.h: No such file or directory
     #
     # Captures:
     #   file        -   name of the file in which error occurred (exactly as output by the
@@ -294,6 +295,10 @@ my %RE = (
             (?<line>
                 \d+
             )
+
+            (?:         # It is possible to have more than one line number in the error, e.g:
+                :\d+    #   mapsgl/frustum_p.h:60:27: (...)
+            )*          # We do not capture them at the moment.
 
             : \s
 
@@ -376,11 +381,15 @@ my %RE = (
 
     # Continued lines from a compile failure.
     #
-    # This matches the lines following an initial compile fail message which
+    # This matches the lines leading or following an initial compile fail message which
     # provide additional info about the failure.
     #
-    # Example:
+    # Examples:
     #   src/testlib/qtestresult_p.h:96: note: candidates are: static void QTestResult::addSkip(const char*, const char*, int)
+    #
+    #   In file included from mapsgl/map_p.h:59,
+    #                    from mapsgl/map2d/map2d_p.h:55,
+    #                    from mapsgl/map2d/map2d_p.cpp:41:
     #
     # Captures: nothing
     #
@@ -388,10 +397,30 @@ my %RE = (
     #   Has false positives.
     #   This is considered acceptable because this pattern is only intended
     #   to be used in a very narrow scope (it should be applied only to lines
-    #   immediately following something which matches compile_fail).
+    #   surrounding something which matches compile_fail).
     #
     compile_fail_continuation => qr{
-        \Q: note: \E
+        (?:
+            \Q: note: \E
+        )
+
+        |
+
+        (?:
+            \A
+            \s*
+            (?:
+                \QIn file included \E
+                |
+                \s+
+            )
+            from
+            \s
+            [^\s]+:\d+  # some/file.cpp:123
+            [,:]        # , or : depending on whether it's the last line
+            \s*
+            \z
+        )
     }xms,
 
     # Lines which should _not_ be included when attempting to extract
@@ -1020,6 +1049,10 @@ sub extract_and_output
         return;
     }
 
+    # Buffer of recent lines, in case we need to look backwards.
+    # Only keeps unprinted lines, and is cleared whenever something is printed.
+    my @recent = ();
+    Readonly my $RECENT_MAX => 20;
 
     my $indent = q{};
     my @continuation_patterns = ();
@@ -1053,7 +1086,17 @@ sub extract_and_output
     my $line_is_significant = sub {
         my ($line, @continuations) = @_;
         push @continuation_patterns, @continuations;
+
+        # Before we print this significant line, see if any of the previous lines
+        # are significant, according to @continuations.
+        foreach my $recent_line (@recent) {
+            if ( any { $recent_line =~ $_ } @continuation_patterns ) {
+                print "$indent$recent_line\n";
+            }
+        }
+
         print "$indent$line\n";
+        @recent = ();
     };
 
     # Construct an RE matching any source which failed to compile
@@ -1084,6 +1127,12 @@ sub extract_and_output
     }
 
     while (@lines) {
+
+        # keep no more than $RECENT_MAX lines in memory.
+        while (scalar(@recent) > $RECENT_MAX) {
+            shift @recent;
+        }
+
         my $line = shift @lines;
 
         # Compilation failure?
@@ -1119,6 +1168,7 @@ sub extract_and_output
 
         # Nope, no error messages in progress.
         @continuation_patterns = ();
+        push @recent, $line;
     }
 
     return;
