@@ -571,8 +571,8 @@ sub run_qtqa_autotests
     my $qt_gitmodule     = $self->{ 'qt.gitmodule' };
     my $qt_gitmodule_dir = $self->{ 'qt.gitmodule.dir' };
 
-    # path to the qtqa autotests.
-    my $qtqa_tests_dir = catfile( $FindBin::Bin, qw(.. .. tests auto) );
+    # path to the qtqa shared autotests.
+    my $qtqa_tests_dir = catfile( $FindBin::Bin, qw(.. .. tests shared) );
 
     # director(ies) of modules we want to test
     my @module_dirs;
