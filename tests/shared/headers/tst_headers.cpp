@@ -44,14 +44,8 @@
 class tst_Headers: public QObject
 {
     Q_OBJECT
-public:
-    tst_Headers();
-
 private slots:
     void initTestCase();
-
-    void licenseCheck_data() { allSourceFilesData(); }
-    void licenseCheck();
 
     void privateSlots_data() { allHeadersData(); }
     void privateSlots();
@@ -64,25 +58,11 @@ private:
                                 const QStringList dirFilters,
                                 const QRegExp &exclude);
     static QStringList getHeaders(const QString &path);
-    static QStringList getQmlFiles(const QString &path);
-    static QStringList getCppFiles(const QString &path);
-    static QStringList getQDocFiles(const QString &path);
 
-    void allSourceFilesData();
     void allHeadersData();
     QStringList headers;
-    const QRegExp copyrightPattern;
-    const QRegExp licensePattern;
-    const QRegExp moduleTest;
     QString qtModuleDir;
 };
-
-tst_Headers::tst_Headers() :
-    copyrightPattern("\\*\\* Copyright \\(C\\) 20[0-9][0-9] Nokia Corporation and/or its subsidiary\\(-ies\\)."),
-    licensePattern("\\*\\* \\$QT_BEGIN_LICENSE:(LGPL|BSD|3RDPARTY|LGPL-ONLY|FDL)\\$"),
-    moduleTest(QLatin1String("\\*\\* This file is part of the .+ of the Qt Toolkit."))
-{
-}
 
 QStringList tst_Headers::getFiles(const QString &path,
                                   const QStringList dirFilters,
@@ -108,21 +88,6 @@ QStringList tst_Headers::getHeaders(const QString &path)
     return getFiles(path, QStringList("*.h"), QRegExp("^(?!ui_)"));
 }
 
-QStringList tst_Headers::getCppFiles(const QString &path)
-{
-    return getFiles(path, QStringList("*.cpp"), QRegExp("^(?!(moc_|qrc_))"));
-}
-
-QStringList tst_Headers::getQmlFiles(const QString &path)
-{
-    return getFiles(path, QStringList("*.qml"), QRegExp("."));
-}
-
-QStringList tst_Headers::getQDocFiles(const QString &path)
-{
-    return getFiles(path, QStringList("*.qdoc"), QRegExp("."));
-}
-
 void tst_Headers::initTestCase()
 {
     qtModuleDir = QString::fromLocal8Bit(qgetenv("QT_MODULE_TO_TEST"));
@@ -141,54 +106,6 @@ void tst_Headers::initTestCase()
     } else {
         QTest::qWarn("Some test functions will be skipped, because we ignore them for phonon and qttools.");
     }
-
-    QVERIFY(copyrightPattern.isValid());
-    QVERIFY(licensePattern.isValid());
-}
-
-void tst_Headers::allSourceFilesData()
-{
-    QTest::addColumn<QString>("sourceFile");
-
-    QStringList sourceFiles;
-    static char const * const subdirs[] = {
-        "/config.tests",
-        "/demos",
-        "/doc",
-        "/examples",
-        "/mkspecs",
-        "/qmake",
-        "/src",
-        "/tests",
-        "/tools",
-        "/util"
-    };
-
-    for (size_t i = 0; i < sizeof(subdirs) / sizeof(subdirs[0]); ++i) {
-        sourceFiles << getCppFiles(qtModuleDir + subdirs[i]);
-        if (subdirs[i] != QLatin1String("/tests"))
-            sourceFiles << getQmlFiles(qtModuleDir + subdirs[i]);
-        sourceFiles << getHeaders(qtModuleDir + subdirs[i]);
-        sourceFiles << getQDocFiles(qtModuleDir + subdirs[i]);
-    }
-
-    foreach (QString sourceFile, sourceFiles) {
-        if (sourceFile.contains("/3rdparty/")
-            || sourceFile.contains("/tests/auto/qmake/testdata/bundle-spaces/main.cpp")
-            || sourceFile.contains("/demos/embedded/fluidlauncher/pictureflow.cpp")
-            || sourceFile.contains("/tools/porting/src/")
-            || sourceFile.contains("/src/assistant/lib/fulltextsearch/")
-            || sourceFile.endsWith("_pch.h.cpp")
-            || sourceFile.endsWith(".ui.h")
-            || sourceFile.endsWith("/src/corelib/global/qconfig.h")
-            || sourceFile.endsWith("/src/corelib/global/qconfig.cpp")
-            || sourceFile.endsWith("/src/tools/uic/qclass_lib_map.h")
-            || sourceFile.endsWith("src/corelib/io/qurltlds_p.h")
-            )
-            continue;
-
-        QTest::newRow(qPrintable(sourceFile)) << sourceFile;
-    }
 }
 
 void tst_Headers::allHeadersData()
@@ -204,64 +121,6 @@ void tst_Headers::allHeadersData()
 
         QTest::newRow(qPrintable(hdr)) << hdr;
     }
-}
-
-void tst_Headers::licenseCheck()
-{
-    QFETCH(QString, sourceFile);
-
-    QFile f(sourceFile);
-    QVERIFY2(f.open(QIODevice::ReadOnly), qPrintable(f.errorString()));
-    QByteArray data = f.readAll();
-    data.replace("\r\n", "\n"); // Windows
-    data.replace('\r', '\n'); // Mac OS9
-    QStringList content = QString::fromLocal8Bit(data).split("\n", QString::SkipEmptyParts);
-
-    if (content.count() <= 2) // likely a #include line and empty line only. Not a copyright issue.
-        return;
-
-    if (content.first().contains("generated")) {
-        // don't scan generated files
-        return;
-    }
-
-    if (sourceFile.endsWith("/tests/auto/linguist/lupdate/testdata/good/merge_ordering/foo.cpp")
-        || sourceFile.endsWith("/tests/auto/linguist/lupdate/testdata/good/mergecpp/finddialog.cpp"))
-    {
-        // These files are meant to start with empty lines.
-        while (content.first().startsWith("//"))
-            content.takeFirst();
-    }
-
-    if (sourceFile.endsWith("/doc/src/classes/phonon-api.qdoc")) {
-        // This is an external file
-        return;
-    }
-
-    QVERIFY(licensePattern.exactMatch(content.value(8)) ||
-            licensePattern.exactMatch(content.value(5)));
-    QString licenseType = licensePattern.cap(1);
-
-    int i = 0;
-
-    QCOMPARE(content.at(i++), QString("/****************************************************************************"));
-    if (licenseType != "3RDPARTY") {
-        QCOMPARE(content.at(i++), QString("**"));
-        if (sourceFile.endsWith("/tests/auto/modeltest/dynamictreemodel.cpp")
-            || sourceFile.endsWith("/tests/auto/modeltest/dynamictreemodel.h")
-            || sourceFile.endsWith("/src/network/kernel/qnetworkproxy_p.h"))
-        {
-            // These files are not copyrighted by Nokia.
-            ++i;
-        } else {
-            QVERIFY(copyrightPattern.exactMatch(content.at(i++)));
-        }
-        i++;
-        QCOMPARE(content.at(i++), QString("** Contact: Nokia Corporation (qt-info@nokia.com)"));
-    }
-    QCOMPARE(content.at(i++), QString("**"));
-    QVERIFY(moduleTest.exactMatch(content.at(i++)));
-    QCOMPARE(content.at(i++), QString("**"));
 }
 
 void tst_Headers::privateSlots()
