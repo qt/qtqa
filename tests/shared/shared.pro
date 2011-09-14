@@ -1,5 +1,11 @@
 TEMPLATE = subdirs
-SUBDIRS +=  bic headers symbols guiapplauncher compilerwarnings
+SUBDIRS += \
+    bic \
+    headers \
+    license \
+    symbols \
+    guiapplauncher \
+    compilerwarnings
 
 # Temporarily avoid `make check' running the guiapplauncher test.
 # It is a bit unstable, and we need more infrastructure to handle this.
