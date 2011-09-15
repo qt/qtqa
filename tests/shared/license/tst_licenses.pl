@@ -153,6 +153,8 @@ my %excludedFiles = (
                           qr{^tests/auto/qscriptv8testsuite/tests/},
                         ],
     "qttools"        => [
+                          # This directory contain 3rdparty code
+                          qr{^src/assistant/clucene/},
                           # This directory is a copy of a 3rdparty library
                           qr{^src/assistant/lib/fulltextsearch/},
                           # Nokia Legal has agreed that .qml files in test data
