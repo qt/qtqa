@@ -2,7 +2,6 @@
 qtpim failed to compile for linux-g++-32 qpa developer-build Ubuntu
 10.04 x86 :(
 
-  moc tst_qorganizeritemasync.cpp
   compiling tst_qorganizeritemasync.cpp
   tst_qorganizeritemasync.cpp: In member function 'void tst_QOrganizerItemAsync::itemPartialSave()':
   tst_qorganizeritemasync.cpp:1814: error: 'QOrganizerItemEmailAddress' was not declared in this scope

@@ -1,5 +1,4 @@
 [ "$DATADIR/raw-logs/qtpim-linux-autotest-compile-fail.txt" ]
-moc tst_qorganizeritemasync.cpp
 compiling tst_qorganizeritemasync.cpp
 tst_qorganizeritemasync.cpp: In member function 'void tst_QOrganizerItemAsync::itemPartialSave()':
 tst_qorganizeritemasync.cpp:1814: error: 'QOrganizerItemEmailAddress' was not declared in this scope

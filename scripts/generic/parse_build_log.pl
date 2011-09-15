@@ -423,29 +423,6 @@ my %RE = (
         )
     }xms,
 
-    # Lines which should _not_ be included when attempting to extract
-    # features relating to compile failures.
-    #
-    # Example:
-    #   from foobar.h:49,
-    #
-    # In the above example, if we've detected that foobar.h had an error,
-    # we still don't want to include the above line - it's only part of
-    # a larger message and doesn't make sense on its own.
-    #
-    # Captures: nothing
-    #
-    compile_fail_exclude => qr{
-        \A
-        \s*
-        from
-        \s
-        [^:]+ : \d+
-        ,
-        \s*
-        \z
-    }xms,
-
     # Failure to link.
     #
     # Example:
@@ -1051,8 +1028,20 @@ sub extract_and_output
 
     # Buffer of recent lines, in case we need to look backwards.
     # Only keeps unprinted lines, and is cleared whenever something is printed.
+    #
+    # The value selected for $RECENT_MAX has some effects other than memory usage;
+    # for example, if a file main.cpp fails to compile, then any previous
+    # messages relating to main.cpp will be printed, up to a maximum distance
+    # of $RECENT_MAX from the line where the error occurred.
+    #
+    # This means that increasing $RECENT_MAX increases the chance of false positives,
+    # and decreasing it increases the chance of losing some valuable info.
+    # The correct value to use is linked somewhat to the `-j' option used in builds
+    # (consider: if we compile up to 30 source files simultaneously, then there
+    # may be ~30 simultaneously interleaved streams at any one time).
+    #
     my @recent = ();
-    Readonly my $RECENT_MAX => 20;
+    Readonly my $RECENT_MAX => 60;
 
     my $indent = q{};
     my @continuation_patterns = ();
@@ -1099,32 +1088,6 @@ sub extract_and_output
         @recent = ();
     };
 
-    # Construct an RE matching any source which failed to compile
-    my $compile_fail_source_re = $RE{ never_match };
-    if ($fail->{ compile_fail_sources }) {
-        my @filename_patterns = keys %{$fail->{ compile_fail_sources }};
-
-        @filename_patterns = map( {
-
-            # We surround the source with \b to ensure we don't catch files
-            # whose names contain each other, e.g. do not extract moc_foo.cpp
-            # for errors relating to foo.cpp.
-            # \b alone is not sufficient because the source filename could possibly
-            # begin or end with a non-\w character (e.g. in a relative path, ../some/file,
-            # both ^ and . are considered non-word characters, so \b does not match).
-            '(?:\b|\A)'
-           .quotemeta($_)
-           .'(?:\b|\z)'
-
-        } @filename_patterns);
-
-        $compile_fail_source_re = join( q{|}, @filename_patterns );
-        $compile_fail_source_re = qr{$compile_fail_source_re};
-
-        if ($self->{ debug }) {
-            print STDERR Data::Dumper->Dump([ $compile_fail_source_re ], [ 'compile_fail_source_re' ]);
-        }
-    }
 
     while (@lines) {
 
@@ -1136,11 +1099,20 @@ sub extract_and_output
         my $line = shift @lines;
 
         # Compilation failure?
-        if ($fail->{ compile_fail } && $line =~ $compile_fail_source_re) {
-            if ($line !~ $RE{ compile_fail_exclude }) {
-                $line_is_significant->( $line, $RE{ compile_fail_continuation } );
-                next;
+        if ($fail->{ compile_fail } && $line =~ $RE{ compile_fail }) {
+            # When extracting any further messages relating to this error, we look for
+            # the "generic" continuation patterns ...
+            my @continuation_patterns = ($RE{ compile_fail_continuation });
+
+            # ... and, if we could identify the file at fault, we look for messages relating
+            # to this specific file.
+            if (my $file = $+{ file }) {
+                push @continuation_patterns, qr{(?:\b|\A) \Q$file\E (?:\b|\z)}xms;
             }
+
+            $line_is_significant->( $line, @continuation_patterns );
+
+            next;
         }
 
         # Linker failure?

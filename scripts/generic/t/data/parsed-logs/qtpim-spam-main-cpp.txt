@@ -1,0 +1,120 @@
+[ "$DATADIR/raw-logs/qtpim-spam-main-cpp.txt" ]
+compiling main.cpp
+compiling main.cpp
+compiling main.cpp
+main.cpp:41:30: error: QtGui/QApplication: No such file or directory
+make[3]: *** [.obj/debug-shared/main.o] Error 1
+window.cpp:41:21: error: QtWidgets: No such file or directory
+todoeditor.cpp:41:21: error: QtWidgets: No such file or directory
+qmlapplicationviewer.cpp: In constructor 'QmlApplicationViewer::QmlApplicationViewer(QWidget*)':
+qmlapplicationviewer.cpp:94: error: no matching function for call to 'QSGView::QSGView(QWidget*&)'
+../../../qtdeclarative/include/QtDeclarative/../../src/declarative/items/qsgview.h:112: note: candidates are: QSGView::QSGView(const QSGView&)
+../../../qtdeclarative/include/QtDeclarative/../../src/declarative/items/qsgview.h:71: note:                 QSGView::QSGView(const QUrl&, QWindow*, Qt::WindowFlags)
+../../../qtdeclarative/include/QtDeclarative/../../src/declarative/items/qsgview.h:70: note:                 QSGView::QSGView(QWindow*, Qt::WindowFlags)
+make[3]: *** [.obj/debug-shared/qmlapplicationviewer.o] Error 1
+main.cpp:41:21: error: In file included from .moc/debug-shared/moc_window.cpp:10:
+.moc/debug-shared/../../window.h:44:19: error: QWidget: No such file or directory
+In file included from main.cpp:43:
+window.h:44:19: error: QWidget: No such file or directory
+.moc/debug-shared/moc_window.cpp:12:2: error: #error "The header file 'window.h' doesn't include <QObject>."
+make[3]: *** [.obj/debug-shared/moc_window.o] Error 1
+make[3]: *** [.obj/debug-shared/main.o] Error 1
+In file included from window.cpp:45:
+window.h:44:19: error: QWidget: No such file or directory
+make[3]: *** [.obj/debug-shared/window.o] Error 1
+In file included from todoeditor.cpp:45:
+todoeditor.h:44:19: error: QWidget: No such file or directory
+make[3]: *** [.obj/debug-shared/todoeditor.o] Error 1
+main.cpp:41:30: error: QtGui/QApplication: No such file or directory
+In file included from src/main.cpp:41:
+src/calendardemo.h:44:29: error: QtGui/QMainWindow: No such file or directory
+make[3]: *** [.obj/debug-shared/main.o] Error 1
+make[2]: *** [sub-qmlcontacts-make_default] Error 2
+In file included from .moc/debug-shared/moc_todoeditor.cpp:10:
+.moc/debug-shared/../../todoeditor.h:44:19: error: QWidget: No such file or directory
+src/main.cpp:44:24: error: QApplication: No such file or directory
+make[3]: *** [.obj/debug-shared/main.o] Error 1
+src/calendardemo.h:44:29: error: QtGui/QMainWindow: No such file or directory
+src/monthpage.cpp:41:21: error: QtWidgets: No such file or directory
+qmlapplicationviewer.cpp: In constructor 'QmlApplicationViewer::QmlApplicationViewer(QWidget*)':
+qmlapplicationviewer.cpp:93: error: no matching function for call to 'QSGView::QSGView(QWidget*&)'
+../../../qtdeclarative/include/QtDeclarative/../../src/declarative/items/qsgview.h:112: note: candidates are: QSGView::QSGView(const QSGView&)
+../../../qtdeclarative/include/QtDeclarative/../../src/declarative/items/qsgview.h:71: note:                 QSGView::QSGView(const QUrl&, QWindow*, Qt::WindowFlags)
+../../../qtdeclarative/include/QtDeclarative/../../src/declarative/items/qsgview.h:70: note:                 QSGView::QSGView(QWindow*, Qt::WindowFlags)
+make[3]: *** [.obj/debug-shared/qmlapplicationviewer.o] Error 1
+make[2]: *** [sub-qmlorganizer-make_default] Error 2
+In file included from src/daypage.cpp:41:
+src/daypage.h:44:19: error: QWidget: No such file or directory
+make[3]: *** [.obj/debug-shared/moc_todoeditor.o] Error 1
+make[2]: *** [sub-todo-make_default] Error 2
+In file included from src/calendardemo.cpp:43:
+src/monthpage.h:44:19: error: QWidget: No such file or directory
+src/calendardemo.cpp:57:21: error: QtWidgets: No such file or directory
+make[3]: *** [.obj/debug-shared/calendardemo.o] Error 1
+In file included from src/daypage.cpp:43:
+src/calendardemo.h:44:29: error: QtGui/QMainWindow: No such file or directory
+In file included from src/todoeditpage.cpp:40:
+src/todoeditpage.h:43:19: error: QWidget: No such file or directory
+src/daypage.cpp:44:21: error: QtWidgets: No such file or directory
+make[3]: *** [.obj/debug-shared/daypage.o] Error 1
+In file included from src/monthpage.cpp:45:
+src/monthpage.h:44:19: error: QWidget: No such file or directory
+In file included from src/monthpage.cpp:46:
+src/calendardemo.h:44:29: error: QtGui/QMainWindow: No such file or directory
+make[3]: *** [.obj/debug-shared/monthpage.o] Error 1
+In file included from src/eventeditpage.cpp:40:
+src/eventeditpage.h:43:19: error: QWidget: No such file or directory
+src/todoeditpage.cpp:42:21: error: QtWidgets: No such file or directory
+src/todoeditpage.cpp:43:21: error: QComboBox: No such file or directory
+make[3]: *** [.obj/debug-shared/todoeditpage.o] Error 1
+In file included from src/journaleditpage.cpp:40:
+src/journaleditpage.h:44:19: error: QWidget: No such file or directory
+src/eventeditpage.cpp:42:21: error: QtWidgets: No such file or directory
+make[3]: *** [.obj/debug-shared/eventeditpage.o] Error 1
+In file included from src/eventoccurrenceeditpage.cpp:40:
+src/eventoccurrenceeditpage.h:43:19: error: QWidget: No such file or directory
+In file included from src/addcalendarpage.cpp:40:
+src/addcalendarpage.h:43:19: error: QWidget: No such file or directory
+src/journaleditpage.cpp:42:21: error: QtWidgets: No such file or directory
+src/journaleditpage.cpp:43:21: error: QComboBox: No such file or directory
+make[3]: *** [.obj/debug-shared/journaleditpage.o] Error 1
+In file included from src/editcalendarspage.cpp:40:
+src/editcalendarspage.h:43:19: error: QWidget: No such file or directory
+In file included from .moc/debug-shared/moc_monthpage.cpp:10:
+.moc/debug-shared/../../src/monthpage.h:44:19: error: QWidget: No such file or directory
+src/eventoccurrenceeditpage.cpp:42:21: error: QtWidgets: No such file or directory
+src/addcalendarpage.cpp:42:21: error: QtWidgets: No such file or directory
+make[3]: *** [.obj/debug-shared/eventoccurrenceeditpage.o] Error 1
+make[3]: *** [.obj/debug-shared/addcalendarpage.o] Error 1
+make[3]: *** [.obj/debug-shared/moc_monthpage.o] Error 1
+In file included from src/editcalendarspage.cpp:42:
+src/calendardemo.h:44:29: error: QtGui/QMainWindow: No such file or directory
+src/editcalendarspage.cpp:43:21: error: QtWidgets: No such file or directory
+In file included from .moc/debug-shared/moc_daypage.cpp:10:
+.moc/debug-shared/../../src/daypage.h:44:19: error: QWidget: No such file or directory
+make[3]: *** [.obj/debug-shared/editcalendarspage.o] Error 1
+In file included from .moc/debug-shared/moc_addcalendarpage.cpp:10:
+.moc/debug-shared/../../src/addcalendarpage.h:43:19: error: QWidget: No such file or directory
+make[3]: *** [.obj/debug-shared/moc_daypage.o] Error 1
+In file included from .moc/debug-shared/moc_editcalendarspage.cpp:10:
+.moc/debug-shared/../../src/editcalendarspage.h:43:19: error: QWidget: No such file or directory
+In file included from .moc/debug-shared/moc_calendardemo.cpp:10:
+.moc/debug-shared/../../src/calendardemo.h:44:29: error: QtGui/QMainWindow: No such file or directory
+make[3]: *** [.obj/debug-shared/moc_addcalendarpage.o] Error 1
+make[3]: *** [.obj/debug-shared/moc_editcalendarspage.o] Error 1
+In file included from .moc/debug-shared/moc_journaleditpage.cpp:10:
+.moc/debug-shared/../../src/journaleditpage.h:44:19: error: QWidget: No such file or directory
+make[3]: *** [.obj/debug-shared/moc_calendardemo.o] Error 1
+In file included from .moc/debug-shared/moc_eventeditpage.cpp:10:
+.moc/debug-shared/../../src/eventeditpage.h:43:19: error: QWidget: No such file or directory
+In file included from .moc/debug-shared/moc_todoeditpage.cpp:10:
+.moc/debug-shared/../../src/todoeditpage.h:43:19: error: QWidget: No such file or directory
+In file included from .moc/debug-shared/moc_eventoccurrenceeditpage.cpp:10:
+.moc/debug-shared/../../src/eventoccurrenceeditpage.h:43:19: error: QWidget: No such file or directory
+make[3]: *** [.obj/debug-shared/moc_journaleditpage.o] Error 1
+make[3]: *** [.obj/debug-shared/moc_eventeditpage.o] Error 1
+make[3]: *** [.obj/debug-shared/moc_todoeditpage.o] Error 1
+make[3]: *** [.obj/debug-shared/moc_eventoccurrenceeditpage.o] Error 1
+make[2]: *** [sub-calendardemo-make_default] Error 2
+make[1]: *** [module-qtpim-exampels-make_default-ordered] Error 2
+make: *** [module-qtpim] Error 2
