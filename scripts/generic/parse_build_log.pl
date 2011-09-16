@@ -188,6 +188,25 @@ my %RE = (
         # add more as discovered
     }xms,
 
+    # Any kind of glitch which can be identified as the reason for the build failure,
+    # but the underlying cause is unknown.
+    #
+    # This is a catch-all for any kind of errors where:
+    #
+    #  - we can recognize the error message, but don't know the cause, or:
+    #
+    #  - we roughly know the cause, but it's considered unfeasible to really fix the
+    #    problem or confidently present more information about the problem.
+    #
+    glitch => qr{
+        (?:
+            # note, deliberately not anchored at \A - this can occur in the middle of a line!
+            \QRecipe terminated with an error: Agent status changed to 'invalid master' while recipe in progress\E
+        )
+
+        # add more as discovered
+    }xms,
+
     # line output when the top-level qtqa script fails.
     #
     # Example:
@@ -1000,6 +1019,12 @@ sub identify_failures
             $out->{ significant_lines }{ $line } = 1;
         }
 
+        # Badly understood glitchy behavior?
+        elsif ($line =~ $RE{ glitch }) {
+            $out->{ glitch } = $line;
+            $out->{ significant_lines }{ $line } = 1;
+        }
+
         # Extract some possibly useful info about the pulse properties
         #
         elsif ($line =~ $RE{ pulse_property })
@@ -1320,6 +1345,14 @@ sub output_summary
                   ."or some related CI infrastructure error. "
                   ."This is NOT the fault of the code under test!"
                   ."\n\nPlease contact $CI_CONTACT to resolve this problem.  Meanwhile, it may "
+                  ."be worthwhile to attempt the build again.";
+    }
+
+    # Badly understood glitchy behavior?
+    if ($fail->{ glitch }) {
+        $summary = "An unexpected error occurred, most likely due to no fault in the tested "
+                  ."code itself :("
+                  ."\n\nPlease point $CI_CONTACT towards this problem.  Meanwhile, it may "
                   ."be worthwhile to attempt the build again.";
     }
 

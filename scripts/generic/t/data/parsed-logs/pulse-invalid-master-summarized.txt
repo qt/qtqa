@@ -1,0 +1,8 @@
+[ '--summarize', "$DATADIR/raw-logs/pulse-invalid-master.txt" ]
+An unexpected error occurred, most likely due to no fault in the tested
+code itself :(
+
+Please point some CI administrator towards this problem.  Meanwhile, it
+may be worthwhile to attempt the build again.
+
+  E:\pulse\work\264490\bin\moc.exe -DUNICODE -DWIN32 -DQT_LARGEFILE_SUPPORT -D_BIND_TO_CURRENT_VCLIBS_VERSION=1 -DQDESIGNER_SDK_LIBRARY -DQDESIGNER_EXTENSION_LIBRARY -DQDESIGNER_UILIB_LIBRARY -DQDESIGNER_SHARED_LIBRARY -DQT_DESIGNER -DQT_DLL -DQT_NO_DEBUG -DQT_SCRIPT_LIB -DQT_XML_LIB -DQT_GUI_LIB -DQT_CORE_LIB -DQT_HAVE_MMX -DQT_HAVE_3DNOW -DQT_HAVE_SSE -DQT_HAVE_MMXEXT -DQT_HAVE_SSE2 -DQT_THREAD_SUPPORT -I"..\..\..\..\include\QtCore" -I"..\..\..\..\include\QtGui" -I"..\..\..\..\include\QtXml" -I"..\..\..\..\include\QtScript" -I"..\..\..\..\include" -I"extension" -I"sdk" -I"uilib" -I"shared" -I"..\..\..\shared\qtpropertybrowser" -I"..\..\..\shared\devices9/15/11 11:50:27 PM EST: Recipe terminated with an error: Agent status changed to 'invalid master' while recipe in progress
