@@ -1314,8 +1314,7 @@ sub output_summary
             if ($tested_qtmodule && $compile_fail_qtmodule ne $tested_qtmodule) {
                 $summary .= "\n\nWe were trying to test $tested_qtmodule.  "
                            ."One of the dependencies, $compile_fail_qtmodule, "
-                           ."failed to compile.  $compile_fail_qtmodule "
-                           ."will have to be fixed before $tested_qtmodule can succeed.";
+                           ."failed to compile.";
             }
         }
 
