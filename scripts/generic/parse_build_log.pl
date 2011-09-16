@@ -118,6 +118,10 @@ use Pod::Usage;
 use Readonly;
 use Text::Wrap;
 
+# Contact details of some CI admins who can deal with problems.
+# Put a public email address here once we have one!
+Readonly my $CI_CONTACT
+    => q{some CI administrator};
 
 # All important regular expressions used to extract errors
 #Readonly my %RE => (  <- too slow :( Adds seconds to runtime, according to NYTProf.
@@ -165,6 +169,23 @@ my %RE = (
 
             # and the `: ' at the end
             :[ ]
+    }xms,
+
+    # Any kind of error in the Pulse configuration.
+    #
+    # Example:
+    #   Recipe terminated with an error: Recipe request timed out waiting for a capable agent to become available.
+    #
+    # These kinds of errors are always the fault of the CI infrastructure
+    # and not the code under test.
+    #
+    pulse_config_error => qr{
+        (?:
+            \A
+            \QNo online agents satisfy the request requirements.\E
+        )
+
+        # add more as discovered
     }xms,
 
     # line output when the top-level qtqa script fails.
@@ -973,6 +994,11 @@ sub identify_failures
             $out->{ linked_libs }{ $lib } = $line;
         }
 
+        # Pulse config problem?
+        elsif ($line =~ $RE{ pulse_config_error }) {
+            $out->{ pulse_config_error } = $line;
+            $out->{ significant_lines }{ $line } = 1;
+        }
 
         # Extract some possibly useful info about the pulse properties
         #
@@ -1286,6 +1312,15 @@ sub output_summary
                        ."If this is indeed the case, the error may be unstable, and will be "
                        ."easier to reproduce with a highly parallelized build.";
         }
+    }
+
+    # Pulse config problem?
+    if ($fail->{ pulse_config_error }) {
+        $summary = "It seems that there has been some misconfiguration of the Pulse CI tool, "
+                  ."or some related CI infrastructure error. "
+                  ."This is NOT the fault of the code under test!"
+                  ."\n\nPlease contact $CI_CONTACT to resolve this problem.  Meanwhile, it may "
+                  ."be worthwhile to attempt the build again.";
     }
 
     if ($summary) {
