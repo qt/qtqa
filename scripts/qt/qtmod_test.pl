@@ -76,6 +76,9 @@ my @PROPERTIES = (
                                 . q{these are appended to qt.configure.args when configure is }
                                 . q{invoked},
 
+    q{qt.init-repository.args} => q{space-separated arguments passed to Qt5's init-repository }
+                                . q{script},
+
     q{qt.dir}                  => q{top-level source directory of Qt superproject; }
                                 . q{the script will clone qt.repository into this location},
 
@@ -226,6 +229,7 @@ sub read_and_store_configuration
         'qt.dir'                  => \&default_qt_dir                            ,
         'qt.repository'           => \&default_qt_repository                     ,
         'qt.branch'               => q{master}                                   ,
+        'qt.init-repository.args' => q{}                                         ,
         'qt.configure.args'       => q{-opensource -confirm-license}             ,
         'qt.configure.extra_args' => q{}                                         ,
         'qt.make_install'         => 0                                           ,
@@ -292,6 +296,8 @@ sub run_git_checkout
     my ($self) = @_;
 
     my $base_dir      = $self->{ 'base.dir'      };
+    my $qt_init_repository_args
+                      = $self->{ 'qt.init-repository.args' };
     my $qt_branch     = $self->{ 'qt.branch'     };
     my $qt_repository = $self->{ 'qt.repository' };
     my $qt_dir        = $self->{ 'qt.dir'        };
@@ -314,7 +320,8 @@ sub run_git_checkout
         %dependencies = $self->read_dependencies( "$base_dir/sync.profile" );
     }
 
-    my @init_repository_arguments;
+    my @init_repository_arguments = split( q{ }, $qt_init_repository_args );
+
     if (defined( $location ) && ($location eq 'brisbane')) {
         push @init_repository_arguments, '-brisbane-nokia-developer';
     }
