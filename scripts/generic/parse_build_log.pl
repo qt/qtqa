@@ -304,6 +304,7 @@ my %RE = (
     #   c:\test\recipes\129373577\base\qt\qtsvg\src\svg\qsvgstyle_p.h(65) : fatal error C1083: Cannot open include file: 'qdebug.h': No such file or directory
     #   /bin/sh: line 1: 52873 Killed: 9               g++ -c -pipe (...) graphicsview/qgraphicstransform.cpp
     #   mapsgl/frustum_p.h:60:27: error: Qt3D/qplane3d.h: No such file or directory
+    #   qmetaobject/main.cpp:219: undefined reference to `QTreeView::staticMetaObject'
     #
     # Captures:
     #   file        -   name of the file in which error occurred (exactly as output by the
@@ -343,7 +344,16 @@ my %RE = (
             : \s
 
             (?<error>
-                error: .+
+                (?:
+                    error: .+
+                )
+                |
+                (?:
+                    # note that `undefined reference' may produce either a compiler-style
+                    # error message (caught here), or a linker-style error message (caught
+                    # in linker_fail), depending on exactly when the error occurs
+                    \Qundefined reference to \E.+
+                )
             )
 
             \z

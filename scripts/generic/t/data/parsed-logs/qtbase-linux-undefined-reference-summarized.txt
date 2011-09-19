@@ -1,0 +1,125 @@
+[ '--summarize', "$DATADIR/raw-logs/qtbase-linux-undefined-reference.txt" ]
+qtbase failed to compile for linux-g++-32 Ubuntu 10.04 x86 :(
+
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/benchmarks/corelib/kernel/qmetaobject/main.cpp:219: undefined reference to `QTreeView::staticMetaObject'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/benchmarks/corelib/kernel/qmetaobject/main.cpp:220: undefined reference to `QTreeView::staticMetaObject'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/benchmarks/corelib/kernel/qmetaobject/main.cpp:196: undefined reference to `QTreeView::staticMetaObject'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/benchmarks/corelib/kernel/qmetaobject/main.cpp:197: undefined reference to `QTreeView::staticMetaObject'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/benchmarks/corelib/kernel/qmetaobject/main.cpp:176: undefined reference to `QTreeView::staticMetaObject'
+  make[6]: *** [tst_bench_qmetaobject] Error 1
+  make[5]: *** [sub-qmetaobject-make_default] Error 2
+  make[4]: *** [sub-kernel-make_default] Error 2
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/benchmarks/gui/styles/qstylesheetstyle/main.cpp:76: undefined reference to `QWidget::QWidget(QWidget*, QFlags<Qt::WindowType>)'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/benchmarks/gui/styles/qstylesheetstyle/main.cpp:77: undefined reference to `QGridLayout::QGridLayout(QWidget*)'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/benchmarks/gui/styles/qstylesheetstyle/main.cpp:78: undefined reference to `QWidget::setLayout(QLayout*)'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/benchmarks/gui/styles/qstylesheetstyle/main.cpp:79: undefined reference to `QPushButton::QPushButton(QString const&, QWidget*)'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/benchmarks/gui/styles/qstylesheetstyle/main.cpp:79: undefined reference to `QGridLayout::addWidget(QWidget*, int, int, QFlags<Qt::AlignmentFlag>)'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/benchmarks/gui/styles/qstylesheetstyle/main.cpp:80: undefined reference to `QComboBox::QComboBox(QWidget*)'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/benchmarks/gui/styles/qstylesheetstyle/main.cpp:80: undefined reference to `QGridLayout::addWidget(QWidget*, int, int, QFlags<Qt::AlignmentFlag>)'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/benchmarks/gui/styles/qstylesheetstyle/main.cpp:81: undefined reference to `QCheckBox::QCheckBox(QString const&, QWidget*)'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/benchmarks/gui/styles/qstylesheetstyle/main.cpp:81: undefined reference to `QGridLayout::addWidget(QWidget*, int, int, QFlags<Qt::AlignmentFlag>)'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/benchmarks/gui/styles/qstylesheetstyle/main.cpp:82: undefined reference to `QRadioButton::QRadioButton(QString const&, QWidget*)'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/benchmarks/gui/styles/qstylesheetstyle/main.cpp:82: undefined reference to `QGridLayout::addWidget(QWidget*, int, int, QFlags<Qt::AlignmentFlag>)'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/benchmarks/gui/styles/qstylesheetstyle/main.cpp:83: undefined reference to `QLineEdit::QLineEdit(QWidget*)'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/benchmarks/gui/styles/qstylesheetstyle/main.cpp:83: undefined reference to `QGridLayout::addWidget(QWidget*, int, int, QFlags<Qt::AlignmentFlag>)'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/benchmarks/gui/styles/qstylesheetstyle/main.cpp:84: undefined reference to `QLabel::QLabel(QString const&, QWidget*, QFlags<Qt::WindowType>)'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/benchmarks/gui/styles/qstylesheetstyle/main.cpp:84: undefined reference to `QGridLayout::addWidget(QWidget*, int, int, QFlags<Qt::AlignmentFlag>)'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/benchmarks/gui/styles/qstylesheetstyle/main.cpp:85: undefined reference to `QSpinBox::QSpinBox(QWidget*)'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/benchmarks/gui/styles/qstylesheetstyle/main.cpp:85: undefined reference to `QGridLayout::addWidget(QWidget*, int, int, QFlags<Qt::AlignmentFlag>)'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/benchmarks/gui/styles/qstylesheetstyle/main.cpp:86: undefined reference to `QProgressBar::QProgressBar(QWidget*)'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/benchmarks/gui/styles/qstylesheetstyle/main.cpp:86: undefined reference to `QGridLayout::addWidget(QWidget*, int, int, QFlags<Qt::AlignmentFlag>)'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/benchmarks/gui/styles/qstylesheetstyle/main.cpp:106: undefined reference to `QWidget::setStyleSheet(QString const&)'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/benchmarks/gui/styles/qstylesheetstyle/main.cpp:110: undefined reference to `QWidget::setStyleSheet(QString const&)'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/benchmarks/gui/styles/qstylesheetstyle/main.cpp:93: undefined reference to `QWidget::setStyleSheet(QString const&)'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/benchmarks/gui/styles/qstylesheetstyle/main.cpp:97: undefined reference to `QWidget::setStyleSheet(QString const&)'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/benchmarks/gui/styles/qstylesheetstyle/main.cpp:138: undefined reference to `QWidget::setStyleSheet(QString const&)'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/benchmarks/gui/styles/qstylesheetstyle/main.cpp:176: undefined reference to `QWidget::QWidget(QWidget*, QFlags<Qt::WindowType>)'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/benchmarks/gui/styles/qstylesheetstyle/main.cpp:177: undefined reference to `QGridLayout::QGridLayout(QWidget*)'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/benchmarks/gui/styles/qstylesheetstyle/main.cpp:178: undefined reference to `QWidget::setLayout(QLayout*)'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/benchmarks/gui/styles/qstylesheetstyle/main.cpp:182: undefined reference to `QLabel::QLabel(QString const&, QWidget*, QFlags<Qt::WindowType>)'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/benchmarks/gui/styles/qstylesheetstyle/main.cpp:183: undefined reference to `QGridLayout::addWidget(QWidget*, int, int, QFlags<Qt::AlignmentFlag>)'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/benchmarks/gui/styles/qstylesheetstyle/main.cpp:188: undefined reference to `QWidget::setStyleSheet(QString const&)'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/benchmarks/gui/styles/qstylesheetstyle/main.cpp:200: undefined reference to `QWidget::setStyleSheet(QString const&)'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/benchmarks/gui/styles/qstylesheetstyle/main.cpp:125: undefined reference to `QWidget::setStyleSheet(QString const&)'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/benchmarks/gui/styles/qstylesheetstyle/main.cpp:129: undefined reference to `QWidget::setStyleSheet(QString const&)'
+  make[6]: *** [tst_bench_qstylesheetstyle] Error 1
+  make[5]: *** [sub-qstylesheetstyle-make_default] Error 2
+  make[4]: *** [sub-styles-make_default] Error 2
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/benchmarks/gui/text/qfontmetrics/main.cpp:84: undefined reference to `QApplication::font()'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/benchmarks/gui/text/qfontmetrics/main.cpp:74: undefined reference to `QApplication::font()'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/benchmarks/gui/text/qfontmetrics/main.cpp:103: undefined reference to `QApplication::font()'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/benchmarks/gui/text/qfontmetrics/main.cpp:93: undefined reference to `QApplication::font()'
+  make[6]: *** [tst_bench_QFontMetrics] Error 1
+  make[5]: *** [sub-qfontmetrics-make_default] Error 2
+  make[4]: *** [sub-text-make_default] Error 2
+  make[3]: *** [sub-gui-make_default] Error 2
+  make[3]: *** [sub-corelib-make_default] Error 2
+  make[2]: *** [sub-benchmarks-make_default] Error 2
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/auto/corelib/io/qfilesystementry/tst_qfilesystementry.cpp:414: undefined reference to `QFileSystemEntry::QFileSystemEntry(QString const&)'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/auto/corelib/io/qfilesystementry/tst_qfilesystementry.cpp:415: undefined reference to `QFileSystemEntry::isClean() const'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/auto/corelib/io/qfilesystementry/tst_qfilesystementry.cpp:353: undefined reference to `QFileSystemEntry::QFileSystemEntry(QString const&)'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/auto/corelib/io/qfilesystementry/tst_qfilesystementry.cpp:354: undefined reference to `QFileSystemEntry::completeBaseName() const'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/auto/corelib/io/qfilesystementry/tst_qfilesystementry.cpp:356: undefined reference to `QFileSystemEntry::QFileSystemEntry(QString const&)'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/auto/corelib/io/qfilesystementry/tst_qfilesystementry.cpp:358: undefined reference to `QFileSystemEntry::path() const'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/auto/corelib/io/qfilesystementry/tst_qfilesystementry.cpp:359: undefined reference to `QFileSystemEntry::completeBaseName() const'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/auto/corelib/io/qfilesystementry/tst_qfilesystementry.cpp:325: undefined reference to `QFileSystemEntry::QFileSystemEntry(QString const&)'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/auto/corelib/io/qfilesystementry/tst_qfilesystementry.cpp:326: undefined reference to `QFileSystemEntry::baseName() const'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/auto/corelib/io/qfilesystementry/tst_qfilesystementry.cpp:328: undefined reference to `QFileSystemEntry::QFileSystemEntry(QString const&)'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/auto/corelib/io/qfilesystementry/tst_qfilesystementry.cpp:330: undefined reference to `QFileSystemEntry::path() const'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/auto/corelib/io/qfilesystementry/tst_qfilesystementry.cpp:331: undefined reference to `QFileSystemEntry::baseName() const'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/auto/corelib/io/qfilesystementry/tst_qfilesystementry.cpp:297: undefined reference to `QFileSystemEntry::QFileSystemEntry(QString const&)'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/auto/corelib/io/qfilesystementry/tst_qfilesystementry.cpp:298: undefined reference to `QFileSystemEntry::completeSuffix() const'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/auto/corelib/io/qfilesystementry/tst_qfilesystementry.cpp:300: undefined reference to `QFileSystemEntry::QFileSystemEntry(QString const&)'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/auto/corelib/io/qfilesystementry/tst_qfilesystementry.cpp:302: undefined reference to `QFileSystemEntry::path() const'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/auto/corelib/io/qfilesystementry/tst_qfilesystementry.cpp:303: undefined reference to `QFileSystemEntry::completeSuffix() const'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/auto/corelib/io/qfilesystementry/tst_qfilesystementry.cpp:268: undefined reference to `QFileSystemEntry::QFileSystemEntry(QString const&)'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/auto/corelib/io/qfilesystementry/tst_qfilesystementry.cpp:269: undefined reference to `QFileSystemEntry::suffix() const'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/auto/corelib/io/qfilesystementry/tst_qfilesystementry.cpp:271: undefined reference to `QFileSystemEntry::QFileSystemEntry(QString const&)'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/auto/corelib/io/qfilesystementry/tst_qfilesystementry.cpp:273: undefined reference to `QFileSystemEntry::path() const'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/auto/corelib/io/qfilesystementry/tst_qfilesystementry.cpp:274: undefined reference to `QFileSystemEntry::suffix() const'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/auto/corelib/io/qfilesystementry/tst_qfilesystementry.cpp:215: undefined reference to `QFileSystemEntry::QFileSystemEntry(QString const&)'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/auto/corelib/io/qfilesystementry/tst_qfilesystementry.cpp:216: undefined reference to `QFileSystemEntry::filePath() const'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/auto/corelib/io/qfilesystementry/tst_qfilesystementry.cpp:217: undefined reference to `QFileSystemEntry::nativeFilePath() const'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/auto/corelib/io/qfilesystementry/tst_qfilesystementry.cpp:218: undefined reference to `QFileSystemEntry::fileName() const'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/auto/corelib/io/qfilesystementry/tst_qfilesystementry.cpp:219: undefined reference to `QFileSystemEntry::suffix() const'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/auto/corelib/io/qfilesystementry/tst_qfilesystementry.cpp:220: undefined reference to `QFileSystemEntry::completeSuffix() const'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/auto/corelib/io/qfilesystementry/tst_qfilesystementry.cpp:221: undefined reference to `QFileSystemEntry::isAbsolute() const'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/auto/corelib/io/qfilesystementry/tst_qfilesystementry.cpp:222: undefined reference to `QFileSystemEntry::isRelative() const'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/auto/corelib/io/qfilesystementry/tst_qfilesystementry.cpp:223: undefined reference to `QFileSystemEntry::baseName() const'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/auto/corelib/io/qfilesystementry/tst_qfilesystementry.cpp:224: undefined reference to `QFileSystemEntry::completeBaseName() const'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/auto/corelib/io/qfilesystementry/tst_qfilesystementry.cpp:226: undefined reference to `QFileSystemEntry::QFileSystemEntry(QByteArray const&, QFileSystemEntry::FromNativePath)'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/auto/corelib/io/qfilesystementry/tst_qfilesystementry.cpp:227: undefined reference to `QFileSystemEntry::suffix() const'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/auto/corelib/io/qfilesystementry/tst_qfilesystementry.cpp:228: undefined reference to `QFileSystemEntry::completeSuffix() const'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/auto/corelib/io/qfilesystementry/tst_qfilesystementry.cpp:229: undefined reference to `QFileSystemEntry::isAbsolute() const'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/auto/corelib/io/qfilesystementry/tst_qfilesystementry.cpp:230: undefined reference to `QFileSystemEntry::isRelative() const'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/auto/corelib/io/qfilesystementry/tst_qfilesystementry.cpp:231: undefined reference to `QFileSystemEntry::filePath() const'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/auto/corelib/io/qfilesystementry/tst_qfilesystementry.cpp:232: undefined reference to `QFileSystemEntry::nativeFilePath() const'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/auto/corelib/io/qfilesystementry/tst_qfilesystementry.cpp:233: undefined reference to `QFileSystemEntry::fileName() const'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/auto/corelib/io/qfilesystementry/tst_qfilesystementry.cpp:234: undefined reference to `QFileSystemEntry::baseName() const'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/auto/corelib/io/qfilesystementry/tst_qfilesystementry.cpp:235: undefined reference to `QFileSystemEntry::completeBaseName() const'
+  make[7]: *** [tst_qfilesystementry] Error 1
+  make[6]: *** [sub-qfilesystementry-make_default] Error 2
+  In file included from ../../../../../include/QtTest/qtestkeyboard.h:2,
+                   from ../../../../../include/QtTest/../../src/testlib/qtestevent.h:53,
+                   from ../../../../../include/QtTest/qtestevent.h:2,
+                   from ../../../../../include/QtTest/../../src/testlib/qtest_gui.h:56,
+                   from ../../../../../include/QtTest/qtest_gui.h:2,
+                   from ../../../../../include/QtTest/../../src/testlib/qtest.h:253,
+                   from ../../../../../include/QtTest/qtest.h:2,
+                   from ../../../../../include/QtTest/QtTest:8,
+                   from tst_qprinter.cpp:43:
+  ../../../../../include/QtTest/../../src/testlib/qtestspontaneevent.h:100: note: initialized from here
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/auto/corelib/tools/qfreelist/../../../../../include/QtCore/5.0.0/QtCore/private/../../../../../src/corelib/tools/qfreelist_p.h:164: undefined reference to `QFreeListDefaultConstants::Sizes'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/auto/corelib/tools/qfreelist/../../../../../include/QtCore/5.0.0/QtCore/private/../../../../../src/corelib/tools/qfreelist_p.h:164: undefined reference to `QFreeListDefaultConstants::Sizes'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/auto/corelib/tools/qfreelist/../../../../../include/QtCore/5.0.0/QtCore/private/../../../../../src/corelib/tools/qfreelist_p.h:166: undefined reference to `QFreeListDefaultConstants::Sizes'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/auto/corelib/tools/qfreelist/../../../../../include/QtCore/5.0.0/QtCore/private/../../../../../src/corelib/tools/qfreelist_p.h:164: undefined reference to `QFreeListDefaultConstants::Sizes'
+  /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/auto/corelib/tools/qfreelist/../../../../../include/QtCore/5.0.0/QtCore/private/../../../../../src/corelib/tools/qfreelist_p.h:166: undefined reference to `QFreeListDefaultConstants::Sizes'
+  make[7]: *** [tst_qfreelist] Error 1
+  make[6]: *** [sub-qfreelist-make_default] Error 2
+  make[5]: *** [sub-io-make_default] Error 2
+  make[5]: *** [sub-tools-make_default] Error 2
+  make[4]: *** [sub-corelib-make_default] Error 2
+  make[3]: *** [sub-corelib-pro-make_default] Error 2
+  make[2]: *** [sub-auto-make_default] Error 2
+  make[1]: *** [module-qtbase-tests-make_default-ordered] Error 2
+  make: *** [module-qtbase] Error 2
