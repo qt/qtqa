@@ -664,6 +664,10 @@ my %RE = (
     #
     pulse_property => qr{
         \A
+
+        # Windows-only starts with cmd-style `set '
+        (?: set \s )?
+
         PULSE_
 
         (?<property>
