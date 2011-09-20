@@ -204,6 +204,14 @@ my %RE = (
             \QRecipe terminated with an error: Agent status changed to 'invalid master' while recipe in progress\E
         )
 
+        |
+
+        (?:
+            \QRecipe terminated with an error: Unable to dispatch recipe:\E
+            [^\n]+
+            \Qcom.caucho.hessian.io.HessianProtocolException: expected boolean at end of file\E
+        )
+
         # add more as discovered
     }xms,
 

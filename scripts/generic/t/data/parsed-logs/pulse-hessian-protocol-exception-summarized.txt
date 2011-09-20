@@ -1,0 +1,8 @@
+[ '--summarize', "$DATADIR/raw-logs/pulse-hessian-protocol-exception.txt" ]
+An unexpected error occurred, most likely due to no fault in the tested
+code itself :(
+
+Please point some CI administrator towards this problem.  Meanwhile, it
+may be worthwhile to attempt the build again.
+
+  Recipe terminated with an error: Unable to dispatch recipe: Unable to dispatch recipe request '133469926' to slave 'bq-mac-mini-16': com.caucho.hessian.io.HessianProtocolException: expected boolean at end of file

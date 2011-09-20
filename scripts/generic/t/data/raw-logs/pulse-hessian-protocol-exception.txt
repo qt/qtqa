@@ -1,0 +1,19 @@
+9/20/11 9:44:09 PM EST: Checking recipe agent requirements...
+9/20/11 9:44:09 PM EST: Requirements satisfied by at least one online agent.
+9/20/11 9:44:09 PM EST: Recipe assigned to agent bq-mac-mini-16
+9/20/11 9:44:10 PM EST: Recipe terminated with an error: Unable to dispatch recipe: Unable to dispatch recipe request '133469926' to slave 'bq-mac-mini-16': com.caucho.hessian.io.HessianProtocolException: expected boolean at end of file
+9/20/11 9:44:10 PM EST: Recipe 'generic test' completed with status error
+9/20/11 9:44:10 PM EST: Collecting recipe artifacts...
+9/20/11 9:44:10 PM EST: Collection complete
+9/20/11 9:44:10 PM EST: Cleaning up agent work area...
+9/20/11 9:44:10 PM EST: Clean up complete.
+9/20/11 9:44:10 PM EST: Running post stage hooks...
+9/20/11 9:44:10 PM EST: Hook 'reboot agents' commenced
+============================[ command output below ]============================
+============================[ command output above ]============================
+9/20/11 10:14:10 PM EST: Hook 'reboot agents' completed
+9/20/11 10:14:10 PM EST: Hook 'stage first aid' commenced
+============================[ command output below ]============================
+============================[ command output above ]============================
+9/20/11 10:14:10 PM EST: Hook 'stage first aid' completed
+9/20/11 10:14:10 PM EST: Post stage hooks complete (2 hooks run).
