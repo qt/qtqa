@@ -417,7 +417,10 @@ my %RE = (
             \s*
 
             (?<error>
-                \Qfatal error C\E
+                # some errors include the word `fatal' and others don't,
+                # though they all seem to be equally fatal.
+                (?:fatal\s)?
+                \Qerror C\E
                 \d+
                 .+
             )

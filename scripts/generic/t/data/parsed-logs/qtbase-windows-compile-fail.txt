@@ -1,0 +1,4 @@
+[ '--summarize', "$DATADIR/raw-logs/qtbase-windows-compile-fail.txt" ]
+Compilation failed :(
+
+  c:\test\recipes\133469961\base\qt\qtbase\src\gui\text\qtextimagehandler_p.h(76) : error C2487: 'externalLoader' : member of dll interface class may not be declared with dll interface
