@@ -549,7 +549,13 @@ my %RE = (
             \A
             \s*
             (?<error>
-                \QUndefined symbols:\E
+                \QUndefined symbols\E
+
+                # mac-only: `for architecture (foo)' might appear when linking
+                # a bundle with multiple architectures
+                (?: \Q for architecture \E [^:]+ )?
+
+                :
             )
             \s*
             \z
@@ -583,6 +589,14 @@ my %RE = (
 
         (?:
             in [ ] [^ ]+\.o\b   # referring to a particular foo.o file
+        )
+
+        |
+
+        (?:
+            # if there are really a lot of undefined symbols, ld may
+            # print a line with only `...' to indicate truncation
+            \A \s* \.{3} \s* \z
         )
 
         # add others as discovered

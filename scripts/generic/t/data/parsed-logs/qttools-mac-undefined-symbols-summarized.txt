@@ -1,0 +1,988 @@
+[ '--summarize', "$DATADIR/raw-logs/qttools-mac-undefined-symbols.txt" ]
+qttools failed to compile for macx-g++ developer-build cocoa OSX 10.7
+x64 :(
+
+  Undefined symbols for architecture x86_64:
+    "QWizard::QWizard(QWidget*, QFlags<Qt::WindowType>)", referenced from:
+        ConversionWizard::ConversionWizard()in conversionwizard.o
+        ConversionWizard::ConversionWizard()in conversionwizard.o
+    "QIcon::QIcon(QString const&)", referenced from:
+        ConversionWizard::ConversionWizard()in conversionwizard.o
+        ConversionWizard::ConversionWizard()in conversionwizard.o
+    "QWidget::setWindowIcon(QIcon const&)", referenced from:
+        ConversionWizard::ConversionWizard()in conversionwizard.o
+        ConversionWizard::ConversionWizard()in conversionwizard.o
+    "QIcon::~QIcon()", referenced from:
+        ConversionWizard::ConversionWizard()in conversionwizard.o
+        ConversionWizard::ConversionWizard()in conversionwizard.o
+    "QWidget::setWindowTitle(QString const&)", referenced from:
+        ConversionWizard::ConversionWizard()in conversionwizard.o
+        ConversionWizard::ConversionWizard()in conversionwizard.o
+        Ui_InputPage::retranslateUi(QWidget*)       in inputpage.o
+        Ui_GeneralPage::retranslateUi(QWidget*)       in generalpage.o
+        Ui_FilterPage::retranslateUi(QWidget*)       in filterpage.o
+        Ui_IdentifierPage::retranslateUi(QWidget*)       in identifierpage.o
+        Ui_PathPage::retranslateUi(QWidget*)       in pathpage.o
+        ...
+    "QWizard::setPixmap(QWizard::WizardPixmap, QPixmap const&)", referenced from:
+        ConversionWizard::ConversionWizard()in conversionwizard.o
+        ConversionWizard::ConversionWizard()in conversionwizard.o
+    "QWizard::setOptions(QFlags<QWizard::WizardOption>)", referenced from:
+        ConversionWizard::ConversionWizard()in conversionwizard.o
+        ConversionWizard::ConversionWizard()in conversionwizard.o
+    "QWizard::setPage(int, QWizardPage*)", referenced from:
+        ConversionWizard::ConversionWizard()in conversionwizard.o
+        ConversionWizard::ConversionWizard()in conversionwizard.o
+    "QWidget::setMaximumHeight(int)", referenced from:
+        ConversionWizard::ConversionWizard()in conversionwizard.o
+        ConversionWizard::showHelp(bool)  in conversionwizard.o
+        ConversionWizard::ConversionWizard()in conversionwizard.o
+    "QWizard::button(QWizard::WizardButton) const", referenced from:
+        ConversionWizard::ConversionWizard()in conversionwizard.o
+        ConversionWizard::eventFilter(QObject*, QEvent*)      in conversionwizard.o
+        ConversionWizard::showHelp(bool)  in conversionwizard.o
+        ConversionWizard::ConversionWizard()in conversionwizard.o
+    "QAbstractButton::setCheckable(bool)", referenced from:
+        ConversionWizard::ConversionWizard()in conversionwizard.o
+        ConversionWizard::ConversionWizard()in conversionwizard.o
+    "QWizard::~QWizard()", referenced from:
+        ConversionWizard::ConversionWizard()in conversionwizard.o
+        ConversionWizard::ConversionWizard()in conversionwizard.o
+        ConversionWizard::~ConversionWizard()in main.o
+        ConversionWizard::~ConversionWizard()in moc_conversionwizard.o
+        ConversionWizard::~ConversionWizard()in moc_conversionwizard.o
+    "QWizard::field(QString const&) const", referenced from:
+        ConversionWizard::convert()      in conversionwizard.o
+        ConversionWizard::pageChanged(int)    in conversionwizard.o
+        ConversionWizard::initializePage(int)    in conversionwizard.o
+    "QWidget::testAttribute_helper(Qt::WidgetAttribute) const", referenced from:
+        QWidget::testAttribute(Qt::WidgetAttribute) const   in conversionwizard.o
+    "QWidget::mapFromParent(QPoint const&) const", referenced from:
+        ConversionWizard::eventFilter(QObject*, QEvent*)      in conversionwizard.o
+    "QAbstractButton::setChecked(bool)", referenced from:
+        ConversionWizard::eventFilter(QObject*, QEvent*)      in conversionwizard.o
+        Ui_IdentifierPage::setupUi(QWidget*)      in identifierpage.o
+    "QDialog::eventFilter(QObject*, QEvent*)", referenced from:
+        ConversionWizard::eventFilter(QObject*, QEvent*)      in conversionwizard.o
+    "QWidget::move(QPoint const&)", referenced from:
+        QWidget::move(int, int)in conversionwizard.o
+    "QWidget::setMaximumWidth(int)", referenced from:
+        ConversionWizard::showHelp(bool)  in conversionwizard.o
+    "QWidget::setMinimumHeight(int)", referenced from:
+        ConversionWizard::showHelp(bool)  in conversionwizard.o
+    "QWizard::currentPage() const", referenced from:
+        ConversionWizard::showHelp(bool)  in conversionwizard.o
+    "QWidget::pos() const", referenced from:
+        ConversionWizard::showHelp(bool)  in conversionwizard.o
+    "QWizard::setField(QString const&, QVariant const&)", referenced from:
+        ConversionWizard::initializePage(int)    in conversionwizard.o
+        ConversionWizard::setAdpFileName(QString const&)  in conversionwizard.o
+    "QWizardPage::QWizardPage(QWidget*)", referenced from:
+        InputPage::InputPage(AdpReader*, QWidget*)in inputpage.o
+        InputPage::InputPage(AdpReader*, QWidget*)in inputpage.o
+        GeneralPage::GeneralPage(QWidget*)in generalpage.o
+        GeneralPage::GeneralPage(QWidget*)in generalpage.o
+        FilterPage::FilterPage(QWidget*)in filterpage.o
+        FilterPage::FilterPage(QWidget*)in filterpage.o
+        IdentifierPage::IdentifierPage(QWidget*)in identifierpage.o
+        ...
+    "QWizardPage::setTitle(QString const&)", referenced from:
+        InputPage::InputPage(AdpReader*, QWidget*)in inputpage.o
+        InputPage::InputPage(AdpReader*, QWidget*)in inputpage.o
+        GeneralPage::GeneralPage(QWidget*)in generalpage.o
+        GeneralPage::GeneralPage(QWidget*)in generalpage.o
+        FilterPage::FilterPage(QWidget*)in filterpage.o
+        FilterPage::FilterPage(QWidget*)in filterpage.o
+        IdentifierPage::IdentifierPage(QWidget*)in identifierpage.o
+        ...
+    "QWizardPage::setSubTitle(QString const&)", referenced from:
+        InputPage::InputPage(AdpReader*, QWidget*)in inputpage.o
+        InputPage::InputPage(AdpReader*, QWidget*)in inputpage.o
+        GeneralPage::GeneralPage(QWidget*)in generalpage.o
+        GeneralPage::GeneralPage(QWidget*)in generalpage.o
+        FilterPage::FilterPage(QWidget*)in filterpage.o
+        FilterPage::FilterPage(QWidget*)in filterpage.o
+        IdentifierPage::IdentifierPage(QWidget*)in identifierpage.o
+        ...
+    "QWizardPage::registerField(QString const&, QWidget*, char const*, char const*)", referenced from:
+        InputPage::InputPage(AdpReader*, QWidget*)in inputpage.o
+        InputPage::InputPage(AdpReader*, QWidget*)in inputpage.o
+        GeneralPage::GeneralPage(QWidget*)in generalpage.o
+        GeneralPage::GeneralPage(QWidget*)in generalpage.o
+        IdentifierPage::IdentifierPage(QWidget*)in identifierpage.o
+        IdentifierPage::IdentifierPage(QWidget*)in identifierpage.o
+        PathPage::PathPage(QWidget*)in pathpage.o
+        ...
+    "vtable for QLayoutItem", referenced from:
+        QLayoutItem::QLayoutItem(QFlags<Qt::AlignmentFlag>)in inputpage.o
+        QLayoutItem::QLayoutItem(QFlags<Qt::AlignmentFlag>)in generalpage.o
+        QLayoutItem::QLayoutItem(QFlags<Qt::AlignmentFlag>)in filterpage.o
+        QLayoutItem::QLayoutItem(QFlags<Qt::AlignmentFlag>)in identifierpage.o
+        QLayoutItem::QLayoutItem(QFlags<Qt::AlignmentFlag>)in pathpage.o
+        QLayoutItem::QLayoutItem(QFlags<Qt::AlignmentFlag>)in filespage.o
+        QLayoutItem::QLayoutItem(QFlags<Qt::AlignmentFlag>)in outputpage.o
+        ...
+    "vtable for QSpacerItem", referenced from:
+        QSpacerItem::QSpacerItem(int, int, QSizePolicy::Policy, QSizePolicy::Policy)in inputpage.o
+        QSpacerItem::QSpacerItem(int, int, QSizePolicy::Policy, QSizePolicy::Policy)in generalpage.o
+        QSpacerItem::QSpacerItem(int, int, QSizePolicy::Policy, QSizePolicy::Policy)in filterpage.o
+        QSpacerItem::QSpacerItem(int, int, QSizePolicy::Policy, QSizePolicy::Policy)in identifierpage.o
+        QSpacerItem::QSpacerItem(int, int, QSizePolicy::Policy, QSizePolicy::Policy)in pathpage.o
+        QSpacerItem::QSpacerItem(int, int, QSizePolicy::Policy, QSizePolicy::Policy)in filespage.o
+        QSpacerItem::QSpacerItem(int, int, QSizePolicy::Policy, QSizePolicy::Policy)in outputpage.o
+        ...
+    "QLineEdit::text() const", referenced from:
+        InputPage::validatePage()      in inputpage.o
+        GeneralPage::validatePage()       in generalpage.o
+        GeneralPage::isComplete() const  in generalpage.o
+        FilterPage::validatePage()       in filterpage.o
+        PathPage::filters() constin pathpage.o
+        OutputPage::validatePage()       in outputpage.o
+        OutputPage::isComplete() const  in outputpage.o
+        ...
+    "QMessageBox::critical(QWidget*, QString const&, QString const&, QFlags<QMessageBox::StandardButton>, QMessageBox::StandardButton)", referenced from:
+        InputPage::validatePage()      in inputpage.o
+        GeneralPage::validatePage()       in generalpage.o
+        FilterPage::validatePage()       in filterpage.o
+    "QFileDialog::getOpenFileName(QWidget*, QString const&, QString const&, QString const&, QString*, QFlags<QFileDialog::Option>)", referenced from:
+        InputPage::getFileName()      in inputpage.o
+    "QLineEdit::setText(QString const&)", referenced from:
+        InputPage::getFileName()      in inputpage.o
+        GeneralPage::GeneralPage(QWidget*)in generalpage.o
+        GeneralPage::GeneralPage(QWidget*)in generalpage.o
+        PathPage::PathPage(QWidget*)in pathpage.o
+        PathPage::PathPage(QWidget*)in pathpage.o
+    "QWidget::resize(QSize const&)", referenced from:
+        QWidget::resize(int, int)in inputpage.o
+        QWidget::resize(int, int)in generalpage.o
+        QWidget::resize(int, int)in filterpage.o
+        QWidget::resize(int, int)in identifierpage.o
+        QWidget::resize(int, int)in pathpage.o
+        QWidget::resize(int, int)in filespage.o
+        QWidget::resize(int, int)in outputpage.o
+        ...
+    "QLabel::setText(QString const&)", referenced from:
+        Ui_InputPage::retranslateUi(QWidget*)       in inputpage.o
+        Ui_GeneralPage::retranslateUi(QWidget*)       in generalpage.o
+        Ui_FilterPage::retranslateUi(QWidget*)       in filterpage.o
+        Ui_PathPage::retranslateUi(QWidget*)       in pathpage.o
+        FilesPage::FilesPage(QWidget*)in filespage.o
+        FilesPage::FilesPage(QWidget*)in filespage.o
+        Ui_FilesPage::retranslateUi(QWidget*)       in filespage.o
+        ...
+    "QAbstractButton::setText(QString const&)", referenced from:
+        Ui_InputPage::retranslateUi(QWidget*)       in inputpage.o
+        Ui_FilterPage::retranslateUi(QWidget*)       in filterpage.o
+        Ui_IdentifierPage::retranslateUi(QWidget*)       in identifierpage.o
+        Ui_PathPage::retranslateUi(QWidget*)       in pathpage.o
+        Ui_FilesPage::retranslateUi(QWidget*)       in filespage.o
+    "QGridLayout::QGridLayout(QWidget*)", referenced from:
+        Ui_InputPage::setupUi(QWidget*)      in inputpage.o
+        Ui_GeneralPage::setupUi(QWidget*)      in generalpage.o
+        Ui_FilterPage::setupUi(QWidget*)      in filterpage.o
+        Ui_IdentifierPage::setupUi(QWidget*)      in identifierpage.o
+        Ui_PathPage::setupUi(QWidget*)      in pathpage.o
+        Ui_FilesPage::setupUi(QWidget*)      in filespage.o
+        Ui_OutputPage::setupUi(QWidget*)      in outputpage.o
+        ...
+    "QGridLayout::addItem(QLayoutItem*, int, int, int, int, QFlags<Qt::AlignmentFlag>)", referenced from:
+        Ui_InputPage::setupUi(QWidget*)      in inputpage.o
+        Ui_GeneralPage::setupUi(QWidget*)      in generalpage.o
+        Ui_FilterPage::setupUi(QWidget*)      in filterpage.o
+        Ui_IdentifierPage::setupUi(QWidget*)      in identifierpage.o
+        Ui_PathPage::setupUi(QWidget*)      in pathpage.o
+        Ui_FilesPage::setupUi(QWidget*)      in filespage.o
+        Ui_OutputPage::setupUi(QWidget*)      in outputpage.o
+        ...
+    "QLabel::QLabel(QWidget*, QFlags<Qt::WindowType>)", referenced from:
+        Ui_InputPage::setupUi(QWidget*)      in inputpage.o
+        Ui_GeneralPage::setupUi(QWidget*)      in generalpage.o
+        Ui_FilterPage::setupUi(QWidget*)      in filterpage.o
+        Ui_PathPage::setupUi(QWidget*)      in pathpage.o
+        Ui_FilesPage::setupUi(QWidget*)      in filespage.o
+        Ui_OutputPage::setupUi(QWidget*)      in outputpage.o
+    "QWidget::sizePolicy() const", referenced from:
+        Ui_InputPage::setupUi(QWidget*)      in inputpage.o
+        Ui_PathPage::setupUi(QWidget*)      in pathpage.o
+        Ui_FilesPage::setupUi(QWidget*)      in filespage.o
+        Ui_OutputPage::setupUi(QWidget*)      in outputpage.o
+    "QWidget::setSizePolicy(QSizePolicy)", referenced from:
+        Ui_InputPage::setupUi(QWidget*)      in inputpage.o
+        Ui_PathPage::setupUi(QWidget*)      in pathpage.o
+        Ui_FilesPage::setupUi(QWidget*)      in filespage.o
+        Ui_OutputPage::setupUi(QWidget*)      in outputpage.o
+    "QGridLayout::addWidget(QWidget*, int, int, int, int, QFlags<Qt::AlignmentFlag>)", referenced from:
+        Ui_InputPage::setupUi(QWidget*)      in inputpage.o
+        Ui_GeneralPage::setupUi(QWidget*)      in generalpage.o
+        Ui_FilterPage::setupUi(QWidget*)      in filterpage.o
+        Ui_IdentifierPage::setupUi(QWidget*)      in identifierpage.o
+        Ui_PathPage::setupUi(QWidget*)      in pathpage.o
+        Ui_FilesPage::setupUi(QWidget*)      in filespage.o
+        Ui_OutputPage::setupUi(QWidget*)      in outputpage.o
+        ...
+    "QHBoxLayout::QHBoxLayout()", referenced from:
+        Ui_InputPage::setupUi(QWidget*)      in inputpage.o
+    "QBoxLayout::setSpacing(int)", referenced from:
+        Ui_InputPage::setupUi(QWidget*)      in inputpage.o
+    "QLineEdit::QLineEdit(QWidget*)", referenced from:
+        Ui_InputPage::setupUi(QWidget*)      in inputpage.o
+        Ui_GeneralPage::setupUi(QWidget*)      in generalpage.o
+        Ui_FilterPage::setupUi(QWidget*)      in filterpage.o
+        Ui_IdentifierPage::setupUi(QWidget*)      in identifierpage.o
+        Ui_PathPage::setupUi(QWidget*)      in pathpage.o
+        Ui_OutputPage::setupUi(QWidget*)      in outputpage.o
+    "QBoxLayout::addWidget(QWidget*, int, QFlags<Qt::AlignmentFlag>)", referenced from:
+        Ui_InputPage::setupUi(QWidget*)      in inputpage.o
+        FinishPage::FinishPage(QWidget*)in finishpage.o
+        FinishPage::FinishPage(QWidget*)in finishpage.o
+        HelpWindow::HelpWindow(QWidget*)in helpwindow.o
+        HelpWindow::HelpWindow(QWidget*)in helpwindow.o
+    "QToolButton::QToolButton(QWidget*)", referenced from:
+        Ui_InputPage::setupUi(QWidget*)      in inputpage.o
+    "QGridLayout::addLayout(QLayout*, int, int, int, int, QFlags<Qt::AlignmentFlag>)", referenced from:
+        Ui_InputPage::setupUi(QWidget*)      in inputpage.o
+    "vtable for QWizardPage", referenced from:
+        QWizardPage::~QWizardPage()in inputpage.o
+        QWizardPage::~QWizardPage()in generalpage.o
+        QWizardPage::~QWizardPage()in filterpage.o
+        QWizardPage::~QWizardPage()in identifierpage.o
+        QWizardPage::~QWizardPage()in pathpage.o
+        QWizardPage::~QWizardPage()in filespage.o
+        QWizardPage::~QWizardPage()in outputpage.o
+        ...
+    "QWidget::~QWidget()", referenced from:
+        QWizardPage::~QWizardPage()in inputpage.o
+        QWizardPage::~QWizardPage()in generalpage.o
+        QWizardPage::~QWizardPage()in filterpage.o
+        QWizardPage::~QWizardPage()in identifierpage.o
+        QWizardPage::~QWizardPage()in pathpage.o
+        QWizardPage::~QWizardPage()in filespage.o
+        QWizardPage::~QWizardPage()in outputpage.o
+        ...
+    "QTreeWidget::headerItem() const", referenced from:
+        FilterPage::FilterPage(QWidget*)in filterpage.o
+        FilterPage::FilterPage(QWidget*)in filterpage.o
+        Ui_FilterPage::retranslateUi(QWidget*)       in filterpage.o
+    "QTreeView::setRootIsDecorated(bool)", referenced from:
+        FilterPage::FilterPage(QWidget*)in filterpage.o
+        FilterPage::FilterPage(QWidget*)in filterpage.o
+    "QWidget::setDisabled(bool)", referenced from:
+        FilterPage::FilterPage(QWidget*)in filterpage.o
+        FilterPage::removeFilter()       in filterpage.o
+        FilterPage::addFilter()      in filterpage.o
+        FilterPage::FilterPage(QWidget*)in filterpage.o
+    "QAbstractItemView::currentIndex() const", referenced from:
+        FilterPage::removeFilter()       in filterpage.o
+    "QTreeWidget::takeTopLevelItem(int)", referenced from:
+        FilterPage::removeFilter()       in filterpage.o
+    "QTreeWidget::topLevelItemCount() const", referenced from:
+        FilterPage::removeFilter()       in filterpage.o
+        FilterPage::validatePage()       in filterpage.o
+    "QTreeWidgetItem::QTreeWidgetItem(QTreeWidget*, int)", referenced from:
+        FilterPage::addFilter()      in filterpage.o
+    "QTreeWidgetItem::setFlags(QFlags<Qt::ItemFlag>)", referenced from:
+        FilterPage::addFilter()      in filterpage.o
+    "QTreeWidget::editItem(QTreeWidgetItem*, int)", referenced from:
+        FilterPage::addFilter()      in filterpage.o
+    "QTreeWidget::topLevelItem(int) const", referenced from:
+        FilterPage::validatePage()       in filterpage.o
+    "QGroupBox::setTitle(QString const&)", referenced from:
+        Ui_FilterPage::retranslateUi(QWidget*)       in filterpage.o
+    "QGroupBox::QGroupBox(QWidget*)", referenced from:
+        Ui_FilterPage::setupUi(QWidget*)      in filterpage.o
+    "QTreeWidget::QTreeWidget(QWidget*)", referenced from:
+        Ui_FilterPage::setupUi(QWidget*)      in filterpage.o
+    "QTreeWidget::setColumnCount(int)", referenced from:
+        Ui_FilterPage::setupUi(QWidget*)      in filterpage.o
+    "QPushButton::QPushButton(QWidget*)", referenced from:
+        Ui_FilterPage::setupUi(QWidget*)      in filterpage.o
+        Ui_PathPage::setupUi(QWidget*)      in pathpage.o
+        Ui_FilesPage::setupUi(QWidget*)      in filespage.o
+    "QWidget::setEnabled(bool)", referenced from:
+        IdentifierPage::setupButtons(bool)   in identifierpage.o
+        Ui_IdentifierPage::setupUi(QWidget*)      in identifierpage.o
+        PathPage::removePath()      in pathpage.o
+        OutputPage::setCollectionComponentEnabled(bool)   in outputpage.o
+    "QAbstractButton::isChecked() const", referenced from:
+        IdentifierPage::setupButtons(bool)   in identifierpage.o
+    "QCheckBox::QCheckBox(QWidget*)", referenced from:
+        Ui_IdentifierPage::setupUi(QWidget*)      in identifierpage.o
+    "QRadioButton::QRadioButton(QWidget*)", referenced from:
+        Ui_IdentifierPage::setupUi(QWidget*)      in identifierpage.o
+    "QListWidget::currentRow() const", referenced from:
+        PathPage::removePath()      in pathpage.o
+        FilesPage::removeFile()      in filespage.o
+    "QListWidget::takeItem(int)", referenced from:
+        PathPage::removePath()      in pathpage.o
+    "QListWidget::count() const", referenced from:
+        PathPage::removePath()      in pathpage.o
+        PathPage::paths() constin pathpage.o
+        QListWidget::addItem(QString const&) in pathpage.o
+        FilesPage::removeFile()      in filespage.o
+        QListWidget::addItems(QStringList const&)  in filespage.o
+    "QListWidget::insertItem(int, QString const&)", referenced from:
+        QListWidget::addItem(QString const&) in pathpage.o
+    "QFileDialog::getExistingDirectory(QWidget*, QString const&, QString const&, QFlags<QFileDialog::Option>)", referenced from:
+        PathPage::addPath()     in pathpage.o
+    "QListWidget::item(int) const", referenced from:
+        PathPage::paths() constin pathpage.o
+    "QListWidget::setCurrentRow(int)", referenced from:
+        PathPage::setPath(QString const&)in pathpage.o
+        FilesPage::removeFile()      in filespage.o
+    "QListWidget::QListWidget(QWidget*)", referenced from:
+        Ui_PathPage::setupUi(QWidget*)      in pathpage.o
+        Ui_FilesPage::setupUi(QWidget*)      in filespage.o
+    "QAbstractItemView::setSelectionMode(QAbstractItemView::SelectionMode)", referenced from:
+        FilesPage::FilesPage(QWidget*)in filespage.o
+        FilesPage::FilesPage(QWidget*)in filespage.o
+    "QListWidget::clear()", referenced from:
+        FilesPage::removeAllFiles()      in filespage.o
+        FilesPage::setFilesToRemove(QStringList const&)  in filespage.o
+    "QListWidget::selectedItems() const", referenced from:
+        FilesPage::removeFile()      in filespage.o
+    "QListWidget::insertItems(int, QStringList const&)", referenced from:
+        QListWidget::addItems(QStringList const&)  in filespage.o
+    "QLabel::setWordWrap(bool)", referenced from:
+        Ui_FilesPage::setupUi(QWidget*)      in filespage.o
+    "QWizardPage::setButtonText(QWizard::WizardButton, QString const&)", referenced from:
+        OutputPage::OutputPage(QWidget*)in outputpage.o
+        OutputPage::OutputPage(QWidget*)in outputpage.o
+    "QMessageBox::warning(QWidget*, QString const&, QString const&, QString const&, QString const&, QString const&, int, int)", referenced from:
+        OutputPage::checkFile(QString const&, QString const&)in outputpage.o
+    "QWizardPage::setFinalPage(bool)", referenced from:
+        FinishPage::FinishPage(QWidget*)in finishpage.o
+        FinishPage::FinishPage(QWidget*)in finishpage.o
+    "QVBoxLayout::QVBoxLayout(QWidget*)", referenced from:
+        FinishPage::FinishPage(QWidget*)in finishpage.o
+        FinishPage::FinishPage(QWidget*)in finishpage.o
+        HelpWindow::HelpWindow(QWidget*)in helpwindow.o
+        HelpWindow::HelpWindow(QWidget*)in helpwindow.o
+    "QTextEdit::QTextEdit(QWidget*)", referenced from:
+        FinishPage::FinishPage(QWidget*)in finishpage.o
+        FinishPage::FinishPage(QWidget*)in finishpage.o
+        HelpWindow::HelpWindow(QWidget*)in helpwindow.o
+        HelpWindow::HelpWindow(QWidget*)in helpwindow.o
+    "QTextEdit::append(QString const&)", referenced from:
+        FinishPage::appendMessage(QString const&)  in finishpage.o
+    "QWidget::QWidget(QWidget*, QFlags<Qt::WindowType>)", referenced from:
+        HelpWindow::HelpWindow(QWidget*)in helpwindow.o
+        HelpWindow::HelpWindow(QWidget*)in helpwindow.o
+    "QWidget::setAutoFillBackground(bool)", referenced from:
+        HelpWindow::HelpWindow(QWidget*)in helpwindow.o
+        HelpWindow::HelpWindow(QWidget*)in helpwindow.o
+    "QLayout::setMargin(int)", referenced from:
+        HelpWindow::HelpWindow(QWidget*)in helpwindow.o
+        HelpWindow::HelpWindow(QWidget*)in helpwindow.o
+    "QFrame::QFrame(QWidget*, QFlags<Qt::WindowType>)", referenced from:
+        HelpWindow::HelpWindow(QWidget*)in helpwindow.o
+        HelpWindow::HelpWindow(QWidget*)in helpwindow.o
+    "QWidget::palette() const", referenced from:
+        HelpWindow::HelpWindow(QWidget*)in helpwindow.o
+        HelpWindow::HelpWindow(QWidget*)in helpwindow.o
+    "QWidget::setPalette(QPalette const&)", referenced from:
+        HelpWindow::HelpWindow(QWidget*)in helpwindow.o
+        HelpWindow::HelpWindow(QWidget*)in helpwindow.o
+    "QFrame::setFrameStyle(int)", referenced from:
+        HelpWindow::HelpWindow(QWidget*)in helpwindow.o
+        HelpWindow::HelpWindow(QWidget*)in helpwindow.o
+    "QLabel::QLabel(QString const&, QWidget*, QFlags<Qt::WindowType>)", referenced from:
+        HelpWindow::HelpWindow(QWidget*)in helpwindow.o
+        HelpWindow::HelpWindow(QWidget*)in helpwindow.o
+    "QTextEdit::setReadOnly(bool)", referenced from:
+        HelpWindow::HelpWindow(QWidget*)in helpwindow.o
+        HelpWindow::HelpWindow(QWidget*)in helpwindow.o
+    "QTextEdit::setText(QString const&)", referenced from:
+        HelpWindow::setHelp(QString const&) in helpwindow.o
+    "QApplication::QApplication(int&, char**, int)", referenced from:
+        _main in main.o
+    "QApplication::exec()", referenced from:
+        _main in main.o
+    "QApplication::~QApplication()", referenced from:
+        _main in main.o
+    "QWizard::qt_metacast(char const*)", referenced from:
+        ConversionWizard::qt_metacast(char const*)in moc_conversionwizard.o
+    "QWizard::qt_metacall(QMetaObject::Call, int, void**)", referenced from:
+        ConversionWizard::qt_metacall(QMetaObject::Call, int, void**)in moc_conversionwizard.o
+    "QWizard::event(QEvent*)", referenced from:
+        vtable for ConversionWizardin moc_conversionwizard.o
+    "QWidget::devType() const", referenced from:
+        vtable for ConversionWizardin moc_conversionwizard.o
+        vtable for InputPagein moc_inputpage.o
+        vtable for GeneralPagein moc_generalpage.o
+        vtable for FilterPagein moc_filterpage.o
+        vtable for IdentifierPagein moc_identifierpage.o
+        vtable for PathPagein moc_pathpage.o
+        vtable for FilesPagein moc_filespage.o
+        ...
+    "QWizard::setVisible(bool)", referenced from:
+        vtable for ConversionWizardin moc_conversionwizard.o
+    "QWizard::sizeHint() const", referenced from:
+        vtable for ConversionWizardin moc_conversionwizard.o
+    "QDialog::minimumSizeHint() const", referenced from:
+        vtable for ConversionWizardin moc_conversionwizard.o
+    "QWidget::heightForWidth(int) const", referenced from:
+        vtable for ConversionWizardin moc_conversionwizard.o
+        vtable for InputPagein moc_inputpage.o
+        vtable for GeneralPagein moc_generalpage.o
+        vtable for FilterPagein moc_filterpage.o
+        vtable for IdentifierPagein moc_identifierpage.o
+        vtable for PathPagein moc_pathpage.o
+        vtable for FilesPagein moc_filespage.o
+        ...
+    "QWidget::paintEngine() const", referenced from:
+        vtable for ConversionWizardin moc_conversionwizard.o
+        vtable for InputPagein moc_inputpage.o
+        vtable for GeneralPagein moc_generalpage.o
+        vtable for FilterPagein moc_filterpage.o
+        vtable for IdentifierPagein moc_identifierpage.o
+        vtable for PathPagein moc_pathpage.o
+        vtable for FilesPagein moc_filespage.o
+        ...
+    "QWidget::mousePressEvent(QMouseEvent*)", referenced from:
+        vtable for ConversionWizardin moc_conversionwizard.o
+        vtable for InputPagein moc_inputpage.o
+        vtable for GeneralPagein moc_generalpage.o
+        vtable for FilterPagein moc_filterpage.o
+        vtable for IdentifierPagein moc_identifierpage.o
+        vtable for PathPagein moc_pathpage.o
+        vtable for FilesPagein moc_filespage.o
+        ...
+    "QWidget::mouseReleaseEvent(QMouseEvent*)", referenced from:
+        vtable for ConversionWizardin moc_conversionwizard.o
+        vtable for InputPagein moc_inputpage.o
+        vtable for GeneralPagein moc_generalpage.o
+        vtable for FilterPagein moc_filterpage.o
+        vtable for IdentifierPagein moc_identifierpage.o
+        vtable for PathPagein moc_pathpage.o
+        vtable for FilesPagein moc_filespage.o
+        ...
+    "QWidget::mouseDoubleClickEvent(QMouseEvent*)", referenced from:
+        vtable for ConversionWizardin moc_conversionwizard.o
+        vtable for InputPagein moc_inputpage.o
+        vtable for GeneralPagein moc_generalpage.o
+        vtable for FilterPagein moc_filterpage.o
+        vtable for IdentifierPagein moc_identifierpage.o
+        vtable for PathPagein moc_pathpage.o
+        vtable for FilesPagein moc_filespage.o
+        ...
+    "QWidget::mouseMoveEvent(QMouseEvent*)", referenced from:
+        vtable for ConversionWizardin moc_conversionwizard.o
+        vtable for InputPagein moc_inputpage.o
+        vtable for GeneralPagein moc_generalpage.o
+        vtable for FilterPagein moc_filterpage.o
+        vtable for IdentifierPagein moc_identifierpage.o
+        vtable for PathPagein moc_pathpage.o
+        vtable for FilesPagein moc_filespage.o
+        ...
+    "QWidget::wheelEvent(QWheelEvent*)", referenced from:
+        vtable for ConversionWizardin moc_conversionwizard.o
+        vtable for InputPagein moc_inputpage.o
+        vtable for GeneralPagein moc_generalpage.o
+        vtable for FilterPagein moc_filterpage.o
+        vtable for IdentifierPagein moc_identifierpage.o
+        vtable for PathPagein moc_pathpage.o
+        vtable for FilesPagein moc_filespage.o
+        ...
+    "QDialog::keyPressEvent(QKeyEvent*)", referenced from:
+        vtable for ConversionWizardin moc_conversionwizard.o
+    "QWidget::keyReleaseEvent(QKeyEvent*)", referenced from:
+        vtable for ConversionWizardin moc_conversionwizard.o
+        vtable for InputPagein moc_inputpage.o
+        vtable for GeneralPagein moc_generalpage.o
+        vtable for FilterPagein moc_filterpage.o
+        vtable for IdentifierPagein moc_identifierpage.o
+        vtable for PathPagein moc_pathpage.o
+        vtable for FilesPagein moc_filespage.o
+        ...
+    "QWidget::focusInEvent(QFocusEvent*)", referenced from:
+        vtable for ConversionWizardin moc_conversionwizard.o
+        vtable for InputPagein moc_inputpage.o
+        vtable for GeneralPagein moc_generalpage.o
+        vtable for FilterPagein moc_filterpage.o
+        vtable for IdentifierPagein moc_identifierpage.o
+        vtable for PathPagein moc_pathpage.o
+        vtable for FilesPagein moc_filespage.o
+        ...
+    "QWidget::focusOutEvent(QFocusEvent*)", referenced from:
+        vtable for ConversionWizardin moc_conversionwizard.o
+        vtable for InputPagein moc_inputpage.o
+        vtable for GeneralPagein moc_generalpage.o
+        vtable for FilterPagein moc_filterpage.o
+        vtable for IdentifierPagein moc_identifierpage.o
+        vtable for PathPagein moc_pathpage.o
+        vtable for FilesPagein moc_filespage.o
+        ...
+    "QWidget::enterEvent(QEvent*)", referenced from:
+        vtable for ConversionWizardin moc_conversionwizard.o
+        vtable for InputPagein moc_inputpage.o
+        vtable for GeneralPagein moc_generalpage.o
+        vtable for FilterPagein moc_filterpage.o
+        vtable for IdentifierPagein moc_identifierpage.o
+        vtable for PathPagein moc_pathpage.o
+        vtable for FilesPagein moc_filespage.o
+        ...
+    "QWidget::leaveEvent(QEvent*)", referenced from:
+        vtable for ConversionWizardin moc_conversionwizard.o
+        vtable for InputPagein moc_inputpage.o
+        vtable for GeneralPagein moc_generalpage.o
+        vtable for FilterPagein moc_filterpage.o
+        vtable for IdentifierPagein moc_identifierpage.o
+        vtable for PathPagein moc_pathpage.o
+        vtable for FilesPagein moc_filespage.o
+        ...
+    "QWizard::paintEvent(QPaintEvent*)", referenced from:
+        vtable for ConversionWizardin moc_conversionwizard.o
+    "QWidget::moveEvent(QMoveEvent*)", referenced from:
+        vtable for ConversionWizardin moc_conversionwizard.o
+        vtable for InputPagein moc_inputpage.o
+        vtable for GeneralPagein moc_generalpage.o
+        vtable for FilterPagein moc_filterpage.o
+        vtable for IdentifierPagein moc_identifierpage.o
+        vtable for PathPagein moc_pathpage.o
+        vtable for FilesPagein moc_filespage.o
+        ...
+    "QWizard::resizeEvent(QResizeEvent*)", referenced from:
+        vtable for ConversionWizardin moc_conversionwizard.o
+    "QDialog::closeEvent(QCloseEvent*)", referenced from:
+        vtable for ConversionWizardin moc_conversionwizard.o
+    "QDialog::contextMenuEvent(QContextMenuEvent*)", referenced from:
+        vtable for ConversionWizardin moc_conversionwizard.o
+    "QWidget::tabletEvent(QTabletEvent*)", referenced from:
+        vtable for ConversionWizardin moc_conversionwizard.o
+        vtable for InputPagein moc_inputpage.o
+        vtable for GeneralPagein moc_generalpage.o
+        vtable for FilterPagein moc_filterpage.o
+        vtable for IdentifierPagein moc_identifierpage.o
+        vtable for PathPagein moc_pathpage.o
+        vtable for FilesPagein moc_filespage.o
+        ...
+    "QWidget::actionEvent(QActionEvent*)", referenced from:
+        vtable for ConversionWizardin moc_conversionwizard.o
+        vtable for InputPagein moc_inputpage.o
+        vtable for GeneralPagein moc_generalpage.o
+        vtable for FilterPagein moc_filterpage.o
+        vtable for IdentifierPagein moc_identifierpage.o
+        vtable for PathPagein moc_pathpage.o
+        vtable for FilesPagein moc_filespage.o
+        ...
+    "QWidget::dragEnterEvent(QDragEnterEvent*)", referenced from:
+        vtable for ConversionWizardin moc_conversionwizard.o
+        vtable for InputPagein moc_inputpage.o
+        vtable for GeneralPagein moc_generalpage.o
+        vtable for FilterPagein moc_filterpage.o
+        vtable for IdentifierPagein moc_identifierpage.o
+        vtable for PathPagein moc_pathpage.o
+        vtable for FilesPagein moc_filespage.o
+        ...
+    "QWidget::dragMoveEvent(QDragMoveEvent*)", referenced from:
+        vtable for ConversionWizardin moc_conversionwizard.o
+        vtable for InputPagein moc_inputpage.o
+        vtable for GeneralPagein moc_generalpage.o
+        vtable for FilterPagein moc_filterpage.o
+        vtable for IdentifierPagein moc_identifierpage.o
+        vtable for PathPagein moc_pathpage.o
+        vtable for FilesPagein moc_filespage.o
+        ...
+    "QWidget::dragLeaveEvent(QDragLeaveEvent*)", referenced from:
+        vtable for ConversionWizardin moc_conversionwizard.o
+        vtable for InputPagein moc_inputpage.o
+        vtable for GeneralPagein moc_generalpage.o
+        vtable for FilterPagein moc_filterpage.o
+        vtable for IdentifierPagein moc_identifierpage.o
+        vtable for PathPagein moc_pathpage.o
+        vtable for FilesPagein moc_filespage.o
+        ...
+    "QWidget::dropEvent(QDropEvent*)", referenced from:
+        vtable for ConversionWizardin moc_conversionwizard.o
+        vtable for InputPagein moc_inputpage.o
+        vtable for GeneralPagein moc_generalpage.o
+        vtable for FilterPagein moc_filterpage.o
+        vtable for IdentifierPagein moc_identifierpage.o
+        vtable for PathPagein moc_pathpage.o
+        vtable for FilesPagein moc_filespage.o
+        ...
+    "QDialog::showEvent(QShowEvent*)", referenced from:
+        vtable for ConversionWizardin moc_conversionwizard.o
+    "QWidget::hideEvent(QHideEvent*)", referenced from:
+        vtable for ConversionWizardin moc_conversionwizard.o
+        vtable for InputPagein moc_inputpage.o
+        vtable for GeneralPagein moc_generalpage.o
+        vtable for FilterPagein moc_filterpage.o
+        vtable for IdentifierPagein moc_identifierpage.o
+        vtable for PathPagein moc_pathpage.o
+        vtable for FilesPagein moc_filespage.o
+        ...
+    "QWidget::changeEvent(QEvent*)", referenced from:
+        vtable for ConversionWizardin moc_conversionwizard.o
+        vtable for InputPagein moc_inputpage.o
+        vtable for GeneralPagein moc_generalpage.o
+        vtable for FilterPagein moc_filterpage.o
+        vtable for IdentifierPagein moc_identifierpage.o
+        vtable for PathPagein moc_pathpage.o
+        vtable for FilesPagein moc_filespage.o
+        ...
+    "QWidget::metric(QPaintDevice::PaintDeviceMetric) const", referenced from:
+        vtable for ConversionWizardin moc_conversionwizard.o
+        vtable for InputPagein moc_inputpage.o
+        vtable for GeneralPagein moc_generalpage.o
+        vtable for FilterPagein moc_filterpage.o
+        vtable for IdentifierPagein moc_identifierpage.o
+        vtable for PathPagein moc_pathpage.o
+        vtable for FilesPagein moc_filespage.o
+        ...
+    "QWidget::init(QPainter*) const", referenced from:
+        vtable for ConversionWizardin moc_conversionwizard.o
+        vtable for InputPagein moc_inputpage.o
+        vtable for GeneralPagein moc_generalpage.o
+        vtable for FilterPagein moc_filterpage.o
+        vtable for IdentifierPagein moc_identifierpage.o
+        vtable for PathPagein moc_pathpage.o
+        vtable for FilesPagein moc_filespage.o
+        ...
+    "QWidget::redirected(QPoint*) const", referenced from:
+        vtable for ConversionWizardin moc_conversionwizard.o
+        vtable for InputPagein moc_inputpage.o
+        vtable for GeneralPagein moc_generalpage.o
+        vtable for FilterPagein moc_filterpage.o
+        vtable for IdentifierPagein moc_identifierpage.o
+        vtable for PathPagein moc_pathpage.o
+        vtable for FilesPagein moc_filespage.o
+        ...
+    "QWidget::sharedPainter() const", referenced from:
+        vtable for ConversionWizardin moc_conversionwizard.o
+        vtable for InputPagein moc_inputpage.o
+        vtable for GeneralPagein moc_generalpage.o
+        vtable for FilterPagein moc_filterpage.o
+        vtable for IdentifierPagein moc_identifierpage.o
+        vtable for PathPagein moc_pathpage.o
+        vtable for FilesPagein moc_filespage.o
+        ...
+    "QWidget::inputMethodEvent(QInputMethodEvent*)", referenced from:
+        vtable for ConversionWizardin moc_conversionwizard.o
+        vtable for InputPagein moc_inputpage.o
+        vtable for GeneralPagein moc_generalpage.o
+        vtable for FilterPagein moc_filterpage.o
+        vtable for IdentifierPagein moc_identifierpage.o
+        vtable for PathPagein moc_pathpage.o
+        vtable for FilesPagein moc_filespage.o
+        ...
+    "QWidget::inputMethodQuery(Qt::InputMethodQuery) const", referenced from:
+        vtable for ConversionWizardin moc_conversionwizard.o
+        vtable for InputPagein moc_inputpage.o
+        vtable for GeneralPagein moc_generalpage.o
+        vtable for FilterPagein moc_filterpage.o
+        vtable for IdentifierPagein moc_identifierpage.o
+        vtable for PathPagein moc_pathpage.o
+        vtable for FilesPagein moc_filespage.o
+        ...
+    "QWidget::focusNextPrevChild(bool)", referenced from:
+        vtable for ConversionWizardin moc_conversionwizard.o
+        vtable for InputPagein moc_inputpage.o
+        vtable for GeneralPagein moc_generalpage.o
+        vtable for FilterPagein moc_filterpage.o
+        vtable for IdentifierPagein moc_identifierpage.o
+        vtable for PathPagein moc_pathpage.o
+        vtable for FilesPagein moc_filespage.o
+        ...
+    "QWidget::styleChange(QStyle&)", referenced from:
+        vtable for ConversionWizardin moc_conversionwizard.o
+        vtable for InputPagein moc_inputpage.o
+        vtable for GeneralPagein moc_generalpage.o
+        vtable for FilterPagein moc_filterpage.o
+        vtable for IdentifierPagein moc_identifierpage.o
+        vtable for PathPagein moc_pathpage.o
+        vtable for FilesPagein moc_filespage.o
+        ...
+    "QWidget::enabledChange(bool)", referenced from:
+        vtable for ConversionWizardin moc_conversionwizard.o
+        vtable for InputPagein moc_inputpage.o
+        vtable for GeneralPagein moc_generalpage.o
+        vtable for FilterPagein moc_filterpage.o
+        vtable for IdentifierPagein moc_identifierpage.o
+        vtable for PathPagein moc_pathpage.o
+        vtable for FilesPagein moc_filespage.o
+        ...
+    "QWidget::paletteChange(QPalette const&)", referenced from:
+        vtable for ConversionWizardin moc_conversionwizard.o
+        vtable for InputPagein moc_inputpage.o
+        vtable for GeneralPagein moc_generalpage.o
+        vtable for FilterPagein moc_filterpage.o
+        vtable for IdentifierPagein moc_identifierpage.o
+        vtable for PathPagein moc_pathpage.o
+        vtable for FilesPagein moc_filespage.o
+        ...
+    "QWidget::fontChange(QFont const&)", referenced from:
+        vtable for ConversionWizardin moc_conversionwizard.o
+        vtable for InputPagein moc_inputpage.o
+        vtable for GeneralPagein moc_generalpage.o
+        vtable for FilterPagein moc_filterpage.o
+        vtable for IdentifierPagein moc_identifierpage.o
+        vtable for PathPagein moc_pathpage.o
+        vtable for FilesPagein moc_filespage.o
+        ...
+    "QWidget::windowActivationChange(bool)", referenced from:
+        vtable for ConversionWizardin moc_conversionwizard.o
+        vtable for InputPagein moc_inputpage.o
+        vtable for GeneralPagein moc_generalpage.o
+        vtable for FilterPagein moc_filterpage.o
+        vtable for IdentifierPagein moc_identifierpage.o
+        vtable for PathPagein moc_pathpage.o
+        vtable for FilesPagein moc_filespage.o
+        ...
+    "QWidget::languageChange()", referenced from:
+        vtable for ConversionWizardin moc_conversionwizard.o
+        vtable for InputPagein moc_inputpage.o
+        vtable for GeneralPagein moc_generalpage.o
+        vtable for FilterPagein moc_filterpage.o
+        vtable for IdentifierPagein moc_identifierpage.o
+        vtable for PathPagein moc_pathpage.o
+        vtable for FilesPagein moc_filespage.o
+        ...
+    "QWizard::done(int)", referenced from:
+        vtable for ConversionWizardin moc_conversionwizard.o
+    "QDialog::accept()", referenced from:
+        vtable for ConversionWizardin moc_conversionwizard.o
+    "QDialog::reject()", referenced from:
+        vtable for ConversionWizardin moc_conversionwizard.o
+    "QWizard::validateCurrentPage()", referenced from:
+        vtable for ConversionWizardin moc_conversionwizard.o
+    "QWizard::nextId() const", referenced from:
+        vtable for ConversionWizardin moc_conversionwizard.o
+    "QWizard::cleanupPage(int)", referenced from:
+        vtable for ConversionWizardin moc_conversionwizard.o
+    "non-virtual thunk to QWidget::devType() const", referenced from:
+        vtable for ConversionWizardin moc_conversionwizard.o
+        vtable for InputPagein moc_inputpage.o
+        vtable for GeneralPagein moc_generalpage.o
+        vtable for FilterPagein moc_filterpage.o
+        vtable for IdentifierPagein moc_identifierpage.o
+        vtable for PathPagein moc_pathpage.o
+        vtable for FilesPagein moc_filespage.o
+        ...
+    "non-virtual thunk to QWidget::paintEngine() const", referenced from:
+        vtable for ConversionWizardin moc_conversionwizard.o
+        vtable for InputPagein moc_inputpage.o
+        vtable for GeneralPagein moc_generalpage.o
+        vtable for FilterPagein moc_filterpage.o
+        vtable for IdentifierPagein moc_identifierpage.o
+        vtable for PathPagein moc_pathpage.o
+        vtable for FilesPagein moc_filespage.o
+        ...
+    "non-virtual thunk to QWidget::metric(QPaintDevice::PaintDeviceMetric) const", referenced from:
+        vtable for ConversionWizardin moc_conversionwizard.o
+        vtable for InputPagein moc_inputpage.o
+        vtable for GeneralPagein moc_generalpage.o
+        vtable for FilterPagein moc_filterpage.o
+        vtable for IdentifierPagein moc_identifierpage.o
+        vtable for PathPagein moc_pathpage.o
+        vtable for FilesPagein moc_filespage.o
+        ...
+    "non-virtual thunk to QWidget::init(QPainter*) const", referenced from:
+        vtable for ConversionWizardin moc_conversionwizard.o
+        vtable for InputPagein moc_inputpage.o
+        vtable for GeneralPagein moc_generalpage.o
+        vtable for FilterPagein moc_filterpage.o
+        vtable for IdentifierPagein moc_identifierpage.o
+        vtable for PathPagein moc_pathpage.o
+        vtable for FilesPagein moc_filespage.o
+        ...
+    "non-virtual thunk to QWidget::redirected(QPoint*) const", referenced from:
+        vtable for ConversionWizardin moc_conversionwizard.o
+        vtable for InputPagein moc_inputpage.o
+        vtable for GeneralPagein moc_generalpage.o
+        vtable for FilterPagein moc_filterpage.o
+        vtable for IdentifierPagein moc_identifierpage.o
+        vtable for PathPagein moc_pathpage.o
+        vtable for FilesPagein moc_filespage.o
+        ...
+    "non-virtual thunk to QWidget::sharedPainter() const", referenced from:
+        vtable for ConversionWizardin moc_conversionwizard.o
+        vtable for InputPagein moc_inputpage.o
+        vtable for GeneralPagein moc_generalpage.o
+        vtable for FilterPagein moc_filterpage.o
+        vtable for IdentifierPagein moc_identifierpage.o
+        vtable for PathPagein moc_pathpage.o
+        vtable for FilesPagein moc_filespage.o
+        ...
+    "typeinfo for QWizard", referenced from:
+        typeinfo for ConversionWizardin moc_conversionwizard.o
+    "QWizard::staticMetaObject", referenced from:
+        ConversionWizard::staticMetaObject        in moc_conversionwizard.o
+    "QWizardPage::qt_metacast(char const*)", referenced from:
+        InputPage::qt_metacast(char const*)in moc_inputpage.o
+        GeneralPage::qt_metacast(char const*)in moc_generalpage.o
+        FilterPage::qt_metacast(char const*)in moc_filterpage.o
+        IdentifierPage::qt_metacast(char const*)in moc_identifierpage.o
+        PathPage::qt_metacast(char const*)in moc_pathpage.o
+        FilesPage::qt_metacast(char const*)in moc_filespage.o
+        OutputPage::qt_metacast(char const*)in moc_outputpage.o
+        ...
+    "QWizardPage::qt_metacall(QMetaObject::Call, int, void**)", referenced from:
+        InputPage::qt_metacall(QMetaObject::Call, int, void**)in moc_inputpage.o
+        GeneralPage::qt_metacall(QMetaObject::Call, int, void**)in moc_generalpage.o
+        FilterPage::qt_metacall(QMetaObject::Call, int, void**)in moc_filterpage.o
+        IdentifierPage::qt_metacall(QMetaObject::Call, int, void**)in moc_identifierpage.o
+        PathPage::qt_metacall(QMetaObject::Call, int, void**)in moc_pathpage.o
+        FilesPage::qt_metacall(QMetaObject::Call, int, void**)in moc_filespage.o
+        OutputPage::qt_metacall(QMetaObject::Call, int, void**)in moc_outputpage.o
+        ...
+    "QWidget::event(QEvent*)", referenced from:
+        vtable for InputPagein moc_inputpage.o
+        vtable for GeneralPagein moc_generalpage.o
+        vtable for FilterPagein moc_filterpage.o
+        vtable for IdentifierPagein moc_identifierpage.o
+        vtable for PathPagein moc_pathpage.o
+        vtable for FilesPagein moc_filespage.o
+        vtable for OutputPagein moc_outputpage.o
+        ...
+    "QWidget::setVisible(bool)", referenced from:
+        vtable for InputPagein moc_inputpage.o
+        vtable for GeneralPagein moc_generalpage.o
+        vtable for FilterPagein moc_filterpage.o
+        vtable for IdentifierPagein moc_identifierpage.o
+        vtable for PathPagein moc_pathpage.o
+        vtable for FilesPagein moc_filespage.o
+        vtable for OutputPagein moc_outputpage.o
+        ...
+    "QWidget::sizeHint() const", referenced from:
+        vtable for InputPagein moc_inputpage.o
+        vtable for GeneralPagein moc_generalpage.o
+        vtable for FilterPagein moc_filterpage.o
+        vtable for IdentifierPagein moc_identifierpage.o
+        vtable for PathPagein moc_pathpage.o
+        vtable for FilesPagein moc_filespage.o
+        vtable for OutputPagein moc_outputpage.o
+        ...
+    "QWidget::minimumSizeHint() const", referenced from:
+        vtable for InputPagein moc_inputpage.o
+        vtable for GeneralPagein moc_generalpage.o
+        vtable for FilterPagein moc_filterpage.o
+        vtable for IdentifierPagein moc_identifierpage.o
+        vtable for PathPagein moc_pathpage.o
+        vtable for FilesPagein moc_filespage.o
+        vtable for OutputPagein moc_outputpage.o
+        ...
+    "QWidget::keyPressEvent(QKeyEvent*)", referenced from:
+        vtable for InputPagein moc_inputpage.o
+        vtable for GeneralPagein moc_generalpage.o
+        vtable for FilterPagein moc_filterpage.o
+        vtable for IdentifierPagein moc_identifierpage.o
+        vtable for PathPagein moc_pathpage.o
+        vtable for FilesPagein moc_filespage.o
+        vtable for OutputPagein moc_outputpage.o
+        ...
+    "QWidget::paintEvent(QPaintEvent*)", referenced from:
+        vtable for InputPagein moc_inputpage.o
+        vtable for GeneralPagein moc_generalpage.o
+        vtable for FilterPagein moc_filterpage.o
+        vtable for IdentifierPagein moc_identifierpage.o
+        vtable for PathPagein moc_pathpage.o
+        vtable for FilesPagein moc_filespage.o
+        vtable for OutputPagein moc_outputpage.o
+        ...
+    "QWidget::resizeEvent(QResizeEvent*)", referenced from:
+        vtable for InputPagein moc_inputpage.o
+        vtable for GeneralPagein moc_generalpage.o
+        vtable for FilterPagein moc_filterpage.o
+        vtable for IdentifierPagein moc_identifierpage.o
+        vtable for PathPagein moc_pathpage.o
+        vtable for FilesPagein moc_filespage.o
+        vtable for OutputPagein moc_outputpage.o
+        ...
+    "QWidget::closeEvent(QCloseEvent*)", referenced from:
+        vtable for InputPagein moc_inputpage.o
+        vtable for GeneralPagein moc_generalpage.o
+        vtable for FilterPagein moc_filterpage.o
+        vtable for IdentifierPagein moc_identifierpage.o
+        vtable for PathPagein moc_pathpage.o
+        vtable for FilesPagein moc_filespage.o
+        vtable for OutputPagein moc_outputpage.o
+        ...
+    "QWidget::contextMenuEvent(QContextMenuEvent*)", referenced from:
+        vtable for InputPagein moc_inputpage.o
+        vtable for GeneralPagein moc_generalpage.o
+        vtable for FilterPagein moc_filterpage.o
+        vtable for IdentifierPagein moc_identifierpage.o
+        vtable for PathPagein moc_pathpage.o
+        vtable for FilesPagein moc_filespage.o
+        vtable for OutputPagein moc_outputpage.o
+        ...
+    "QWidget::showEvent(QShowEvent*)", referenced from:
+        vtable for InputPagein moc_inputpage.o
+        vtable for GeneralPagein moc_generalpage.o
+        vtable for FilterPagein moc_filterpage.o
+        vtable for IdentifierPagein moc_identifierpage.o
+        vtable for PathPagein moc_pathpage.o
+        vtable for FilesPagein moc_filespage.o
+        vtable for OutputPagein moc_outputpage.o
+        ...
+    "QWizardPage::initializePage()", referenced from:
+        vtable for InputPagein moc_inputpage.o
+        vtable for GeneralPagein moc_generalpage.o
+        vtable for FilterPagein moc_filterpage.o
+        vtable for IdentifierPagein moc_identifierpage.o
+        vtable for PathPagein moc_pathpage.o
+        vtable for FilesPagein moc_filespage.o
+        vtable for OutputPagein moc_outputpage.o
+        ...
+    "QWizardPage::cleanupPage()", referenced from:
+        vtable for InputPagein moc_inputpage.o
+        vtable for GeneralPagein moc_generalpage.o
+        vtable for FilterPagein moc_filterpage.o
+        vtable for IdentifierPagein moc_identifierpage.o
+        vtable for PathPagein moc_pathpage.o
+        vtable for FilesPagein moc_filespage.o
+        vtable for OutputPagein moc_outputpage.o
+        ...
+    "QWizardPage::isComplete() const", referenced from:
+        vtable for InputPagein moc_inputpage.o
+        vtable for FilterPagein moc_filterpage.o
+        vtable for IdentifierPagein moc_identifierpage.o
+        vtable for PathPagein moc_pathpage.o
+        vtable for FilesPagein moc_filespage.o
+        vtable for FinishPagein moc_finishpage.o
+    "QWizardPage::nextId() const", referenced from:
+        vtable for InputPagein moc_inputpage.o
+        vtable for GeneralPagein moc_generalpage.o
+        vtable for FilterPagein moc_filterpage.o
+        vtable for IdentifierPagein moc_identifierpage.o
+        vtable for PathPagein moc_pathpage.o
+        vtable for FilesPagein moc_filespage.o
+        vtable for OutputPagein moc_outputpage.o
+        ...
+    "typeinfo for QWizardPage", referenced from:
+        typeinfo for InputPagein moc_inputpage.o
+        typeinfo for GeneralPagein moc_generalpage.o
+        typeinfo for FilterPagein moc_filterpage.o
+        typeinfo for IdentifierPagein moc_identifierpage.o
+        typeinfo for PathPagein moc_pathpage.o
+        typeinfo for FilesPagein moc_filespage.o
+        typeinfo for OutputPagein moc_outputpage.o
+        ...
+    "QWizardPage::staticMetaObject", referenced from:
+        InputPage::staticMetaObject       in moc_inputpage.o
+        GeneralPage::staticMetaObject        in moc_generalpage.o
+        FilterPage::staticMetaObject        in moc_filterpage.o
+        IdentifierPage::staticMetaObject        in moc_identifierpage.o
+        PathPage::staticMetaObject       in moc_pathpage.o
+        FilesPage::staticMetaObject       in moc_filespage.o
+        OutputPage::staticMetaObject        in moc_outputpage.o
+        ...
+    "QWizardPage::validatePage()", referenced from:
+        vtable for IdentifierPagein moc_identifierpage.o
+        vtable for PathPagein moc_pathpage.o
+        vtable for FilesPagein moc_filespage.o
+        vtable for FinishPagein moc_finishpage.o
+    "QWidget::qt_metacast(char const*)", referenced from:
+        HelpWindow::qt_metacast(char const*)in moc_helpwindow.o
+    "QWidget::qt_metacall(QMetaObject::Call, int, void**)", referenced from:
+        HelpWindow::qt_metacall(QMetaObject::Call, int, void**)in moc_helpwindow.o
+    "typeinfo for QWidget", referenced from:
+        typeinfo for HelpWindowin moc_helpwindow.o
+    "QWidget::staticMetaObject", referenced from:
+        HelpWindow::staticMetaObject        in moc_helpwindow.o
+  make[4]: *** [../../../../qtbase/bin/qhelpconverter.app/Contents/MacOS/qhelpconverter] Error 1
+  make[3]: *** [sub-qhelpconverter-make_default-ordered] Error 2
+  make[2]: *** [sub-assistant-make_default-ordered] Error 2
+  make[1]: *** [module-qttools-src-make_default] Error 2
+  make: *** [module-qttools] Error 2
