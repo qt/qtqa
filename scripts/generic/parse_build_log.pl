@@ -560,6 +560,33 @@ my %RE = (
             \s*
             \z
         )
+
+        |
+
+        (?:
+            # Linux-style `undefined reference', e.g.
+            #  tst_sphere.o: In function `tst_Sphere::planes() const':
+            #  tst_sphere.cpp:(.text+0x244): undefined reference to `ViewportCamera::ViewportCamera()'
+            #  tst_sphere.o:tst_sphere.cpp:(.text+0x3bb): more undefined references to `Frustum::plane(QFlags<Frustum::Plane>) const' follow
+            \A
+            \s*
+
+            \S+?    # file part (may be .o, .cpp, or both, with also .text reference)
+
+            :
+            \s
+
+            (?:
+                \Qundefined reference to `\E
+                |
+                \Qmore undefined references to `\E
+            )
+
+            .+
+            \z
+        )
+
+
     }xms,
 
     # Line continuing a linker error message previously extracted.
@@ -598,6 +625,23 @@ my %RE = (
             # print a line with only `...' to indicate truncation
             \A \s* \.{3} \s* \z
         )
+
+        |
+
+        (?:
+            # referring to a particular function in a .o file, e.g.
+            #  tst_sphere.o: In function `tst_Sphere::planes() const':
+            \A
+            \s*
+
+            [^:]+\.o:
+            \s
+            \QIn function `\E
+
+            .+
+            \z
+        )
+
 
         # add others as discovered
     }xms,

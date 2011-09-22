@@ -6,6 +6,7 @@ qtbase failed to compile for linux-g++-32 Ubuntu 10.04 x86 :(
   /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/benchmarks/corelib/kernel/qmetaobject/main.cpp:196: undefined reference to `QTreeView::staticMetaObject'
   /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/benchmarks/corelib/kernel/qmetaobject/main.cpp:197: undefined reference to `QTreeView::staticMetaObject'
   /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/benchmarks/corelib/kernel/qmetaobject/main.cpp:176: undefined reference to `QTreeView::staticMetaObject'
+  .obj/release-shared/main.o:/home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/benchmarks/corelib/kernel/qmetaobject/main.cpp:175: more undefined references to `QTreeView::staticMetaObject' follow
   make[6]: *** [tst_bench_qmetaobject] Error 1
   make[5]: *** [sub-qmetaobject-make_default] Error 2
   make[4]: *** [sub-kernel-make_default] Error 2
@@ -33,6 +34,8 @@ qtbase failed to compile for linux-g++-32 Ubuntu 10.04 x86 :(
   /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/benchmarks/gui/styles/qstylesheetstyle/main.cpp:93: undefined reference to `QWidget::setStyleSheet(QString const&)'
   /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/benchmarks/gui/styles/qstylesheetstyle/main.cpp:97: undefined reference to `QWidget::setStyleSheet(QString const&)'
   /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/benchmarks/gui/styles/qstylesheetstyle/main.cpp:138: undefined reference to `QWidget::setStyleSheet(QString const&)'
+  .obj/release-shared/main.o:/home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/benchmarks/gui/styles/qstylesheetstyle/main.cpp:142: more undefined references to `QWidget::setStyleSheet(QString const&)' follow
+  .obj/release-shared/main.o: In function `tst_qstylesheetstyle::grid()':
   /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/benchmarks/gui/styles/qstylesheetstyle/main.cpp:176: undefined reference to `QWidget::QWidget(QWidget*, QFlags<Qt::WindowType>)'
   /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/benchmarks/gui/styles/qstylesheetstyle/main.cpp:177: undefined reference to `QGridLayout::QGridLayout(QWidget*)'
   /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/benchmarks/gui/styles/qstylesheetstyle/main.cpp:178: undefined reference to `QWidget::setLayout(QLayout*)'
@@ -40,6 +43,7 @@ qtbase failed to compile for linux-g++-32 Ubuntu 10.04 x86 :(
   /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/benchmarks/gui/styles/qstylesheetstyle/main.cpp:183: undefined reference to `QGridLayout::addWidget(QWidget*, int, int, QFlags<Qt::AlignmentFlag>)'
   /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/benchmarks/gui/styles/qstylesheetstyle/main.cpp:188: undefined reference to `QWidget::setStyleSheet(QString const&)'
   /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/benchmarks/gui/styles/qstylesheetstyle/main.cpp:200: undefined reference to `QWidget::setStyleSheet(QString const&)'
+  .obj/release-shared/main.o: In function `tst_qstylesheetstyle::simple()':
   /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/benchmarks/gui/styles/qstylesheetstyle/main.cpp:125: undefined reference to `QWidget::setStyleSheet(QString const&)'
   /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/benchmarks/gui/styles/qstylesheetstyle/main.cpp:129: undefined reference to `QWidget::setStyleSheet(QString const&)'
   make[6]: *** [tst_bench_qstylesheetstyle] Error 1
@@ -114,6 +118,7 @@ qtbase failed to compile for linux-g++-32 Ubuntu 10.04 x86 :(
   /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/auto/corelib/tools/qfreelist/../../../../../include/QtCore/5.0.0/QtCore/private/../../../../../src/corelib/tools/qfreelist_p.h:166: undefined reference to `QFreeListDefaultConstants::Sizes'
   /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/auto/corelib/tools/qfreelist/../../../../../include/QtCore/5.0.0/QtCore/private/../../../../../src/corelib/tools/qfreelist_p.h:164: undefined reference to `QFreeListDefaultConstants::Sizes'
   /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/auto/corelib/tools/qfreelist/../../../../../include/QtCore/5.0.0/QtCore/private/../../../../../src/corelib/tools/qfreelist_p.h:166: undefined reference to `QFreeListDefaultConstants::Sizes'
+  .obj/release-shared/tst_qfreelist.o:/home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/auto/corelib/tools/qfreelist/../../../../../include/QtCore/5.0.0/QtCore/private/../../../../../src/corelib/tools/qfreelist_p.h:164: more undefined references to `QFreeListDefaultConstants::Sizes' follow
   make[7]: *** [tst_qfreelist] Error 1
   make[6]: *** [sub-qfreelist-make_default] Error 2
   make[5]: *** [sub-io-make_default] Error 2
