@@ -529,6 +529,8 @@ my %RE = (
                     (?:
                         \Qlibrary not found for \E
                         |
+                        \Qframework not found \E
+                        |
                         \Qcannot find \E
                     )
                     (?<lib>
@@ -708,6 +710,23 @@ my %RE = (
         |
 
         (?:
+            # non-silent mode, static lib (ar)
+            # command is usually like: ar cqs libFoo.a
+            ar
+            \s+
+            [cqs]+
+            \s+
+
+            (?<lib>
+                lib [^\.]+ \.a
+            )
+            \s+
+            # ... then the list of .o files, which we don't care about.
+        )
+
+        |
+
+        (?:
             # silent mode, linking path/to/libWhatever.so
             linking
 
@@ -724,6 +743,28 @@ my %RE = (
 
                 [^\s]+
             )
+
+            \z
+        )
+
+        |
+
+        (?:
+            # silent mode, linking path/to/Something.framework/Something
+            linking
+
+            \s
+
+            [^\s]+?
+            /
+            (?<lib>
+                \w+
+                \.
+                framework
+            )
+            /
+
+            [^\s]+
 
             \z
         )
@@ -1434,6 +1475,19 @@ sub output_summary
                        ."\n\nThis could be caused by some missing dependencies in .pro file(s). "
                        ."If this is indeed the case, the error may be unstable, and will be "
                        ."easier to reproduce with a highly parallelized build.";
+        }
+
+        # Mac-specific: check for incorrectly attempting to link against a framework
+        my $linker_fail_lib = $fail->{ linker_fail_lib };
+        while (my ($lib, $error) = each %{ $linker_fail_lib // {} }) {
+
+            # if we tried to use framework Foo, the corresponding non-framework name is libFoo
+            my $linked_nonframework = $fail->{ linked_libs }{"lib$lib"};
+
+            if ($error =~ m{framework not found} && $linked_nonframework) {
+                $summary .= "\n\nIt seems that something tried to link against $lib "
+                           ."as a framework, but that library was built _not_ as a framework.";
+            }
         }
     }
 

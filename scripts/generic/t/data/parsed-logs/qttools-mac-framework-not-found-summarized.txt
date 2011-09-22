@@ -1,0 +1,13 @@
+[ '--summarize', "$DATADIR/raw-logs/qttools-mac-framework-not-found.txt" ]
+qttools failed to compile for macx-g++ developer-build cocoa OSX 10.7
+x64 :(
+
+It seems that something tried to link against QtUiTools as a framework,
+but that library was built _not_ as a framework.
+
+  ld: framework not found QtUiTools
+  make[4]: *** [../../../../qtbase/bin/Linguist.app/Contents/MacOS/Linguist] Error 1
+  make[3]: *** [sub-linguist-make_default] Error 2
+  make[2]: *** [sub-linguist-make_default-ordered] Error 2
+  make[1]: *** [module-qttools-src-make_default] Error 2
+  make: *** [module-qttools] Error 2
