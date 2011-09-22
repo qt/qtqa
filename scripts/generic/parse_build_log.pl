@@ -283,22 +283,38 @@ my %RE = (
         \*{3}
         \s
 
-        # now the target, in square brackets
         (?:
-            \[
-            (?<target>
-                [^\]]+
+
+            # now the target, in square brackets
+            (?:
+                \[
+                (?<target>
+                    [^\]]+
+                )
+                \]
             )
-            \]
-        )
 
-        \s
+            \s
 
-        # "Error <num>"
-        (?:
-            Error \s
-            (?<errorlevel>
-                \d+
+            # "Error <num>"
+            (?:
+                Error \s
+                (?<errorlevel>
+                    \d+
+                )
+            )
+
+            |
+
+            (?:
+                \QNo rule to make target `\E
+                [^']+
+                \Q', needed by `\E
+                (?<target>
+                    [^']+
+                )
+                '
+                .+
             )
         )
 

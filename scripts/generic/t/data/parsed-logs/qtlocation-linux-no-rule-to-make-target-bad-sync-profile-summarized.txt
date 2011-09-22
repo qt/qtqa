@@ -1,0 +1,4 @@
+[ '--summarize', "$DATADIR/raw-logs/qtlocation-linux-no-rule-to-make-target-bad-sync-profile.txt" ]
+`make' failed :(
+
+  make: *** No rule to make target `module_qtquick3d', needed by `module-qtlocation'.  Stop.
