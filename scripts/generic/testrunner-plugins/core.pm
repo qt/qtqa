@@ -287,7 +287,7 @@ sub _get_backtrace
     # pass commands through the command line, but we want to support some
     # older gdb (e.g. on mac) which only have `-x'
     my $cmd_file = File::Temp->new( 'qtqa-testrunner-gdb.XXXXXX', TMPDIR => 1 );
-    $cmd_file->printflush( 'thread apply all bt full' );
+    $cmd_file->printflush( 'thread apply all bt' );
 
     my $command = ($self->{ testrunner }->command( ))[0];
     return capture_merged {
