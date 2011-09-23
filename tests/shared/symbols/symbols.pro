@@ -5,4 +5,4 @@ INCLUDEPATH += ../../shared
 SOURCES += tst_symbols.cpp
 QT = core
 
-
+CONFIG += insignificant_test    # QTQAINFRA-325
