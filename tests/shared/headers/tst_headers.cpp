@@ -104,7 +104,7 @@ void tst_Headers::initTestCase()
                   "not applicable", SkipAll);
         }
     } else {
-        QTest::qWarn("Some test functions will be skipped, because we ignore them for phonon and qttools.");
+        QWARN("Some test functions will be skipped, because we ignore them for phonon and qttools.");
     }
 }
 

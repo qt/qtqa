@@ -120,7 +120,7 @@ static QStringList getFeatures()
 
 void tst_CompilerWarnings::initTestCase()
 {
-    QTest::qWarn("This test needs the correct qmake in PATH, we need it to generate INCPATH for qt modules.");
+    QWARN("This test needs the correct qmake in PATH, we need it to generate INCPATH for qt modules.");
 
     qtModuleDir = QString::fromLocal8Bit(qgetenv("QT_MODULE_TO_TEST"));
     if (qtModuleDir.isEmpty()) {
@@ -178,7 +178,7 @@ void tst_CompilerWarnings::warnings()
 {
     QString workDir = qtModuleDir + "/tests/auto/compilerwarnings";
     if (!QDir::setCurrent(workDir)) {
-        QTest::qWarn("Change working dir failed.");
+        QWARN("Change working dir failed.");
         return;
     }
 
