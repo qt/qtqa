@@ -175,6 +175,7 @@ my @mandatoryFiles=(
     qr{\.c$},
     qr{\.mm$},
     qr{\.qml$},
+    qr{\.qtt$},
     qr{\.fsh$},
     qr{\.vsh$},
     qr{\.qdoc$},
