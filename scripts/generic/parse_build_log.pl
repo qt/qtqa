@@ -770,6 +770,54 @@ my %RE = (
         )
     }xms,
 
+    # qmake failed to parse a .pro file.
+    #
+    # Examples:
+    #
+    # /home/qt/.pulse2-agent/data/recipes/133472730/base/qt/qtmultimediakit/src/imports/multimedia/multimedia.pro:28: Parse Error ('qdeclarativecamera_p.h qdeclarativecameracapture_p.h qdeclarativecamerarecorder_p.h qdeclarativecameraexposure_p.h qdeclarativecameraflash_p.h qdeclarativecamerafocus_p.h qdeclarativecameraimageprocessing_p.h qdeclarativecamerapreviewprovider_p.h')
+    # Error processing project file: /home/qt/.pulse2-agent/data/recipes/133472730/base/qt/qtmultimediakit/src/imports/multimedia/multimedia.pro
+    #
+    # Captures:
+    #   file    -   the file in which the error was encountered
+    #
+    # Caveats:
+    #   This pattern assumes files containing qmake script are always named
+    #   ending with .pri, .prf or .pro.  This is purely a convention and is
+    #   not enforced anywhere.  The pattern will miss things if people start
+    #   to violate this convention.
+    #
+    qmake_fail => qr{
+        (?:
+            \A
+
+            # path/to/file.pro:123: Parse Error
+            (?<file>
+                [^:]+?
+                \.pr[iof]
+            )
+            :\d+:
+            \s*
+            \QParse Error\E
+            .*
+            \z
+        )
+
+        |
+
+        (?:
+            \A
+            \QError processing project file: \E
+            (?<file>
+                [^:]+?
+                \.pr[iof]
+            )
+            \z
+        )
+
+        # add more as discovered
+    }xms,
+
+
     # Info about some pulse property.
     #
     # Note that these lines come from our pulseconfig/test.pl script,
@@ -1153,6 +1201,19 @@ sub identify_failures
             $out->{ linked_libs }{ $lib } = $line;
         }
 
+        # qmake failed?
+        #
+        elsif ($line =~ $RE{ qmake_fail }) {
+            $out->{ qmake_fail } = $line;
+            $out->{ qmake_fail_sources }{ $+{ file } } = $line;
+
+            if ($out->{ qtmodule }) {
+                $out->{ qmake_fail_qtmodule } = $out->{ qtmodule };
+            }
+
+            $out->{ significant_lines }{ $line } = 1;
+        }
+
         # Pulse config problem?
         elsif ($line =~ $RE{ pulse_config_error }) {
             $out->{ pulse_config_error } = $line;
@@ -1420,6 +1481,39 @@ sub output_summary
                        . q{consistent across multiple runs.  This might make the problem }
                        . q{difficult to reproduce.  Also, flaky failures might or might not be }
                        . q{related to any recent changes in the source code.};
+        }
+    }
+
+    if ($fail->{ qmake_fail }) {
+        my $qmake_fail_qtmodule = $fail->{ qmake_fail_qtmodule };
+        my @qmake_fail_sources = keys %{ $fail->{ qmake_fail_sources } // {} };
+
+        # niceify the names, make them relative to the top-level directory.
+        my $pulse_base_dir = $fail->{ pulse_property }{ BASE_DIR };
+        if ($pulse_base_dir) {
+            @qmake_fail_sources = map {
+                my $file = $_;
+                $file =~ s{^ \Q$pulse_base_dir\E [\\/]* }{}xms;
+                $file
+            } @qmake_fail_sources;
+        }
+
+        my $pl = (scalar(@qmake_fail_sources) != 1);
+        Lingua::EN::Inflect::NUM( scalar(@qmake_fail_sources) );
+
+        my $some_files = $pl ? 'some files'
+                       :       $qmake_fail_sources[0];
+
+        $summary = inflect "qmake failed to process $some_files, indicating that the PL(file) may "
+                          .'contain syntax error(s) :(';
+
+        if ($qmake_fail_qtmodule) {
+            my $tested_qtmodule = $fail->{ pulse_property }{ QT_GITMODULE };
+            if ($tested_qtmodule && $qmake_fail_qtmodule ne $tested_qtmodule) {
+                $summary .= "\n\nWe were trying to test $tested_qtmodule.  "
+                           ."The qmake error(s) occurred in one of the dependencies, "
+                           ."$qmake_fail_qtmodule.";
+            }
         }
     }
 

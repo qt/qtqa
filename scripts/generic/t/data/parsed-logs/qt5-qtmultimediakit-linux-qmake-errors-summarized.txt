@@ -1,0 +1,14 @@
+[ '--summarize', "$DATADIR/raw-logs/qt5-qtmultimediakit-linux-qmake-errors.txt" ]
+qmake failed to process some files, indicating that the files may
+contain syntax error(s) :(
+
+We were trying to test qt5.  The qmake error(s) occurred in one of the
+dependencies, qtmultimediakit.
+
+  /home/qt/.pulse2-agent/data/recipes/133472730/base/qt/qtmultimediakit/src/imports/multimedia/multimedia.pro:28: Parse Error ('qdeclarativecamera_p.h qdeclarativecameracapture_p.h qdeclarativecamerarecorder_p.h qdeclarativecameraexposure_p.h qdeclarativecameraflash_p.h qdeclarativecamerafocus_p.h qdeclarativecameraimageprocessing_p.h qdeclarativecamerapreviewprovider_p.h')
+  Error processing project file: /home/qt/.pulse2-agent/data/recipes/133472730/base/qt/qtmultimediakit/src/imports/multimedia/multimedia.pro
+  make[3]: *** [multimedia/Makefile] Error 3
+  Error processing project file: /home/qt/.pulse2-agent/data/recipes/133472730/base/qt/qtmultimediakit/src/imports/multimedia2.pro
+  make[2]: *** [sub-imports-make_default-ordered] Error 2
+  make[1]: *** [module-qtmultimediakit-src-make_default] Error 2
+  make: *** [module-qtmultimediakit-make_default] Error 2
