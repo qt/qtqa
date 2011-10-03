@@ -54,9 +54,6 @@ private slots:
     void macros();
 
 private:
-    static QStringList getFiles(const QString &path,
-                                const QStringList dirFilters,
-                                const QRegExp &exclude);
     static QStringList getHeaders(const QString &path);
 
     void allHeadersData();
@@ -64,28 +61,44 @@ private:
     QString qtModuleDir;
 };
 
-QStringList tst_Headers::getFiles(const QString &path,
-                                  const QStringList dirFilters,
-                                  const QRegExp &excludeReg)
+QStringList tst_Headers::getHeaders(const QString &path)
 {
-    const QDir dir(path);
-    const QStringList dirs(dir.entryList(QDir::Dirs | QDir::NoDotAndDotDot));
     QStringList result;
 
-    foreach (QString subdir, dirs)
-        result += getFiles(path + "/" + subdir, dirFilters, excludeReg);
+    QProcess git;
+    git.setWorkingDirectory(path);
+    git.start("git", QStringList() << "ls-files");
 
-    QStringList entries = dir.entryList(dirFilters, QDir::Files);
-    entries = entries.filter(excludeReg);
+    // Wait for git to start
+    if (!git.waitForStarted())
+        qFatal("Error running 'git': %s", qPrintable(git.errorString()));
+
+    // Continue reading the data until EOF reached
+    QByteArray data;
+    while (git.waitForReadyRead(-1))
+        data.append(git.readAll());
+
+    // wait until the process has finished
+    if ((git.state() != QProcess::NotRunning) && !git.waitForFinished(30000))
+        qFatal("'git ls-files' did not complete within 30 seconds: %s", qPrintable(git.errorString()));
+
+    // Check for the git's exit code
+    if (0 != git.exitCode())
+        qFatal("Error running 'git ls-files': %s", qPrintable(git.readAllStandardError()));
+
+    // Create a QStringList of files out of the standard output
+    QString string(data);
+    QStringList entries = string.split( "\n" );
+
+    // We just want to check header files
+    entries = entries.filter(QRegExp("\\.h$"));
+    entries = entries.filter(QRegExp("^(?!ui_)"));
+
+    // Recreate the whole file path so we can open the file from disk
     foreach (QString entry, entries)
         result += path + "/" + entry;
 
     return result;
-}
-
-QStringList tst_Headers::getHeaders(const QString &path)
-{
-    return getFiles(path, QStringList("*.h"), QRegExp("^(?!ui_)"));
 }
 
 void tst_Headers::initTestCase()
@@ -97,7 +110,9 @@ void tst_Headers::initTestCase()
     }
 
     if (!qtModuleDir.contains("phonon") && !qtModuleDir.contains("qttools")) {
-        headers = getHeaders(qtModuleDir + "/src");
+        QDir dir(qtModuleDir + "/src");
+        if (dir.exists())
+            headers = getHeaders(dir.absolutePath());
 
         if (headers.isEmpty()) {
             QSKIP("It seems there are no headers in this module; this test is "
