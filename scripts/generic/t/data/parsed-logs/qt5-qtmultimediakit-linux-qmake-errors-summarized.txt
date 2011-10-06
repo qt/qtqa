@@ -1,6 +1,5 @@
 [ '--summarize', "$DATADIR/raw-logs/qt5-qtmultimediakit-linux-qmake-errors.txt" ]
-qmake failed to process some files, indicating that the files may
-contain syntax error(s) :(
+qmake failed to process some files :(
 
 We were trying to test qt5.  The qmake error(s) occurred in one of the
 dependencies, qtmultimediakit.

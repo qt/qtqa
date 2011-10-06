@@ -806,11 +806,16 @@ my %RE = (
 
         (?:
             \A
-            \QError processing project file: \E
+            (?:
+                \QError processing project file: \E
+                |
+                \QCannot find file: \E
+            )
             (?<file>
                 [^:]+?
                 \.pr[iof]
             )
+            \.?
             \z
         )
 
@@ -1499,13 +1504,11 @@ sub output_summary
         }
 
         my $pl = (scalar(@qmake_fail_sources) != 1);
-        Lingua::EN::Inflect::NUM( scalar(@qmake_fail_sources) );
 
         my $some_files = $pl ? 'some files'
                        :       $qmake_fail_sources[0];
 
-        $summary = inflect "qmake failed to process $some_files, indicating that the PL(file) may "
-                          .'contain syntax error(s) :(';
+        $summary = "qmake failed to process $some_files :(";
 
         if ($qmake_fail_qtmodule) {
             my $tested_qtmodule = $fail->{ pulse_property }{ QT_GITMODULE };

@@ -1,0 +1,9 @@
+[ '--summarize', "$DATADIR/raw-logs/qtdeclarative-linux-qmake-cannot-find-file.txt" ]
+qmake failed to process
+qt/qtdeclarative/tests/auto/particles/particles.pro :(
+
+  Cannot find file: /home/qt/.pulse2-agent/data/recipes/136678915/base/qt/qtdeclarative/tests/auto/particles/particles.pro.
+  make[3]: *** [particles/Makefile] Error 2
+  make[2]: *** [sub-auto-make_default] Error 2
+  make[1]: *** [module-qtdeclarative-tests-make_default] Error 2
+  make: *** [module-qtdeclarative] Error 2
