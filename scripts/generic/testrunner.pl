@@ -114,23 +114,32 @@ into the log file.
 
 =item *
 
-If the test is run with a testlib-style output file specifier, e.g. C<-o somefile>,
+If the test is run with a testlib old-style output file specifier, e.g. C<-o somefile>,
 then the testrunner modifies the C<-o> value passed to the test so that the
 test writes to a file under the given <directory>.  If the test also writes anything
 to stdout/stderr, that will be appended to the log file.  It is considered an error
 if the test doesn't generate the log file.
 
+=item *
+
+If the test is run with testlib new-style output file specifiers,
+e.g. C<-o somefile.xml,xml -o -,txt>, then the testrunner modifies the C<-o> values
+similarly as described above.  However, only the non-stdout streams are captured;
+any logger explicitly set to stdout is passed through untouched.
+Again, it is considered an error if the test doesn't generate all the expected log
+files.
+
 =back
 
 For example, if the following command is run:
 
-  testrunner --capture-logs $HOME/test-logs -- ./tst_qstring -o testlog.txt
+  testrunner --capture-logs $HOME/test-logs -- ./tst_qstring -o testlog.xml,xml -o -,txt
 
 ...then testrunner may run the test as:
 
-  ./tst_qstring -o $HOME/test-logs/qstring-testlog-00.txt
+  ./tst_qstring -o $HOME/test-logs/qstring-testlog-00.xml,xml -o -,txt
 
-...and if $HOME/test-logs/qstring-testlog-00.txt does not exist when the test completes,
+...and if $HOME/test-logs/qstring-testlog-00.xml does not exist when the test completes,
 the test will be considered a failure.
 
 B<NOTE>: not yet supported on Windows.
@@ -140,6 +149,10 @@ B<NOTE>: not yet supported on Windows.
 Exactly like C<--capture-logs directory>, except that stdout/stderr from the autotest
 are also written to stdout/stderr of the testrunner, rather than only being written
 to the captured log file.
+
+When using the testlib multiple-file logger, with stdout as one of the logger
+destinations, --tee-logs and --capture-logs are identical.  This is intentional,
+as testlib is already implementing its own tee-like behavior.
 
 B<NOTE>: not yet supported on Windows.
 
@@ -383,7 +396,11 @@ sub generate_unique_logfile_name
     # basename is now e.g. tst_qstring
 
     if (defined $args_ref->{ basename }) {
-        $basename .= '-'.$args_ref->{ basename };
+        my $original_basename = $args_ref->{ basename };
+        if ($original_basename eq '-') {
+            $original_basename = 'stdout';
+        }
+        $basename .= "-$original_basename";
     }
 
     # basename is now e.g. tst_qstring-testlog
@@ -409,42 +426,50 @@ sub generate_unique_logfile_name
     return $candidate;
 }
 
-# Returns the logfile which should be used.  Generates a new filename if necessary.
-sub logfile
+# Returns a hashref for the logfiles which should be used.  Generates a new filename if necessary.
+# The hash keys are filenames and values are testlib-compatible log formats (e.g. `txt' for plain
+# text).
+sub logfiles
 {
     my ($self) = @_;
 
-    if (!$self->{ logfile }) {
-        $self->set_logfile( $self->generate_unique_logfile_name( ) );
+    if (!$self->{ logfiles }) {
+        $self->set_logfiles( $self->generate_unique_logfile_name( ) => 'txt' );
     }
 
-    return $self->{ logfile };
+    return $self->{ logfiles };
 }
 
-# Sets the logfile which should be used.
-sub set_logfile
+# Sets the logfiles which should be used.
+sub set_logfiles
 {
-    my ($self, $logfile) = @_;
+    my ($self, %logfiles) = @_;
 
-    $self->{ logfile } = $logfile;
+    $self->{ logfiles } = \%logfiles;
 
     return;
 }
 
-# Creates a new, empty logfile, and returns an open filehandle to it.
-sub create_and_open_logfile
+# Creates new, empty logfiles, and returns an arrayref of open filehandles to them.
+sub create_and_open_logfiles
 {
     my ($self) = @_;
 
-    my $logfile = $self->logfile( );
-    my $logdir  = dirname( $logfile );
+    my $logfiles = $self->logfiles( );
+    my @out;
 
-    if (! -d $logdir && ! mkpath( $logdir )) {
-        $self->exit_with_logging_error( "mkpath $logdir: $!" );
+    while (my ($logfile, $format) = each %{ $logfiles }) {
+        my $logdir = dirname( $logfile );
+
+        if (! -d $logdir && ! mkpath( $logdir )) {
+            $self->exit_with_logging_error( "mkpath $logdir: $!" );
+        }
+
+        open( my $fh, '>', $logfile ) || $self->exit_with_logging_error( "open $logfile: $!" ); ## no critic
+        push @out, $fh;
     }
 
-    open( my $fh, '>', $logfile ) || $self->exit_with_logging_error( "open $logfile: $!" );
-    return $fh;
+    return \@out;
 }
 
 # Set up logging where the subprocess tried to log to a file via `-o'
@@ -458,8 +483,8 @@ sub setup_file_to_file_logging
 {
     my ($self, $proc, $args_ref) = @_;
 
-    # As the logfile, we'll use the rewritten -o option...
-    $self->set_logfile( $args_ref->{ replaced_output } );
+    # As the logfiles, we'll use the rewritten -o options...
+    $self->set_logfiles( %{ $args_ref->{ replaced_output } } );
 
     # ...but we do _not_ create or open it, as the subprocess is expected to do this.
     $self->{ subprocess_creates_logfile } = 1;
@@ -472,7 +497,7 @@ sub setup_file_to_file_logging
 
     my $print_sub = sub {
         $self->proc_reliable_print_to_logbuffer(@_);
-        if ($self->{ tee }) {
+        if ($self->{ tee } || $self->{ subprocess_logs_to_stdout }) {
             $self->proc_reliable_print_to_handle(@_);
         }
     };
@@ -489,11 +514,11 @@ sub setup_stream_to_file_logging
 {
     my ($self, $proc) = @_;
 
-    $self->{ logfh } = $self->create_and_open_logfile( );
+    $self->{ logfh } = $self->create_and_open_logfiles( );
 
     my $print_sub = sub {
         $self->proc_reliable_print_to_log(@_);
-        if ($self->{ tee }) {
+        if ($self->{ tee } || $self->{ subprocess_logs_to_stdout }) {
             $self->proc_reliable_print_to_handle(@_);
         }
     };
@@ -511,7 +536,7 @@ sub setup_stream_to_file_logging
 #
 # Returns a reference to a hash with at least the following keys:
 #
-#   replaced_output =>  the new value passed to -o, or undef if -o wasn't found
+#   replaced_output =>  ref to an array of new filenames passed to -o, or undef if no -o
 #
 sub parse_and_rewrite_testlib_args_for_logging
 {
@@ -552,14 +577,28 @@ sub parse_and_rewrite_testlib_args_for_logging
     my $sub_accept_rewrite_output_argument = sub {
         my ($option, $value) = @_;
 
-        my ($basename, undef, $suffix) = fileparse( $value, qr{\.[^.]*} );
-        $out->{ replaced_output } = $self->generate_unique_logfile_name({
+        my ($filename, $format) = split(/,/, $value);
+
+        if ($filename eq '-') {
+            # remember that we explicitly asked to log to stdout, so we know
+            # not to warn about it later, and to pass it through.
+            $self->{ subprocess_logs_to_stdout } = 1;
+
+            # Do not rewrite the `-o -,fmt' args.
+            # We explicitly do not attempt to capture or tee in this case,
+            # to keep things simple.
+            return $sub_accept_argument_with_value->( $option, $value );
+        }
+
+        my ($basename, undef, $suffix) = fileparse( $filename, qr{\.[^.]*} );
+        $filename = $self->generate_unique_logfile_name({
             basename    =>  $basename,
             suffix      =>  $suffix,
         });
 
         push @rewritten_args, "-$option";
-        push @rewritten_args, $out->{ replaced_output };
+        push @rewritten_args, ( $format ? "$filename,$format" : $filename );
+        $out->{ replaced_output }{ $filename } = $format || 'txt';
     };
 
     # Note that Getopt::Long object-oriented interface oddly has no way to read
@@ -699,18 +738,26 @@ sub finalize_logging
 
     # In this case, we expect the subprocess to have created a log file, so we have to
     # check that (and also append to it if necessary).
-    my $logfile = $self->logfile( );
+    my $logfiles = $self->logfiles( );
+    my $all_logfiles_exist = 1;
 
-    if (! -f $logfile) {
-        # It is considered an error if the test failed to create the logfile.
+    foreach my $logfile (keys %{ $logfiles }) {
+        next if -f $logfile;
+        $all_logfiles_exist = 0;
+        last;
+    }
+
+    # Expected to create some log files, but didn't do so?
+    if (!$all_logfiles_exist) {
         $self->{ force_failure_exitcode } ||= $EXIT_LOGGING_ERROR;
-        $self->append_logbuffer_to_logfile( $extra_log . $self->format_info(
+        $self->append_logbuffer_to_logfiles( $extra_log . $self->format_info(
             "FAIL! Test was badly behaved, the `-o' argument was ignored.\n"
            ."stdout/stderr follows:\n"
         ));
     }
-    else {
-        $self->append_logbuffer_to_logfile( $extra_log . $self->format_info(
+    # Unexpectedly wrote some stuff to stdout/stderr ?
+    elsif (!$self->{ subprocess_logs_to_stdout }) {
+        $self->append_logbuffer_to_logfiles( $extra_log . $self->format_info(
             "test output additional content directly to stdout/stderr:\n"
         ));
     }
@@ -719,9 +766,9 @@ sub finalize_logging
 }
 
 # If we captured any stdout/stderr from the subprocess which hasn't yet been logged,
-# append it to the logfile.  If $prefix is given, it is appended to the log file
+# append it to the logfiles.  If $prefix is given, it is appended to the log files
 # prior to other text.
-sub append_logbuffer_to_logfile
+sub append_logbuffer_to_logfiles
 {
     my ($self, $prefix) = @_;
 
@@ -730,23 +777,28 @@ sub append_logbuffer_to_logfile
 
     my $text = $prefix . $self->{ logbuffer };
 
-    my $logfile = $self->logfile( );
+    my $logfiles = $self->logfiles( );
 
-    # If the logfile already exists, we'll put a newline to separate our messages
-    # from the existing messages.
-    if (-e $logfile) {
-        $text = "\n".$text;
+    while (my ($logfile, $format) = each %{ $logfiles }) {
+        # Do _not_ add the messages for formats other than plaintext.
+        # That would create invalid XML, for example.
+        next unless $format eq 'txt';
+
+        # If the logfile already exists, we'll put a newline to separate our messages
+        # from the existing messages.
+        if (-e $logfile) {
+            $text = "\n".$text;
+        }
+
+        open( my $fh, '>>', $logfile )
+            || $self->exit_with_logging_error( "open $logfile for append: $!" );
+
+        $fh->print( $text );
+
+        close( $fh )
+            || $self->exit_with_logging_error( "close $logfile after append: $!" );
     }
 
-    open( my $fh, '>>', $self->logfile( ) )
-        || $self->exit_with_logging_error( "open $logfile for append: $!" );
-
-    $fh->print( $text );
-
-    close( $fh )
-        || $self->exit_with_logging_error( "close $logfile after append: $!" );
-
-    # Empty the buffer
     return;
 }
 
@@ -768,21 +820,23 @@ sub proc_reliable_print_to_log
     my ($self, $handle, @to_print) = @_;
 
     # $handle is ignored, instead we print to the log file.
-    $self->{ logfh }->printflush( @to_print );
+    foreach my $fh (@{ $self->{ logfh }}) {
+        $fh->printflush( @to_print );
+    }
 
     return;
 }
 
-# Print a message to the logfile (if any), or STDERR (if no log), or both (in tee-logs mode)
+# Print a message to the logfiles (if any), or STDERR (if no log), or both (in tee-logs mode)
 sub print_to_log_or_stderr
 {
     my ($self, @to_print) = @_;
 
     # flush so the log contains as much as possible if we're killed without completing
-    if ($self->{ logfh }) {
-        $self->{ logfh }->printflush( @to_print );
+    foreach my $fh (@{ $self->{ logfh }}) {
+        $fh->printflush( @to_print );
     }
-    if (!$self->{ logfh } || $self->{ tee }) {
+    if (!$self->{ logfh } || !@{ $self->{ logfh } } || $self->{ tee }) {
         STDERR->printflush( @to_print );
     }
 

@@ -113,9 +113,23 @@ sub run_one_test
     my $expected_logtext =   $arg_ref->{ expected_logtext }     // "";
     my $testname         =   $arg_ref->{ testname };
 
-    if ($expected_logfile) {
+    my @expected_logfiles
+        = $arg_ref->{ expected_logfiles } ? @{ $arg_ref->{ expected_logfiles } }
+        : $expected_logfile               ? ( $expected_logfile )
+        :                                   ();
+
+    my @expected_logtexts
+        = $arg_ref->{ expected_logtexts } ? @{ $arg_ref->{ expected_logtexts } }
+        : $expected_logtext               ? ( $expected_logtext )
+        :                                   ();
+
+    if (scalar(@expected_logfiles) != scalar(@expected_logtexts)) {
+        die 'test error: expected_logfiles and expected_logtexts count do not match!';
+    }
+
+    foreach my $logfile (@expected_logfiles) {
         # Ensure the log file doesn't exist prior to the test (should "never" happen)
-        ok( ! -e $expected_logfile, "$testname logfile doesn't exist prior to test" );
+        ok( ! -e $logfile, "$testname $logfile doesn't exist prior to test" );
     }
 
     my $status;
@@ -134,11 +148,16 @@ sub run_one_test
     is_or_like( $stderr, $expected_stderr, "$testname stderr is as expected" );
 
     # The rest of the verification steps are only applicable if a log file is expected and created
-    return if (!$expected_logfile);
-    return if (!ok( -e $expected_logfile, "$testname created $expected_logfile" ));
+    return if (!@expected_logfiles);
 
-    my $logtext = read_file( $expected_logfile );   # dies on error
-    is_or_like( $logtext, $expected_logtext, "$testname logtext is as expected" );
+    my $i = 0;
+    foreach my $logfile (@expected_logfiles) {
+        return if (!ok( -e $logfile, "$testname created $logfile" ));
+
+        my $logtext = read_file( $logfile );   # dies on error
+        is_or_like( $logtext, $expected_logtexts[$i], "$testname $logfile logtext is as expected" );
+        ++$i;
+    }
 
     return;
 }
@@ -222,12 +241,12 @@ sub print_testdata
 sub run_from_subprocess
 {
     my $exitcode        = 0;
-    my $output_filename = '-';
+    my @output_filenames;
     my $output_content;
     my $skip_log;
 
     GetOptions(
-        'o=s'               =>  \$output_filename,
+        'o=s'               =>  \@output_filenames,
         'maxwarnings=s'     =>  sub {},             # don't care, just emulating testlib
         'exitcode=i'        =>  \$exitcode,
         'skip-log'          =>  \$skip_log,
@@ -237,7 +256,11 @@ sub run_from_subprocess
     # which has been passed -o but ignored it (e.g. because QTest::qExec was used
     # incorrectly).
     if ($skip_log) {
-        $output_filename = '-';
+        @output_filenames = ('-');
+    }
+
+    if (!@output_filenames) {
+        @output_filenames = ('-');
     }
 
     $output_content = shift @ARGV;
@@ -248,10 +271,33 @@ sub run_from_subprocess
     confess "internal error: `$output_content' is not valid testdata"
         if (!$TEST_OUTPUT{$output_content});
 
-    print_testdata({
-        content     =>  $TEST_OUTPUT{$output_content},
-        filename    =>  $output_filename,
-    });
+    foreach my $filename_and_format (@output_filenames) {
+        my $filename;
+        my $format;
+
+        if ($filename_and_format =~ m{,}) {
+            ($filename, $format) = split(/,/, $filename_and_format);
+        }
+        else {
+            $filename = $filename_and_format;
+        }
+
+        my $content = $TEST_OUTPUT{$output_content};
+
+        # When printing more than one log, prefix with the format,
+        # to verify that we're really getting the right log in the right place.
+        if ($format) {
+            $content = [
+                $STREAM_OUTPUT => "format:$format\n",
+                @{ $content },
+            ];
+        }
+
+        print_testdata({
+            content     =>  $content,
+            filename    =>  $filename,
+        });
+    }
 
     exit $exitcode;
 }
@@ -605,6 +651,117 @@ sub run
     });
 
 
+
+    ###############################################################################################
+    # Capture with the new testlib simultaneous loggers.
+    # If we capture with:
+    #
+    #   -o file1,fmt1 -o file2,fmt2 -o -,fmt3
+    #
+    # ... then the testrunner should capture file1 and file2, but should pass through the third
+    # stream (fmt3) to stdout as normal.  stderr is also passed through uncaptured.
+    #
+    run_one_test({
+        testname         => 'mixed_nonascii new style -o, capture, multiple logs',
+        testrunner_args  => [ '--capture-logs', $tempdir, '--' ],
+        command_args     => [ '-o', 'testlog.xml,xml', '-o', 'testlog.xunitxml,xunitxml', '-o', '-,txt', 'mixed_nonascii' ],
+        expected_logfiles => [ "$tempdir/perl-testlog-00.xml", "$tempdir/perl-testlog-00.xunitxml" ],
+        expected_logtexts => [
+
+            # first log: xml format
+            encode_utf8(
+                "format:xml\n"
+               ."1:testlog:早上好\n"
+               ."2:testlog:你好马？\n"
+               ."3:testlog:早上好\n"
+               ."4:testlog:你好马？\n"
+            ),
+
+            # second log: xunitxml format
+            encode_utf8(
+                "format:xunitxml\n"
+               ."1:testlog:早上好\n"
+               ."2:testlog:你好马？\n"
+               ."3:testlog:早上好\n"
+               ."4:testlog:你好马？\n"
+            ),
+        ],
+        expected_stdout  => encode_utf8(
+            # we get the first portion of stdout also from the first two loggers
+            "1:stdout:早上好\n2:stdout:你好马？\n"
+           ."3:stdout:早上好\n4:stdout:你好马？\n"
+           ."1:stdout:早上好\n2:stdout:你好马？\n"
+           ."3:stdout:早上好\n4:stdout:你好马？\n"
+           ."format:txt\n"
+           ."1:testlog:早上好\n2:testlog:你好马？\n"
+           ."1:stdout:早上好\n2:stdout:你好马？\n"
+           ."3:stdout:早上好\n4:stdout:你好马？\n"
+           ."3:testlog:早上好\n4:testlog:你好马？\n"
+        ),
+        expected_stderr  => encode_utf8(
+            (
+                "1:stderr:早上好\n2:stderr:你好马？\n"
+               ."3:stderr:早上好\n4:stderr:你好马？\n"
+            ) x 3   # three loggers, so printed three times
+        ),
+    });
+
+
+
+    ###############################################################################################
+    # Tee with the new testlib simultaneous loggers.
+    # If we tee with:
+    #
+    #   -o file1,fmt1 -o file2,fmt2 -o -,fmt3
+    #
+    # ... the behavior is exactly the same as capture-logs.
+    # It is explicitly documented that tee-logs and capture-logs is the same thing in the
+    # multi-logger case, since testlib already is implementing the tee-like behavior.
+    #
+    run_one_test({
+        testname         => 'mixed_nonascii new style -o, tee, multiple logs, one stdout',
+        testrunner_args  => [ '--tee-logs', $tempdir, '--' ],
+        command_args     => [ '-o', 'testlog.xml,xml', '-o', 'testlog.txt,txt', '-o', '-,txt', 'mixed_nonascii' ],
+        expected_logfiles => [ "$tempdir/perl-testlog-01.xml", "$tempdir/perl-testlog-00.txt" ],
+        expected_logtexts => [
+
+            # first log: xml format, non-log text is not captured
+            encode_utf8(
+                "format:xml\n"
+               ."1:testlog:早上好\n"
+               ."2:testlog:你好马？\n"
+               ."3:testlog:早上好\n"
+               ."4:testlog:你好马？\n"
+            ),
+
+            # second log: text format, non-log text is not captured
+            encode_utf8(
+                "format:txt\n"
+               ."1:testlog:早上好\n"
+               ."2:testlog:你好马？\n"
+               ."3:testlog:早上好\n"
+               ."4:testlog:你好马？\n"
+            ),
+        ],
+        expected_stdout  => encode_utf8(
+            # we get the first portion of stdout also from the first two loggers
+            "1:stdout:早上好\n2:stdout:你好马？\n"
+           ."3:stdout:早上好\n4:stdout:你好马？\n"
+           ."1:stdout:早上好\n2:stdout:你好马？\n"
+           ."3:stdout:早上好\n4:stdout:你好马？\n"
+           ."format:txt\n"
+           ."1:testlog:早上好\n2:testlog:你好马？\n"
+           ."1:stdout:早上好\n2:stdout:你好马？\n"
+           ."3:stdout:早上好\n4:stdout:你好马？\n"
+           ."3:testlog:早上好\n4:testlog:你好马？\n"
+        ),
+        expected_stderr  => encode_utf8(
+            (
+                "1:stderr:早上好\n2:stderr:你好马？\n"
+               ."3:stderr:早上好\n4:stderr:你好马？\n"
+            ) x 3   # three loggers, so printed three times
+        ),
+    });
 
     ###############################################################################################
     # Make sure the options parser doesn't get tricked by bizarre options like
