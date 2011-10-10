@@ -1,7 +1,8 @@
-load(qttest_p4)
+CONFIG += testcase
+TARGET = tst_bic
 INCLUDEPATH += ../../shared
 SOURCES += tst_bic.cpp qbic.cpp
-QT = core
+QT = core testlib
 
 wince*:{
     DEFINES += SRCDIR=\\\"\\\"
