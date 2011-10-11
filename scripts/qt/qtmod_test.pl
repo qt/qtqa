@@ -100,6 +100,8 @@ my @PROPERTIES = (
 
     q{qt.tests.insignificant}  => q{if 1, ignore all failures from autotests},
 
+    q{qt.tests.args}           => q{additional arguments to pass to the tests},
+
     q{qt.tests.timeout}        => q{maximum runtime permitted for each autotest, in seconds; any }
                                 . q{test which does not completed within this time will be }
                                 . q{killed and considered a failure},
@@ -215,6 +217,25 @@ sub default_qt_dir
     return catfile( $self->{'base.dir'}, 'qt' );
 }
 
+sub default_qt_tests_args
+{
+    my ($self) = @_;
+
+    # If we're capturing logs, arrange to capture native XML by default
+    # for maximum fidelity, and also print to stdout for live feedback.
+    if ($self->{ 'qt.tests.capture_logs' } || $self->{ 'qt.tests.tee_logs' }) {
+        # Will create files like:
+        #
+        #   path/to/capturedir/tst_qstring-testresults-00.xml
+        #   path/to/capturedir/tst_qwidget-testresults-00.xml
+        #
+        # ...etc.
+        return q{-o testresults.xml,xml -o -,txt};
+    }
+
+    return q{};
+}
+
 sub read_and_store_configuration
 {
     my $self = shift;
@@ -238,6 +259,7 @@ sub read_and_store_configuration
         'qt.tests.timeout'        => 60*15                                       ,
         'qt.tests.capture_logs'   => q{}                                         ,
         'qt.tests.tee_logs'       => q{}                                         ,
+        'qt.tests.args'           => \&default_qt_tests_args                     ,
         'qt.tests.backtraces'     => \&default_qt_tests_backtraces               ,
         'qt.tests.flaky_mode'     => q{}                                         ,
 
@@ -639,6 +661,7 @@ sub _run_autotests_impl
     my $qt_dir    = $self->{ 'qt.dir' };
     my $make_bin  = $self->{ 'make.bin' };
     my $make_args = $self->{ 'make.args' };
+    my $qt_tests_args = $self->{ 'qt.tests.args' };
 
     # settings for this autotest run
     my $tests_dir            = $args{ tests_dir };
@@ -667,6 +690,7 @@ sub _run_autotests_impl
             '-k',                               # keep going after failure
                                                 # (to get as many results as possible)
             "TESTRUNNER=$testrunner_command",   # use our testrunner script
+            "TESTARGS=$qt_tests_args",          # and our test args (may be empty)
             'check',                            # run the autotests :)
         );
     };
