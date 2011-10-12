@@ -422,10 +422,5 @@ void tst_GuiAppLauncher::cleanupTestCase()
 {
 }
 
-#if defined(Q_OS_WINCE) || defined(Q_OS_SYMBIAN)
-QTEST_NOOP_MAIN
-#else
 QTEST_APPLESS_MAIN(tst_GuiAppLauncher)
-#endif
-
 #include "tst_guiapplauncher.moc"

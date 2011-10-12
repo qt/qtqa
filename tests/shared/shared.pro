@@ -6,3 +6,6 @@ SUBDIRS += \
     symbols \
     guiapplauncher \
     compilerwarnings
+
+# This test is not valid for Windows CE
+wince*: SUBDIRS -= guiapplauncher
