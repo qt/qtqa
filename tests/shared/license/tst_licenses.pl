@@ -46,6 +46,7 @@ use warnings;
 use utf8;
 use File::Find;
 use File::Basename;
+use File::Spec::Functions;
 use Cwd qw( abs_path getcwd );
 use List::Util qw( first );
 use Test::More;
@@ -486,13 +487,19 @@ sub run
     #
 
     # Check that qtbase is a peer directory of QT_MODULE_TO_TEST
-    if (!-d "$QT_MODULE_TO_TEST/../qtbase/") {
-        fail("Cannot find qtbase module at $QT_MODULE_TO_TEST/../qtbase/");
+    my @qtbase_paths = (
+        catfile( $QT_MODULE_TO_TEST, '..', 'qtbase' ),  # qt5 submodule case
+        catfile( $QT_MODULE_TO_TEST, 'qtbase' ),        # qt5 case
+    );
+
+    my $qtbase_path = first { -d $_ } @qtbase_paths;
+    if (! $qtbase_path) {
+        fail("Cannot find qtbase module, looked at: @qtbase_paths");
         return;
     }
 
     # Treat all header.* files in the root of qtbase as reference license text
-    foreach (glob "$QT_MODULE_TO_TEST/../qtbase/header.*") {
+    foreach (glob "$qtbase_path/header.*") {
         loadLicense($_) || return;
     }
 
