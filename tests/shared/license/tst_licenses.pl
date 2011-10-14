@@ -291,6 +291,10 @@ sub checkLicense
 {
     my $filename = shift;
 
+    # Use short filename for reporting purposes (remove useless noise from failure message)
+    my $shortfilename = $filename;
+    $shortfilename =~ s/^\Q$QT_MODULE_TO_TEST\E\///;
+
     # Read in the whole file
     my $fileHandle;
     if (!open($fileHandle, '<', $filename)) {
@@ -350,15 +354,15 @@ sub checkLicense
                 ($licenseType,$endDelimiter) = ($1, $2);
                 # Verify that we have reference text for the license type
                 if (!defined(@{$licenseTexts{$licenseType}})) {
-                    fail("No reference text for license type $licenseType in $filename, line $currentLine");
+                    fail("No reference text for license type $licenseType in $shortfilename, line $currentLine");
                     return 0;
                 }
                 $inLicenseText = 1;
             } elsif (/^\Q$beginDelimiter\E/) {
-                fail("QT_BEGIN_LICENSE does not follow Copyright block in $filename, line $currentLine");
+                fail("QT_BEGIN_LICENSE does not follow Copyright block in $shortfilename, line $currentLine");
                 return 0;
             } else {
-                fail("$filename has license header with inconsistent comment delimiters, line $currentLine");
+                fail("$shortfilename has license header with inconsistent comment delimiters, line $currentLine");
                 return 0;
             }
             $linesMatched++;
@@ -369,13 +373,13 @@ sub checkLicense
                 # We've got all the license text, does it match the reference?
                 my @referenceText = @{$licenseTexts{$licenseType}};
                 if ($#text != $#referenceText) {
-                    fail("License text and reference text have different number of lines in $filename");
+                    fail("License text and reference text have different number of lines in $shortfilename");
                     return 0;
                 }
                 my $n = 0;
                 while ($n <= $#text) {
                     if ($text[$n] ne $referenceText[$n]) {
-                        fail("Mismatch in license text in $filename\n".
+                        fail("Mismatch in license text in $shortfilename\n".
                              "    Actual: $text[$n]\n".
                              "  Expected: $referenceText[$n]");
                         return 0;
@@ -394,7 +398,7 @@ sub checkLicense
             } else {
                 # We didn't recognize the line -- it mustn't be wrapped in the
                 # same delimiters as the QT_BEGIN_LICENSE line.
-                fail("$filename has license header with inconsistent comment delimiters, line $currentLine");
+                fail("$shortfilename has license header with inconsistent comment delimiters, line $currentLine");
                 return 0;
             }
         }
@@ -402,18 +406,18 @@ sub checkLicense
 
     # Were we in the middle of a license when we reached EOF?
     if ($inLicenseText) {
-        fail("$filename has QT_BEGIN_LICENSE, but no QT_END_LICENSE");
+        fail("$shortfilename has QT_BEGIN_LICENSE, but no QT_END_LICENSE");
         return 0;
     }
 
     # Did we find any valid licenses?
     if ($matchedLicenses == 0) {
-        fail("$filename does not appear to contain a license header");
+        fail("$shortfilename does not appear to contain a license header");
         return 0;
     }
 
     # If we get here and matched at least one license then the file is OK.
-    pass("$filename");
+    pass($shortfilename);
     return 1;
 }
 
