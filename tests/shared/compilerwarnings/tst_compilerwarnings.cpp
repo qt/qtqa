@@ -47,12 +47,7 @@
 
 #include <QtTest/QtTest>
 
-#ifdef QT_NO_PROCESS
-QTEST_NOOP_MAIN
-#else
-
 #include "global.h"
-
 #include <stdlib.h>
 
 QT_USE_NAMESPACE
@@ -186,7 +181,9 @@ void tst_CompilerWarnings::warnings()
 
 #if !defined(Q_CC_INTEL) && defined(Q_CC_GNU) && __GNUC__ == 3
     QSKIP("gcc 3.x outputs too many bogus warnings", SkipAll);
-#endif
+#elif defined(QT_NO_PROCESS)
+    QSKIP("This Qt build does not have QProcess support", SkipAll);
+#else
 
     /*static*/ QString tmpFile;
     if (tmpFile.isEmpty()) {
@@ -308,6 +305,7 @@ void tst_CompilerWarnings::warnings()
     QCOMPARE(errList.count(), 0); // verbose info how many lines of errors in output
 
     tmpQSourceFile.remove();
+#endif
 }
 
 bool tst_CompilerWarnings::shouldIgnoreWarning(QString const& warning)
@@ -329,4 +327,3 @@ bool tst_CompilerWarnings::shouldIgnoreWarning(QString const& warning)
 QTEST_APPLESS_MAIN(tst_CompilerWarnings)
 
 #include "tst_compilerwarnings.moc"
-#endif // QT_NO_PROCESS

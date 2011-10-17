@@ -42,15 +42,8 @@
 
 #include <QtCore/QtCore>
 #include <QtTest/QtTest>
-
-#ifdef QT_NO_PROCESS
-QTEST_NOOP_MAIN
-#else
-
 #include "qbic.h"
-
 #include "global.h"
-
 #include <stdlib.h>
 
 class tst_Bic: public QObject
@@ -59,7 +52,9 @@ class tst_Bic: public QObject
 
 public:
     tst_Bic();
+#ifndef QT_NO_PROCESS
     QBic::Info getCurrentInfo(const QString &libName);
+#endif
 
     QHash<QString, QBic::Info> cachedCurrentInfo;
 
@@ -232,6 +227,7 @@ void tst_Bic::sizesAndVTables_data()
 #endif
 }
 
+#ifndef QT_NO_PROCESS
 QBic::Info tst_Bic::getCurrentInfo(const QString &libName)
 {
     QBic::Info &inf = cachedCurrentInfo[libName];
@@ -303,11 +299,14 @@ QBic::Info tst_Bic::getCurrentInfo(const QString &libName)
 
     return inf;
 }
+#endif
 
 void tst_Bic::sizesAndVTables()
 {
 #if !defined(Q_CC_GNU) || defined(Q_CC_INTEL)
     QSKIP("Test not implemented for this compiler/platform", SkipAll);
+#elif defined(QT_NO_PROCESS)
+    QSKIP("This Qt build does not have QProcess support", SkipAll);
 #else
 
     QFETCH_GLOBAL(QString, libName);
@@ -394,4 +393,3 @@ void tst_Bic::sizesAndVTables()
 QTEST_APPLESS_MAIN(tst_Bic)
 
 #include "tst_bic.moc"
-#endif
