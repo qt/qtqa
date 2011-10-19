@@ -1609,6 +1609,7 @@ sub output_summary
         # The summary is supposed to be human-readable text (not preformatted).
         # It's nice to wrap it.
         local $Text::Wrap::columns = 72;
+        local $Text::Wrap::huge = 'overflow'; # don't break up long paths
         print wrap(q{}, q{}, $summary);
 
         # Blank lines after summary begin the (indented) body of the raw text
