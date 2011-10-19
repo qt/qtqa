@@ -120,7 +120,7 @@ void tst_CompilerWarnings::initTestCase()
     qtModuleDir = QString::fromLocal8Bit(qgetenv("QT_MODULE_TO_TEST"));
     if (qtModuleDir.isEmpty()) {
         QSKIP("$QT_MODULE_TO_TEST is unset - nothing to test.  Set QT_MODULE_TO_TEST to the path "
-              "of a Qt module to test.", SkipAll);
+              "of a Qt module to test.");
     }
 
     QString configFile = qtModuleDir + "/tests/global/global.cfg";
@@ -128,8 +128,7 @@ void tst_CompilerWarnings::initTestCase()
         QSKIP(
             qPrintable(QString(
                 "%1 does not exist.  Create it if you want to run this test."
-            ).arg(configFile)),
-            SkipAll
+            ).arg(configFile))
         );
     }
 
@@ -180,9 +179,9 @@ void tst_CompilerWarnings::warnings()
     QFETCH(QStringList, cflags);
 
 #if !defined(Q_CC_INTEL) && defined(Q_CC_GNU) && __GNUC__ == 3
-    QSKIP("gcc 3.x outputs too many bogus warnings", SkipAll);
+    QSKIP("gcc 3.x outputs too many bogus warnings");
 #elif defined(QT_NO_PROCESS)
-    QSKIP("This Qt build does not have QProcess support", SkipAll);
+    QSKIP("This Qt build does not have QProcess support");
 #else
 
     /*static*/ QString tmpFile;
@@ -274,7 +273,7 @@ void tst_CompilerWarnings::warnings()
          << "-o" << tmpFile
          << tmpSourceFile;
 #else
-    QSKIP("Test not implemented for this compiler", SkipAll);
+    QSKIP("Test not implemented for this compiler");
 #endif
 
     QProcess proc;

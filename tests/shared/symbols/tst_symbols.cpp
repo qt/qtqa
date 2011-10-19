@@ -75,7 +75,7 @@ void tst_Symbols::initTestCase()
     qtModuleDir = QString::fromLocal8Bit(qgetenv("QT_MODULE_TO_TEST"));
     if (qtModuleDir.isEmpty()) {
         QSKIP("$QT_MODULE_TO_TEST is unset - nothing to test.  Set QT_MODULE_TO_TEST to the path "
-              "of a Qt module to test.", SkipAll);
+              "of a Qt module to test.");
     }
 
     QString configFile = qtModuleDir + "/tests/global/global.cfg";
@@ -83,8 +83,7 @@ void tst_Symbols::initTestCase()
         QSKIP(
             qPrintable(QString(
                 "%1 does not exist.  Create it if you want to run this test."
-            ).arg(configFile)),
-            SkipAll
+            ).arg(configFile))
         );
     }
 
@@ -150,7 +149,7 @@ static QString symbolToLine(const QString &symbol, const QString &lib)
 void tst_Symbols::globalObjects()
 {
 #ifndef Q_OS_LINUX
-    QSKIP("Linux-specific test", SkipAll);
+    QSKIP("Linux-specific test");
 #endif
 
     // these are regexps for global objects that are allowed in Qt
@@ -230,7 +229,7 @@ void tst_Symbols::globalObjects()
 void tst_Symbols::prefix()
 {
 #if defined(QT_CROSS_COMPILED)
-    QSKIP("Probably no compiler on the target", SkipAll);
+    QSKIP("Probably no compiler on the target");
 #elif defined(Q_OS_LINUX)
     QStringList qtTypes;
     qtTypes << "QString" << "QChar" << "QWidget" << "QObject" << "QVariant" << "QList"
@@ -501,7 +500,7 @@ void tst_Symbols::prefix()
 #  endif
     QVERIFY2(!isFailed, "Libraries contain non-prefixed symbols. See Debug output above.");
 #else
-    QSKIP("Linux-specific test", SkipAll);
+    QSKIP("Linux-specific test");
 #endif
 }
 

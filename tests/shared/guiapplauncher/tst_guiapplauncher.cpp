@@ -190,7 +190,7 @@ void tst_GuiAppLauncher::initTestCase()
 
     // Does a window manager exist on the platform?
     if (!m_wm->openDisplay(&message)) {
-        QSKIP(message.toLatin1().constData(), SkipAll);
+        QSKIP(message.toLatin1().constData());
     }
 
     // Paranoia: Do we have our test file?

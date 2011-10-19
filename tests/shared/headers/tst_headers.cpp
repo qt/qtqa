@@ -93,7 +93,7 @@ void tst_Headers::initTestCase()
     qtModuleDir = QString::fromLocal8Bit(qgetenv("QT_MODULE_TO_TEST"));
     if (qtModuleDir.isEmpty()) {
         QSKIP("$QT_MODULE_TO_TEST is unset - nothing to test.  Set QT_MODULE_TO_TEST to the path "
-              "of a Qt module to test.", SkipAll);
+              "of a Qt module to test.");
     }
 
     if (!qtModuleDir.contains("phonon") && !qtModuleDir.contains("qttools")) {
@@ -101,7 +101,7 @@ void tst_Headers::initTestCase()
 
         if (headers.isEmpty()) {
             QSKIP("It seems there are no headers in this module; this test is "
-                  "not applicable", SkipAll);
+                  "not applicable");
         }
     } else {
         QWARN("Some test functions will be skipped, because we ignore them for phonon and qttools.");
@@ -113,7 +113,7 @@ void tst_Headers::allHeadersData()
     QTest::addColumn<QString>("header");
 
     if (headers.isEmpty())
-        QSKIP("can't find any headers in your $QT_MODULE_TO_TEST/src.", SkipAll);
+        QSKIP("can't find any headers in your $QT_MODULE_TO_TEST/src.");
 
     foreach (QString hdr, headers) {
         if (hdr.contains("/3rdparty/") || hdr.endsWith("/src/tools/uic/qclass_lib_map.h"))

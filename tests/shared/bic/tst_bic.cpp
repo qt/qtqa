@@ -147,7 +147,7 @@ void tst_Bic::initTestCase()
     qtModuleDir = QString::fromLocal8Bit(qgetenv("QT_MODULE_TO_TEST"));
     if (qtModuleDir.isEmpty()) {
         QSKIP("$QT_MODULE_TO_TEST is unset - nothing to test.  Set QT_MODULE_TO_TEST to the path "
-              "of a Qt module to test.", SkipAll);
+              "of a Qt module to test.");
     }
 
     if (qgetenv("PATH").contains("teambuilder"))
@@ -159,8 +159,7 @@ void tst_Bic::initTestCase()
         QSKIP(
             qPrintable(QString(
                 "%1 does not exist.  Create it if you want to run this test."
-            ).arg(configFile)),
-            SkipAll
+            ).arg(configFile))
         );
     }
 
@@ -187,7 +186,7 @@ void tst_Bic::cleanupTestCase()
 void tst_Bic::sizesAndVTables_data()
 {
 #if !defined(Q_CC_GNU) || defined(Q_CC_INTEL)
-    QSKIP("Test not implemented for this compiler/platform", SkipAll);
+    QSKIP("Test not implemented for this compiler/platform");
 #else
 
 #if defined Q_OS_LINUX && defined Q_WS_X11
@@ -208,7 +207,7 @@ void tst_Bic::sizesAndVTables_data()
 #  define FILESUFFIX "win32-gcc-ia32"
 #else
 #  define FILESUFFIX "nonsuch"
-    QSKIP("No reference files found for this platform", SkipAll);
+    QSKIP("No reference files found for this platform");
 #endif
 
     QTest::addColumn<QString>("oldLib");
@@ -304,9 +303,9 @@ QBic::Info tst_Bic::getCurrentInfo(const QString &libName)
 void tst_Bic::sizesAndVTables()
 {
 #if !defined(Q_CC_GNU) || defined(Q_CC_INTEL)
-    QSKIP("Test not implemented for this compiler/platform", SkipAll);
+    QSKIP("Test not implemented for this compiler/platform");
 #elif defined(QT_NO_PROCESS)
-    QSKIP("This Qt build does not have QProcess support", SkipAll);
+    QSKIP("This Qt build does not have QProcess support");
 #else
 
     QFETCH_GLOBAL(QString, libName);
@@ -317,7 +316,7 @@ void tst_Bic::sizesAndVTables()
 
     //qDebug() << oldLib.arg(libName);
     if (oldLib.isEmpty() || !QFile::exists(oldLib.arg(libName)))
-        QSKIP("No platform spec found for this platform/version.", SkipSingle);
+        QSKIP("No platform spec found for this platform/version.");
 
     const QBic::Info oldLibInfo = bic.parseFile(oldLib.arg(libName));
     QVERIFY(!oldLibInfo.classVTables.isEmpty());
