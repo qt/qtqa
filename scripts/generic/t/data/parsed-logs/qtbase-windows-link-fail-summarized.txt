@@ -1,0 +1,5 @@
+[ '--summarize', "$DATADIR/raw-logs/qtbase-windows-link-fail.txt" ]
+Compilation failed for win32-msvc2010 Windows 7 :(
+
+  qfiledialog_win.obj : error LNK2019: unresolved external symbol "char const * const qt_file_dialog_filter_reg_exp" (?qt_file_dialog_filter_reg_exp@@3PBDB) referenced in function "class QString __cdecl qt_win_extract_filter(class QString const &)" (?qt_win_extract_filter@@YA?AVQString@@ABV1@@Z)
+  ..\..\lib\QtWidgets5.dll : fatal error LNK1120: 1 unresolved externals

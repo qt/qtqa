@@ -604,7 +604,42 @@ my %RE = (
             \z
         )
 
+        |
 
+        (?:
+            # Windows:
+            # ..\..\lib\QtWidgets5.dll : fatal error LNK1120: 1 unresolved externals
+            \A
+            \s*
+
+            (?<lib>
+                [^:]+?
+            )
+
+            \s+
+            :
+            \s+
+
+            (?<error>
+                \Qfatal error LNK\E \d+:
+                \s+
+                \d+
+                \s+
+                unresolved externals
+            )
+
+        )
+
+        |
+
+        (?:
+            # Windows:
+            # qfiledialog_win.obj : error LNK2019: unresolved external symbol "char const * const qt_file_dialog_filter_reg_exp" (?qt_file_dialog_filter_reg_exp@@3PBDB) referenced in function "class QString __cdecl qt_win_extract_filter(class QString const &)" (?qt_win_extract_filter@@YA?AVQString@@ABV1@@Z)
+            (?<error>
+                (?:fatal\s)?
+                error\sLNK\d+
+            )
+        )
     }xms,
 
     # Line continuing a linker error message previously extracted.
