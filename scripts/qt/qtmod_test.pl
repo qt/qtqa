@@ -174,8 +174,9 @@ sub new
 sub default_qt_repository
 {
     my ($self) = @_;
-    return defined( $self->{'location'} ) ? 'git://scm.dev.nokia.troll.no/qt/qt5.git'
-         :                                  'git://qt.gitorious.org/qt/qt5.git';
+    return ( $self->{'location'} )
+           ? 'git://scm.dev.nokia.troll.no/qt/qt5.git'
+           : 'git://qt.gitorious.org/qt/qt5.git';
 }
 
 sub default_qt_tests_enabled
@@ -347,7 +348,7 @@ sub run_git_checkout
     if (defined( $location ) && ($location eq 'brisbane')) {
         push @init_repository_arguments, '-brisbane-nokia-developer';
     }
-    elsif (defined( $location )) {
+    elsif (defined( $location ) && ($location eq 'oslo')) {
         push @init_repository_arguments, '-nokia-developer';
     }
 
