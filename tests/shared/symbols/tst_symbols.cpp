@@ -58,10 +58,11 @@ class tst_Symbols: public QObject
     Q_OBJECT
 private slots:
     void initTestCase();
-    void cleanupTestCase();
 
-    void prefix();
     void globalObjects();
+#ifndef QT_CROSS_COMPILED
+    void prefix();
+#endif
 
 private:
     QString qtModuleDir;
@@ -106,10 +107,6 @@ void tst_Symbols::initTestCase()
     qDebug() << qtLibDir << keys;
 }
 
-void tst_Symbols::cleanupTestCase()
-{
-}
-
 /* Computes the line number from a symbol */
 static QString symbolToLine(const QString &symbol, const QString &lib)
 {
@@ -148,10 +145,6 @@ static QString symbolToLine(const QString &symbol, const QString &lib)
 */
 void tst_Symbols::globalObjects()
 {
-#ifndef Q_OS_LINUX
-    QSKIP("Linux-specific test");
-#endif
-
     // these are regexps for global objects that are allowed in Qt
     QStringList whitelist = QStringList()
         // ignore qInitResources - they are safe to use
@@ -226,11 +219,10 @@ void tst_Symbols::globalObjects()
     }
 }
 
+// This test needs a compiler on the target, which is unlikely if cross-compiled.
+#ifndef QT_CROSS_COMPILED
 void tst_Symbols::prefix()
 {
-#if defined(QT_CROSS_COMPILED)
-    QSKIP("Probably no compiler on the target");
-#elif defined(Q_OS_LINUX)
     QStringList qtTypes;
     qtTypes << "QString" << "QChar" << "QWidget" << "QObject" << "QVariant" << "QList"
             << "QMap" << "QHash" << "QVector" << "QRect" << "QSize" << "QPoint"
@@ -495,14 +487,12 @@ void tst_Symbols::prefix()
         }
     }
 
-#  if defined(Q_OS_LINUX) && defined(Q_CC_INTEL)
+#if defined(Q_CC_INTEL)
     QEXPECT_FAIL("", "linux-icc* incorrectly exports some QtWebkit symbols, waiting for a fix from Intel.", Continue);
-#  endif
-    QVERIFY2(!isFailed, "Libraries contain non-prefixed symbols. See Debug output above.");
-#else
-    QSKIP("Linux-specific test");
 #endif
+    QVERIFY2(!isFailed, "Libraries contain non-prefixed symbols. See Debug output above.");
 }
+#endif
 
 QTEST_MAIN(tst_Symbols)
 #include "tst_symbols.moc"
