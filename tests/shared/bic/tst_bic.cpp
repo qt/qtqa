@@ -96,7 +96,7 @@ tst_Bic::tst_Bic()
     bic.addBlacklistedClass(QLatin1String("ucontext64"));
     bic.addBlacklistedClass(QLatin1String("sigaltstack"));
 
-    /* QtOpenGL includes qt_windows.h, and some SDKs dont have these structs present */
+    /* QtOpenGL includes qt_windows.h, and some SDKs don't have these structs present */
     bic.addBlacklistedClass(QLatin1String("tagTITLEBARINFO"));
     bic.addBlacklistedClass(QLatin1String("tagMENUITEMINFOA"));
     bic.addBlacklistedClass(QLatin1String("tagMENUITEMINFOW"));
