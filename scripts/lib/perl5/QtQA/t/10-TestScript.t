@@ -28,6 +28,7 @@ BEGIN { use_ok 'QtQA::TestScript'; }
 my %TEST_PERMITTED_PROPERTIES = (
     'dog.color' => 'The color of the dog.',
     'cat.color' => 'The color of the cat.',
+    'fish.color'=> 'The color of the fish.',
 );
 
 my @TEST_EXE_ARGS1 = (
@@ -84,7 +85,7 @@ sub test_property_get_defaults
     return;
 }
 
-# Test that `property' will get the property values from `PULSE_...' environment variables
+# Test that `property' will get the property values from environment variables
 sub test_property_get_from_env
 {
     my $script = QtQA::TestScript->new;
@@ -93,13 +94,20 @@ sub test_property_get_from_env
     my $value;
 
     {
-        local $ENV{PULSE_DOG_COLOR} = 'grey';
-        local $ENV{PULSE_CAT_COLOR} = 'light blue';
+        local $ENV{PULSE_DOG_COLOR} = 'grey';       # old style, PULSE
+        local $ENV{QTQA_CAT_COLOR}  = 'light blue'; # new style, QTQA
 
         lives_ok { $value = $script->property('dog.color', 'black') }; # default is ignored
         is($value, 'grey');
         lives_ok { $value = $script->property('cat.color')          };
         is($value, 'light blue');
+
+        # And verify that QTQA takes precedence over PULSE
+        local $ENV{QTQA_FISH_COLOR}  = 'silver';
+        local $ENV{PULSE_FISH_COLOR} = 'gold';
+
+        lives_ok { $value = $script->property('fish.color') };
+        is($value, 'silver');
     }
 
     # A repeated call should return the same value (cached),
@@ -108,6 +116,8 @@ sub test_property_get_from_env
     is($value, 'grey');
     lives_ok { $value = $script->property('cat.color')          };
     is($value, 'light blue');
+    lives_ok { $value = $script->property('fish.color')         };
+    is($value, 'silver');
 
     return;
 }

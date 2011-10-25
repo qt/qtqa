@@ -519,18 +519,26 @@ sub _property_name_to_option_name
 
 # Converts a property name (e.g. qt.configure.args) to an option
 # name suitable for an environment variable (e.g. PULSE_QT_CONFIGURE_ARGS)
-# The `PULSE_...' style of naming is used for convenient integration
-# with the Pulse CI tool.
-sub _property_name_to_env_name
+# Several possible names are returned, in order of priority.
+# The `QTQA_...' names are preferred, but the `PULSE_...' style of naming
+# is used for convenient integration with the Pulse CI tool.
+sub _property_name_to_env_names
 {
     my ($self, $name) = @_;
 
     $name = uc $name;
     $name =~ s/[^A-Z0-9]/_/g;
-    $name = "PULSE_$name";
 
-    return $name;
+    return ("QTQA_$name", "PULSE_$name");
+}
 
+# Like _property_name_to_env_names, but only returns the highest priority name.
+sub _property_name_to_env_name
+{
+    my ($self, $name) = @_;
+
+    my ($out) = $self->_property_name_to_env_names( $name );
+    return $out;
 }
 
 # Get the value of a property from an environment variable
@@ -539,9 +547,15 @@ sub _resolve_property_from_env
     my ($self, $property_name, $property_default_value) = @_;
 
     my $value;
-    my $env_name = $self->_property_name_to_env_name( $property_name );
-    if (exists $ENV{$env_name}) {
-        $value = $ENV{$env_name};
+    my @env_names = $self->_property_name_to_env_names( $property_name );
+    foreach my $env_name (@env_names) {
+        if (exists $ENV{$env_name}) {
+            $value = $ENV{$env_name};
+            last;
+        }
+    }
+    if (defined $value) {
+        # good, nothing to be done
     }
     elsif (defined $property_default_value) {
         $value = $property_default_value;
@@ -677,8 +691,9 @@ script.  Properties may be sourced from:
 
 =item environment
 
-Environment variables prefixed with C<PULSE_> may be used to set properties.
-This facilitates integration with the Pulse CI tool by Zutubi.
+Environment variables prefixed with C<QTQA_> or C<PULSE_> may be used to set properties.
+
+The C<PULSE_> syntax facilitates integration with the Pulse CI tool by Zutubi.
 Read the Pulse documentation for more information about the concepts of Pulse
 properties.
 
