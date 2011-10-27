@@ -181,8 +181,10 @@ void tst_Headers::macros()
     QVERIFY(endHeader >= 0);
     QVERIFY(beginHeader < endHeader);
 
-    QVERIFY(content.indexOf(QRegExp("\\bslots\\s*:")) == -1);
-    QVERIFY(content.indexOf(QRegExp("\\bsignals\\s*:")) == -1);
+    // "signals" and "slots" should be banned in public headers
+    // headers which use signals/slots wouldn't compile if Qt is configured with QT_NO_KEYWORDS
+    QVERIFY2(content.indexOf(QRegExp("\\bslots\\s*:")) == -1, "Header contains `slots' - use `Q_SLOTS' instead!");
+    QVERIFY2(content.indexOf(QRegExp("\\bsignals\\s*:")) == -1, "Header contains `signals' - use `Q_SIGNALS' instead!");
 
     if (header.contains("/sql/drivers/") || header.contains("/arch/qatomic")
         || header.endsWith("qglobal.h")
