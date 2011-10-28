@@ -55,6 +55,7 @@ private slots:
 
 private:
     static QStringList getHeaders(const QString &path);
+    static QString explainPrivateSlot(const QString &line);
 
     void allHeadersData();
     QStringList headers;
@@ -157,6 +158,22 @@ void tst_Headers::allHeadersData()
     }
 }
 
+QString tst_Headers::explainPrivateSlot(const QString& line)
+{
+    // Extract private slot from a line like:
+    //  Q_PRIVATE_SLOT(d_func(), void fooBar(...))
+    QRegExp re("^\\s+Q_PRIVATE_SLOT\\([^,]+,\\s*(.+)\\)\\s*$");
+    QString slot = line;
+    if (re.indexIn(slot) != -1) {
+        slot = re.cap(1).simplified();
+    }
+
+    return QString(
+        "Private slot `%1' should be named starting with _q_, to reduce the risk of collisions "
+        "with signals/slots in user classes"
+    ).arg(slot);
+}
+
 void tst_Headers::privateSlots()
 {
     QFETCH(QString, header);
@@ -170,7 +187,7 @@ void tst_Headers::privateSlots()
     QStringList content = QString::fromLocal8Bit(f.readAll()).split("\n");
     foreach (QString line, content) {
         if (line.contains("Q_PRIVATE_SLOT("))
-            QVERIFY(line.contains("_q_"));
+            QVERIFY2(line.contains("_q_"), qPrintable(explainPrivateSlot(line)));
     }
 }
 
