@@ -178,15 +178,12 @@ void tst_Headers::privateSlots()
 {
     QFETCH(QString, header);
 
-    if (header.endsWith("/qobjectdefs.h"))
-        return;
-
     QFile f(header);
     QVERIFY2(f.open(QIODevice::ReadOnly), qPrintable(f.errorString()));
 
     QStringList content = QString::fromLocal8Bit(f.readAll()).split("\n");
     foreach (QString line, content) {
-        if (line.contains("Q_PRIVATE_SLOT("))
+        if (line.contains("Q_PRIVATE_SLOT(") && !line.contains("define Q_PRIVATE_SLOT"))
             QVERIFY2(line.contains("_q_"), qPrintable(explainPrivateSlot(line)));
     }
 }
