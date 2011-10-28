@@ -109,11 +109,30 @@ void tst_Headers::initTestCase()
               "of a Qt module to test.");
     }
 
-    if (!qtModuleDir.contains("phonon") && !qtModuleDir.contains("qttools")) {
-        QDir dir(qtModuleDir + "/src");
-        if (dir.exists())
-            headers = getHeaders(dir.absolutePath());
+    QDir dir(qtModuleDir);
+    QString module = dir.dirName(); // git module name, e.g. qtbase, qtdeclarative
 
+    if (module != "phonon" && module != "qttools") {
+        if (dir.exists("src")) {
+
+            /*
+                Let all paths be relative to the directory containing the module.
+                For example, if the full path is:
+
+                    /home/qt/build/qt5/qtbase/src/corelib/tools/qstring.h
+
+                ... the first part of the path is useless noise, and causes the
+                test log to look different on different machines.
+                Cut it down to only the important part:
+
+                    qtbase/src/corelib/tools/qstring.h
+
+            */
+
+            QVERIFY(QDir::setCurrent(dir.absolutePath() + "/.."));
+
+            headers = getHeaders(module + "/src");
+        }
         if (headers.isEmpty()) {
             QSKIP("It seems there are no headers in this module; this test is "
                   "not applicable");
