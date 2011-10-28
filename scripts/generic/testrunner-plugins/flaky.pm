@@ -116,7 +116,7 @@ sub run_completed
 
     # Second try, test gave same results both times...
     if ($status == $self->{ first_attempt_status }) {
-        $testrunner->print_info( "test failure seems to be stable\n" );
+        $testrunner->print_info( "test failure could be reproduced twice consecutively\n" );
         return;
     }
 

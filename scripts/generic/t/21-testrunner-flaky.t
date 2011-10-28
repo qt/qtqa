@@ -31,7 +31,7 @@ use QtQA::Test::More qw( is_or_like );
 # error from a stable failing test
 Readonly my $ERROR_STABLE_FAILURE => <<'END_MESSAGE';
 QtQA::App::TestRunner: test failed, running again to see if it is flaky...
-QtQA::App::TestRunner: test failure seems to be stable
+QtQA::App::TestRunner: test failure could be reproduced twice consecutively
 END_MESSAGE
 
 # perl to simulate a test which fails, then succeeds.
