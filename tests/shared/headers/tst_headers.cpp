@@ -178,6 +178,9 @@ void tst_Headers::privateSlots()
 {
     QFETCH(QString, header);
 
+    if (header.endsWith("_p.h"))
+        return;
+
     QFile f(header);
     QVERIFY2(f.open(QIODevice::ReadOnly), qPrintable(f.errorString()));
 
