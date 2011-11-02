@@ -542,6 +542,10 @@ my %RE = (
 
                 \Qsymbol(s) not found\E
 
+                |
+
+                \Qduplicate symbol\E .*
+
                 # add others as discovered
             )
 
