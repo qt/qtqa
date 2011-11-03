@@ -593,7 +593,7 @@ my %RE = (
             \A
             \s*
 
-            \S+?    # file part (may be .o, .cpp, or both, with also .text reference)
+            .+?     # file part (may be .o, .cpp, or both, with also .text reference)
 
             :
             \s

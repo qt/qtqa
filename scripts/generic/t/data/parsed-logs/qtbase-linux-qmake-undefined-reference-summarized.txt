@@ -1,0 +1,11 @@
+[ '--summarize', "$DATADIR/raw-logs/qtbase-linux-qmake-undefined-reference.txt" ]
+Compilation failed for linux-g++-32 developer-build Ubuntu 10.04 x86 :(
+
+  qvariant.o: In function `QVariantComparator<CoreTypesFilter>::FilteredComparator<QEasingCurve, true>::compare(QVariant::Private const*, QVariant::Private const*)':
+  qvariant.cpp:(.text._ZN18QVariantComparatorI15CoreTypesFilterE18FilteredComparatorI12QEasingCurveLb1EE7compareEPKN8QVariant7PrivateES8_[QVariantComparator<CoreTypesFilter>::FilteredComparator<QEasingCurve, true>::compare(QVariant::Private const*, QVariant::Private const*)]+0x37): undefined reference to `QEasingCurve::operator==(QEasingCurve const&) const'
+  qvariant.o: In function `QVariantConstructor<CoreTypesFilter>::CallConstructor<QEasingCurve, true>::CallConstructor(QVariantConstructor<CoreTypesFilter> const&)':
+  qvariant.cpp:(.text._ZN19QVariantConstructorI15CoreTypesFilterE15CallConstructorI12QEasingCurveLb1EEC1ERKS1_[QVariantConstructor<CoreTypesFilter>::CallConstructor<QEasingCurve, true>::CallConstructor(QVariantConstructor<CoreTypesFilter> const&)]+0x48): undefined reference to `QEasingCurve::QEasingCurve(QEasingCurve const&)'
+  qvariant.cpp:(.text._ZN19QVariantConstructorI15CoreTypesFilterE15CallConstructorI12QEasingCurveLb1EEC1ERKS1_[QVariantConstructor<CoreTypesFilter>::CallConstructor<QEasingCurve, true>::CallConstructor(QVariantConstructor<CoreTypesFilter> const&)]+0x99): undefined reference to `QEasingCurve::QEasingCurve(QEasingCurve::Type)'
+  qvariant.o: In function `void v_clear<QEasingCurve>(QVariant::Private*, QEasingCurve*)':
+  qvariant.cpp:(.text._Z7v_clearI12QEasingCurveEvPN8QVariant7PrivateEPT_[void v_clear<QEasingCurve>(QVariant::Private*, QEasingCurve*)]+0x1d): undefined reference to `QEasingCurve::~QEasingCurve()'
+  make: *** [/home/qt/.pulse2-agent/data/recipes/139766326/base/qt/qtbase/bin/qmake] Error 1

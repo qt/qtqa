@@ -214,6 +214,7 @@ failed to compile.
   tst_sphere.cpp:(.text+0xb87b): undefined reference to `operator<<(QDebug, Sphere const&)'
   tst_sphere.cpp:(.text+0xb97b): undefined reference to `operator<<(QDebug, Sphere const&)'
   tst_sphere.o: In function `void* qMetaTypeConstructHelper<Sphere>(Sphere const*)':
+  tst_sphere.cpp:(.text._Z24qMetaTypeConstructHelperI6SphereEPvPKT_[void* qMetaTypeConstructHelper<Sphere>(Sphere const*)]+0x84): undefined reference to `Sphere::Sphere(double)'
   make[4]: *** [tst_sphere] Error 1
   make[3]: *** [sub-sphere-make_default] Error 2
   make[2]: *** [sub-auto-make_default] Error 2
