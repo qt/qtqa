@@ -103,6 +103,10 @@ Readonly my $RE => {
 \QQtQA::App::TestRunner: ================================================================================\E \n
     }xms,
 
+    exited_with_signal => qr{
+\QQtQA::App::TestRunner: Process exited due to signal 11; dumped core\E                                     \n
+    }xms,
+
     flaky_second_pass => qr{
 \QQtQA::App::TestRunner: test failed on first attempt and passed on second attempt!\E                       \n
 \QQtQA::App::TestRunner:   first attempt:  exited with signal 11\E                                          \n
@@ -115,6 +119,7 @@ Readonly my $RE => {
 # note: hardcoded 3328 == (13 << 8)
 Readonly my $ERROR_VANISHING_CRASH_WITH_FLAKY_AND_CORE => qr|
 \A
+    $RE->{ exited_with_signal } # testrunner tells us that the test exited with signal 11...
     $RE->{ flaky_first_fail }   # `flaky' says it fails, will try again...
     $RE->{ core_backtrace }     # `core' shows the backtrace from the first fail
     $RE->{ flaky_second_pass }  # `flaky' says it passed on second try
@@ -125,6 +130,7 @@ Readonly my $ERROR_VANISHING_CRASH_WITH_FLAKY_AND_CORE => qr|
 Readonly my $LOG_VANISHING_CRASH_WITH_FLAKY_AND_CORE => qr|
 \A
     \QFirst attempt; crashing...\E \n
+    $RE->{ exited_with_signal }
     $RE->{ flaky_first_fail }
     $RE->{ core_backtrace }
     \QSecond attempt; causing much vexation by passing!\E \n
@@ -136,6 +142,7 @@ Readonly my $LOG_VANISHING_CRASH_WITH_FLAKY_AND_CORE => qr|
 # Note the only difference from above is that some output order is switched
 Readonly my $ERROR_VANISHING_CRASH_WITH_CORE_AND_FLAKY => qr|
 \A
+    $RE->{ exited_with_signal } # testrunner tells us that the test exited with signal 11
     $RE->{ core_backtrace }     # `core' shows the backtrace from the first fail
     $RE->{ flaky_first_fail }   # `flaky' says it fails, will try again...
     $RE->{ flaky_second_pass }  # `flaky' says it passed on second try
@@ -146,6 +153,7 @@ Readonly my $ERROR_VANISHING_CRASH_WITH_CORE_AND_FLAKY => qr|
 Readonly my $LOG_VANISHING_CRASH_WITH_CORE_AND_FLAKY => qr|
 \A
     \QFirst attempt; crashing...\E \n
+    $RE->{ exited_with_signal }
     $RE->{ core_backtrace }
     $RE->{ flaky_first_fail }
     \QSecond attempt; causing much vexation by passing!\E \n

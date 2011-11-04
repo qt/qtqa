@@ -33,6 +33,8 @@ Readonly my $SIGSEGV_BACKTRACE => qr{
 
     \A
 
+    \QQtQA::App::TestRunner: Process exited due to signal 11; dumped core\E\n
+
     # We can't feasibly code the expected backtrace, so we just test that...
     #  (1) the core plugin claims to be producing a backtrace (backtrace follows:)
     QtQA::App::TestRunner: [^\n]+ backtrace[ ]follows:[^\n]+    \n

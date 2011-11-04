@@ -679,16 +679,12 @@ sub setup_logging
     return;
 }
 
-# Finish up the logging of $proc, which should have completed by now.
-# Additional messages about $proc may be printed if errors occurred.
-sub finalize_logging
+# Print info about proc's termination (if any)
+sub proc_print_exit_info
 {
     my ($self) = @_;
 
     my $proc = $self->proc( );
-
-    # Extra text to put to the log.
-    my $extra_log = "";
 
     # Print out any messages from the Proc::Reliable; this will include information
     # such as "process timed out", etc.
@@ -699,22 +695,20 @@ sub finalize_logging
         $msg =~ s{ ^ Exceeded \s retry \s limit \s* }{}xms;
     }
 
-    $extra_log .= $self->format_info( $msg );
-
     my $status = $proc->status( );
     if ($status == -1 && !$msg) {
         # we should have a msg, but avoid being entirely silent if we don't
-        $extra_log .= $self->format_info( "Proc::Reliable failed to run process for unknown reasons\n" );
+        $msg = "Proc::Reliable failed to run process for unknown reasons\n";
     }
 
     my $signal = ($status & 127);
     if ($signal) {
         my $coredumped = ($status & 128);
-        $extra_log .= $self->format_info(
+        $msg .=
             "Process exited due to signal $signal"
            .($coredumped ? '; dumped core' : q{})
            ."\n"
-        );
+        ;
     }
 
     # Proc::Reliable gives an exit code of 255 if the binary doesn't exist.
@@ -724,15 +718,22 @@ sub finalize_logging
     if ($exitcode == 255) {
         my $command = ($self->command( ))[0];
         if (! -e $command) {
-            $extra_log .= $self->format_info( "$command: No such file or directory\n" );
+            $msg .= "$command: No such file or directory\n";
         }
     }
 
+    $self->print_info( $msg );
+    return;
+}
+
+# Finish up the logging of $proc, which should have completed by now.
+sub finalize_logging
+{
+    my ($self) = @_;
+
     if (!$self->{ subprocess_creates_logfile }) {
         # If the logfile was created by us and not the subprocess, or if there was no log
-        # file at all, then there is nothing more to finalize.
-        # We just have to print the extra log text.
-        $self->print_to_log_or_stderr( $extra_log );
+        # file at all, then there is nothing to finalize.
         return;
     }
 
@@ -750,14 +751,14 @@ sub finalize_logging
     # Expected to create some log files, but didn't do so?
     if (!$all_logfiles_exist) {
         $self->{ force_failure_exitcode } ||= $EXIT_LOGGING_ERROR;
-        $self->append_logbuffer_to_logfiles( $extra_log . $self->format_info(
+        $self->append_logbuffer_to_logfiles( $self->format_info(
             "FAIL! Test was badly behaved, the `-o' argument was ignored.\n"
            ."stdout/stderr follows:\n"
         ));
     }
     # Unexpectedly wrote some stuff to stdout/stderr ?
     elsif (!$self->{ subprocess_logs_to_stdout }) {
-        $self->append_logbuffer_to_logfiles( $extra_log . $self->format_info(
+        $self->append_logbuffer_to_logfiles( $self->format_info(
             "test output additional content directly to stdout/stderr:\n"
         ));
     }
@@ -935,6 +936,8 @@ sub do_subprocess
 
             $proc->run( [ $self->command( ) ] );
         }
+
+        $self->proc_print_exit_info( );
 
         my $result = $self->plugins_run_completed( );
 
