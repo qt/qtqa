@@ -54,6 +54,7 @@ use Cwd qw( abs_path );
 use Data::Dumper;
 use English qw( -no_match_vars );
 use Env::Path;
+use File::Path;
 use File::Spec::Functions;
 use List::MoreUtils qw( any );
 use autodie;
@@ -70,6 +71,12 @@ Readonly my %COVERAGE_TOOLS => (
 # All properties used by this script.
 my @PROPERTIES = (
     q{base.dir}                => q{top-level source directory of module to test},
+
+    q{shadowbuild.dir}         => q{top-level build directory; defaults to $(base.dir). }
+                                . q{Setting this to any value other than $(base.dir) implies }
+                                . q{a shadow build, in which case the directory will be }
+                                . q{recursively deleted if it already exists, and created if }
+                                . q{it does not yet exist.},
 
     q{location}                => q{location hint for git mirrors (`oslo' or `brisbane'); }
                                 . q{only useful inside of Nokia LAN},
@@ -257,6 +264,7 @@ sub read_and_store_configuration
 
     $self->read_and_store_properties(
         'base.dir'                => \&QtQA::TestScript::default_common_property ,
+        'shadowbuild.dir'         => \&QtQA::TestScript::default_common_property ,
         'location'                => \&QtQA::TestScript::default_common_property ,
         'make.args'               => \&QtQA::TestScript::default_common_property ,
         'make.bin'                => \&QtQA::TestScript::default_common_property ,
@@ -288,6 +296,18 @@ sub read_and_store_configuration
     $self->{'qt.gitmodule.dir'} = ($self->{'qt.gitmodule'} eq 'qt5')
         ? $self->{'qt.dir'}
         : catfile( $self->{'qt.dir'}, $self->{'qt.gitmodule'} )
+    ;
+
+    # Path of the top-level qt5 build:
+    $self->{'qt.build.dir'} = ($self->{'base.dir'} eq $self->{'shadowbuild.dir'})
+        ? $self->{'qt.dir'}          # no shadow build - same path as qt sources
+        : $self->{'shadowbuild.dir'} # shadow build - whatever is requested by the property
+    ;
+
+    # Path of this gitmodule's build;
+    $self->{'qt.gitmodule.build.dir'} = ($self->{'qt.gitmodule'} eq 'qt5')
+        ? $self->{'qt.build.dir'}
+        : catfile( $self->{'qt.build.dir'}, $self->{'qt.gitmodule'} )
     ;
 
     if ($self->{'qt.tests.capture_logs'} && $self->{'qt.tests.tee_logs'}) {
@@ -448,7 +468,10 @@ sub run_compile
 
     # properties
     my $qt_dir                  = $self->{ 'qt.dir'                  };
+    my $qt_build_dir            = $self->{ 'qt.build.dir'            };
     my $qt_gitmodule            = $self->{ 'qt.gitmodule'            };
+    my $qt_gitmodule_dir        = $self->{ 'qt.gitmodule.dir'        };
+    my $qt_gitmodule_build_dir  = $self->{ 'qt.gitmodule.build.dir'  };
     my $qt_configure_args       = $self->{ 'qt.configure.args'       };
     my $qt_configure_extra_args = $self->{ 'qt.configure.extra_args' };
     my $qt_coverage_tool        = $self->{ 'qt.coverage.tool'        };
@@ -462,11 +485,28 @@ sub run_compile
         $qt_configure_extra_args .= " -$qt_coverage_tool";
     }
 
-    chdir( $qt_dir );
+    if ($qt_dir ne $qt_build_dir) {
+        # shadow build?  make sure we start clean.
+        if (-e $qt_build_dir) {
+            warn(
+                 ("*" x 80)."\n"
+                ."*** WARNING: Build dir $qt_build_dir already exists - going to delete it.\n"
+                ."*** WARNING: You have only a few seconds to abort (CTRL+C) !\n"
+                .("*" x 80)."\n"
+            );
+            sleep 15;
+            rmtree( $qt_build_dir );
+            warn "Removed $qt_build_dir.\n";
+        }
+        mkpath( $qt_build_dir );
+    }
 
-    my $configure
-        = ($OSNAME =~ /win32/i) ? 'configure.bat'
-          :                       './configure';
+    chdir( $qt_build_dir );
+
+    my $configure = catfile( $qt_dir, 'configure' );
+    if ($OSNAME =~ /win32/i) {
+        $configure .= '.bat';
+    }
 
     $self->exe( $configure, split(/\s+/, "$qt_configure_args $qt_configure_extra_args") );
 
@@ -496,14 +536,27 @@ sub run_compile
         # done on the dependencies.  At least the path to `qmake' will be wrong.
 
         # First, we build all deps:
-        my %dependencies = $self->read_dependencies( "$qt_gitmodule/sync.profile" );
+        my %dependencies = $self->read_dependencies( "$qt_gitmodule_dir/sync.profile" );
         my @module_targets = map { "module-$_" } keys %dependencies;
         push @commands, sub { $self->exe( $make_bin, @make_args, @module_targets ) };
 
         # Then we qmake, make the module we're actually interested in
-        my $qmake_bin = catfile( $qt_dir, 'qtbase', 'bin', 'qmake' );
-        push @commands, sub { chdir( $qt_gitmodule ) };
-        push @commands, sub { $self->exe( $qmake_bin, '-r' ) };
+        # Figure out the interesting .pro file (must be only one)
+        my @pro_files = glob( "$qt_gitmodule_dir/*.pro" );
+        if (@pro_files > 1) {
+            confess "There are several .pro files (@pro_files), I don't know which one to use!";
+        }
+
+        if (! -e $qt_gitmodule_build_dir) {
+            mkpath( $qt_gitmodule_build_dir );
+            # Note, we don't have to worry about emptying the build dir,
+            # because it's always under the top-level build dir, and we already
+            # cleaned that if it existed.
+        }
+
+        my $qmake_bin = catfile( $qt_build_dir, 'qtbase', 'bin', 'qmake' );
+        push @commands, sub { chdir( $qt_gitmodule_build_dir ) };
+        push @commands, sub { $self->exe( $qmake_bin, '-r', $pro_files[0] ) };
         push @commands, sub { $self->exe( $make_bin, @make_args ) };
     }
 
@@ -519,13 +572,13 @@ sub run_install
     my ($self) = @_;
 
     my $make_bin        = $self->{ 'make.bin' };
-    my $qt_dir          = $self->{ 'qt.dir' };
+    my $qt_build_dir    = $self->{ 'qt.build.dir' };
     my $qt_gitmodule    = $self->{ 'qt.gitmodule' };
     my $qt_make_install = $self->{ 'qt.make_install' };
 
     return if (!$qt_make_install);
 
-    chdir( $qt_dir );
+    chdir( $qt_build_dir );
 
     # XXX: this will not work for modules which aren't hosted in qt/qt5.git
     my @make_args = ($qt_gitmodule eq 'qt5') ? ('install')
@@ -616,16 +669,16 @@ sub run_autotests
 
     return if (!$self->{ 'qt.tests.enabled' });
 
-    my $qt_gitmodule_dir = $self->{ 'qt.gitmodule.dir' };
+    my $qt_gitmodule_build_dir = $self->{ 'qt.gitmodule.build.dir' };
 
     # Add this module's `bin' directory to PATH.
     # FIXME: verify if this is really needed (should each module's tools build directly
     # into the prefix `bin' ?)
     local $ENV{ PATH } = $ENV{ PATH };
-    Env::Path->PATH->Prepend( catfile( $qt_gitmodule_dir, 'bin' ) );
+    Env::Path->PATH->Prepend( catfile( $qt_gitmodule_build_dir, 'bin' ) );
 
     return $self->_run_autotests_impl(
-        tests_dir            =>  $qt_gitmodule_dir,
+        tests_dir            =>  $qt_gitmodule_build_dir,
         insignificant_option =>  'qt.tests.insignificant',
         do_compile           =>  0,
     );
@@ -637,8 +690,9 @@ sub run_qtqa_autotests
 
     return if (!$self->{ 'qt.qtqa-tests.enabled' });
 
-    my $qt_gitmodule     = $self->{ 'qt.gitmodule' };
-    my $qt_gitmodule_dir = $self->{ 'qt.gitmodule.dir' };
+    my $qt_gitmodule           = $self->{ 'qt.gitmodule' };
+    my $qt_gitmodule_dir       = $self->{ 'qt.gitmodule.dir' };
+    my $qt_gitmodule_build_dir = $self->{ 'qt.gitmodule.build.dir' };
 
     # path to the qtqa shared autotests.
     my $qtqa_tests_dir = catfile( $FindBin::Bin, qw(.. .. tests shared) );
@@ -648,7 +702,7 @@ sub run_qtqa_autotests
 
     if ($qt_gitmodule ne 'qt5') {
         # testing just one module
-        push @module_dirs, $qt_gitmodule_dir;
+        push @module_dirs, $qt_gitmodule_build_dir;
     }
     else {
         # we're testing all modules;

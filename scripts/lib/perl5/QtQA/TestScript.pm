@@ -65,6 +65,7 @@ use QtQA::Proc::Reliable;
 # some common properties with subs or scalars to determine their default values
 my %DEFAULT_COMMON_PROPERTIES = (
     'base.dir'  =>  \&Cwd::getcwd,
+    'shadowbuild.dir' => sub { shift->_resolved_property('base.dir') },
     'location'  =>  \&_default_location,
     'make.bin'  =>  'make',
     'make.args' =>  '-j5',
