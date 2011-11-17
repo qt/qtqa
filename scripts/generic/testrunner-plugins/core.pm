@@ -283,14 +283,20 @@ sub _get_backtrace
 {
     my ($self, $file) = @_;
 
+    # Limit the backtrace lines to 100 in order to
+    # prevent huge logfiles and slower builds
+    my $MAX_BACKTRACE_FRAMES = '100';
+    my $BACKTRACE_COMMANDS = "thread apply all bt $MAX_BACKTRACE_FRAMES";
+
     # Note, newer versions of gdb support an `--eval-command' option to
     # pass commands through the command line, but we want to support some
     # older gdb (e.g. on mac) which only have `-x'
     my $cmd_file = File::Temp->new( 'qtqa-testrunner-gdb.XXXXXX', TMPDIR => 1 );
-    $cmd_file->printflush( 'thread apply all bt' );
+    $cmd_file->printflush( $BACKTRACE_COMMANDS );
 
     my $command = ($self->{ testrunner }->command( ))[0];
     return capture_merged {
+        print qq(gdb commands: $BACKTRACE_COMMANDS\n);
         my @cmd = (
             'gdb',
             $command,
