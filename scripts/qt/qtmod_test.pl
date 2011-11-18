@@ -239,6 +239,13 @@ sub default_qt_dir
     return catfile( $self->{'base.dir'}, 'qt' );
 }
 
+sub default_qt_configure_args
+{
+    my ($self) = @_;
+
+    return q{-opensource -confirm-license -prefix }.catfile( $self->{ 'qt.dir' }, 'qtbase' );
+}
+
 sub default_qt_tests_args
 {
     my ($self) = @_;
@@ -274,7 +281,7 @@ sub read_and_store_configuration
         'qt.repository'           => \&default_qt_repository                     ,
         'qt.branch'               => q{master}                                   ,
         'qt.init-repository.args' => q{}                                         ,
-        'qt.configure.args'       => q{-opensource -confirm-license}             ,
+        'qt.configure.args'       => \&default_qt_configure_args                 ,
         'qt.configure.extra_args' => q{}                                         ,
         'qt.coverage.tests_output'=> q{}                                         ,
         'qt.coverage.tool'        => q{}                                         ,
