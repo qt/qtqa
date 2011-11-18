@@ -311,7 +311,13 @@ sub run_cpan
 
     unless (-e $cpan[0]) {
         print "I need cpanminus and it's not installed yet; installing it myself :)\n";
-        $self->install_cpanminus($prefix);
+        # Return instead of die if cpanm installation fails, so our caller can choose
+        # to retry if appropriate.
+        eval { $self->install_cpanminus($prefix) };
+        if ($@) {
+            warn "$@\ncpanminus isn't installed, and I failed to install it :(\n";
+            return 1;
+        }
     }
 
     print "+ @cpan @modules\n";
@@ -578,6 +584,9 @@ sub try_hard_to_install
         return 0;
     }
 
+    # we'll retry up to this many times, e.g. to recover from temporary network issues.
+    my $MAX_TRIES = 8;
+    my $tries = 0;
     while (1) {
         my $exitcode = $args{install_sub}($self, @need);
         if ($exitcode == 0) {
@@ -610,8 +619,16 @@ sub try_hard_to_install
         else {
             print "\nNope, looks like no progress was made.  See errors:\n";
             $args{need_sub}($self, { quiet => 0 });
-            print "\nGiving up :(\n";
-            return 0;
+            if ($tries++ < $MAX_TRIES) {
+                # wait for 8, 16, 32, 64 ... seconds.
+                my $delay = 2**($tries+2);
+                print "\nTrying again in $delay seconds [attempt $tries of $MAX_TRIES].\n";
+                sleep $delay;
+            }
+            else {
+                print "\nGiving up :(\n";
+                return 0;
+            }
         }
     }
 
