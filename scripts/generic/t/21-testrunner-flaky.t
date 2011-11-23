@@ -400,6 +400,8 @@ sub test_testrunner_flaky
                 $tempdir,
                 '--plugin',
                 'flaky',
+                '--flaky-mode',     # note we are testing mixing of plugin args
+                'worst',            # with global testrunner args.
                 '--plugin',
                 'core',
                 '--',

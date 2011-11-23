@@ -88,6 +88,10 @@ are usable for any kind of autotest.
 
 Print this message.
 
+=item B<-->
+
+Separates the options to testrunner from the test command and arguments (mandatory).
+
 =item B<--timeout> <value>
 
 If the test takes longer than <value> seconds, it will be killed, and
@@ -257,7 +261,7 @@ log which are not valid XML.
 
 use Getopt::Long qw(
     GetOptionsFromArray
-    :config pass_through require_order
+    :config pass_through
 );
 
 use Carp;
@@ -344,6 +348,11 @@ sub run
 
     # note: plugins may consume additional arguments
     $self->plugins_init( \@args );
+
+    # Chomp the remaining --, if any
+    if (@args && $args[0] eq '--') {
+        shift @args;
+    }
 
     $self->do_subprocess( @args );
     $self->exit_appropriately( );

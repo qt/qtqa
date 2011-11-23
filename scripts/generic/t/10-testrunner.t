@@ -279,18 +279,6 @@ sub test_arg_parsing
         testname            =>  "-- stops argument processing",
     });
 
-    # test that testrunner.pl stops parsing at the first non-option argument
-    test_run({
-        args                =>  [ '--timeout', '10', 'perl', '--help' ],
-        expected_stdout     =>  qr{
-            ^ Usage: \s+             # try to verify that we get _perl's_ "usage" message;
-            [^ ]* perl (?:\.exe)? \s # may be just `perl', or `c:\path\to\perl.exe', or other
-        }xmsi,
-        expected_stderr     =>  q{},
-        expected_success    =>  1,  # perl --help exits successfully
-        testname            =>  "parsing stops at first non-option",
-    });
-
     return;
 }
 
