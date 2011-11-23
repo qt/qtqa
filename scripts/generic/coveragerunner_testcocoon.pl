@@ -99,6 +99,8 @@ use lib "$FindBin::Bin/../lib/perl5";
 
 package QtQA::App::CoverageRunnerTestCocoon;
 use base qw(QtQA::TestScript);
+
+use Carp;
 use Getopt::Long qw(GetOptionsFromArray);
 use English qw( -no_match_vars );
 use File::Basename;
