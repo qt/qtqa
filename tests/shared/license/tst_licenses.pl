@@ -337,6 +337,8 @@ sub checkLicense
                 $linesMatched = 1;
             }
             # ...else this is not the beginning of copyright block -- do nothing
+        } elsif ($linesMatched == 1 and /$leadingDelimiter$copyrightBlock[0]/ ) {
+            # more copyright lines, do nothing
         } elsif ($linesMatched >= 1 and $linesMatched <= $#copyrightBlock) {
             # Did we match the next line of the copyright block?
             # If the line doesn't match the delimiter or the expected pattern,
