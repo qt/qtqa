@@ -498,6 +498,23 @@ my %RE = (
             \s*
             \z
         )
+
+        |
+
+        (?:
+            # MSVC providing context from an earlier header.
+            # example:
+            #
+            #   winsock2.h(2370) : error C2375: 'WSAAsyncGetServByPort' : redefinition; different linkage
+            #   winsock.h(901) : see declaration of 'WSAAsyncGetServByPort'
+            #
+            \(\d+\) \s* : \s*
+            (?:
+                \Qsee previous definition of\E
+                |
+                \Qsee declaration of\E
+            )
+        )
     }xms,
 
     # Failure to link.
