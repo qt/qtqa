@@ -170,6 +170,7 @@ sub run
 
     $self->read_and_store_configuration;
     $self->run_git_checkout;
+    $self->run_configure;
     $self->run_compile;
     $self->run_install;
     $self->run_autotests;
@@ -469,24 +470,16 @@ sub run_git_checkout
     return;
 }
 
-sub run_compile
+sub run_configure
 {
     my ($self) = @_;
 
     # properties
     my $qt_dir                  = $self->{ 'qt.dir'                  };
     my $qt_build_dir            = $self->{ 'qt.build.dir'            };
-    my $qt_gitmodule            = $self->{ 'qt.gitmodule'            };
-    my $qt_gitmodule_dir        = $self->{ 'qt.gitmodule.dir'        };
-    my $qt_gitmodule_build_dir  = $self->{ 'qt.gitmodule.build.dir'  };
     my $qt_configure_args       = $self->{ 'qt.configure.args'       };
     my $qt_configure_extra_args = $self->{ 'qt.configure.extra_args' };
     my $qt_coverage_tool        = $self->{ 'qt.coverage.tool'        };
-    my $make_bin                = $self->{ 'make.bin'                };
-    my $make_args               = $self->{ 'make.args'               };
-
-    # true iff the module is hosted in qt5.git (affects build procedure)
-    my $module_in_qt5 = $self->{ module_in_qt5 };
 
     if ($qt_coverage_tool) {
         $qt_configure_extra_args .= " -$qt_coverage_tool";
@@ -517,11 +510,43 @@ sub run_compile
 
     $self->exe( $configure, split(/\s+/, "$qt_configure_args $qt_configure_extra_args") );
 
+    return;
+}
+
+
+sub run_compile
+{
+    my ($self) = @_;
+
+    # properties
+    my $qt_dir                  = $self->{ 'qt.dir'                  };
+    my $qt_build_dir            = $self->{ 'qt.build.dir'            };
+    my $qt_gitmodule            = $self->{ 'qt.gitmodule'            };
+    my $qt_gitmodule_dir        = $self->{ 'qt.gitmodule.dir'        };
+    my $qt_gitmodule_build_dir  = $self->{ 'qt.gitmodule.build.dir'  };
+    my $make_bin                = $self->{ 'make.bin'                };
+    my $make_args               = $self->{ 'make.args'               };
+    my $qt_make_install         = $self->{ 'qt.make_install'         };
+
+    # true iff the module is hosted in qt5.git (affects build procedure)
+    my $module_in_qt5 = $self->{ module_in_qt5 };
+
+    chdir( $qt_build_dir );
+
+    # is this shadow build with installation enabled?
+    if ($qt_make_install && $qt_dir ne $qt_build_dir) {
+        $self->{ shadow_build_with_install_enabled } = 1;
+    }
+
     my @make_args = split(/ /, $make_args);
     my @commands;
 
     if ($qt_gitmodule eq 'qt5') {
         # Building qt5; just do a `make' of all default targets in the top-level makefile.
+        if ($self->{ shadow_build_with_install_enabled }) {
+            # shadow build and installing? need to build & install together
+            push @make_args, 'install';
+        }
         push @commands, sub { $self->exe( $make_bin, @make_args ) };
     }
     elsif ($module_in_qt5) {
@@ -529,7 +554,12 @@ sub run_compile
         # makefile with a `module-FOO' target for this module, with correct dependency
         # information. Issuing a `make module-FOO' should automatically build the module
         # and all deps, as parallel as possible.
-        push @commands, sub { $self->exe( $make_bin, @make_args, "module-$qt_gitmodule" ) };
+        my $make_target = "module-$qt_gitmodule";
+        if ($self->{ shadow_build_with_install_enabled }) {
+            # shadow build and installing? need to build & install together
+            $make_target .= '-install_subtargets';
+        }
+        push @commands, sub { $self->exe( $make_bin, @make_args, $make_target ) };
     }
     else {
         # Building a module, hosted outside of qt5.
@@ -541,6 +571,9 @@ sub run_compile
 
         # XXX this does not work if Qt is configured such that `make install' needs to be
         # done on the dependencies.  At least the path to `qmake' will be wrong.
+
+        # XXX also this is not implemented yet to work properly when shadow-build
+        # with installation is enabled.
 
         # First, we build all deps:
         my %dependencies = $self->read_dependencies( "$qt_gitmodule_dir/sync.profile" );
@@ -579,9 +612,16 @@ sub run_install
     my ($self) = @_;
 
     my $make_bin        = $self->{ 'make.bin' };
+    my $qt_dir          = $self->{ 'qt.dir' };
     my $qt_build_dir    = $self->{ 'qt.build.dir' };
     my $qt_gitmodule    = $self->{ 'qt.gitmodule' };
     my $qt_make_install = $self->{ 'qt.make_install' };
+
+    # if shadow_build_with_install_enabled true, no need to install anymore.
+    if ($self->{ shadow_build_with_install_enabled }) {
+        warn __PACKAGE__ . ": installation was included in the build process.\n";
+        return;
+    }
 
     return if (!$qt_make_install);
 
