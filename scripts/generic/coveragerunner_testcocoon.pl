@@ -59,9 +59,7 @@ coveragerunner_testcocoon - helper script to run coverage analysis after build (
   # Will generate:
   #
   #   $HOME/qtbase/qtbase-coverage_report-<currentdatetime>.xml
-  #   $HOME/qtbase/qtbase-coverage_src-<currentdatetime>.csmes
   #   $HOME/qtbase/qtbase-coverage_global-<currentdatetime>.csmes
-  #   $HOME/qtbase/qtbase-coverage_unittests-<currentdatetime>.csmes (copy of --qtcoverage-tests_output)
   #
 
 This script depends on auto tests run with testrunner script. It is designed to integrate with Qt configured
@@ -211,6 +209,14 @@ sub run
         '--source-sort=name',
         '--global=all'
     );
+
+    # Delete the sources and tests csmes to save space.
+    unlink($csmes_source) or confess "unlink $csmes_source: $!";
+    unlink($csmes_tests) or confess "unlink $csmes_source: $!";
+
+    # Compress global csmes to save space
+    $self->exe('gzip',
+        $csmes_global);
 
     return;
 }
