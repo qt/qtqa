@@ -254,7 +254,8 @@ sub default_qt_dir
 {
     my ($self) = @_;
 
-    if ($self->{ 'qt.gitmodule' } eq 'qt5' ) {
+    # We don't need to clone qt5 superproject for qt/qt5.git or qt/qt.git
+    if (($self->{'qt.gitmodule'} eq 'qt5') or ($self->{'qt.gitmodule'} eq 'qt')) {
         return $self->{ 'base.dir' };
     }
 
@@ -293,8 +294,8 @@ sub default_qt_minimal_deps
 
     my $gitmodule = $self->{ 'qt.gitmodule' };
 
-    # minimal dependencies makes sense for everything but these two
-    return ($gitmodule ne 'qt5' && $gitmodule ne 'qtbase');
+    # minimal dependencies makes sense for everything but these three
+    return ($gitmodule ne 'qt5' && $gitmodule ne 'qtbase' && $gitmodule ne 'qt');
 }
 
 sub default_qt_install_dir
@@ -360,7 +361,7 @@ sub read_and_store_configuration
     ;
 
     # Path of this gitmodule's build;
-    $self->{'qt.gitmodule.build.dir'} = ($self->{'qt.gitmodule'} eq 'qt5')
+    $self->{'qt.gitmodule.build.dir'} = (($self->{'qt.gitmodule'} eq 'qt5') or ($self->{'qt.gitmodule'} eq 'qt'))
         ? $self->{'qt.build.dir'}
         : catfile( $self->{'qt.build.dir'}, $self->{'qt.gitmodule'} )
     ;
@@ -427,6 +428,9 @@ sub run_git_checkout
     my $qt_dir        = $self->{ 'qt.dir'        };
     my $qt_gitmodule  = $self->{ 'qt.gitmodule'  };
     my $location      = $self->{ 'location'      };
+
+    # We don't need to clone submodules for qt/qt.git
+    return if ($qt_gitmodule eq 'qt');
 
     chdir( $base_dir );
 
@@ -565,7 +569,13 @@ sub run_configure
 
     my $configure = catfile( $qt_dir, 'configure' );
     if ($OSNAME =~ /win32/i) {
-        $configure .= '.bat';
+        if ($self->{ 'qt.gitmodule' } eq 'qt') {
+            # Qt4 does not have a .bat but .exe configure script
+            $configure .= '.exe';
+        }
+        else {
+            $configure .= '.bat';
+        }
     }
 
     $self->exe( $configure, split(/\s+/, "$qt_configure_args $qt_configure_extra_args") );
@@ -604,8 +614,8 @@ sub run_compile
     my @make_args = split(/ /, $make_args);
     my @commands;
 
-    if ($qt_gitmodule eq 'qt5') {
-        # Building qt5; just do a `make' of all default targets in the top-level makefile.
+    if (($self->{'qt.gitmodule'} eq 'qt5') or ($self->{'qt.gitmodule'} eq 'qt')) {
+        # Building qt5 or qt4; just do a `make' of all default targets in the top-level makefile.
         if ($self->{ shadow_build_with_install_enabled }) {
             # shadow build and installing? need to build & install together
             push @make_args, 'install';
@@ -711,8 +721,9 @@ sub run_install
     chdir( $qt_build_dir );
 
     # XXX: this will not work for modules which aren't hosted in qt/qt5.git
-    my @make_args = ($qt_gitmodule eq 'qt5') ? ('install')
-                  :                            ("module-$qt_gitmodule-install_subtargets");
+    my @make_args = (($self->{'qt.gitmodule'} eq 'qt5') or ($self->{'qt.gitmodule'} eq 'qt'))
+                    ? ('install')
+                    : ("module-$qt_gitmodule-install_subtargets");
 
     $self->exe( $make_bin, @make_args );
 
@@ -827,10 +838,17 @@ sub run_autotests
     local $ENV{ PATH } = $ENV{ PATH };
     Env::Path->PATH->Prepend( catfile( $qt_gitmodule_build_dir, 'bin' ) );
 
+    # In qt5, all tests are expected to be correctly set up in top-level .pro files, so they
+    # do not need an explicit added compile step.
+    # In qt4, this is not the case, so they need to be compiled separately.
     return $self->_run_autotests_impl(
-        tests_dir            =>  $qt_gitmodule_build_dir,
+        tests_dir            =>  ($self->{ 'qt.gitmodule' } ne 'qt')
+                                 ? $qt_gitmodule_build_dir                           # qt5
+                                 : catfile( $qt_gitmodule_build_dir, 'tests/auto' ), # qt4
         insignificant_option =>  'qt.tests.insignificant',
-        do_compile           =>  0,
+        do_compile           =>  ($self->{ 'qt.gitmodule' } ne 'qt')
+                                 ? 0                                                 # qt5
+                                 : 1,                                                # qt4
     );
 }
 
@@ -850,7 +868,7 @@ sub run_qtqa_autotests
     # director(ies) of modules we want to test
     my @module_dirs;
 
-    if ($qt_gitmodule ne 'qt5') {
+    if (($qt_gitmodule ne 'qt5') or ($qt_gitmodule ne 'qt')) {
         # testing just one module
         push @module_dirs, $qt_gitmodule_dir;
     }
@@ -923,6 +941,10 @@ sub _run_autotests_impl
     if ($self->{ shadow_build_with_install_enabled }) {
         # shadow build and installing? need to add install dir into PATH
         Env::Path->PATH->Prepend( catfile( $qt_install_dir, 'bin' ) );
+    }
+    elsif ($self->{ 'qt.gitmodule' } eq 'qt') {
+        # qt4 case. this is needed to use the right qmake to compile the tests
+        Env::Path->PATH->Prepend( catfile( $qt_dir, 'bin' ) );
     }
     else {
         Env::Path->PATH->Prepend( catfile( $qt_dir, 'qtbase', 'bin' ) );
