@@ -137,6 +137,7 @@ my %excludedFiles = (
                           # need not have a license header.
                           qr{^tests/auto/declarative/},
                           qr{^tests/auto/qtquick1/},
+                          qr{^tests/auto/qtquick2/},
                           qr{^tests/benchmarks/declarative/javascript/data/},
                         ],
     "qtdoc"          => [
