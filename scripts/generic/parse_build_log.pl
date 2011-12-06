@@ -66,7 +66,7 @@ parse_build_log - extract the interesting parts from a build log
 
   # Or perhaps attempt to summarize the error in human-readable format,
   # and directly load the log over HTTP:
-  $ ./parse_build_log --summarize http://example.com/some-ci-system/linux-build-log.txt
+  $ ./parse_build_log --summarize http://example.com/some-ci-system/linux-build-log.txt.gz
   qtdeclarative failed to compile on Linux:
 
     compiling qml/qdeclarativebinding.cpp
@@ -77,8 +77,8 @@ parse_build_log - extract the interesting parts from a build log
     make[1]: *** [module-qtdeclarative-src-make_default] Error 2
     make: *** [module-qtdeclarative] Error 2
 
-This script takes a raw plain text build log and attempts to extract the interesting parts,
-and possibly provide a nice human-readable summary of the failure.
+This script takes a raw plain text or gzip-compressed build log and attempts to extract
+the interesting parts, and possibly provide a nice human-readable summary of the failure.
 
 =head1 OPTIONS
 
@@ -111,6 +111,7 @@ use File::Basename;
 use File::Fetch;
 use File::Slurp qw();
 use Getopt::Long qw(GetOptionsFromArray);
+use IO::Uncompress::AnyInflate qw(anyinflate);
 use Lingua::EN::Inflect qw(inflect PL WORDLIST);
 use Lingua::EN::Numbers qw(num2en);
 use List::MoreUtils qw(any);
@@ -1085,6 +1086,7 @@ sub read_file
 
     my $file = $self->{ file };
 
+    my $text;
     my @lines;
 
     if ($file =~ m{://} && ! -e $file) {
@@ -1105,15 +1107,28 @@ sub read_file
 
         local $File::Fetch::WARN = 0;   # do not warn about insignificant things
 
-        my $text;
         $ff->fetch( to => \$text ) || die "fetch $file: ".$ff->error( );
-
-        @lines = split( qr{\n}, $text );
     }
     else {
         # normal read from disk
-        @lines = File::Slurp::read_file( $file );
+        $text = File::Slurp::read_file( $file );
     }
+
+    my $uncompressed;
+
+    # Allow compressed or uncompressed logs.
+    # `anyinflate' autodetects compression, if there is any; and it returns false
+    # if there is no (supported) compression.
+    if (anyinflate( \$text => \$uncompressed )) {
+        if ($self->{ debug }) {
+            print STDERR "input was compressed - automatically decompressed it.\n";
+        }
+    }
+    else {
+        $uncompressed = $text;
+    }
+
+    @lines = split( qr{\n}, $uncompressed );
 
     # normalize before returning
     @lines = map { $self->normalize_line($_) } @lines;

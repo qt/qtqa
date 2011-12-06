@@ -153,6 +153,7 @@ sub all_required_cpan_modules
         File::Find::Rule
         File::Slurp
         IO::CaptureOutput
+        IO::Uncompress::AnyInflate
         Lingua::EN::Inflect
         Lingua::EN::Numbers
         List::MoreUtils
