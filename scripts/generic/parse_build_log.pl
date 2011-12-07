@@ -1080,6 +1080,52 @@ sub normalize_line
     return $line;
 }
 
+sub read_file_from_url
+{
+    my ($self, $url) = @_;
+
+    # Work around a silly File::Fetch behavior.
+    # File::Fetch breaks if the URL ends with a `/'.
+    # It croaks with: No 'file' specified
+    # ...because it requires the URL to have a "file" component for
+    # some reason.
+    #
+    # Note that we can't 100% guarantee that silently removing this
+    # doesn't change the result :(
+    $url =~ s{/$}{};
+
+    my $text;
+
+    # Be robust against temporary network disruptions, etc.
+    my $i = 0;
+    while (1) {
+        # undef $text in case File::Fetch partially filled it, then died
+        undef $text;
+        eval {
+            my $ff = File::Fetch->new( uri => $url );
+
+            local $File::Fetch::WARN = 0;   # do not warn about insignificant things
+
+            $ff->fetch( to => \$text ) || die "fetch $url: ".$ff->error( );
+        };
+        last unless $@;
+
+        # If we get here, we failed.
+
+        if (++$i >= 8) {
+            # Give up ...
+            die $@;
+        }
+
+        # Try again soon
+        my $delay = 2**$i;
+        warn "$@\nTrying again in $delay seconds...\n";
+        sleep $delay;
+    }
+
+    return $text;
+}
+
 sub read_file
 {
     my ($self) = @_;
@@ -1093,21 +1139,7 @@ sub read_file
         # We've guessed that the user passed a URL
         # (note it is technically possible to have a file named e.g.
         # http://example.com/foo.html on local disk).
-        #
-        # Work around a silly File::Fetch behavior.
-        # File::Fetch breaks if the URL ends with a `/'.
-        # It croaks with: No 'file' specified
-        # ...because it requires the URL to have a "file" component for
-        # some reason.
-        #
-        # Note that we can't 100% guarantee that silently removing this
-        # doesn't change the result :(
-        $file =~ s{/$}{};
-        my $ff = File::Fetch->new( uri => $file );
-
-        local $File::Fetch::WARN = 0;   # do not warn about insignificant things
-
-        $ff->fetch( to => \$text ) || die "fetch $file: ".$ff->error( );
+        $text = $self->read_file_from_url( $file );
     }
     else {
         # normal read from disk
