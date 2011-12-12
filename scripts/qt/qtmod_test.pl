@@ -68,6 +68,12 @@ Readonly my %COVERAGE_TOOLS => (
     $TESTCOCOON  =>  1,
 );
 
+# Build parts which are useful for testing a module, but not useful for other
+# modules built on top of the current module.
+# For example, qtdeclarative does not use the examples or tests from qtbase,
+# but it may use the libs and tools.
+Readonly my @OPTIONAL_BUILD_PARTS => qw(examples tests);
+
 # All properties used by this script.
 my @PROPERTIES = (
     q{base.dir}                => q{top-level source directory of module to test},
@@ -114,6 +120,15 @@ my @PROPERTIES = (
 
     q{qt.repository}           => q{giturl of Qt superproject; only used if }
                                 . q{qt.gitmodule != "qt5"},
+
+    q{qt.minimal_deps}         => q{if 1, when building a module other than qt5 or qtbase, only }
+                                . q{build the minimum necessary parts of each dependency.  In }
+                                . q{particular, do not build the autotests or examples for the }
+                                . q{modules we depend on.  This option passes -nomake tests }
+                                . q{-nomake examples to configure, and QT_BUILD_PARTS+=tests }
+                                . q{QT_BUILD_PARTS+=examples while qmaking the module under }
+                                . q{test, and therefore requires these features to be correctly }
+                                . q{implemented},
 
     q{qt.tests.enabled}        => q{if 1, run the autotests (for this module only, or all }
                                 . q{modules if qt.gitmodule == "qt5")},
@@ -266,6 +281,16 @@ sub default_qt_tests_args
     return q{};
 }
 
+sub default_qt_minimal_deps
+{
+    my ($self) = @_;
+
+    my $gitmodule = $self->{ 'qt.gitmodule' };
+
+    # minimal dependencies makes sense for everything but these two
+    return ($gitmodule ne 'qt5' && $gitmodule ne 'qtbase');
+}
+
 sub read_and_store_configuration
 {
     my $self = shift;
@@ -287,6 +312,7 @@ sub read_and_store_configuration
         'qt.coverage.tests_output'=> q{}                                         ,
         'qt.coverage.tool'        => q{}                                         ,
         'qt.make_install'         => 0                                           ,
+        'qt.minimal_deps'         => \&default_qt_minimal_deps                   ,
         'qt.tests.enabled'        => \&default_qt_tests_enabled                  ,
         'qt.tests.insignificant'  => 0                                           ,
         'qt.tests.timeout'        => 60*15                                       ,
@@ -327,6 +353,12 @@ sub read_and_store_configuration
     if ($self->{'qt.coverage.tool'} && !$COVERAGE_TOOLS{ $self->{'qt.coverage.tool'} }) {
         die "'$self->{'qt.coverage.tool'}' is not a valid Qt coverage tool; try one of ".join(q{,}, keys %COVERAGE_TOOLS);
     }
+
+    if ($self->{'qt.minimal_deps'} && $self->{'qt.gitmodule'} eq 'qt5' || $self->{'qt.gitmodule'} eq 'qtbase') {
+        warn "qt.minimal_deps is set to 1.  This has no effect on $self->{ 'qt.gitmodule' }.\n";
+        $self->{'qt.minimal_deps'} = 0;
+    }
+
 
     return;
 }
@@ -480,9 +512,16 @@ sub run_configure
     my $qt_configure_args       = $self->{ 'qt.configure.args'       };
     my $qt_configure_extra_args = $self->{ 'qt.configure.extra_args' };
     my $qt_coverage_tool        = $self->{ 'qt.coverage.tool'        };
+    my $qt_minimal_deps         = $self->{ 'qt.minimal_deps'         };
 
     if ($qt_coverage_tool) {
         $qt_configure_extra_args .= " -$qt_coverage_tool";
+    }
+
+    if ($qt_minimal_deps) {
+        # In minimal deps mode, we turn off the optional build parts globally, then later
+        # turn them on explicitly for this particular module under test.
+        $qt_configure_extra_args .= join( ' -nomake ', q{}, @OPTIONAL_BUILD_PARTS );
     }
 
     if ($qt_dir ne $qt_build_dir) {
@@ -527,6 +566,9 @@ sub run_compile
     my $make_bin                = $self->{ 'make.bin'                };
     my $make_args               = $self->{ 'make.args'               };
     my $qt_make_install         = $self->{ 'qt.make_install'         };
+    my $qt_minimal_deps         = $self->{ 'qt.minimal_deps'         };
+
+    my $qmake_bin = catfile( $qt_build_dir, 'qtbase', 'bin', 'qmake' );
 
     # true iff the module is hosted in qt5.git (affects build procedure)
     my $module_in_qt5 = $self->{ module_in_qt5 };
@@ -540,6 +582,18 @@ sub run_compile
 
     my @make_args = split(/ /, $make_args);
     my @commands;
+
+    # minimal deps mode?  Then we turned off some build parts in configure, and must
+    # now explicitly enable them for this module only.
+    if ($qt_minimal_deps) {
+        # the Makefile is generated with a QMAKE variable, allowing qmake command to be overriden;
+        # we use this by e.g. passing to make:
+        #
+        #   make QMAKE="path/to/qmake QT_BUILD_PARTS+=tests QT_BUILD_PARTS+=examples"
+        #
+        my $qmake_cmd = $qmake_bin.join(' QT_BUILD_PARTS+=', q{}, @OPTIONAL_BUILD_PARTS);
+        push @commands, sub { $self->exe( $make_bin, "module-${qt_gitmodule}-qmake_all", "QMAKE=$qmake_cmd" ) };
+    }
 
     if ($qt_gitmodule eq 'qt5') {
         # Building qt5; just do a `make' of all default targets in the top-level makefile.
@@ -594,7 +648,6 @@ sub run_compile
             # cleaned that if it existed.
         }
 
-        my $qmake_bin = catfile( $qt_build_dir, 'qtbase', 'bin', 'qmake' );
         push @commands, sub { chdir( $qt_gitmodule_build_dir ) };
         push @commands, sub { $self->exe( $qmake_bin, '-r', $pro_files[0] ) };
         push @commands, sub { $self->exe( $make_bin, @make_args ) };
