@@ -893,10 +893,11 @@ sub _run_autotests_impl
     my ($self, %args) = @_;
 
     # global settings
-    my $qt_dir    = $self->{ 'qt.dir' };
-    my $make_bin  = $self->{ 'make.bin' };
-    my $make_args = $self->{ 'make.args' };
-    my $qt_tests_args = $self->{ 'qt.tests.args' };
+    my $qt_dir         = $self->{ 'qt.dir' };
+    my $qt_install_dir = $self->{ 'qt.install.dir' };
+    my $make_bin       = $self->{ 'make.bin' };
+    my $make_args      = $self->{ 'make.args' };
+    my $qt_tests_args  = $self->{ 'qt.tests.args' };
 
     # settings for this autotest run
     my $tests_dir            = $args{ tests_dir };
@@ -906,11 +907,17 @@ sub _run_autotests_impl
 
     my $testrunner_command = $self->get_testrunner_command( );
 
-    # Add qtbase/bin (core tools) to PATH.
-    # FIXME: at some point, we should be doing `make install'.  If that is done,
-    # the PATH used here should be the install path rather than build path.
+    # Add tools from all the modules to PATH.
+    # If shadow-build with install enabled, then we need to add install path
+    # rather than build path into the PATH.
     local $ENV{ PATH } = $ENV{ PATH };
-    Env::Path->PATH->Prepend( catfile( $qt_dir, 'qtbase', 'bin' ) );
+    if ($self->{ shadow_build_with_install_enabled }) {
+        # shadow build and installing? need to add install dir into PATH
+        Env::Path->PATH->Prepend( catfile( $qt_install_dir, 'bin' ) );
+    }
+    else {
+        Env::Path->PATH->Prepend( catfile( $qt_dir, 'qtbase', 'bin' ) );
+    }
 
     my $run = sub {
         chdir( $tests_dir );
