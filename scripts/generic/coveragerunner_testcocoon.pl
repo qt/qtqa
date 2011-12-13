@@ -218,6 +218,22 @@ sub run
     $self->exe('gzip',
         $csmes_global);
 
+    # Create hmtl reports
+    my $xml2html = catfile( $FindBin::Bin, 'xml2html_testcocoon.pl' );
+    $xml2html = 'xml2html_testcocoon' if (defined $ENV{ TESTING_COVERAGERUNNER });
+    $self->exe($xml2html,
+        '--xml',
+        $xml_report,
+        '--module',
+        $qt_gitmodule,
+        '--output',
+        $coverage_dir,
+        '--include',
+        catfile($qt_gitmodule_dir, 'src'),
+        '--exclude',
+        catfile($qt_gitmodule_dir, 'src', '3rdparty')
+    );
+
     return;
 }
 

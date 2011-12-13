@@ -66,6 +66,10 @@ Readonly my $COVERAGERUNNER_CMREPORT =>
 Readonly my $COVERAGERUNNER_GZIP =>
     qr{\+ gzip ${TEMPDIR_TEMPLATE}/module_coverage_global-[0-9]{8}-[0-9]{4}\.csmes.*};
 
+# xml2html_testcocoon command
+Readonly my $COVERAGERUNNER_XML2HTML =>
+    qr{\+ xml2html_testcocoon --xml ${TEMPDIR_TEMPLATE}/module_coverage_report-[0-9]{8}-[0-9]{4}\.xml --module module --output ${TEMPDIR_TEMPLATE}.*};
+
 # Standard output up to the first merge (gathering the lib and plugins csmes)
 Readonly my $FIRST_CMMERGE =>
     qr{$COVERAGERUNNER_PREAMBLE
@@ -85,16 +89,22 @@ Readonly my $CMREPORT =>
 cmmerge success tests.*
 $COVERAGERUNNER_CMREPORT}sm;
 
-# Successful run
+# Standard output until gzip
 Readonly my $GZIP =>
     qr{$CMREPORT
 cmreport success.*
 $COVERAGERUNNER_GZIP}sm;
 
+# Standard output until xml2html_testcocoon
+Readonly my $XML2HTML =>
+    qr{$GZIP
+gzip success.*
+$COVERAGERUNNER_XML2HTML}sm;
+
 # Successful run
 Readonly my $TESTSCRIPT_SUCCESS =>
-    qr{$COVERAGERUNNER_GZIP
-gzip success.*}sm;
+    qr{$XML2HTML
+xml2html_testcocoon success.*}sm;
 
 # Invalid --qtcoverage-test-ouput required argument
 Readonly my $INVALID_TESTS_OUTPUT =>
@@ -159,6 +169,15 @@ sub test_success
         directory   =>  $tempdir,
         sequence    =>  [
             { exitcode => 0, stdout => "gzip success\n"},
+        ],
+    );
+
+    local $ENV{ TESTING_COVERAGERUNNER } = 1;
+    create_mock_command(
+        name        =>  'xml2html_testcocoon',
+        directory   =>  $tempdir,
+        sequence    =>  [
+            { exitcode => 0, stdout => "xml2html_testcocoon success\n"},
         ],
     );
 
@@ -327,6 +346,63 @@ sub test_gzip_failure
     return;
 }
 
+sub test_xml2html_failure
+{
+    my $tempdir = tempdir( 'testcocoon_runner.XXXXXX', TMPDIR => 1, CLEANUP => 1 );
+    init_test_env($tempdir);
+
+    # Put our mock command first in PATH
+    local $ENV{ PATH } = $ENV{ PATH };
+    Env::Path->PATH->Prepend( $tempdir );
+
+    create_mock_command(
+        name        =>  'cmmerge',
+        directory   =>  $tempdir,
+        sequence    =>  [
+            { exitcode => 0, stdout => "cmmerge success lib\n"},
+            { exitcode => 0, stdout => "cmmerge success tests\n"},
+        ],
+    );
+
+    create_mock_command(
+        name        =>  'cmreport',
+        directory   =>  $tempdir,
+        sequence    =>  [
+            { exitcode => 0, stdout => "cmreport success\n"},
+        ],
+    );
+
+    create_mock_command(
+        name        =>  'gzip',
+        directory   =>  $tempdir,
+        sequence    =>  [
+            { exitcode => 0, stdout => "gzip success\n"},
+        ],
+    );
+
+    local $ENV{ TESTING_COVERAGERUNNER } = 1;
+    create_mock_command(
+        name        =>  'xml2html_testcocoon',
+        directory   =>  $tempdir,
+        sequence    =>  [
+            { exitcode => 5, stderr => "xml2html_testcocoon failure\n"},
+        ],
+    );
+
+    my $module_gitdir = catfile( $tempdir, 'module');
+    my $test_csmes = catfile( $tempdir, 'tests.csmes' );
+
+    test_run({
+        args                =>  [ '--qt-gitmodule-dir', $module_gitdir, '--qt-gitmodule', 'module', '--qtcoverage-tests-output', $test_csmes, 'testname'],
+        expected_stdout     =>  $XML2HTML,
+        expected_stderr     =>  qr{xml2html_testcocoon failure\n}sm,
+        expected_success    =>  0,
+        testname            =>  'test xml2html failure',
+    });
+
+    return;
+}
+
 sub test_invalid_qtcoverage_tests_output
 {
     my $tempdir = tempdir( 'testcocoon_runner.XXXXXX', TMPDIR => 1, CLEANUP => 1 );
@@ -392,6 +468,7 @@ sub run
     test_cmreport_failure;
     test_gzip_failure;
     test_invalid_qtcoverage_tests_output;
+    test_xml2html_failure;
 
     done_testing;
 
