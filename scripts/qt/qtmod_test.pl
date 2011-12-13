@@ -108,6 +108,11 @@ my @PROPERTIES = (
     q{qt.dir}                  => q{top-level source directory of Qt superproject; }
                                 . q{the script will clone qt.repository into this location},
 
+    q{qt.install.dir}          => q{directory where Qt is expected to be installed (e.g. as set by }
+                                . q{-prefix option to configure). Mandatory if qt.make_install is 1. }
+                                . q{After installation, basic verification of the install will be }
+                                . q{performed},
+
     q{qt.make_install}         => q{if 1, perform a `make install' step after building Qt. }
                                 . q{Generally this should only be done if (1) the `-prefix' }
                                 . q{configure option has been used appropriately, and (2) }
@@ -188,6 +193,7 @@ sub run
     $self->run_configure;
     $self->run_compile;
     $self->run_install;
+    $self->run_install_check;
     $self->run_autotests;
     $self->run_coverage;
     $self->run_qtqa_autotests;
@@ -291,6 +297,20 @@ sub default_qt_minimal_deps
     return ($gitmodule ne 'qt5' && $gitmodule ne 'qtbase');
 }
 
+sub default_qt_install_dir
+{
+    my ($self) = @_;
+
+    # qt.make_install is mandatory to be set if 'make install' is called,
+    # otherwise no value is needed.
+    if ($self->{ 'qt.make_install' }) {
+        return;
+    }
+    else {
+        return q{};
+    }
+}
+
 sub read_and_store_configuration
 {
     my $self = shift;
@@ -313,6 +333,7 @@ sub read_and_store_configuration
         'qt.coverage.tool'        => q{}                                         ,
         'qt.make_install'         => 0                                           ,
         'qt.minimal_deps'         => \&default_qt_minimal_deps                   ,
+        'qt.install.dir'          => \&default_qt_install_dir                    ,
         'qt.tests.enabled'        => \&default_qt_tests_enabled                  ,
         'qt.tests.insignificant'  => 0                                           ,
         'qt.tests.timeout'        => 60*15                                       ,
@@ -685,6 +706,26 @@ sub run_install
                   :                            ("module-$qt_gitmodule-install_subtargets");
 
     $self->exe( $make_bin, @make_args );
+
+    return;
+}
+
+sub run_install_check
+{
+    my ($self) = @_;
+
+    my $qt_install_dir  = $self->{ 'qt.install.dir' };
+    my $qt_make_install = $self->{ 'qt.make_install' };
+
+    return if (!$qt_make_install);
+
+    # check whether dirs 'bin' and 'include' actually exists under qt.install.dir
+    my @required_files = map { "$qt_install_dir/$_" } qw(bin include);
+    my @missing_files = grep { ! -e $_ } @required_files;
+    if (@missing_files) {
+        confess 'The make install command exited successfully, but the following expected file(s) '
+               .'are missing from the install tree:'.join("\n ", q{}, @missing_files)."\n";
+    }
 
     return;
 }
