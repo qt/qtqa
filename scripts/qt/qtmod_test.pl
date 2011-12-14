@@ -354,7 +354,7 @@ sub read_and_store_configuration
         die "'$self->{'qt.coverage.tool'}' is not a valid Qt coverage tool; try one of ".join(q{,}, keys %COVERAGE_TOOLS);
     }
 
-    if ($self->{'qt.minimal_deps'} && $self->{'qt.gitmodule'} eq 'qt5' || $self->{'qt.gitmodule'} eq 'qtbase') {
+    if ($self->{'qt.minimal_deps'} && ($self->{'qt.gitmodule'} eq 'qt5' || $self->{'qt.gitmodule'} eq 'qtbase')) {
         warn "qt.minimal_deps is set to 1.  This has no effect on $self->{ 'qt.gitmodule' }.\n";
         $self->{'qt.minimal_deps'} = 0;
     }
