@@ -93,6 +93,13 @@ Print this message.
 If given, as well as printing out the interesting lines from the log, the script
 will attempt to print out a human-readable summary of the error(s).
 
+=item B<--limit> LINES
+
+Limit the amount of extracted lines to the given value.
+Use 0 for no limit.
+
+If omitted, an undefined but reasonable default is used.
+
 =item B<--debug>
 
 Enable some debug messages to STDERR.
@@ -1042,10 +1049,13 @@ sub set_options_from_args
 {
     my ($self, @args) = @_;
 
+    $self->{ limit_lines } = 1000;
+
     GetOptionsFromArray( \@args,
         'help'          =>  sub { pod2usage(0) },
         'debug'         =>  \$self->{ debug },
         'summarize'     =>  \$self->{ summarize },
+        'limit=i'       =>  \$self->{ limit_lines },
     ) || pod2usage(1);
 
     # Should be exactly one argument left - the filename.
@@ -1355,16 +1365,17 @@ sub identify_failures
     return $out;
 }
 
-sub output_autotest_fail
+sub extract_autotest_fail
 {
     my ($self, %args) = @_;
 
-    my $fail   = $args{ fail };
+    my $fail = $args{ fail };
     my $indent = $args{ indent };
+    my $lines_ref = $args{ lines_ref };
 
     foreach my $autotest (@{ $fail->{ autotest_fail }} ) {
         my @lines = split( /\n/, $autotest->{ details } );
-        print $indent . join( "\n$indent", @lines ) . "\n\n";
+        push @{$lines_ref}, map( { "$indent$_\n" } @lines ), "\n";
     }
 
     return;
@@ -1376,6 +1387,7 @@ sub extract_and_output
 
     my $fail  = $args{ fail };
     my @lines = @{$args{ lines }};
+    my @lines_to_print;
 
     if (!$fail || ref($fail) ne 'HASH' || !%{$fail}) {
         # No idea about the failure ...
@@ -1419,9 +1431,10 @@ sub extract_and_output
     # in the opposite order.  Should we care about this?  Or is this a better
     # way to do it?
     if ($fail->{ autotest_fail }) {
-        $self->output_autotest_fail(
-            fail    =>  $fail,
-            indent  =>  $indent,
+        $self->extract_autotest_fail(
+            fail => $fail,
+            indent => $indent,
+            lines_ref => \@lines_to_print,
         );
     }
 
@@ -1442,11 +1455,11 @@ sub extract_and_output
         # are significant, according to @continuations.
         foreach my $recent_line (@recent) {
             if ( any { $recent_line =~ $_ } @continuation_patterns ) {
-                print "$indent$recent_line\n";
+                push @lines_to_print, "$indent$recent_line\n";
             }
         }
 
-        print "$indent$line\n";
+        push @lines_to_print, "$indent$line\n";
         @recent = ();
     };
 
@@ -1504,6 +1517,35 @@ sub extract_and_output
         @continuation_patterns = ();
         push @recent, $line;
     }
+
+    # OK, we've figured out what we want to print.
+    # Cut it down to size (possibly) before printing.
+    $self->apply_limit_lines( indent => $indent, lines_ref => \@lines_to_print );
+    print @lines_to_print;
+
+    return;
+}
+
+sub apply_limit_lines
+{
+    my ($self, %args) = @_;
+
+    my $indent = $args{ indent };
+    my $lines_ref = $args{ lines_ref };
+
+    my $limit = $self->{ limit_lines };
+    return if (!$limit || $limit > @{$lines_ref});
+
+    # We don't know which part of the log is most relevant, but it ought to be
+    # the beginning or the end, so we cut out the middle.
+    my $chunk_count = int($limit/2);
+    my $omitted_count = @{$lines_ref} - (2*$chunk_count);
+
+    @{$lines_ref} = (
+        @{$lines_ref}[ 0 .. ($chunk_count-2) ], # -1 additional to make up for the 1 added line
+        "$indent(... $omitted_count lines omitted; there are too many errors!)\n",
+        @{$lines_ref}[ -$chunk_count .. -1 ],
+    );
 
     return;
 }
