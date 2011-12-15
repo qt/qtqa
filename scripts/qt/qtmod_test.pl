@@ -843,7 +843,7 @@ sub run_qtqa_autotests
 
     if ($qt_gitmodule ne 'qt5') {
         # testing just one module
-        push @module_dirs, $qt_gitmodule_build_dir;
+        push @module_dirs, $qt_gitmodule_dir;
     }
     else {
         # we're testing all modules;
