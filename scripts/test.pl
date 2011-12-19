@@ -245,7 +245,30 @@ sub make_clean_prefix
     # python: virtualenv creates the dirs.  It does not set env,
     # so we do it manually.
     my $virtualenv_dir = "$cleandir/python";
-    $self->system_or_die('virtualenv', '--clear', $virtualenv_dir);
+
+    # we'll retry up to this many times, e.g. to recover from temporary network issues.
+    my $MAX_TRIES = 8;
+    my $tries = 0;
+    while (1) {
+        eval { $self->system_or_die('virtualenv', '--clear', $virtualenv_dir) };
+        if ( $@ ) {
+            print "\n$@\nLooks like virtualenv installation was not successful.";
+            if ($tries++ < $MAX_TRIES) {
+                # wait for 8, 16, 32, 64 ... seconds.
+                my $delay = 2**($tries+2);
+                print "\nTrying again in $delay seconds [attempt $tries of $MAX_TRIES].\n";
+                sleep $delay;
+            }
+            else {
+                print "\nGiving up :(\n";
+                return 0;
+            }
+        }
+        else {
+            print "\nInstallation of virtualenv was successful.\n";
+            last;
+        }
+    }
 
     $ENV{VIRTUAL_ENV} = $virtualenv_dir;                   ## no critic - localized by caller
     $ENV{PATH}        = "$virtualenv_dir/bin:".$ENV{PATH}; ## no critic - localized by caller
