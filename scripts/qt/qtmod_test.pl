@@ -604,18 +604,6 @@ sub run_compile
     my @make_args = split(/ /, $make_args);
     my @commands;
 
-    # minimal deps mode?  Then we turned off some build parts in configure, and must
-    # now explicitly enable them for this module only.
-    if ($qt_minimal_deps) {
-        # the Makefile is generated with a QMAKE variable, allowing qmake command to be overriden;
-        # we use this by e.g. passing to make:
-        #
-        #   make QMAKE="path/to/qmake QT_BUILD_PARTS+=tests QT_BUILD_PARTS+=examples"
-        #
-        my $qmake_cmd = $qmake_bin.join(' QT_BUILD_PARTS+=', q{}, @OPTIONAL_BUILD_PARTS);
-        push @commands, sub { $self->exe( $make_bin, "module-${qt_gitmodule}-qmake_all", "QMAKE=$qmake_cmd" ) };
-    }
-
     if ($qt_gitmodule eq 'qt5') {
         # Building qt5; just do a `make' of all default targets in the top-level makefile.
         if ($self->{ shadow_build_with_install_enabled }) {
@@ -625,6 +613,19 @@ sub run_compile
         push @commands, sub { $self->exe( $make_bin, @make_args ) };
     }
     elsif ($module_in_qt5) {
+        if ($qt_minimal_deps) {
+            # minimal deps mode?  Then we turned off some build parts in configure, and must
+            # now explicitly enable them for this module only.
+            #
+            # the Makefile is generated with a QMAKE variable, allowing qmake command to be overriden;
+            # we use this by e.g. passing to make:
+            #
+            #   make QMAKE="path/to/qmake QT_BUILD_PARTS+=tests QT_BUILD_PARTS+=examples"
+            #
+            my $qmake_cmd = $qmake_bin.join(' QT_BUILD_PARTS+=', q{}, @OPTIONAL_BUILD_PARTS);
+            push @commands, sub { $self->exe( $make_bin, "module-${qt_gitmodule}-qmake_all", "QMAKE=$qmake_cmd" ) };
+        }
+
         # Building a module hosted in qt5; `configure' is expected to have generated a
         # makefile with a `module-FOO' target for this module, with correct dependency
         # information. Issuing a `make module-FOO' should automatically build the module
@@ -670,7 +671,15 @@ sub run_compile
         }
 
         push @commands, sub { chdir( $qt_gitmodule_build_dir ) };
-        push @commands, sub { $self->exe( $qmake_bin, '-r', $pro_files[0] ) };
+
+        my @qmake_args;
+        if ($qt_minimal_deps) {
+            # minimal deps mode?  Then we turned off some build parts in configure, and must
+            # now explicitly enable them for this module only.
+            push @qmake_args, map { "QT_BUILD_PARTS+=$_" } @OPTIONAL_BUILD_PARTS;
+        }
+        push @commands, sub { $self->exe( $qmake_bin, '-r', $pro_files[0], @qmake_args ) };
+
         push @commands, sub { $self->exe( $make_bin, @make_args ) };
     }
 
