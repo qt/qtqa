@@ -377,8 +377,9 @@ my %RE = (
 
             (?<error>
                 (?:
-                    # error strings may start with "fatal error:" or just "error:"
-                    (?:fatal\ )?
+                    # error strings may start with "fatal error:",
+                    # "internal compiler error:" or just "error:"
+                    (?:fatal\ |internal\ compiler\ )?
                     error: .+
                 )
                 |
