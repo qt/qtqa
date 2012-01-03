@@ -712,7 +712,7 @@ For example:
 Example:
 
    my $base_dir          = $self->property('base.dir',          getcwd());
-   my $qt_configure_args = $self->property('qt.configure.args', '-nokia-developer');
+   my $qt_configure_args = $self->property('qt.configure.args', '-developer-build -opensource -confirm-license');
 
    chdir($base_dir);
    system('./configure', split(/ /, $qt_configure_args));

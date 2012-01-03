@@ -116,8 +116,7 @@ my @PROPERTIES = (
     q{qt.make_install}         => q{if 1, perform a `make install' step after building Qt. }
                                 . q{Generally this should only be done if (1) the `-prefix' }
                                 . q{configure option has been used appropriately, and (2) }
-                                . q{neither `-nokia-developer' nor `-developer-build' configure }
-                                . q{arguments were used},
+                                . q{the `-developer-build' configure argument was not used},
 
     q{qt.gitmodule}            => q{(mandatory) git module name of the module under test }
                                 . q{(e.g. `qtbase').  Use special value `qt5' for testing of }
