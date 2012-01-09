@@ -78,7 +78,6 @@ Readonly my @PROPERTIES => (
 # Map from submodule to the ref which should be tracked.
 # When omitted, defaults to `refs/heads/master'.
 Readonly my %SUBMODULE_TRACKING_REF => (
-    qtwebkit    =>  'refs/heads/qt-modularization-base',
     qtquick3d   =>  'refs/heads/qml2',
 );
 
