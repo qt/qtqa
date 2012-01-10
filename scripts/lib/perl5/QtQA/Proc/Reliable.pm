@@ -146,7 +146,7 @@ sub run
 
     $self->_run_proc( $proc );
 
-    while (my $why = $self->_should_retry( $proc )) {
+    while ($proc->status() && (my $why = $self->_should_retry( $proc ))) {
 
         $self->_activate_retry_cb({
             proc    => $self,   # caller sees QtQA::Reliable::Proc (not Reliable::Proc) as $proc

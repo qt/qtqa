@@ -161,6 +161,19 @@ tie our %TESTDATA => 'Tie::IxHash',
         expected_raw_stderr => "fatal: The remote end hung up unexpectedly\n" x 2,
     },
 
+    # error message but 0 exit code; make sure we don't retry
+    'git remote end hung up with 0 exit code' => {
+        command             => [ 'git', 'clone', 'git://example.com/repo.git' ],
+        mock_command        => {
+            sequence        => [
+                { exitcode => 0, stderr => "fatal: The remote end hung up unexpectedly\n" },
+            ],
+        },
+        expected_retries    => 0,
+        expected_raw_stderr => "fatal: The remote end hung up unexpectedly\n",
+        expected_exe_stderr => "fatal: The remote end hung up unexpectedly\n",
+    },
+
     # unrecoverable git problem with no retries
     'git unrecoverable simple' => {
         command             => [ 'git', 'clone', 'git://example.com/repo.git' ],
