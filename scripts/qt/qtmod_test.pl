@@ -156,8 +156,8 @@ my @PROPERTIES = (
                                 . q{STDOUT/STDERR as normal while the tests are running},
 
     q{qt.tests.backtraces}     => q{if 1, attempt to capture backtraces from crashing tests; }
-                                . q{currently, this requires gdb, and is likely to work only on }
-                                . q{Linux},
+                                . q{currently, this requires gdb, and is known to work on Linux }
+                                . q{and Mac, but can be very slow on Mac},
 
     q{qt.tests.flaky_mode}     => q{how to handle flaky autotests ("best", "worst" or "ignore")},
 
@@ -240,7 +240,7 @@ sub default_qt_tests_enabled
 sub default_qt_tests_backtraces
 {
     my ($self) = @_;
-    return ($OSNAME =~ m{linux|darwin}i);
+    return ($OSNAME =~ m{linux}i);
 }
 
 sub default_qt_qtqa_tests_insignificant
