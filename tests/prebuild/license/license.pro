@@ -1,4 +1,5 @@
 TEMPLATE = subdirs
+CONFIG -= qt
 
 # Not really any subdirs, just needed to let `make check' run the test.
 

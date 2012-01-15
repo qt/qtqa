@@ -1,6 +1,6 @@
 CONFIG += testcase
 TARGET = tst_compilerwarnings
-INCLUDEPATH += ../../shared
+INCLUDEPATH += ..
 SOURCES += tst_compilerwarnings.cpp
 QT = core testlib
 

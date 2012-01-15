@@ -1,6 +1,6 @@
 CONFIG += testcase
 TARGET = tst_bic
-INCLUDEPATH += ../../shared
+INCLUDEPATH += ..
 SOURCES += tst_bic.cpp qbic.cpp
 QT = core testlib
 

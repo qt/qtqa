@@ -190,12 +190,13 @@ sub run
     $self->read_and_store_configuration;
     $self->run_git_checkout;
     $self->run_configure;
+    $self->run_qtqa_autotests( 'prebuild' );
     $self->run_compile;
     $self->run_install;
     $self->run_install_check;
     $self->run_autotests;
     $self->run_coverage;
-    $self->run_qtqa_autotests;
+    $self->run_qtqa_autotests( 'postbuild' );
 
     return;
 }
@@ -649,7 +650,10 @@ sub run_compile
             # that e.g. qtbase is installed before we attempt to compile the modules which
             # depend on qtbase.
             my $make_install_target = "$make_target-install_subtargets";
-            push @commands, sub { $self->exe( $make_bin, @make_args, $make_install_target ) };
+            push @commands, sub {
+                $self->exe( $make_bin, @make_args, $make_install_target );
+                $self->{ installed } = 1;
+            };
         }
 
         push @commands, sub { $self->exe( $make_bin, @make_args, $make_target ) };
@@ -733,6 +737,9 @@ sub run_install
                     : ("module-$qt_gitmodule-install_subtargets");
 
     $self->exe( $make_bin, @make_args );
+
+    # Note that we are installed, since this changes some behavior elsewhere
+    $self->{ installed } = 1;
 
     return;
 }
@@ -859,9 +866,17 @@ sub run_autotests
     );
 }
 
+# Compile and run some qtqa shared autotests.
+#
+# The $type parameter decides which tests are run;
+# essentially, `qmake && make && make check' are run under
+# the qtqa/tests/$type directory.
+#
+# This function may be called multiple times for different types of tests.
+#
 sub run_qtqa_autotests
 {
-    my ($self) = @_;
+    my ($self, $type) = @_;
 
     return if (!$self->{ 'qt.qtqa-tests.enabled' });
 
@@ -870,7 +885,7 @@ sub run_qtqa_autotests
     my $qt_gitmodule_build_dir = $self->{ 'qt.gitmodule.build.dir' };
 
     # path to the qtqa shared autotests.
-    my $qtqa_tests_dir = catfile( $FindBin::Bin, qw(.. .. tests shared) );
+    my $qtqa_tests_dir = catfile( $FindBin::Bin, qw(.. .. tests), $type );
 
     # director(ies) of modules we want to test
     my @module_dirs;
@@ -893,7 +908,7 @@ sub run_qtqa_autotests
         );
         my @testable_modules = split(/\n/, $testable_modules);
 
-        print __PACKAGE__ . ": qtqa autotests will be run over modules: @testable_modules\n";
+        print __PACKAGE__ . ": qtqa $type autotests will be run over modules: @testable_modules\n";
 
         push @module_dirs, map { catfile( $qt_gitmodule_dir, $_ ) } @testable_modules;
     }
@@ -902,7 +917,7 @@ sub run_qtqa_autotests
     my $compiled_qtqa_tests = 0;    # whether or not the tests have been compiled
 
     foreach my $module_dir (@module_dirs) {
-        print __PACKAGE__ . ": now running qtqa autotests over $module_dir\n";
+        print __PACKAGE__ . ": now running qtqa $type autotests over $module_dir\n";
 
         # qtqa autotests use this environment variable to locate the sources of the
         # module under test.
@@ -927,8 +942,9 @@ sub _run_autotests_impl
     my ($self, %args) = @_;
 
     # global settings
-    my $qt_dir         = $self->{ 'qt.dir' };
+    my $qt_build_dir   = $self->{ 'qt.build.dir' };
     my $qt_install_dir = $self->{ 'qt.install.dir' };
+    my $qt_make_install = $self->{ 'qt.make_install' };
     my $make_bin       = $self->{ 'make.bin' };
     my $make_args      = $self->{ 'make.args' };
     my $qt_tests_args  = $self->{ 'qt.tests.args' };
@@ -945,16 +961,23 @@ sub _run_autotests_impl
     # If shadow-build with install enabled, then we need to add install path
     # rather than build path into the PATH.
     local $ENV{ PATH } = $ENV{ PATH };
-    if ($self->{ shadow_build_with_install_enabled }) {
+    local $ENV{ QMAKEPATH } = $ENV{ QMAKEPATH };
+    if ($self->{ installed }) {
         # shadow build and installing? need to add install dir into PATH
         Env::Path->PATH->Prepend( catfile( $qt_install_dir, 'bin' ) );
     }
     elsif ($self->{ 'qt.gitmodule' } eq 'qt') {
         # qt4 case. this is needed to use the right qmake to compile the tests
-        Env::Path->PATH->Prepend( catfile( $qt_dir, 'bin' ) );
+        Env::Path->PATH->Prepend( catfile( $qt_build_dir, 'bin' ) );
     }
     else {
-        Env::Path->PATH->Prepend( catfile( $qt_dir, 'qtbase', 'bin' ) );
+        Env::Path->PATH->Prepend( catfile( $qt_build_dir, 'qtbase', 'bin' ) );
+
+        # If we are expected to install, but we're not installed yet, then
+        # make sure qmake can find its mkspecs.
+        if ($qt_make_install) {
+            Env::Path->QMAKEPATH->Prepend( catfile( $qt_build_dir, 'qtbase' ) );
+        }
     }
 
     my $run = sub {
