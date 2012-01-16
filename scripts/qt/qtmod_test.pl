@@ -640,10 +640,18 @@ sub run_compile
         # information. Issuing a `make module-FOO' should automatically build the module
         # and all deps, as parallel as possible.
         my $make_target = "module-$qt_gitmodule";
+
         if ($self->{ shadow_build_with_install_enabled }) {
-            # shadow build and installing? need to build & install together
-            $make_target .= '-install_subtargets';
+            # shadow build and installing?
+            # Then we first install, then do another make to catch anything not
+            # covered by install (e.g. subdirs with no_default_install).
+            # Note that we have to do it in this unintuitive order because we need to ensure
+            # that e.g. qtbase is installed before we attempt to compile the modules which
+            # depend on qtbase.
+            my $make_install_target = "$make_target-install_subtargets";
+            push @commands, sub { $self->exe( $make_bin, @make_args, $make_install_target ) };
         }
+
         push @commands, sub { $self->exe( $make_bin, @make_args, $make_target ) };
     }
     else {
