@@ -405,6 +405,13 @@ my %RE = (
             \Qcom.caucho.hessian.io.HessianProtocolException: expected boolean at end of file\E
         )
 
+        |
+
+        (?:
+            # Bizarre error on mac - see QTQAINFRA-376
+            \Q/bin/sh: /bin/sh: cannot execute binary file\E
+        )
+
         # add more as discovered
     }xms,
 

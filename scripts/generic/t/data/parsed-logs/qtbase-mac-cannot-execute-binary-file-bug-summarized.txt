@@ -1,0 +1,12 @@
+[ '--summarize', "$DATADIR/raw-logs/qtbase-mac-cannot-execute-binary-file-bug.txt" ]
+An unexpected error occurred, most likely due to no fault in the tested
+code itself :(
+
+Please point some CI administrator towards this problem.  Meanwhile, it
+may be worthwhile to attempt the build again.
+
+  /bin/sh: /bin/sh: cannot execute binary file
+  make[3]: *** [.obj/release-shared/qwindow.o] Error 126
+  make[2]: *** [release-all] Error 2
+  make[1]: *** [sub-gui-make_default-ordered] Error 2
+  make: *** [module-qtbase] Error 2
