@@ -226,7 +226,7 @@ my $leadingDelimiter = qr/^(\s*[\*!;:#\-\.\\\"]+)/;
 # contact email address will be escaped.
 my @copyrightBlock = (
     qr/\s\bCopyright \(C\) 2[0-9][0-9][0-9] .*/,
-    qr/\s\bAll rights reserved.*/,
+    qr/\s\b(?#optional)All rights reserved.*/,
     qr/\s\bContact: Nokia Corporation \(qt-info\\?\@nokia.com\).*/,
     qr//,
     qr/\s\bThis file is (the|part of the)\s*\b(\w*)\b.*/,
@@ -355,14 +355,19 @@ sub checkLicense
         } elsif ($linesMatched == 1 and /$leadingDelimiter$copyrightBlock[0]/ ) {
             # more copyright lines, do nothing
         } elsif ($linesMatched >= 1 and $linesMatched <= $#copyrightBlock) {
-            # Did we match the next line of the copyright block?
-            # If the line doesn't match the delimiter or the expected pattern,
-            # don't error out (because other copyright messages are allowed),
-            # just go back to looking for the beginning of a license block.
             if (/^\Q$beginDelimiter\E$copyrightBlock[$linesMatched]/) {
+                # We matched the next line of the copyright block
                 ++$linesMatched;
-            } else {
-                # Text doesn't match expected line -- start again
+            } elsif ($copyrightBlock[$linesMatched] =~ m{\Q(?#optional)\E}) {
+                # We didn't match, but it's OK - this part of the block is optional anyway.
+                # We need to move on to the next pattern and rescan this line.
+                ++$linesMatched;
+                --$currentLine;
+            }
+            else {
+                # If the line doesn't match the delimiter or the expected pattern,
+                # don't error out (because other copyright messages are allowed),
+                # just go back to looking for the beginning of a license block.
                 $linesMatched = 0;
             }
         } elsif ($linesMatched == $#copyrightBlock + 1) {
