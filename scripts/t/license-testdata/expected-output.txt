@@ -43,7 +43,7 @@
 # The test numbers are also ignored (as long as the total count of tests
 # is as expected).
 
-1..11
+1..12
 not ok x - QT_BEGIN_LICENSE does not follow Copyright block in bad/missing-license-info.qdoc, line 9
 not ok x - Mismatch in license text in bad/multiple-header-one-wrong.s
 not ok x - bad/noheader.cpp does not appear to contain a license header
@@ -55,3 +55,4 @@ ok x - good/typical-bsd-nokia.cpp
 ok x - good/typical-fdl-nokia.qdoc
 ok x - good/typical-lgpl-nokia.cpp
 ok x - good/typical-lgpl-only-nokia.bat
+ok x - good/typical-lgpl-qt-project.cpp
