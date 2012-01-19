@@ -69,18 +69,32 @@ headers.
 =cut
 
 # These modules are not expected to contain any files that need
-# Qt license headers.
+# Qt license headers.  They are entirely excluded from license checking.
 my @excludedModules = qw{
     qtwebkit
 };
 
-# The following regex patterns designate directories and files for which
-# licenses don't need to be checked.  If you add to this list, please
-# make the pattern as specific as possible to avoid excluding more files
+# If you add to the following lists of regexes, please
+# make the patterns as specific as possible to avoid excluding more files
 # than intended -- for directories, add the leading and trailing /, and
 # for files, add the trailing $ and don't forget to escape the '.'.
 # It is also helpful to document why files are excluded.
+
+# The following regex patterns designate directories and files for which
+# license headers are not checked at all.  Valid uses of this should be
+# very rare - use %optionalFiles where possible.
 my %excludedFiles = (
+    "qtqa"           => [
+                          # contains deliberately incorrect license headers, for testing
+                          qr{^scripts/t/license-testdata/bad/},
+                        ],
+);
+
+# The following regex patterns designate directories and files for which
+# license headers are optional.  These files are permitted, but not required,
+# to have a license header.  This script will check the correctness of any
+# found license headers.
+my %optionalFiles = (
     "all"            => [
                           # Third-party files are not expected to have a Qt license
                           qr{/3rdparty/},
@@ -440,16 +454,16 @@ sub shouldScan
     # Does the filename match a mandatory pattern?
     my $isMandatory = first { $file =~ qr{$_} } @mandatoryFiles;
 
-    # Is the file explicitly excluded from checking?
-    my $isExcluded = first { $file =~ qr{$_} } @{$excludedFiles{"all"}};
-    if (defined(@{$excludedFiles{$moduleName}})) {
-        $isExcluded = $isExcluded || first { $file =~ qr{$_} } @{$excludedFiles{$moduleName}};
-    }
+    # Is the file excluded or optional?
+    my $isExcluded = first { $file =~ qr{$_} } @{$excludedFiles{"all"}}, @{$excludedFiles{$moduleName} || []};
+    my $isOptional = first { $file =~ qr{$_} } @{$optionalFiles{"all"}}, @{$optionalFiles{$moduleName} || []};
+
+    return 0 if ($isExcluded);
 
     # Skip opening the file if we already know we'll have to scan it later
-    return 1 if ($isMandatory and !$isExcluded);
+    return 1 if ($isMandatory and !$isOptional);
 
-    # Does the file have a license marker?
+    # The file is neither excluded nor mandatory - we only check it if it has a license marker
     my $fileHandle;
     if (!open ($fileHandle, '<', $fullPath)) {
         fail("Cannot open $fullPath");
