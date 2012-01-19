@@ -548,6 +548,9 @@ sub run
         }, $QT_MODULE_TO_TEST);
     }
 
+    # sort the files so we get predictable (and testable) output
+    @filesToScan = sort @filesToScan;
+
     #
     # Phase 4: Scan the files
     #
