@@ -1,0 +1,16 @@
+[ "$DATADIR/raw-logs/qt5-prebuild-test-insignificant.txt" ]
+compiling qdesigner_workbench.cpp
+qdesigner_workbench.cpp: In member function 'void TestNamespace::QDesignerWorkbench::updateBackup(TestNamespace::QDesignerFormWindowInterface*)':
+qdesigner_workbench.cpp:842:19: error: 'convertSeparators' is not a member of 'TestNamespace::QDir'
+make[5]: *** [.obj/debug-shared/qdesigner_workbench.o] Error 1
+qdesigner_actions.cpp: In member function 'void TestNamespace::QDesignerActions::backupForms()':
+qdesigner_actions.cpp:1137:23: error: 'convertSeparators' is not a member of 'TestNamespace::QDir'
+qdesigner_actions.cpp: In member function 'bool TestNamespace::QDesignerActions::ensureBackupDirectories()':
+qdesigner_actions.cpp:1268:24: error: 'convertSeparators' is not a member of 'TestNamespace::QDir'
+qdesigner_actions.cpp:1273:27: error: 'convertSeparators' is not a member of 'TestNamespace::QDir'
+make[5]: *** [.obj/debug-shared/qdesigner_actions.o] Error 1
+make[4]: *** [sub-designer-make_default-ordered] Error 2
+make[3]: *** [sub-src-make_default] Error 2
+make[2]: *** [sub-designer-make_default-ordered] Error 2
+make[1]: *** [module-qttools-src-make_default] Error 2
+make: *** [module-qttools-make_default] Error 2

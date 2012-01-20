@@ -937,17 +937,26 @@ my %RE = (
         \z
     }xms,
 
-    # If matched, indicates that the top-level test script is running in `forcesuccess' mode,
-    # meaning that all failures should be discarded.
+    # If matched, indicates that all failures prior to this point in the log are non-fatal.
+    # Usually the reason for this is that a part of the test script is configured to treat
+    # errors as warnings.
     #
     # Example:
     #  Normally I would now fail.  However, `forcesuccess' was set in C:/test/recipes/129373577/base/_pulseconfig/projects/Qt_Modules_Continuous_Integration/stages/win32-msvc2010_Windows_7/forcesuccess.
     #
     # Captures: nothing
     #
-    forcesuccess => qr{
+    forget_errors => qr{
         \A
-        \QNormally I would now fail.  However, `forcesuccess' was set\E
+        (?:
+            # forcesuccess set in testconfig
+            \QNormally I would now fail.  However, `forcesuccess' was set\E
+
+            |
+
+            # some foo.insignificant=1 property was set, to treat errors as warnings
+            \QThis is a warning, not an error, because\E
+        )
     }xms,
 
     # The line where execution of an autotest begins.
@@ -1194,6 +1203,9 @@ sub identify_failures
     # (quite large, since autotests can have large logs ...)
     Readonly my $MAKE_CHECK_FAIL_MAX_LINES => 5000;
 
+    # If 0, we should not care about any more failures we see.
+    my $save_failures = 1;
+
     # We are trying to identify the reasons why this build failed.
     # We start from the end of the log and move backwards, since we're interested in what caused
     # the build to terminate.
@@ -1238,14 +1250,14 @@ sub identify_failures
         # It's useful to save the name of the script which we were running,
         # to customize the output in some cases.
         #
-        if ($line =~ $RE{ qtqa_script_fail }) {
+        if ($save_failures && $line =~ $RE{ qtqa_script_fail }) {
             $out->{ qtqa_script }      = $+{ qtqa_script };
             $out->{ qtqa_script_fail } = $line;
         }
 
         # make tool failed?
         #
-        if ($line =~ $RE{ make_fail }) {
+        if ($save_failures && $line =~ $RE{ make_fail }) {
             $out->{ make_fail } = $line;
 
             my $target = $+{ target };
@@ -1272,7 +1284,7 @@ sub identify_failures
 
         # compiler failed?
         #
-        elsif ($line =~ $RE{ compile_fail }) {
+        elsif ($save_failures && $line =~ $RE{ compile_fail }) {
             $out->{ compile_fail }                       = $line;
             $out->{ compile_fail_sources }{ $+{ file } } = $line;
 
@@ -1285,7 +1297,7 @@ sub identify_failures
 
         # linking failed?
         #
-        elsif ($line =~ $RE{ linker_fail }) {
+        elsif ($save_failures && $line =~ $RE{ linker_fail }) {
             my $lib = $+{ lib };
 
             $out->{ linker_fail } = $line;
@@ -1324,7 +1336,7 @@ sub identify_failures
 
         # qmake failed?
         #
-        elsif ($line =~ $RE{ qmake_fail }) {
+        elsif ($save_failures && $line =~ $RE{ qmake_fail }) {
             $out->{ qmake_fail } = $line;
             $out->{ qmake_fail_sources }{ $+{ file } } = $line;
 
@@ -1336,13 +1348,13 @@ sub identify_failures
         }
 
         # Pulse config problem?
-        elsif ($line =~ $RE{ pulse_config_error }) {
+        elsif ($save_failures && $line =~ $RE{ pulse_config_error }) {
             $out->{ pulse_config_error } = $line;
             $out->{ significant_lines }{ $line } = 1;
         }
 
         # Badly understood glitchy behavior?
-        elsif ($line =~ $RE{ glitch }) {
+        elsif ($save_failures && $line =~ $RE{ glitch }) {
             $out->{ glitch } = $line;
             $out->{ significant_lines }{ $line } = 1;
         }
@@ -1354,12 +1366,16 @@ sub identify_failures
             $out->{ pulse_property }{ $+{ property } } = $+{ value };
         }
 
-        # Were we operating in `forcesuccess' mode?
-        # If so, (almost) nothing else should be able to cause a failure ...
+        # Something happen to make us ignore errors?
+        # (e.g. errors treated as warnings?)
         #
-        elsif ($line =~ $RE{ forcesuccess })
+        elsif ($line =~ $RE{ forget_errors })
         {
-            $out->{ forcesuccess } = 1;
+            # We're parsing the log backwards and we found a message indicating
+            # that errors up to this point are not fatal; we keep parsing the
+            # rest of the log for additional context, but none of the lines we're
+            # parsing can be considered as contributing to the failure.
+            $save_failures = 0;
         }
     }
 
@@ -1392,12 +1408,6 @@ sub extract_and_output
 
     if (!$fail || ref($fail) ne 'HASH' || !%{$fail}) {
         # No idea about the failure ...
-        return;
-    }
-
-    if ($fail->{ forcesuccess }) {
-        # We may have "failed", but we were operating in forcesuccess mode,
-        # so the failure was (or should have been) discarded
         return;
     }
 
@@ -1474,33 +1484,33 @@ sub extract_and_output
 
         my $line = shift @lines;
 
-        # Compilation failure?
-        if ($fail->{ compile_fail } && $line =~ $RE{ compile_fail }) {
-            # When extracting any further messages relating to this error, we look for
-            # the "generic" continuation patterns ...
-            my @continuation_patterns = ($RE{ compile_fail_continuation });
+        # Have we explicitly stored this as a significant line already?
+        if ($fail->{ significant_lines }{ $line }) {
 
-            # ... and, if we could identify the file at fault, we look for messages relating
-            # to this specific file.
-            if (my $file = $+{ file }) {
-                push @continuation_patterns, qr{(?:\b|\A) \Q$file\E (?:\b|\z)}xms;
+            # Compilation failure?
+            if ($fail->{ compile_fail } && $line =~ $RE{ compile_fail }) {
+                # When extracting any further messages relating to this error, we look for
+                # the "generic" continuation patterns ...
+                my @continuation_patterns = ($RE{ compile_fail_continuation });
+
+                # ... and, if we could identify the file at fault, we look for messages relating
+                # to this specific file.
+                if (my $file = $+{ file }) {
+                    push @continuation_patterns, qr{(?:\b|\A) \Q$file\E (?:\b|\z)}xms;
+                }
+
+                $line_is_significant->( $line, @continuation_patterns );
+
+                next;
             }
 
-            $line_is_significant->( $line, @continuation_patterns );
+            # Linker failure?
+            if ($fail->{ linker_fail } && $line =~ $RE{ linker_fail }) {
+                $line_is_significant->( $line, $RE{ linker_fail_continuation } );
+                next;
+            }
 
-            next;
-        }
-
-        # Linker failure?
-        if ($fail->{ linker_fail } && $line =~ $RE{ linker_fail }) {
-            $line_is_significant->( $line, $RE{ linker_fail_continuation } );
-            next;
-        }
-
-        # Have we explicitly stored this as a significant line already?
-        # Note, this must come after the more specific checks, since those may add
-        # specific continuations.
-        if ($fail->{ significant_lines }{ $line }) {
+            # No continuations found for this significant line
             $line_is_significant->( $line );
             next;
         }
