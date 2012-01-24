@@ -591,6 +591,7 @@ sub run_compile
     # properties
     my $qt_dir                  = $self->{ 'qt.dir'                  };
     my $qt_build_dir            = $self->{ 'qt.build.dir'            };
+    my $qt_install_dir          = $self->{ 'qt.install.dir'          };
     my $qt_gitmodule            = $self->{ 'qt.gitmodule'            };
     my $qt_gitmodule_dir        = $self->{ 'qt.gitmodule.dir'        };
     my $qt_gitmodule_build_dir  = $self->{ 'qt.gitmodule.build.dir'  };
@@ -600,6 +601,7 @@ sub run_compile
     my $qt_minimal_deps         = $self->{ 'qt.minimal_deps'         };
 
     my $qmake_bin = catfile( $qt_build_dir, 'qtbase', 'bin', 'qmake' );
+    my $qmake_install_bin = catfile( $qt_install_dir, 'bin', 'qmake' );
 
     # true iff the module is hosted in qt5.git (affects build procedure)
     my $module_in_qt5 = $self->{ module_in_qt5 };
@@ -664,17 +666,14 @@ sub run_compile
         # module, then make this module.
         # The Makefile generated in qt5 doesn't know anything about this module.
 
-        # XXX this only works when all the module's dependencies are located in qt5.git.
-
-        # XXX this does not work if Qt is configured such that `make install' needs to be
-        # done on the dependencies.  At least the path to `qmake' will be wrong.
-
-        # XXX also this is not implemented yet to work properly when shadow-build
-        # with installation is enabled.
-
         # First, we build all deps:
+        my $target_suffix = '';
+        if ($self->{ shadow_build_with_install_enabled }) {
+            # In this configuration, we don't just need to build, but also install
+            $target_suffix = '-install_subtargets';
+        }
         my %dependencies = $self->read_dependencies( "$qt_gitmodule_dir/sync.profile" );
-        my @module_targets = map { "module-$_" } keys %dependencies;
+        my @module_targets = map { "module-$_$target_suffix" } keys %dependencies;
         push @commands, sub { $self->exe( $make_bin, @make_args, @module_targets ) };
 
         # Then we qmake, make the module we're actually interested in
@@ -699,9 +698,22 @@ sub run_compile
             # now explicitly enable them for this module only.
             push @qmake_args, map { "QT_BUILD_PARTS+=$_" } @OPTIONAL_BUILD_PARTS;
         }
-        push @commands, sub { $self->exe( $qmake_bin, '-r', $pro_files[0], @qmake_args ) };
+        push @commands, sub { $self->exe(
+            $self->{ shadow_build_with_install_enabled } ? $qmake_install_bin : $qmake_bin,
+            '-r',
+            $pro_files[0],
+            @qmake_args
+        ) };
 
-        push @commands, sub { $self->exe( $make_bin, @make_args ) };
+        if ($self->{ shadow_build_with_install_enabled }) {
+            push @commands, sub {
+                $self->exe( $make_bin, @make_args, 'install' );
+                $self->{ installed } = 1;
+            };
+        }
+        else {
+            push @commands, sub { $self->exe( $make_bin, @make_args ) };
+        }
     }
 
     foreach my $command (@commands) {
@@ -719,6 +731,7 @@ sub run_install
     my $qt_dir          = $self->{ 'qt.dir' };
     my $qt_build_dir    = $self->{ 'qt.build.dir' };
     my $qt_gitmodule    = $self->{ 'qt.gitmodule' };
+    my $qt_gitmodule_dir= $self->{ 'qt.gitmodule.dir' };
     my $qt_make_install = $self->{ 'qt.make_install' };
 
     # if shadow_build_with_install_enabled true, no need to install anymore.
@@ -731,12 +744,26 @@ sub run_install
 
     chdir( $qt_build_dir );
 
-    # XXX: this will not work for modules which aren't hosted in qt/qt5.git
-    my @make_args = (($self->{'qt.gitmodule'} eq 'qt5') or ($self->{'qt.gitmodule'} eq 'qt'))
-                    ? ('install')
-                    : ("module-$qt_gitmodule-install_subtargets");
+    if (($self->{'qt.gitmodule'} eq 'qt5') or ($self->{'qt.gitmodule'} eq 'qt')) {
+        # Testing all of qt5 or qt4? Just do a top-level `make install'
+        $self->exe( $make_bin, 'install' );
+    }
+    elsif ($self->{ module_in_qt5 }) {
+        # Testing some module hosted in qt5.git? Top-level `make module-FOO-install_subtargets'
+        # to install this module and all its dependencies.
+        $self->exe( $make_bin, "module-$qt_gitmodule-install_subtargets" );
+    }
+    else {
+        # Testing some module hosted outside of qt5.git?
+        # Then we need to explicitly install all deps first ...
+        my %dependencies = $self->read_dependencies( "$qt_gitmodule_dir/sync.profile" );
+        my @module_targets = map { "module-$_-install_subtargets" } keys %dependencies;
+        $self->exe( $make_bin, @module_targets );
 
-    $self->exe( $make_bin, @make_args );
+        # ... and then install the module itself
+        chdir( $qt_gitmodule );
+        $self->exe( $make_bin, 'install' );
+    }
 
     # Note that we are installed, since this changes some behavior elsewhere
     $self->{ installed } = 1;
