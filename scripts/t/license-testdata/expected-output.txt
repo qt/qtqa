@@ -34,6 +34,7 @@
 #
 #
 #
+#
 # $QT_END_LICENSE$
 #
 # This file contains the expected output of running the license checker

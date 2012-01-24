@@ -35,6 +35,7 @@
 ;**
 ;**
 ;**
+;**
 ;** $QT_END_LICENSE$
 ;**
 ;****************************************************************************/
@@ -73,6 +74,7 @@
 ;** Other Usage
 ;** Alternatively, this file may be used in accordance with the terms and
 ;** conditions contained in a signed written agreement between you and Nokia.
+;**
 ;**
 ;**
 ;**
@@ -118,6 +120,7 @@
 ;** Other Usage
 ;** Alternatively, this file may be used in accordance with the terms and
 ;** conditions contained in a signed written agreement between you and Nokia.
+;**
 ;**
 ;**
 ;**

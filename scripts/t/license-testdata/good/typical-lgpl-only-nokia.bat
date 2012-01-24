@@ -17,6 +17,7 @@
 ::
 :: If you have questions regarding the use of this file, please contact
 :: us via http://www.qt-project.org/.
+::
 :: $QT_END_LICENSE$
 ::
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
