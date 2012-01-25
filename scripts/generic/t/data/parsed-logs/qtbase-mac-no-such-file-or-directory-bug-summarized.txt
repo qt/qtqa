@@ -1,0 +1,8 @@
+[ '--summarize', "$DATADIR/raw-logs/qtbase-mac-no-such-file-or-directory-bug.txt" ]
+`make' failed :(
+
+  sh: /Users/qt/python27/bin/rm: No such file or directory
+  make[3]: *** [../../lib/QtPrintSupport.framework/Versions/5/Headers/qtprintsupportversion.h] Error 127
+  make[2]: *** [release] Error 2
+  make[1]: *** [sub-printsupport-make_default-ordered] Error 2
+  make: *** [module-qtbase] Error 2
