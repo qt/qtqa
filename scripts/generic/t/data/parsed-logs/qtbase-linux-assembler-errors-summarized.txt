@@ -1,0 +1,43 @@
+[ '--summarize', "$DATADIR/raw-logs/qtbase-linux-assembler-errors.txt" ]
+qtbase failed to compile for linux-arm-gnueabi-g++ Ubuntu 11.10 x86 :(
+
+  {standard input}: Assembler messages:
+  {standard input}:12763: Error: thumb conditional instruction should be in IT block -- `strexheq r3,r5,[r6]'
+  {standard input}:12764: Error: thumb conditional instruction should be in IT block -- `teqeq r3,#1'
+  {standard input}:12792: Error: thumb conditional instruction should be in IT block -- `strexheq r3,r5,[r6]'
+  {standard input}:12793: Error: thumb conditional instruction should be in IT block -- `teqeq r3,#1'
+  {standard input}:12849: Error: thumb conditional instruction should be in IT block -- `strexheq r3,r5,[r6]'
+  {standard input}:12850: Error: thumb conditional instruction should be in IT block -- `teqeq r3,#1'
+  {standard input}:12890: Error: thumb conditional instruction should be in IT block -- `strexheq r3,r5,[r6]'
+  {standard input}:12891: Error: thumb conditional instruction should be in IT block -- `teqeq r3,#1'
+  {standard input}:13441: Error: thumb conditional instruction should be in IT block -- `strexheq r3,r5,[r7]'
+  {standard input}:13442: Error: thumb conditional instruction should be in IT block -- `teqeq r3,#1'
+  {standard input}:13470: Error: thumb conditional instruction should be in IT block -- `strexheq r3,r5,[r7]'
+  {standard input}:13471: Error: thumb conditional instruction should be in IT block -- `teqeq r3,#1'
+  {standard input}:13527: Error: thumb conditional instruction should be in IT block -- `strexheq r3,r5,[r7]'
+  {standard input}:13528: Error: thumb conditional instruction should be in IT block -- `teqeq r3,#1'
+  {standard input}:13568: Error: thumb conditional instruction should be in IT block -- `strexheq r3,r5,[r7]'
+  {standard input}:13569: Error: thumb conditional instruction should be in IT block -- `teqeq r3,#1'
+  {standard input}:16121: Error: thumb conditional instruction should be in IT block -- `strexdeq r2,sl,fp,[r7]'
+  {standard input}:16122: Error: thumb conditional instruction should be in IT block -- `teqeq r2,#1'
+  {standard input}:16152: Error: thumb conditional instruction should be in IT block -- `strexdeq r2,sl,fp,[r7]'
+  {standard input}:16153: Error: thumb conditional instruction should be in IT block -- `teqeq r2,#1'
+  {standard input}:16211: Error: thumb conditional instruction should be in IT block -- `strexdeq r2,sl,fp,[r7]'
+  {standard input}:16212: Error: thumb conditional instruction should be in IT block -- `teqeq r2,#1'
+  {standard input}:16254: Error: thumb conditional instruction should be in IT block -- `strexdeq r2,sl,fp,[r7]'
+  {standard input}:16255: Error: thumb conditional instruction should be in IT block -- `teqeq r2,#1'
+  {standard input}:16811: Error: thumb conditional instruction should be in IT block -- `strexdeq r2,sl,fp,[r4]'
+  {standard input}:16812: Error: thumb conditional instruction should be in IT block -- `teqeq r2,#1'
+  {standard input}:16842: Error: thumb conditional instruction should be in IT block -- `strexdeq r2,sl,fp,[r4]'
+  {standard input}:16843: Error: thumb conditional instruction should be in IT block -- `teqeq r2,#1'
+  {standard input}:16901: Error: thumb conditional instruction should be in IT block -- `strexdeq r2,sl,fp,[r4]'
+  {standard input}:16902: Error: thumb conditional instruction should be in IT block -- `teqeq r2,#1'
+  {standard input}:16944: Error: thumb conditional instruction should be in IT block -- `strexdeq r2,sl,fp,[r4]'
+  {standard input}:16945: Error: thumb conditional instruction should be in IT block -- `teqeq r2,#1'
+  make[6]: *** [.obj/release-shared/tst_qatomicint.o] Error 1
+  make[5]: *** [sub-qatomicint-make_default] Error 2
+  make[4]: *** [sub-thread-make_default] Error 2
+  make[3]: *** [sub-corelib-make_default] Error 2
+  make[2]: *** [sub-auto-make_default] Error 2
+  make[1]: *** [module-qtbase-tests-make_default-ordered] Error 2
+  make: *** [module-qtbase] Error 2

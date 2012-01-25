@@ -463,6 +463,35 @@ my %RE = (
             \z
         )
 
+        |
+
+        # GNU assembler errors (when used with -pipe)
+        # example:
+        #   \{standard input\}:12763: Error: thumb conditional instruction should be in IT block -- `strexheq r3,r5,[r6]'
+        (?:
+            \A
+
+            (?<file>
+                \Q\{standard input\}\E
+            )
+
+            :
+
+            (?<line>
+                \d+
+            )
+
+            :
+            [ ]
+
+            (?<error>
+                \QError: \E
+                .+
+            )
+
+            \z
+        )
+
         # add more compilers here as needed
 
     }xms,
@@ -526,6 +555,14 @@ my %RE = (
                 \Qsee declaration of\E
             )
         )
+
+        |
+
+        (?:
+            # GNU assembler errors (when used with -pipe)
+            \Q\{standard input\}: Assembler messages:\E
+        )
+
     }xms,
 
     # Failure to link.
