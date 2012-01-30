@@ -3,7 +3,7 @@
 -- Copyright (C) 2012 Alice
 -- Copyright (C) 2012 Bob
 -- All rights reserved.
--- Contact: Nokia Corporation (qt-info@nokia.com)
+-- Contact: http://www.qt-project.org/
 --
 -- This file is part of the (whatever) of the Qt Toolkit.
 --

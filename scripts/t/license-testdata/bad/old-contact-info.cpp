@@ -1,9 +1,10 @@
 /****************************************************************************
 **
-** Copyright (C) 2012 Company name/Contributor's name <email@example.com>
-** Contact: http://www.qt-project.org/
+** Copyright (C) 2012 Nokia Corporation and/or its subsidiary(-ies).
+** All rights reserved.
+** Contact: Nokia Corporation (qt-info@nokia.com)
 **
-** This file is part of the FOO module of the Qt Toolkit.
+** This file is part of the (whatever) of the Qt Toolkit.
 **
 ** $QT_BEGIN_LICENSE:LGPL$
 ** GNU Lesser General Public License Usage

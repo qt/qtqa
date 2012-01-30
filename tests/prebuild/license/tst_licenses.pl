@@ -227,13 +227,7 @@ my $leadingDelimiter = qr/^(\s*[\*!;:#\-\.\\\"]+)/;
 my @copyrightBlock = (
     qr/\s\bCopyright \(C\) 2[0-9][0-9][0-9] .*/,
     qr/\s\b(?#optional)All rights reserved.*/,
-    qr/\s\bContact:\s(?:
-            # Old style, predates Qt Project
-            Nokia\sCorporation\s\(qt-info\\?\@nokia\.com\)
-            |
-            # New style
-            http:\/\/www\.qt-project\.org\/
-        ).*/x,
+    qr/\s\bContact: http:\/\/www\.qt-project\.org\/.*/,
     qr//,
     qr/\s\bThis file is (the|part of the)\s*\b(\w*)\b.*/,
     qr//,
