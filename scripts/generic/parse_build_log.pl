@@ -445,7 +445,7 @@ my %RE = (
     #   sublevel    -   level of submake (e.g. "make[1]: *** Error 2" gives "1");
     #                   never matches for top-level make
     #   target      -   make target which failed (not always available)
-    #   errorlevel  -   the error number, e.g. "Error 2" gives "2"
+    #   errorlevel  -   the error number, e.g. "Error 2" gives "2" (not always available)
     #
     # Caveats:
     #   nmake probably doesn't work right.
@@ -496,12 +496,17 @@ my %RE = (
 
             \s
 
-            # "Error <num>"
             (?:
+                # "Error <num>"
                 Error \s
                 (?<errorlevel>
                     \d+
                 )
+
+                |
+
+                # This comes when make itself segfaults
+                \QSegmentation fault: 11\E
             )
 
             |
