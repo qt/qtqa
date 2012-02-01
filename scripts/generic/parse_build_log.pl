@@ -378,6 +378,17 @@ my %RE = (
             \QNo online agents satisfy the request requirements.\E
         )
 
+        |
+
+        (?:
+            # Stage name in pulse doesn't match stage name in testconfig.git
+            \A
+            \s*
+            \QCould not find a stage directory for \E
+            .*
+            \s at \s [^\s]+/test\.pl \s line \s \d+
+        )
+
         # add more as discovered
     }xms,
 
