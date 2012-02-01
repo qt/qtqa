@@ -2048,7 +2048,13 @@ sub output_summary
         # It's nice to wrap it.
         local $Text::Wrap::columns = 72;
         local $Text::Wrap::huge = 'overflow'; # don't break up long paths
-        print wrap(q{}, q{}, $summary);
+        my $wrapped = wrap(q{}, q{}, $summary);
+
+        # wrap can leave trailing whitespace at the end of each line.
+        # Those are generally considered "whitespace errors", so strip them.
+        $wrapped =~ s{\h+(?=\n)}{}g;
+
+        print $wrapped;
 
         # Blank lines after summary begin the (indented) body of the raw text
         print "\n\n";

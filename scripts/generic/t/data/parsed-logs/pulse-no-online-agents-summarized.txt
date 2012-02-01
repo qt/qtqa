@@ -3,7 +3,7 @@ It seems that there has been some misconfiguration of the Pulse CI
 tool, or some related CI infrastructure error. This is NOT the fault of
 the code under test!
 
-Please contact some CI administrator to resolve this problem. 
+Please contact some CI administrator to resolve this problem.
 Meanwhile, it may be worthwhile to attempt the build again.
 
   No online agents satisfy the request requirements. Agent frobnitz is not available.
