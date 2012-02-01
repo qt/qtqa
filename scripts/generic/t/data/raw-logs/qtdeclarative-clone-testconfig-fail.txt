@@ -1,0 +1,91 @@
+2/1/12 3:08:19 AM EST: Checking recipe agent requirements...
+2/1/12 3:08:19 AM EST: Requirements satisfied by at least one online agent.
+2/1/12 3:08:19 AM EST: Recipe assigned to agent bq-mac-mini-02
+2/1/12 3:08:23 AM EST: Recipe dispatched to agent bq-mac-mini-02
+2/1/12 3:08:23 AM EST: Found stale recipe directory '151222766', deleting...
+2/1/12 3:08:40 AM EST: Deleted.
+2/1/12 3:08:40 AM EST: Recipe 'generic test' commenced
+2/1/12 3:08:40 AM EST: Command 'bootstrap' commenced
+============================[ command output below ]============================
+2/1/12 3:08:40 AM EST: Checking out to /Users/qt/.pulse2-agent/data/recipes/151222834/base
+2/1/12 3:08:40 AM EST: >> git init
+2/1/12 3:08:41 AM EST: Initialized empty Git repository in /Users/qt/.pulse2-agent/data/recipes/151222834/base/.git/
+2/1/12 3:08:41 AM EST: >> git remote add -f -t qtdeclarative-master-integration -m qtdeclarative-master-integration origin qtgitreadonly:qa-dungeon/working-area.git
+2/1/12 3:13:51 AM EST: From git://scm.dev.nokia.troll.no/qa-dungeon/working-area
+2/1/12 3:13:51 AM EST:  + 9f325b2...f5edacf qt3d-master-integration -> qtgitreadonly____qa-dungeon_working-area/qt3d-master-integration  (forced update)
+2/1/12 3:13:51 AM EST:  + 211f09a...092c8e4 qtdeclarative-master-integration -> qtgitreadonly____qa-dungeon_working-area/qtdeclarative-master-integration  (forced update)
+2/1/12 3:14:51 AM EST: From git://scm.dev.nokia.troll.no/qa-dungeon/working-area
+2/1/12 3:14:51 AM EST:  * [new branch]      qtdeclarative-master-integration -> origin/qtdeclarative-master-integration
+2/1/12 3:16:03 AM EST: >> git merge origin
+2/1/12 3:16:06 AM EST: >> git checkout -f -b local origin/qtdeclarative-master-integration
+2/1/12 3:16:07 AM EST: Switched to a new branch 'local'
+2/1/12 3:16:07 AM EST: Branch local set up to track remote branch qtdeclarative-master-integration from origin.
+2/1/12 3:16:07 AM EST: >> git checkout -f -b tmp.092c8e44f64490deecf24834ac9e691f54fb362c 092c8e44f64490deecf24834ac9e691f54fb362c
+2/1/12 3:16:07 AM EST: Switched to a new branch 'tmp.092c8e44f64490deecf24834ac9e691f54fb362c'
+============================[ command output above ]============================
+2/1/12 3:16:07 AM EST: Command 'bootstrap' completed with status success
+2/1/12 3:16:08 AM EST: Command 'Clean before build' commenced
+============================[ command output below ]============================
+============================[ command output above ]============================
+2/1/12 3:16:08 AM EST: Command 'Clean before build' completed with status success
+2/1/12 3:16:08 AM EST: Command details: 
+2/1/12 3:16:08 AM EST:          command line: /Users/qt/bin/git clean -dffx
+2/1/12 3:16:08 AM EST:             exit code: 0
+2/1/12 3:16:08 AM EST:     working directory: /Users/qt/.pulse2-agent/data/recipes/151222834/base
+2/1/12 3:16:08 AM EST: End command details.
+2/1/12 3:16:08 AM EST: Command 'git clone testconfig' commenced
+============================[ command output below ]============================
+2/1/12 3:16:10 AM EST: Initialized empty Git repository in /Users/qt/.pulse2-agent/data/recipes/151222834/base/_testconfig/.git/
+2/1/12 3:17:30 AM EST: scm.dev.nokia.troll.no[0: 10.215.6.39]: errno=Operation timed out
+2/1/12 3:17:30 AM EST: fatal: unable to connect a socket (Operation timed out)
+2/1/12 3:17:30 AM EST: [GitMirror::try_local WARNING] Problem with the local object cache - will try mirror"/opt/local/bin/git fetch git___scm_dev_nokia_troll_no____qa-dungeon_testconfig-public" unexpectedly returned exit value 128 at (eval 59) line 13
+2/1/12 3:17:30 AM EST:  at /Users/qt/bin/git line 90
+
+2/1/12 3:17:30 AM EST: Cloning into _testconfig...
+============================[ command output above ]============================
+2/1/12 3:17:30 AM EST: Command 'git clone testconfig' completed with status success
+2/1/12 3:17:30 AM EST: Command details: 
+2/1/12 3:17:30 AM EST:          command line: /Users/qt/bin/git clone git://scm.dev.nokia.troll.no/qa-dungeon/testconfig-public _testconfig
+2/1/12 3:17:30 AM EST:             exit code: 0
+2/1/12 3:17:30 AM EST:     working directory: /Users/qt/.pulse2-agent/data/recipes/151222834/base
+2/1/12 3:17:30 AM EST: End command details.
+2/1/12 3:17:30 AM EST: Command 'Run test' commenced
+============================[ command output below ]============================
+2/1/12 3:17:30 AM EST: Can't open perl script "_testconfig/test.pl": No such file or directory
+============================[ command output above ]============================
+2/1/12 3:17:30 AM EST: Command 'Run test' completed with status failure
+2/1/12 3:17:30 AM EST: Command details: 
+2/1/12 3:17:30 AM EST:          command line: /usr/bin/perl _testconfig/test.pl
+2/1/12 3:17:30 AM EST:             exit code: 2
+2/1/12 3:17:30 AM EST:     working directory: /Users/qt/.pulse2-agent/data/recipes/151222834/base
+2/1/12 3:17:30 AM EST: End command details.
+2/1/12 3:17:30 AM EST: Command 'Clean after build' commenced
+============================[ command output below ]============================
+2/1/12 3:17:30 AM EST: Removing _testconfig/
+============================[ command output above ]============================
+2/1/12 3:17:30 AM EST: Command 'Clean after build' completed with status success
+2/1/12 3:17:30 AM EST: Command details: 
+2/1/12 3:17:30 AM EST:          command line: /Users/qt/bin/git clean -dffx
+2/1/12 3:17:30 AM EST:             exit code: 0
+2/1/12 3:17:30 AM EST:     working directory: /Users/qt/.pulse2-agent/data/recipes/151222834/base
+2/1/12 3:17:30 AM EST: End command details.
+2/1/12 3:17:30 AM EST: Storing test results...
+2/1/12 3:17:30 AM EST: Test results stored.
+2/1/12 3:17:30 AM EST: Compressing recipe artifacts...
+2/1/12 3:17:31 AM EST: Artifacts compressed.
+2/1/12 3:17:31 AM EST: Recipe 'generic test' completed with status failure
+2/1/12 3:17:31 AM EST: Collecting recipe artifacts...
+2/1/12 3:17:31 AM EST: Collection complete
+2/1/12 3:17:31 AM EST: Cleaning up agent work area...
+2/1/12 3:17:31 AM EST: Clean up complete.
+2/1/12 3:17:31 AM EST: Running post stage hooks...
+2/1/12 3:17:31 AM EST: Hook 'reboot agents' commenced
+============================[ command output below ]============================
+============================[ command output above ]============================
+2/1/12 3:18:24 AM EST: Hook 'reboot agents' completed
+2/1/12 3:18:24 AM EST: Hook 'stage first aid' commenced
+============================[ command output below ]============================
+============================[ command output above ]============================
+2/1/12 3:18:25 AM EST: Hook 'stage first aid' completed
+2/1/12 3:18:25 AM EST: Hook 'publish build logs: post-stage' commenced
+============================[ command output below ]============================

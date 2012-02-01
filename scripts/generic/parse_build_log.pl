@@ -412,6 +412,14 @@ my %RE = (
             \Q/bin/sh: /bin/sh: cannot execute binary file\E
         )
 
+        |
+
+        (?:
+            # test.pl from testconfig can't be run;
+            # usually means the testconfig repo couldn't be cloned for some reason.
+            \QCan't open perl script "_testconfig/test.pl": No such file or directory\E
+        )
+
         # add more as discovered
     }xms,
 
@@ -1788,9 +1796,11 @@ sub extract_and_output
                 next;
             }
 
-            # Make failure?
-            if ($fail->{ make_fail } && $line =~ $RE{ make_fail }) {
-                # Look for generic strerror stuff
+            # Any failure for which we might benefit by scanning for generic
+            # strerror-like messages?
+            if ( $fail->{ make_fail } && $line =~ $RE{ make_fail }
+              || $fail->{ glitch} && $line =~ $RE{ glitch }
+            ) {
                 $line_is_significant->( $line, $RE{ strerror } );
                 next;
             }
