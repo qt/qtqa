@@ -61,8 +61,8 @@ Run the automated test suite in this repository.
 
 =item --clean
 
-Instead of running against the perl and python environment set up
-in the caller's environment, create a new perl and python environment
+Instead of running against the perl environment set up
+in the caller's environment, create a new perl environment
 in a temporary directory, and delete it after the test completes.
 
 This is the most accurate way to test that all prerequisites are
@@ -73,7 +73,7 @@ the test time.
 
 On a typical clean Linux workstation, this script shouldn't require any
 additional prerequisites other than the perl B<local::lib> dependency
-and the python virtualenv dependency needed by L<setup.pl>.
+needed by L<setup.pl>.
 
 =cut
 
@@ -230,7 +230,7 @@ sub make_clean_prefix
 
     my $cleandir = tempdir( 'qt-qa-test-pl.XXXXXX', CLEANUP => 1, TMPDIR => 1 );
 
-    print "Using $cleandir as perl and python prefix.\n";
+    print "Using $cleandir as perl prefix.\n";
 
     # perl: local::lib creates the dirs and sets environment in the current process.
     # Unsetting PERL5LIB first ensures that this is the only local::lib in the
@@ -242,37 +242,6 @@ sub make_clean_prefix
 
     $self->{perldir} = $perl_dir;
 
-    # python: virtualenv creates the dirs.  It does not set env,
-    # so we do it manually.
-    my $virtualenv_dir = "$cleandir/python";
-
-    # we'll retry up to this many times, e.g. to recover from temporary network issues.
-    my $MAX_TRIES = 8;
-    my $tries = 0;
-    while (1) {
-        eval { $self->system_or_die('virtualenv', '--clear', $virtualenv_dir) };
-        if ( $@ ) {
-            print "\n$@\nLooks like virtualenv installation was not successful.";
-            if ($tries++ < $MAX_TRIES) {
-                # wait for 8, 16, 32, 64 ... seconds.
-                my $delay = 2**($tries+2);
-                print "\nTrying again in $delay seconds [attempt $tries of $MAX_TRIES].\n";
-                sleep $delay;
-            }
-            else {
-                print "\nGiving up :(\n";
-                return 0;
-            }
-        }
-        else {
-            print "\nInstallation of virtualenv was successful.\n";
-            last;
-        }
-    }
-
-    $ENV{VIRTUAL_ENV} = $virtualenv_dir;                   ## no critic - localized by caller
-    $ENV{PATH}        = "$virtualenv_dir/bin:".$ENV{PATH}; ## no critic - localized by caller
-
     return;
 }
 
@@ -280,10 +249,8 @@ sub run
 {
     my ($self) = @_;
 
-    # localize in case we modify these in the below block.
-    local $ENV{VIRTUAL_ENV} = $ENV{VIRTUAL_ENV};
-    local $ENV{PATH}        = $ENV{PATH};
-    local $ENV{PERL5LIB}    = $ENV{PERL5LIB};
+    # localize in case we modify this in the below block.
+    local $ENV{PERL5LIB} = $ENV{PERL5LIB};
 
     if ($self->{clean}) {
         $self->make_clean_prefix;

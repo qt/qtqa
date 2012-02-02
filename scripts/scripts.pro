@@ -8,8 +8,8 @@ mac|linux* {
 }
 linux* {
     # On Linux, we can do a --clean test, which will verify that all needed CPAN
-    # and python modules can be installed in a "clean" environment. This is
-    # possible because we expect local::lib to be installed system-wide on Linux.
+    # modules can be installed in a "clean" environment. This is possible because
+    # we expect local::lib to be installed system-wide on Linux.
     #
     # We can't do this on e.g. Mac, because local::lib is expected to be installed
     # from CPAN on that platform, so a --clean test will wipe out local::lib and
