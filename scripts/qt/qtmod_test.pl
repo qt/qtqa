@@ -56,7 +56,7 @@ use English qw( -no_match_vars );
 use Env::Path;
 use File::Path;
 use File::Spec::Functions;
-use List::MoreUtils qw( any );
+use List::MoreUtils qw( any apply );
 use autodie;
 use Readonly;
 use Text::Trim;
@@ -1010,15 +1010,22 @@ sub _run_autotests_impl
     my $run = sub {
         chdir( $tests_dir );
 
+        my @make_args = split(/ /, $make_args);
+
         if ($do_compile) {
             $self->exe( 'qmake' );
-            $self->exe( $make_bin, '-k', split(/ /, $make_args) );
+            $self->exe( $make_bin, '-k', @make_args );
         }
 
+        # Arguments for `make check' are like the arguments for `make',
+        # except we replace any -jN with -j1, since autotests are generally
+        # not safe to run in parallel.
+        my @make_check_args = apply { s{\A -j\d+ \z}{-j1}xms } @make_args;
+
         $self->exe( $make_bin,
-            '-j1',                              # in serial (autotests are generally parallel-unsafe)
             '-k',                               # keep going after failure
                                                 # (to get as many results as possible)
+            @make_check_args,                   # include args requested by user
             "TESTRUNNER=$testrunner_command",   # use our testrunner script
             "TESTARGS=$qt_tests_args",          # and our test args (may be empty)
             'check',                            # run the autotests :)
