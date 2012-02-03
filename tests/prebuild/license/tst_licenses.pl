@@ -451,8 +451,12 @@ sub checkLicense
 #
 sub shouldScan
 {
-    # Strip the module path from the filename
     my $fullPath = shift;
+
+    # Is this an existing file?
+    return 0 unless (-f $fullPath);
+
+    # Strip the module path from the filename
     my $file = $fullPath;
     $file =~ s/^\Q$QT_MODULE_TO_TEST\E\///;
 

@@ -171,7 +171,7 @@ sub run
     my @allcsmes = File::Find::Rule->file()->name( '*.csmes' )->in($qt_git_qtbase_libdir);
     push @allcsmes, File::Find::Rule->file()->name( '*.csmes' )->in($qt_git_qtbase_pluginsdir);
     push @allcsmes, File::Find::Rule->file()->name( '*.csmes' )->in($qt_git_qtbase_importsdir);
-    @allcsmes = sort(@allcsmes);
+    @allcsmes = map { canonpath($_) } sort(@allcsmes);
 
     print "List of all source files in coverage\n";
 

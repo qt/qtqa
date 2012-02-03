@@ -35,40 +35,46 @@ use File::Temp qw( tempdir );
 use lib "$FindBin::Bin/../../lib/perl5";
 use QtQA::Test::More qw( is_or_like create_mock_command );
 
+# Directory separator, quoted for regex
+Readonly my $DS => ($OSNAME eq 'MSWin32') ? q{\\\\} : q{/};
+
 # Tempdir testcocoon for tests template
 Readonly my $TEMPDIR_TOPLEVEL => File::Spec->tmpdir;
 
 Readonly my $TEMPDIR_TEMPLATE =>
-    qr{\Q$TEMPDIR_TOPLEVEL\E/testcocoon_runner\..{6}}sm;
+    qr{\Q$TEMPDIR_TOPLEVEL\E${DS}testcocoon_runner\..{6}}sm;
 
 # Preamble always printed out at the beginning
 Readonly my $COVERAGERUNNER_PREAMBLE =>
     qr{Gather all library files covered in a global database\sList of all source files in coverage.*};
 
 # Reused paths to csmes for the libraries
+# Note for this (and others), the module/.. part is optional,
+# because that may be redundant and File::Find may already clean up that
+# before returning.
 Readonly my $LIST_CSMESLIB =>
-    qr{${TEMPDIR_TEMPLATE}/module/\.\./qtbase/lib/lib\.csmes.*
-${TEMPDIR_TEMPLATE}/module/\.\./qtbase/lib/lib2\.csmes.*}sm;
+    qr{${TEMPDIR_TEMPLATE}${DS}(?:module${DS}\.\.${DS})?qtbase${DS}lib${DS}lib\.csmes.*
+${TEMPDIR_TEMPLATE}${DS}(?:module${DS}\.\.${DS})?qtbase${DS}lib${DS}lib2\.csmes.*}sm;
 
 # First merge command
 Readonly my $COVERAGERUNNER_CMMERGE_SRC =>
-    qr{\+ cmmerge --append --output=${TEMPDIR_TEMPLATE}/module_coverage_src-[0-9]{8}-[0-9]{4}\.csmes ${TEMPDIR_TEMPLATE}/module/\.\./qtbase/lib/lib2\.csmes.*};
+    qr{\+ cmmerge --append --output=${TEMPDIR_TEMPLATE}${DS}module_coverage_src-[0-9]{8}-[0-9]{4}\.csmes ${TEMPDIR_TEMPLATE}${DS}(?:module${DS}\.\.${DS})?qtbase${DS}lib${DS}lib2\.csmes.*};
 
 # Second merge command
 Readonly my $COVERAGERUNNER_CMMERGE_GLOBAL =>
-    qr{\+ cmmerge --append --output=${TEMPDIR_TEMPLATE}/module_coverage_global-[0-9]{8}-[0-9]{4}\.csmes ${TEMPDIR_TEMPLATE}/module_coverage_unittests-[0-9]{8}-[0-9]{4}\.csmes.*};
+    qr{\+ cmmerge --append --output=${TEMPDIR_TEMPLATE}${DS}module_coverage_global-[0-9]{8}-[0-9]{4}\.csmes ${TEMPDIR_TEMPLATE}${DS}module_coverage_unittests-[0-9]{8}-[0-9]{4}\.csmes.*};
 
 # Cmreport command
 Readonly my $COVERAGERUNNER_CMREPORT =>
-    qr{\+ cmreport --csmes=${TEMPDIR_TEMPLATE}/module_coverage_global-[0-9]{8}-[0-9]{4}\.csmes --xml=${TEMPDIR_TEMPLATE}/module_coverage_report-[0-9]{8}-[0-9]{4}\.xml --select=.* --source=all --source-sort=name --global=all.*};
+    qr{\+ cmreport --csmes=${TEMPDIR_TEMPLATE}${DS}module_coverage_global-[0-9]{8}-[0-9]{4}\.csmes --xml=${TEMPDIR_TEMPLATE}${DS}module_coverage_report-[0-9]{8}-[0-9]{4}\.xml --select=.* --source=all --source-sort=name --global=all.*};
 
 # gzip command
 Readonly my $COVERAGERUNNER_GZIP =>
-    qr{\+ gzip ${TEMPDIR_TEMPLATE}/module_coverage_global-[0-9]{8}-[0-9]{4}\.csmes.*};
+    qr{\+ gzip ${TEMPDIR_TEMPLATE}${DS}module_coverage_global-[0-9]{8}-[0-9]{4}\.csmes.*};
 
 # xml2html_testcocoon command
 Readonly my $COVERAGERUNNER_XML2HTML =>
-    qr{\+ xml2html_testcocoon --xml ${TEMPDIR_TEMPLATE}/module_coverage_report-[0-9]{8}-[0-9]{4}\.xml --module module --output ${TEMPDIR_TEMPLATE}.*};
+    qr{\+ xml2html_testcocoon --xml ${TEMPDIR_TEMPLATE}${DS}module_coverage_report-[0-9]{8}-[0-9]{4}\.xml --module module --output ${TEMPDIR_TEMPLATE}.*};
 
 # Standard output up to the first merge (gathering the lib and plugins csmes)
 Readonly my $FIRST_CMMERGE =>
@@ -108,7 +114,7 @@ xml2html_testcocoon success.*}sm;
 
 # Invalid --qtcoverage-test-ouput required argument
 Readonly my $INVALID_TESTS_OUTPUT =>
-    qr{${TEMPDIR_TEMPLATE}/tests_invalid\.csmes does not exist. Either the tests have not been run or coverage was not enabled at build time};
+    qr{${TEMPDIR_TEMPLATE}${DS}tests_invalid\.csmes does not exist. Either the tests have not been run or coverage was not enabled at build time};
 
 # Run coveragerunner_testcocoon
 sub test_run

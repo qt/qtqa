@@ -22,6 +22,7 @@ use Cwd qw(abs_path);
 use English qw(-no_match_vars);
 use File::Basename;
 use File::Copy;
+use File::Copy::Recursive qw(dircopy);
 use File::Find;
 use File::Path;
 use File::Spec::Functions;
@@ -44,14 +45,15 @@ Readonly my %RE => (
 sub copy_testdata
 {
     my (%args) = @_;
-    my $tempdir = $args{ tempdir };
+    my $destdir = $args{ destdir };
     my $file = $args{ file };
 
     return unless (-f $file);
 
-    my $dest = "$tempdir/$file";
+    my $dest = "$destdir/$file";
 
-    my $destdir = dirname( $dest );
+    # $file might have had a dir portion too, so recalculate destdir
+    $destdir = dirname($dest);
     if (! -d $destdir) {
         mkpath( $destdir );
     }
@@ -75,8 +77,11 @@ sub main
     my $tempdir = File::Temp->newdir( basename($0)."-XXXXXX", TMPDIR => 1 );
     diag "testing tst_licenses.pl under $tempdir";
 
-    # link $tempdir/qtbase to the reference header directory (used to find header.*)
-    symlink( "$testdata/reference", "$tempdir/qtbase" );
+    # The module's own directory is underneath $tempdir, and qtbase is a sibling
+    my $moduledir = catfile( $tempdir, 'module' );
+
+    # copy $tempdir/qtbase to the reference header directory (used to find header.*)
+    dircopy( "$testdata/reference", "$tempdir/qtbase" ) || die "copy header.*: $!";
 
     chdir $testdata;
 
@@ -87,14 +92,14 @@ sub main
     find({
             no_chdir => 1,
             wanted => sub {
-                copy_testdata( tempdir => $tempdir, file => $File::Find::name )
+                copy_testdata( destdir => $moduledir, file => $File::Find::name )
             },
         }, @test_dirs
     );
 
     # Now run the test
     my $actual_output = capture_merged {
-        local $ENV{ QT_MODULE_TO_TEST } = $tempdir;
+        local $ENV{ QT_MODULE_TO_TEST } = $moduledir;
         system( $EXECUTABLE_NAME, $tst_licenses );
     };
     # Remove all comments and test numbers before diff

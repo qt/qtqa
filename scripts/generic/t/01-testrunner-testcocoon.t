@@ -30,41 +30,44 @@ use Test::More;
 use lib "$FindBin::Bin/../../lib/perl5";
 use QtQA::Test::More qw( is_or_like create_mock_command );
 
+# Directory separator, quoted for regex
+Readonly my $DS => ($OSNAME eq 'MSWin32') ? q{\\\\} : q{/};
+
 # Tempdir testcocoon for tests template
 Readonly my $TEMPDIR_TOPLEVEL => catfile(File::Spec->tmpdir);
 
 Readonly my $TEMPDIR_TEMPLATE =>
-    qr{\Q$TEMPDIR_TOPLEVEL\E/testcocoon_plugin\..{6}}sm;
+    qr{\Q$TEMPDIR_TOPLEVEL\E${DS}testcocoon_plugin\..{6}}sm;
 
 # Commands used multiple times
 
-Readonly my $MYTEST_DIR => qr{${TEMPDIR_TEMPLATE}/module/mytest}sm;
+Readonly my $MYTEST_DIR => qr{${TEMPDIR_TEMPLATE}${DS}module${DS}mytest}sm;
 
 Readonly my $GLOBAL_TEST =>
-    qr{$MYTEST_DIR/mytest_global\.csmes}sm;
+    qr{$MYTEST_DIR${DS}mytest_global\.csmes}sm;
 
 Readonly my $COVERAGERUNNER_CMMERGE_OTHERCSMES =>
-    qr{\+ cmmerge --append --output=$GLOBAL_TEST $MYTEST_DIR/mytest\.csmes.*};
+    qr{\+ cmmerge --append --output=$GLOBAL_TEST $MYTEST_DIR${DS}mytest\.csmes.*};
 Readonly my $COVERAGERUNNER_CMMERGE_PLUGIN_WITH_TEST =>
-    qr{\+ cmmerge --append --output=$GLOBAL_TEST ${TEMPDIR_TEMPLATE}/module/\.\./qtbase/plugins/plugin1/plugin1\.csmes.*};
+    qr{\+ cmmerge --append --output=$GLOBAL_TEST ${TEMPDIR_TEMPLATE}${DS}(?:module${DS}\.\.${DS})?qtbase${DS}plugins${DS}plugin1${DS}plugin1\.csmes.*};
 Readonly my $COVERAGERUNNER_CMCSEXEIMPORT =>
-    qr{\+ cmcsexeimport --csmes=$GLOBAL_TEST --csexe=$MYTEST_DIR/myother\.csexe --title=tc_mytest --policy=merge.*};
+    qr{\+ cmcsexeimport --csmes=$GLOBAL_TEST --csexe=$MYTEST_DIR${DS}myother\.csexe --title=tc_mytest --policy=merge.*};
 Readonly my $COVERAGERUNNER_CMCSEXEIMPORT_OTHER =>
-    qr{\+ cmcsexeimport --csmes=$GLOBAL_TEST --csexe=$MYTEST_DIR/mytest\.csexe --title=tc_mytest --policy=merge.*};
+    qr{\+ cmcsexeimport --csmes=$GLOBAL_TEST --csexe=$MYTEST_DIR${DS}mytest\.csexe --title=tc_mytest --policy=merge.*};
 Readonly my $COVERAGERUNNER_CMMERGE_TEST_WITH_GLOBAL =>
-    qr{\+ cmmerge --append --output=${TEMPDIR_TEMPLATE}/tests\.csmes $GLOBAL_TEST.*};
+    qr{\+ cmmerge --append --output=${TEMPDIR_TEMPLATE}${DS}tests\.csmes $GLOBAL_TEST.*};
 
 # Missing --testcocoon-tests-output required option
 Readonly my $MISSING_REQUIRED_TESTS_OUTPUT =>
-    qr{internal error: .*/testcocoon\.pm loaded OK, but QtQA::App::TestRunner::Plugin::testcocoon could not be instantiated: Missing required '--testcocoon-tests-output' option at .*/testcocoon\.pm line .*};
+    qr{internal error: .*${DS}testcocoon\.pm loaded OK, but QtQA::App::TestRunner::Plugin::testcocoon could not be instantiated: Missing required '--testcocoon-tests-output' option at .*${DS}testcocoon\.pm line .*};
 
 # Missing --testcocoon-qt-gitmodule-dir required option
 Readonly my $MISSING_REQUIRED_GITDIR =>
-    qr{internal error: .*/testcocoon\.pm loaded OK, but QtQA::App::TestRunner::Plugin::testcocoon could not be instantiated: Invalid or missing required '--testcocoon-qt-gitmodule-dir' option at .*/testcocoon\.pm line .*};
+    qr{internal error: .*${DS}testcocoon\.pm loaded OK, but QtQA::App::TestRunner::Plugin::testcocoon could not be instantiated: Invalid or missing required '--testcocoon-qt-gitmodule-dir' option at .*${DS}testcocoon\.pm line .*};
 
 # Missing --testcocoon-qt-gitmodule required option
 Readonly my $MISSING_REQUIRED_MODULE =>
-    qr{internal error: .*/testcocoon\.pm loaded OK, but QtQA::App::TestRunner::Plugin::testcocoon could not be instantiated: Missing required '--testcocoon-qt-gitmodule' option at .*/testcocoon\.pm line .*};
+    qr{internal error: .*${DS}testcocoon\.pm loaded OK, but QtQA::App::TestRunner::Plugin::testcocoon could not be instantiated: Missing required '--testcocoon-qt-gitmodule' option at .*${DS}testcocoon\.pm line .*};
 
 # Cmmerge other csmes
 Readonly my $CMMERGE_OTHERCSMES =>

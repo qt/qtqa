@@ -107,7 +107,7 @@ sub run_completed
 
     # Get all csmes found under test folder
     my @all_test_csmes = File::Find::Rule->file()->name( '*.csmes' )->in($test_dir);
-    @all_test_csmes = sort(@all_test_csmes);
+    @all_test_csmes = map { canonpath($_) } sort(@all_test_csmes);
 
     # merge all csmes found under the test folder and merge them in a global csmes
     my $test_global_csmes = catfile($test_dir, "${test_basename}_global.csmes");
@@ -132,7 +132,7 @@ sub run_completed
         # Merge each plugins and import code database (csmes) in one global database with all plugins/imports
         my @all_pluginsandimport_csmes = File::Find::Rule->file()->name( '*.csmes' )->in($qt_git_qtbase_pluginsdir);
         push @all_pluginsandimport_csmes, File::Find::Rule->file()->name( '*.csmes' )->in($qt_git_qtbase_importsdir);
-        @all_pluginsandimport_csmes = sort(@all_pluginsandimport_csmes);
+        @all_pluginsandimport_csmes = map { canonpath($_) } sort(@all_pluginsandimport_csmes);
 
         foreach my $csmes (@all_pluginsandimport_csmes) {
             $self->system_call('cmmerge', '--append', "--output=$test_global_csmes", $csmes);
@@ -142,7 +142,7 @@ sub run_completed
         # FIXME Getting code coverage data for/from the tools. We don't export the tools csexe because tools are using a
         # separately compiled version of some QtBase sources. This means they are incompatible with the tests csmes used here.
         my @all_test_csexe = File::Find::Rule->file()->name( '*.csexe' )->in($test_dir);
-        @all_test_csexe = sort(@all_test_csexe);
+        @all_test_csexe = map { canonpath($_) } sort(@all_test_csexe);
 
         foreach my $sub_csexe (@all_test_csexe) {
             my $csexe_basename;
