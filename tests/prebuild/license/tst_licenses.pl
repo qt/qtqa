@@ -150,7 +150,6 @@ my %optionalFiles = (
                           # Nokia Legal has agreed that .qml files in test data
                           # need not have a license header.
                           qr{^tests/auto/declarative/},
-                          qr{^tests/auto/qtquick1/},
                           qr{^tests/auto/qtquick2/},
                           qr{^tests/benchmarks/declarative/javascript/data/},
                         ],
@@ -162,6 +161,11 @@ my %optionalFiles = (
                           # Nokia Legal has agreed that .qml files in test data
                           # need not have a license header.
                           qr{^tests/auto/qdeclarativefeedback/data/},
+                        ],
+    "qtquick1"       => [
+                          # Nokia Legal has agreed that .qml files in test data
+                          # need not have a license header.
+                          qr{^tests/auto/declarative/},
                         ],
     "qtscript"       => [
                           # These tests are 3rdparty code.
