@@ -1492,7 +1492,7 @@ sub identify_failures
     # While we are reading the log relating to a `make check' fail,
     # this holds info about the failure.
     my $make_check_fail;
-    # The max amount of line's we're willing to read before giving up
+    # The max amount of lines we're willing to read before giving up
     # (quite large, since autotests can have large logs ...)
     Readonly my $MAKE_CHECK_FAIL_MAX_LINES => 5000;
 
