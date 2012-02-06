@@ -1,0 +1,64 @@
+[ '--summarize', "$DATADIR/raw-logs/qtdeclarative-mac-clang-huge-whitespace-lines.txt" ]
+Autotest `tst_qquickitem' failed for macx-clang developer-build OSX
+10.7 :(
+
+  ********* Start testing of tst_qquickitem *********
+  Config: Using QTest library 5.0.0, Qt 5.0.0
+  PASS   : tst_qquickitem::initTestCase()
+  PASS   : tst_qquickitem::noCanvas()
+  FAIL!  : tst_qquickitem::simpleFocus() 'QGuiApplication::focusWindow() == &canvas' returned FALSE. ()
+     Loc: [tst_qquickitem.cpp(265)]
+  PASS   : tst_qquickitem::scopedFocus()
+  PASS   : tst_qquickitem::addedToCanvas()
+  PASS   : tst_qquickitem::changeParent()
+  PASS   : tst_qquickitem::constructor()
+  PASS   : tst_qquickitem::setParentItem()
+  PASS   : tst_qquickitem::visible()
+  PASS   : tst_qquickitem::enabled()
+  PASS   : tst_qquickitem::enabledFocus()
+  PASS   : tst_qquickitem::mouseGrab()
+  PASS   : tst_qquickitem::touchEventAcceptIgnore()
+  PASS   : tst_qquickitem::polishOutsideAnimation()
+  SKIP   : tst_qquickitem::polishOnCompleted() QTBUG-21590 view does not reliably receive polish without a running animation
+     Loc: [tst_qquickitem.cpp(1149)]
+  PASS   : tst_qquickitem::wheelEvent()
+  PASS   : tst_qquickitem::hoverEvent()
+  PASS   : tst_qquickitem::hoverEventInParent()
+  PASS   : tst_qquickitem::paintOrder()
+  PASS   : tst_qquickitem::cleanupTestCase()
+  Totals: 18 passed, 1 failed, 1 skipped
+  ********* Finished testing of tst_qquickitem *********
+  QtQA::App::TestRunner: test failed, running again to see if it is flaky...
+  ********* Start testing of tst_qquickitem *********
+  Config: Using QTest library 5.0.0, Qt 5.0.0
+  PASS   : tst_qquickitem::initTestCase()
+  PASS   : tst_qquickitem::noCanvas()
+  FAIL!  : tst_qquickitem::simpleFocus() 'QGuiApplication::focusWindow() == &canvas' returned FALSE. ()
+     Loc: [tst_qquickitem.cpp(265)]
+  PASS   : tst_qquickitem::scopedFocus()
+  PASS   : tst_qquickitem::addedToCanvas()
+  PASS   : tst_qquickitem::changeParent()
+  PASS   : tst_qquickitem::constructor()
+  PASS   : tst_qquickitem::setParentItem()
+  PASS   : tst_qquickitem::visible()
+  PASS   : tst_qquickitem::enabled()
+  PASS   : tst_qquickitem::enabledFocus()
+  PASS   : tst_qquickitem::mouseGrab()
+  PASS   : tst_qquickitem::touchEventAcceptIgnore()
+  PASS   : tst_qquickitem::polishOutsideAnimation()
+  SKIP   : tst_qquickitem::polishOnCompleted() QTBUG-21590 view does not reliably receive polish without a running animation
+     Loc: [tst_qquickitem.cpp(1149)]
+  PASS   : tst_qquickitem::wheelEvent()
+  PASS   : tst_qquickitem::hoverEvent()
+  PASS   : tst_qquickitem::hoverEventInParent()
+  PASS   : tst_qquickitem::paintOrder()
+  PASS   : tst_qquickitem::cleanupTestCase()
+  Totals: 18 passed, 1 failed, 1 skipped
+  ********* Finished testing of tst_qquickitem *********
+  QtQA::App::TestRunner: test failure could be reproduced twice consecutively
+
+  make[4]: *** [check] Error 1
+  make[3]: *** [sub-qquickitem-check] Error 2
+  make[2]: *** [sub-qtquick2-check] Error 2
+  make[1]: *** [sub-auto-check] Error 2
+  make: *** [module-qtdeclarative-tests-check] Error 2

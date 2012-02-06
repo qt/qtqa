@@ -850,7 +850,7 @@ my %RE = (
             #       v8::internal::Deserializer::ReadChunk(v8::internal::Object**, v8::internal::Object**, int, unsigned char*)in serialize.o
             #
             \A
-            \s*
+            \s{0,20}
             (?<error>
                 \QUndefined symbols\E
 
@@ -860,7 +860,7 @@ my %RE = (
 
                 :
             )
-            \s*
+            \s{0,20}
             \z
         )
 
@@ -872,7 +872,7 @@ my %RE = (
             #  tst_sphere.cpp:(.text+0x244): undefined reference to `ViewportCamera::ViewportCamera()'
             #  tst_sphere.o:tst_sphere.cpp:(.text+0x3bb): more undefined references to `Frustum::plane(QFlags<Frustum::Plane>) const' follow
             \A
-            \s*
+            \s{0,20}
 
             .+?     # file part (may be .o, .cpp, or both, with also .text reference)
 
@@ -895,7 +895,7 @@ my %RE = (
             # Windows:
             # ..\..\lib\QtWidgets5.dll : fatal error LNK1120: 1 unresolved externals
             \A
-            \s*
+            \s{0,20}
 
             (?<lib>
                 [^:]+?
@@ -1496,6 +1496,12 @@ sub identify_failures
     # (quite large, since autotests can have large logs ...)
     Readonly my $MAKE_CHECK_FAIL_MAX_LINES => 5000;
 
+    # The max amount of characters permitted in a line;
+    # any more than this and we will not attempt to scan the line at all.
+    # It could trigger bad performance in some regexes, and it anyway is
+    # not user-friendly to present such long lines to the reader.
+    Readonly my $MAX_LINE_LENGTH => 3500;
+
     # If 0, we should not care about any more failures we see.
     my $save_failures = 1;
 
@@ -1504,10 +1510,12 @@ sub identify_failures
     # the build to terminate.
     foreach my $line (reverse @{$args{ lines }}) {
 
+        my $length = length($line);
+
         # reading a test log?
         if ($make_check_fail) {
             # are we done?
-            if ($line =~ $RE{ autotest_begin }) {
+            if ($length <= $MAX_LINE_LENGTH && $line =~ $RE{ autotest_begin }) {
                 push @{$out->{ autotest_fail }}, {
                     name    =>  $+{ name },
                     details =>  $make_check_fail->{ details },
@@ -1530,13 +1538,16 @@ sub identify_failures
             else {
                 $make_check_fail->{ details } = "$line\n" . $make_check_fail->{ details };
 
-                if ($line =~ $RE{ autotest_flaky }) {
+                if ($length <= $MAX_LINE_LENGTH && $line =~ $RE{ autotest_flaky }) {
                     $make_check_fail->{ flaky } = $line;
                 }
 
                 next;
             }
         }
+
+        # ignore too long lines
+        next if ($length > $MAX_LINE_LENGTH);
 
         # ignore insignificant lines
         next if ($line =~ $RE{ insignificant });
