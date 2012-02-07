@@ -700,7 +700,6 @@ sub run_compile
         }
         push @commands, sub { $self->exe(
             $self->{ shadow_build_with_install_enabled } ? $qmake_install_bin : $qmake_bin,
-            '-r',
             $pro_files[0],
             @qmake_args
         ) };
