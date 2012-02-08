@@ -57,6 +57,7 @@ xml2html_testcocoon - convert a xml coverage report created by testcocoon to str
   #   $HOME/coverage/results/qtbase_report.html
   #   $HOME/coverage/results/files/tests_<status>_qtbase.html
   #   $HOME/coverage/results/files/folder_<subfolders>_qtbase.html
+  #   $HOME/coverage/results/files/untested_sources_qtbase.html
   #
 
   It is designed to parse a coverage xml report generated for Qt modules build with testcocoon and create html reports.
@@ -105,12 +106,13 @@ use warnings;
 use autodie;
 use Carp;
 use File::Basename qw(basename);
+use File::Find::Rule;
 use File::Path qw( mkpath );
 use File::Spec::Functions;
 use Getopt::Long qw(GetOptionsFromArray);
+use List::Compare;
 use Pod::Usage qw( pod2usage );
 use XML::Simple;
-use Data::Dumper;
 
 sub new
 {
@@ -164,6 +166,8 @@ sub run
         confess "Missing required '--include' option";
     }
 
+    my $include_path_regex = quotemeta($include_path);
+
     # get file timestamp
     my $timestamp = "n/a";
     if ( $xml_file =~ m#([0-9]{8}-[0-9]{4})#) {
@@ -193,16 +197,23 @@ sub run
 
     my %hash_folders;
 
+    # Get all the source files under the included directory
+    my @files_in_tree_all = File::Find::Rule->file()->name( '*.c', '*.cpp' )->in($include_path);
+    my @files_in_tree;
+    foreach my $file (@files_in_tree_all) {
+        next if ($self->isExcluded($file, @exclude_list));
+        next if ($file =~ m/(^|[\/\\])(qrc|moc)_.*\.cpp$/);
+        $file = canonpath($file);
+        push @files_in_tree, $file;
+    }
+
+    my @files_tested;
+
     foreach my $item (@{$sources}) {
         my $file_name = $item->{ItemSource};
-        next unless ($file_name =~ m/$include_path/);
-        my $excluded = 0;
-        foreach my $exclude (@exclude_list) {
-              next unless ($file_name =~ m/$exclude/);
-              $excluded = 1;
-              last;
-        }
-        next if ($excluded);
+        next unless ($file_name =~ m/$include_path_regex/);
+        push @files_tested, $file_name;
+        next if ($self->isExcluded($file_name, @exclude_list));
 
         # Get the relative path of the current file to include under the $include path entered
         my $subfolder_is_file = 0;
@@ -210,10 +221,11 @@ sub run
             $file_name = basename($include_path);
             $subfolder_is_file = 1;
         } else {
-            $file_name =~ s/${include_path}${separator}{0,1}//;
+            $file_name =~ s/${include_path_regex}${separator}{0,1}//;
         }
 
         my $subfolder = $file_name;
+
         # Figure out the subfolder name under the $include path entered that contains the file.
         # If the file is directly under the $include path, its name is used as a subfolder name.
         # Those subfolder names are used to create the tree structure of the main html report.
@@ -227,6 +239,11 @@ sub run
 
         push @{$hash_folders{$subfolder}}, { filename => $file_name, tested => $tested, total => $total };
     }
+
+    my $lc = List::Compare->new(\@files_in_tree, \@files_tested);
+    my @untested_sources = $lc->get_unique;
+    my $untested_sources_html = $self->write_untested_sources($output_files, $module_name, @untested_sources);
+    my $untested_sources_count = scalar(@untested_sources);
 
     my %passed_tests;
     my %failed_tests;
@@ -287,6 +304,7 @@ sub run
     $self->write_start_html_file($MAIN);
     $self->write_title_element($MAIN, "Conditions coverage results for: $module_name");
     $self->write_header2_element($MAIN, "Included directory:<br /><ul><li>$include_path</li></ul>" . $self->create_exclude_elements(@exclude_list) . "<br />Date: $day/$month/$year - $hour:$minute");
+    $self->write_header2_element($MAIN, "Source files (.c and .cpp) found under the included directory but not tested by the coverage analysis: " . $self->create_element_with_link($untested_sources_html, $untested_sources_count));
     $self->write_tests_status_global($MAIN, $nb_total_tests, $self->create_element_with_link($passed_html, $nb_passed_tests), $self->create_element_with_link($failed_html, $nb_failed_tests), $self->create_element_with_link($unknown_saved_html, $nb_unknown_saved_tests) );
     $self->write_start_table_folders($MAIN);
     close($MAIN);
@@ -302,6 +320,7 @@ sub run
         my @list_files = @{$hash_folders{$subfolder}};
         if (@list_files == 1 ) {
             # If only 1 file is found, no need for a dedicated html report
+            $subfolder = $list_files[0]->{filename};
             $tested += $list_files[0]->{tested};
             $total += $list_files[0]->{total};
         } else {
@@ -310,7 +329,7 @@ sub run
             my $folder_data = $self->write_folder_html($FOLDER, $hash_folders{$subfolder}, $subfolder, $include_path);
             close($FOLDER);
 
-            $folder_link = catfile($files_output_subfolder, basename($folder_html));
+            $folder_link = $files_output_subfolder . '/' . basename($folder_html);
             $tested = $folder_data->{folder_tested};
             $total = $folder_data->{folder_total};
         }
@@ -328,6 +347,15 @@ sub run
     $self->write_end_html_file($MAIN);
     close($MAIN);
     return;
+}
+
+sub isExcluded
+{
+   my ($self, $file, @list_excluded) = @_;
+   foreach my $exclude ( @list_excluded ) {
+       return 1 if ($file =~ m/$exclude/);
+   }
+   return 0;
 }
 
 # Function to calculate coverage value
@@ -421,7 +449,7 @@ sub write_folder_html
 {
     my ($self, $FILE, $data, $key, $include) = @_;
     $self->write_start_html_file($FILE);
-    $self->write_title_element($FILE, "Conditions coverage results for \"$key\" under <br />$include:");
+    $self->write_title_element($FILE, "Conditions coverage results for \"$key\" under <br />$include");
     $self->write_start_table_folders($FILE);
 
     my $folder_tested = 0;
@@ -474,7 +502,7 @@ sub write_tests_html
     $self->write_end_table($FILE);
     $self->write_end_html_file($FILE);
     close($FILE);
-    $html = catfile(basename($output_dir), basename($html));
+    $html = basename($output_dir) . '/'. basename($html);
 
     return $html;
 }
@@ -544,6 +572,51 @@ sub create_exclude_elements
     }
     $elements .= '</ul>';
     return $elements;
+}
+
+sub write_start_table_untested_sources
+{
+    my ($self, $FILE) = @_;
+    print $FILE <<ENDHTML;
+<table border="1" cellspacing="2">
+    <TR class="UntestedSourceHeader">
+        <TD class="UntestedSourceFileName">Filename</TD>
+    </TR>
+ENDHTML
+    return;
+}
+
+sub write_untested_sources_element
+{
+    my ($self, $FILE, $filename) = @_;
+    print $FILE <<ENDHTML;
+    <TR class="UntestedSourceHeader">
+        <TD class="UntestedSourceFileName">$filename</TD>
+    </TR>
+ENDHTML
+    return;
+}
+
+sub write_untested_sources
+{
+    my ($self, $output_dir, $module_name, @untested_sources) = @_;
+    my $html = '';
+    return $html unless @untested_sources;
+
+
+    $html = catfile($output_dir, "untested_sources_${module_name}.html");
+    open(my $UNTESTED, '>', $html);
+    $self->write_start_html_file($UNTESTED);
+    $self->write_title_element($UNTESTED, 'Source files not covered by the coverage analysis<br />Generated files (moc_*.cpp and qrc_*.cpp) and files found under the exclude paths don\'t appear in this report');
+    $self->write_start_table_untested_sources($UNTESTED);
+    foreach my $filename ( @untested_sources ) {
+        $self->write_untested_sources_element($UNTESTED, $filename);
+    }
+    $self->write_end_table($UNTESTED);
+    $self->write_end_html_file($UNTESTED);
+    close($UNTESTED);
+    $html = basename($output_dir) . '/' . basename($html);
+    return $html;
 }
 
 QtQA::App::Xml2HtmlTestCocoon->new()->run( @ARGV ) if (!caller);

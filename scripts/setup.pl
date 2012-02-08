@@ -142,6 +142,7 @@ sub all_required_cpan_modules
         IO::Uncompress::AnyInflate
         Lingua::EN::Inflect
         Lingua::EN::Numbers
+        List::Compare
         List::MoreUtils
         Params::Validate
         Perl::Critic
