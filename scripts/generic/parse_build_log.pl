@@ -1571,7 +1571,7 @@ sub identify_failures
 
             # If we're running qtmod_test.pl, try to determine specifically which module
             # failed to compile
-            if ($out->{ qtqa_script } =~ m{qtmod_test\.pl}i) {
+            if ($out->{ qtqa_script } && $out->{ qtqa_script } =~ m{qtmod_test\.pl}i) {
                 if ($target =~ m{\A module-(q[^\-]+)}xms) {
                     $out->{ qtmodule } = $1;
                 }
