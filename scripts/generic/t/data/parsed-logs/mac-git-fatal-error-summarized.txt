@@ -1,0 +1,10 @@
+[ '--summarize', "$DATADIR/raw-logs/mac-git-fatal-error.txt" ]
+An unexpected error occurred, most likely due to no fault in the tested
+code itself :(
+
+Please point some CI administrator towards this problem.  Meanwhile, it
+may be worthwhile to attempt the build again.
+
+  scm.dev.nokia.troll.no[0: 10.215.6.39]: errno=Operation timed out
+  fatal: unable to connect a socket (Operation timed out)
+  fatal: destination path '_testconfig' already exists and is not an empty directory.

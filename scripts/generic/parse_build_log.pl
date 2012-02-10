@@ -431,6 +431,14 @@ my %RE = (
             \QCan't open perl script "_testconfig/test.pl": No such file or directory\E
         )
 
+        |
+
+        (?:
+            # testconfig directory can't be removed;
+            # usually means the testconfig repo couldn't be cloned for some reason.
+            \Qfatal: destination path '_testconfig' already exists and is not an empty directory.\E
+        )
+
         # add more as discovered
     }xms,
 
