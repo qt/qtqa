@@ -634,7 +634,7 @@ sub run_compile
             #
             #   make QMAKE="path/to/qmake QT_BUILD_PARTS+=tests QT_BUILD_PARTS+=examples"
             #
-            my $qmake_cmd = $qmake_bin.join(' QT_BUILD_PARTS+=', q{}, @OPTIONAL_BUILD_PARTS);
+            my $qmake_cmd = canonpath($qmake_bin).join(' QT_BUILD_PARTS+=', q{}, @OPTIONAL_BUILD_PARTS);
             push @commands, sub { $self->exe( $make_bin, "module-${qt_gitmodule}-qmake_all", "QMAKE=$qmake_cmd" ) };
         }
 
@@ -806,7 +806,7 @@ sub get_testrunner_command
     my $qt_tests_flaky_mode      = $self->{ 'qt.tests.flaky_mode' };
 
     my $testrunner = catfile( $FindBin::Bin, '..', '..', 'bin', 'testrunner' );
-    $testrunner    = abs_path( $testrunner );
+    $testrunner    = canonpath abs_path( $testrunner );
 
     # sanity check
     confess( "internal error: $testrunner does not exist" ) if (! -e $testrunner);
@@ -819,10 +819,10 @@ sub get_testrunner_command
 
     # capture or tee logs to a given directory
     if ($qt_tests_capture_logs) {
-        push @testrunner_with_args, '--capture-logs', $qt_tests_capture_logs;
+        push @testrunner_with_args, '--capture-logs', canonpath $qt_tests_capture_logs;
     }
     elsif ($qt_tests_tee_logs) {
-        push @testrunner_with_args, '--tee-logs', $qt_tests_tee_logs;
+        push @testrunner_with_args, '--tee-logs', canonpath $qt_tests_tee_logs;
     }
 
     if ($qt_tests_backtraces) {
@@ -837,7 +837,7 @@ sub get_testrunner_command
 
     if ($qt_coverage_tool) {
         push @testrunner_with_args, '--plugin', $qt_coverage_tool;
-        push @testrunner_with_args, "--${qt_coverage_tool}-qt-gitmodule-dir", $qt_gitmodule_dir;
+        push @testrunner_with_args, "--${qt_coverage_tool}-qt-gitmodule-dir", canonpath $qt_gitmodule_dir;
         push @testrunner_with_args, "--${qt_coverage_tool}-qt-gitmodule", $qt_gitmodule;
     }
 
@@ -876,7 +876,7 @@ sub run_autotests
     # FIXME: verify if this is really needed (should each module's tools build directly
     # into the prefix `bin' ?)
     local $ENV{ PATH } = $ENV{ PATH };
-    Env::Path->PATH->Prepend( catfile( $qt_gitmodule_build_dir, 'bin' ) );
+    Env::Path->PATH->Prepend( canonpath catfile( $qt_gitmodule_build_dir, 'bin' ) );
 
     # In qt5, all tests are expected to be correctly set up in top-level .pro files, so they
     # do not need an explicit added compile step.
@@ -990,19 +990,19 @@ sub _run_autotests_impl
     local $ENV{ QMAKEPATH } = $ENV{ QMAKEPATH };
     if ($self->{ installed }) {
         # shadow build and installing? need to add install dir into PATH
-        Env::Path->PATH->Prepend( catfile( $qt_install_dir, 'bin' ) );
+        Env::Path->PATH->Prepend( canonpath catfile( $qt_install_dir, 'bin' ) );
     }
     elsif ($self->{ 'qt.gitmodule' } eq 'qt') {
         # qt4 case. this is needed to use the right qmake to compile the tests
-        Env::Path->PATH->Prepend( catfile( $qt_build_dir, 'bin' ) );
+        Env::Path->PATH->Prepend( canonpath catfile( $qt_build_dir, 'bin' ) );
     }
     else {
-        Env::Path->PATH->Prepend( catfile( $qt_build_dir, 'qtbase', 'bin' ) );
+        Env::Path->PATH->Prepend( canonpath catfile( $qt_build_dir, 'qtbase', 'bin' ) );
 
         # If we are expected to install, but we're not installed yet, then
         # make sure qmake can find its mkspecs.
         if ($qt_make_install) {
-            Env::Path->QMAKEPATH->Prepend( catfile( $qt_build_dir, 'qtbase' ) );
+            Env::Path->QMAKEPATH->Prepend( canonpath catfile( $qt_build_dir, 'qtbase' ) );
         }
     }
 
@@ -1058,7 +1058,7 @@ sub run_coverage
     my $qt_gitmodule_dir         = $self->{ 'qt.gitmodule.dir' };
 
     my $coveragerunner = catfile( $FindBin::Bin, '..', '..', 'bin', "coveragerunner_$qt_coverage_tool" );
-    $coveragerunner    = abs_path( $coveragerunner );
+    $coveragerunner    = canonpath abs_path( $coveragerunner );
 
     # sanity check
     confess( "internal error: $coveragerunner does not exist" ) if (! -e $coveragerunner);
