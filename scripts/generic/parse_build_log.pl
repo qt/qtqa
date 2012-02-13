@@ -434,6 +434,14 @@ my %RE = (
         |
 
         (?:
+            # setup.pl from qtqa can't be run;
+            # Occurs when the qtqa repo couldn't be cloned for some reason.
+            \QCan't open perl script "_qtqa_latest/scripts/setup.pl": No such file or directory\E
+        )
+
+        |
+
+        (?:
             # testconfig directory can't be removed;
             # usually means the testconfig repo couldn't be cloned for some reason.
             \Qfatal: destination path '_testconfig' already exists and is not an empty directory.\E

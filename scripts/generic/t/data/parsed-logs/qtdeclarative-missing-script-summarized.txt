@@ -1,0 +1,10 @@
+[ '--summarize', "$DATADIR/raw-logs/qtdeclarative-missing-script.txt" ]
+An unexpected error occurred, most likely due to no fault in the tested
+code itself :(
+
+Please point some CI administrator towards this problem.  Meanwhile, it
+may be worthwhile to attempt the build again.
+
+  scm.dev.nokia.troll.no[0: 10.215.6.39]: errno=Connection timed out
+  fatal: unable to connect a socket (Connection timed out)
+  Can't open perl script "_qtqa_latest/scripts/setup.pl": No such file or directory
