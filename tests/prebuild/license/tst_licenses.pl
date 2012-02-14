@@ -102,6 +102,10 @@ my %optionalFiles = (
                           # Don't look at git's metadata
                           qr{^\.git/},
                         ],
+    "qt5"            => [
+                          # These are third-party files.
+                          qr{^gnuwin32/},
+                        ],
     "qtbase"         => [
                           # These are two-line wrappers around perl programs.
                           qr{^bin/elf2e32_qtwrapper\.bat$},
