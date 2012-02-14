@@ -103,8 +103,12 @@ Readonly my $RE => {
 \QQtQA::App::TestRunner: ================================================================================\E \n
     }xms,
 
-    exited_with_signal => qr{
+    exited_with_signal11 => ($OSNAME =~ m{win32}i) ? qr{} : qr{
 \QQtQA::App::TestRunner: Process exited due to signal 11; dumped core\E                                     \n
+    }xms,
+
+    exited_with_any_signal => ($OSNAME =~ m{win32}i) ? qr{} : qr{
+\QQtQA::App::TestRunner: Process exited due to signal \E \d+ (?:\Q; dumped core\E)?                         \n
     }xms,
 
     flaky_second_pass => qr{
@@ -115,11 +119,32 @@ Readonly my $RE => {
     }xms,
 };
 
+# perl to simulate a test which hangs (for 10 seconds)
+Readonly my $PERL_HANGING_FAILURE => <<'END_SCRIPT';
+$|++;
+print qq{About to hang for a few seconds...\n};
+sleep 10;
+print qq{Still alive!?!? Most unexpected ...\n};
+exit 0;
+END_SCRIPT
+
+# stdout from the above
+Readonly my $OUTPUT_HANGING_FAILURE => <<'END_MESSAGE';
+About to hang for a few seconds...
+END_MESSAGE
+
+
+# error from hanging test
+Readonly my $ERROR_HANGING_FAILURE => qr|
+    \QQtQA::App::TestRunner: Timed out after \E \d+ \Q seconds\E \n
+    $RE->{ exited_with_any_signal }
+|xms;
+
 # error from the above (when using "flaky" and "core" plugins, in that order)
 # note: hardcoded 3328 == (13 << 8)
 Readonly my $ERROR_VANISHING_CRASH_WITH_FLAKY_AND_CORE => qr|
 \A
-    $RE->{ exited_with_signal } # testrunner tells us that the test exited with signal 11...
+    $RE->{ exited_with_signal11 } # testrunner tells us that the test exited with signal 11...
     $RE->{ flaky_first_fail }   # `flaky' says it fails, will try again...
     $RE->{ core_backtrace }     # `core' shows the backtrace from the first fail
     $RE->{ flaky_second_pass }  # `flaky' says it passed on second try
@@ -130,7 +155,7 @@ Readonly my $ERROR_VANISHING_CRASH_WITH_FLAKY_AND_CORE => qr|
 Readonly my $LOG_VANISHING_CRASH_WITH_FLAKY_AND_CORE => qr|
 \A
     \QFirst attempt; crashing...\E \n
-    $RE->{ exited_with_signal }
+    $RE->{ exited_with_signal11 }
     $RE->{ flaky_first_fail }
     $RE->{ core_backtrace }
     \QSecond attempt; causing much vexation by passing!\E \n
@@ -142,7 +167,7 @@ Readonly my $LOG_VANISHING_CRASH_WITH_FLAKY_AND_CORE => qr|
 # Note the only difference from above is that some output order is switched
 Readonly my $ERROR_VANISHING_CRASH_WITH_CORE_AND_FLAKY => qr|
 \A
-    $RE->{ exited_with_signal } # testrunner tells us that the test exited with signal 11
+    $RE->{ exited_with_signal11 } # testrunner tells us that the test exited with signal 11
     $RE->{ core_backtrace }     # `core' shows the backtrace from the first fail
     $RE->{ flaky_first_fail }   # `flaky' says it fails, will try again...
     $RE->{ flaky_second_pass }  # `flaky' says it passed on second try
@@ -153,7 +178,7 @@ Readonly my $ERROR_VANISHING_CRASH_WITH_CORE_AND_FLAKY => qr|
 Readonly my $LOG_VANISHING_CRASH_WITH_CORE_AND_FLAKY => qr|
 \A
     \QFirst attempt; crashing...\E \n
-    $RE->{ exited_with_signal }
+    $RE->{ exited_with_signal11 }
     $RE->{ core_backtrace }
     $RE->{ flaky_first_fail }
     \QSecond attempt; causing much vexation by passing!\E \n
@@ -363,6 +388,22 @@ sub test_testrunner_flaky
         expected_stdout  => $OUTPUT_DIFFERING_FAILURE,
         expected_stderr  => $ERROR_DIFFERING_FAILURE_MODE_IGNORE,
     });
+
+    # test which hangs; should not be retried at all (in all modes)
+    foreach my $mode_args (
+        [],
+        ['--flaky-mode', 'worst'],
+        ['--flaky-mode', 'best'],
+        ['--flaky-mode', 'ignore'],
+    ) {
+        test_run({
+            testname         => "hanging failure (@{ $mode_args })",
+            args             => [ qw(--timeout 2 --plugin flaky), @{ $mode_args }, qw(-- perl -e), $PERL_HANGING_FAILURE ],
+            expected_success => 0,
+            expected_stdout  => $OUTPUT_HANGING_FAILURE,
+            expected_stderr  => $ERROR_HANGING_FAILURE,
+        });
+    }
 
     my $tempdir = tempdir( basename($0).'.XXXXXX', TMPDIR => 1, CLEANUP => 1 );
 

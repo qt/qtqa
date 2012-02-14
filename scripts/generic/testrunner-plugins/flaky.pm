@@ -104,9 +104,17 @@ sub run_completed
     if ($self->{ attempt } == 1) {
         # First try, test has failed ...
         if ($status) {
-            $testrunner->print_info( "test failed, running again to see if it is flaky...\n" );
             ++$self->{ attempt };
             $self->{ first_attempt_status } = $status;
+
+            # We do not re-run if the failure was due to a timeout (it doubles the time wasted on
+            # hanging autotests)
+            my $msg = $proc->msg();
+            if ($msg && $msg =~ m{Timed out after \d+ seconds}) {
+                return;
+            }
+
+            $testrunner->print_info( "test failed, running again to see if it is flaky...\n" );
             return { retry => 1 };
         }
 
