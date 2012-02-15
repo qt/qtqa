@@ -447,6 +447,15 @@ my %RE = (
             \Qfatal: destination path '_testconfig' already exists and is not an empty directory.\E
         )
 
+        |
+
+        (?:
+            # the bootstrap command fails to run;
+            # this has a number of different triggers, however it won't be related to the code under test.
+            \QCommand 'bootstrap' completed with status error\E
+        )
+
+
         # add more as discovered
     }xms,
 
