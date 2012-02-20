@@ -173,6 +173,15 @@ my @PROPERTIES = (
     q{make.bin}                => q{`make' command (e.g. `make', `nmake', `jom' ...)},
 
     q{make.args}               => q{extra arguments passed to `make' command (e.g. `-j25')},
+
+    q{make-check.bin}          => q{`make' command used for running `make check' (e.g. `make', }
+                                . q{`nmake', `jom'); usually defaults to the value of make.bin, }
+                                . q{but may differ on certain platforms},
+
+    q{make-check.args}         => q{extra arguments passed to `make check' command when running }
+                                . q{tests (e.g. `-j2'); defaults to the value of make.args with }
+                                . q{any -jN replaced with -j1, and with -k appended},
+
 );
 
 # gitmodules for which `make check' is not yet safe.
@@ -288,6 +297,46 @@ sub default_qt_tests_args
     return q{};
 }
 
+sub default_make_check_bin
+{
+    my ($self) = @_;
+
+    my $make_bin = $self->{ 'make.bin' };
+
+    # If make.bin is jom, switch to nmake instead for the autotests, because
+    # jom 0.9.3 does not handle -k correctly, and there is anyway no advantage
+    # to using jom if running tests one at a time.
+    if ($make_bin eq 'jom') {
+        $make_bin = 'nmake';
+    }
+
+    return $make_bin;
+}
+
+sub default_make_check_args
+{
+    my ($self) = @_;
+
+    my @make_args = split(/ /, $self->{ 'make.args' });
+
+    # Arguments for `make check' are like the arguments for `make',
+    # except:
+    #
+    #  - we want to keep running as many tests as possible, even after failures
+    #
+    if (! any { m{\A [/\-]k \z }xmsi } @make_args) {
+        push @make_args, '-k';
+    }
+
+    #  - we want to run the tests one at a time (-j1), as they are not all
+    #    parallel-safe; but note that nmake always behavies like -j1 and dies
+    #    if explicitly passed -j1.
+    #
+    @make_args = apply { s{\A -j\d+ \z}{-j1}xms } @make_args;
+
+    return join(' ', @make_args);
+}
+
 sub default_qt_minimal_deps
 {
     my ($self) = @_;
@@ -323,6 +372,8 @@ sub read_and_store_configuration
         'make.args'               => \&QtQA::TestScript::default_common_property ,
         'make.bin'                => \&QtQA::TestScript::default_common_property ,
 
+        'make-check.args'         => \&default_make_check_args                   ,
+        'make-check.bin'          => \&default_make_check_bin                    ,
         'qt.gitmodule'            => undef                                       ,
         'qt.dir'                  => \&default_qt_dir                            ,
         'qt.repository'           => \&default_qt_repository                     ,
@@ -973,6 +1024,8 @@ sub _run_autotests_impl
     my $qt_make_install = $self->{ 'qt.make_install' };
     my $make_bin       = $self->{ 'make.bin' };
     my $make_args      = $self->{ 'make.args' };
+    my $make_check_bin = $self->{ 'make-check.bin' };
+    my $make_check_args = $self->{ 'make-check.args' };
     my $qt_tests_args  = $self->{ 'qt.tests.args' };
 
     # settings for this autotest run
@@ -1016,14 +1069,9 @@ sub _run_autotests_impl
             $self->exe( $make_bin, '-k', @make_args );
         }
 
-        # Arguments for `make check' are like the arguments for `make',
-        # except we replace any -jN with -j1, since autotests are generally
-        # not safe to run in parallel.
-        my @make_check_args = apply { s{\A -j\d+ \z}{-j1}xms } @make_args;
+        my @make_check_args = split(/ /, $make_check_args);
 
-        $self->exe( $make_bin,
-            '-k',                               # keep going after failure
-                                                # (to get as many results as possible)
+        $self->exe( $make_check_bin,
             @make_check_args,                   # include args requested by user
             "TESTRUNNER=$testrunner_command",   # use our testrunner script
             "TESTARGS=$qt_tests_args",          # and our test args (may be empty)
