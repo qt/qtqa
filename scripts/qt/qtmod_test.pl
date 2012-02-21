@@ -175,8 +175,7 @@ my @PROPERTIES = (
     q{make.args}               => q{extra arguments passed to `make' command (e.g. `-j25')},
 
     q{make-check.bin}          => q{`make' command used for running `make check' (e.g. `make', }
-                                . q{`nmake', `jom'); usually defaults to the value of make.bin, }
-                                . q{but may differ on certain platforms},
+                                . q{`nmake', `jom'); defaults to the value of make.bin},
 
     q{make-check.args}         => q{extra arguments passed to `make check' command when running }
                                 . q{tests (e.g. `-j2'); defaults to the value of make.args with }
@@ -300,17 +299,7 @@ sub default_qt_tests_args
 sub default_make_check_bin
 {
     my ($self) = @_;
-
-    my $make_bin = $self->{ 'make.bin' };
-
-    # If make.bin is jom, switch to nmake instead for the autotests, because
-    # jom 0.9.3 does not handle -k correctly, and there is anyway no advantage
-    # to using jom if running tests one at a time.
-    if ($make_bin eq 'jom') {
-        $make_bin = 'nmake';
-    }
-
-    return $make_bin;
+    return $self->{ 'make.bin' };
 }
 
 sub default_make_check_args
