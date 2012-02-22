@@ -487,12 +487,15 @@ my %RE = (
     # Captures:
     #   make        -   the make tool (e.g. "make", "gmake"). ".exe" is omitted on windows
     #   sublevel    -   level of submake (e.g. "make[1]: *** Error 2" gives "1");
-    #                   never matches for top-level make
+    #                   never matches for top-level make (not always available)
     #   target      -   make target which failed (not always available)
-    #   errorlevel  -   the error number, e.g. "Error 2" gives "2" (not always available)
+    #   errorlevel  -   the error number, e.g. "Error 2" gives "2", or
+    #                   "fatal error U1077" from nmake gives U1077
+    #                   (not always available)
+    #   errortext   -   the error text, if any
     #
     # Caveats:
-    #   nmake probably doesn't work right.
+    #   nmake support is not very good; its output is inferior to gmake.
     #
     #   jom support is missing (it probably can't be added without modifying jom,
     #   as jom simply doesn't output enough info - tested with jom 0.9.3)
@@ -502,67 +505,97 @@ my %RE = (
     make_fail => qr{
         \A
 
-        (?<make>
-            make
-            |
-            [gn]make        # GNU make, nmake
-            |
-            mingw32-make
-        )
-
-        (?: \.exe )?    # maybe has .exe on the end on Windows
-
         (?:
-            \[
-            (?<sublevel>
-                \d+
+
+            (?<make>
+                make
+                |
+                [gn]make        # GNU make, nmake
+                |
+                mingw32-make
             )
-            \]
-        )?              # "[2]" etc only present for submakes
 
-        :
-        \s
+            (?: \.exe )?    # maybe has .exe on the end on Windows
 
-        # *** is the thing indicating an error
-        \*{3}
-        \s
-
-        (?:
-
-            # now the target, in square brackets
             (?:
                 \[
-                (?<target>
-                    [^\]]+
+                (?<sublevel>
+                    \d+
                 )
                 \]
-            )
+            )?              # "[2]" etc only present for submakes
 
+            :
+            \s
+
+            # *** is the thing indicating an error
+            \*{3}
             \s
 
             (?:
-                # "Error <num>"
-                Error \s
-                (?<errorlevel>
-                    \d+
+
+                # now the target, in square brackets
+                (?:
+                    \[
+                    (?<target>
+                        [^\]]+
+                    )
+                    \]
+                )
+
+                \s
+
+                (?:
+                    # "Error <num>"
+                    Error \s
+                    (?<errorlevel>
+                        \d+
+                    )
+
+                    |
+
+                    # This comes when make itself segfaults
+                    \QSegmentation fault: 11\E
                 )
 
                 |
 
-                # This comes when make itself segfaults
-                \QSegmentation fault: 11\E
+                (?<errortext>
+                    \QNo rule to make target `\E
+                    [^']+
+                    \Q', needed by `\E
+                    (?<target>
+                        [^']+
+                    )
+                    '
+                    .+
+                )
             )
 
-            |
+        )
 
-            (?:
-                \QNo rule to make target `\E
-                [^']+
-                \Q', needed by `\E
-                (?<target>
-                    [^']+
-                )
-                '
+        |
+
+        # nmake example:
+        #  NMAKE : fatal error U1077: 'somecmd' : return code '0xff'
+        (?i:
+            (?<make>
+                nmake
+            )
+
+            \s{0,20}
+            :
+            \s{0,20}
+
+            \Qfatal error \E
+
+            (?<errorlevel>
+                [^:]{1,20}
+            )
+
+            \s{0,20}
+
+            (?<errortext>
                 .+
             )
         )
@@ -1255,7 +1288,12 @@ my %RE = (
 
         (?:
 
-            .*? scripts[/\\]generic[/\\]testrunner\.pl
+            .*?
+            (?:
+                scripts[/\\]generic[/\\]testrunner\.pl
+                |
+                bin[/\\]testrunner(?:\.bat)?
+            )
 
             .*?         # all the arguments to testrunner.pl
             [ ]--[ ]    # end of the arguments to testrunner.pl
@@ -1318,10 +1356,10 @@ my %RE = (
         return qr{\b(?:$re)\b};
     })->(),
 
-    # Pattern for lines to be considered insignificant.
+    # Pattern for lines to be considered insignificant; these lines are both not considered
+    # when determining the cause of a failure, and are omitted from the output of the script.
     #
-    # This pattern matches lines which should never be considered significant;
-    # it is used to reduce false positives or "expected" errors.
+    # This is used to reduce false positives or "expected" errors.
     #
     # Captures: nothing
     #
@@ -1330,6 +1368,59 @@ my %RE = (
             # Seemingly harmless and widely ignored warnings from gdb.
             # Some discussion at http://sourceware.org/ml/gdb-patches/2011-05/msg00372.html
             \Qwarning: Can't read pathname for load map: Input/output error.\E
+        )
+
+        |
+
+        (?:
+            # nmake's output when a command in a submake fails is devoid of any useful information;
+            # in particular it doesn't include any details about which directory we were in when
+            # compile failed.  These messages are nothing but noise.
+            \QNMAKE : fatal error U1077: \E
+
+            # command is double-quoted if it has spaces
+            '"?
+            (?:
+                # nmake.exe and cd come from recursive nmakes
+                .{0,200}
+                \\nmake\.exe
+                |
+                cd
+            )
+            "?'
+
+            \Q : return code '0x\E
+            [0-9a-f]{1,16}
+            '
+        )
+
+        # add more as discovered
+    }xms,
+
+    # Pattern for lines to be hidden from output; these lines may be considered when
+    # determining the cause of a failure, but they will be omitted from the output of the script.
+    #
+    # This is used to exclude messages which can be used by this script to identify the
+    # reason for a failure, but which provide no useful information to a human attempting to
+    # read a failure summary.
+    #
+    # Captures: nothing
+    #
+    hidden => qr{
+        (?:
+            # nmake: testrunner.BAT non-zero exit code is irrelevant, and maybe confusing to some.
+            # Only the test itself has relevant output.
+            \QNMAKE : fatal error U1077: \E
+
+            # command is double-quoted if it has spaces
+            '"?
+            .{0,200}
+            \\testrunner(?i:\.bat)
+            "?'
+
+            \Q : return code '0x\E
+            [0-9a-f]{1,16}
+            '
         )
 
         # add more as discovered
@@ -1541,8 +1632,10 @@ sub identify_failures
         if ($make_check_fail) {
             # are we done?
             if ($length <= $MAX_LINE_LENGTH && $line =~ $RE{ autotest_begin }) {
+                my $name = $+{ name };
+                $name =~ s{\.exe$}{}i; # don't care about trailing .exe, if any
                 push @{$out->{ autotest_fail }}, {
-                    name    =>  $+{ name },
+                    name    =>  $name,
                     details =>  $make_check_fail->{ details },
                     flaky   =>  $make_check_fail->{ flaky },
                 };
@@ -1593,16 +1686,18 @@ sub identify_failures
             $out->{ make_fail } = $line;
 
             my $target = $+{ target };
+            my $errortext = $+{ errortext };
 
             # If we're running qtmod_test.pl, try to determine specifically which module
             # failed to compile
             if ($out->{ qtqa_script } && $out->{ qtqa_script } =~ m{qtmod_test\.pl}i) {
-                if ($target =~ m{\A module-(q[^\-]+)}xms) {
+                if ($target && $target =~ m{\A module-(q[^\-]+)}xms) {
                     $out->{ qtmodule } = $1;
                 }
             }
 
-            if ($target eq 'check') {
+            if ($target && $target eq 'check'
+             || $errortext && $errortext =~ m{testrunner(?:\.bat)\b.*return code}i) {
                 $out->{ make_check_fail } = $line;
 
                 # start reading the details of the failure.
@@ -1816,6 +1911,8 @@ sub extract_and_output
         }
 
         my $line = shift @lines;
+
+        next if ($line =~ $RE{ insignificant } || $line =~ $RE{ hidden });
 
         # Have we explicitly stored this as a significant line already?
         if ($fail->{ significant_lines }{ $line }) {

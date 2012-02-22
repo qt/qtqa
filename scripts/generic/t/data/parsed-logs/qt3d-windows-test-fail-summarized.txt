@@ -1,0 +1,34 @@
+[ '--summarize', "$DATADIR/raw-logs/qt3d-windows-test-fail.txt" ]
+Autotest `tst_qglvertexbundle' failed for win32-msvc2010 Windows 7 :(
+
+  No platform plugin argument was specified, defaulting to "windows".
+  ********* Start testing of tst_QGLVertexBundle *********
+  Config: Using QTest library 5.0.0, Qt 5.0.0
+  PASS   : tst_QGLVertexBundle::initTestCase()
+  QWARN  : tst_QGLVertexBundle::interleaved() Remove me: fixing toplevel window flags
+  QWARN  : tst_QGLVertexBundle::interleaved() Could not create requested format:
+   QSurfaceFormat(version 2.0, options QFlags() , depthBufferSize  24 , redBufferSize  -1 , greenBufferSize  -1 , blueBufferSize  -1 , alphaBufferSize  -1 , stencilBufferSize  -1 , samples  -1 , swapBehavior  2 , profile   0 )
+  	got format:
+  	 QSurfaceFormat(version 1.1, options QFlags(0x4) , depthBufferSize  32 , redBufferSize  8 , greenBufferSize  8 , blueBufferSize  8 , alphaBufferSize  8 , stencilBufferSize  8 , samples  -1 , swapBehavior  2 , profile   0 )
+  QWARN  : tst_QGLVertexBundle::interleaved() Attempt to activate invalid window surface
+  QWARN  : tst_QGLVertexBundle::interleaved() Maybe set the window size, eg view.resize(800, 600)..?
+  QWARN  : tst_QGLVertexBundle::interleaved() Attempt to activate invalid window surface
+  QWARN  : tst_QGLVertexBundle::interleaved() Maybe set the window size, eg view.resize(800, 600)..?
+  Can't spawn "release\tst_qglvertexbundle.exe": No error at C:/test/recipes/167217282/base/_qtqa_latest/scripts/generic/../lib/perl5/QtQA/Proc/Reliable/Win32.pm line 210.
+  QtQA::App::TestRunner: test failed, running again to see if it is flaky...
+  No platform plugin argument was specified, defaulting to "windows".
+  ********* Start testing of tst_QGLVertexBundle *********
+  Config: Using QTest library 5.0.0, Qt 5.0.0
+  PASS   : tst_QGLVertexBundle::initTestCase()
+  QWARN  : tst_QGLVertexBundle::interleaved() Remove me: fixing toplevel window flags
+  QWARN  : tst_QGLVertexBundle::interleaved() Could not create requested format:
+   QSurfaceFormat(version 2.0, options QFlags() , depthBufferSize  24 , redBufferSize  -1 , greenBufferSize  -1 , blueBufferSize  -1 , alphaBufferSize  -1 , stencilBufferSize  -1 , samples  -1 , swapBehavior  2 , profile   0 )
+  	got format:
+  	 QSurfaceFormat(version 1.1, options QFlags(0x4) , depthBufferSize  32 , redBufferSize  8 , greenBufferSize  8 , blueBufferSize  8 , alphaBufferSize  8 , stencilBufferSize  8 , samples  -1 , swapBehavior  2 , profile   0 )
+  QWARN  : tst_QGLVertexBundle::interleaved() Attempt to activate invalid window surface
+  QWARN  : tst_QGLVertexBundle::interleaved() Maybe set the window size, eg view.resize(800, 600)..?
+  QWARN  : tst_QGLVertexBundle::interleaved() Attempt to activate invalid window surface
+  QWARN  : tst_QGLVertexBundle::interleaved() Maybe set the window size, eg view.resize(800, 600)..?
+  Can't spawn "release\tst_qglvertexbundle.exe": No error at C:/test/recipes/167217282/base/_qtqa_latest/scripts/generic/../lib/perl5/QtQA/Proc/Reliable/Win32.pm line 210.
+  QtQA::App::TestRunner: test failure could be reproduced twice consecutively
+
