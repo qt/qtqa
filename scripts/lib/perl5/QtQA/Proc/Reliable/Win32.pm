@@ -192,7 +192,7 @@ sub _activate_callback
     while ($text =~ m{
         \G             # beginning of string or end of last match
         (
-            [^\n]+     # anything but newline ...
+            [^\n]*     # anything but newline (or maybe nothing)...
             (?:\n|\z)  # ... up to the next newline (or end of string)
         )
     }gxms) {
