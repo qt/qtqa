@@ -149,9 +149,14 @@ my %optionalFiles = (
                         ],
     "qtdeclarative"  => [
                           # This is a single line forwarding header
-                          qr{^src/declarative/qml/v8/qv8debug_p\.h$},
+                          qr{^src/qml/qml/v8/qv8debug_p\.h$},
                           # Nokia Legal has agreed that .qml files in test data
                           # need not have a license header.
+                          qr{^tests/auto/qml/},
+                          qr{^tests/auto/quick/},
+                          qr{^tests/benchmarks/qml/javascript/data/},
+                          # The following can be removed when the paths become obsolete:
+                          qr{^src/declarative/qml/v8/qv8debug_p\.h$},
                           qr{^tests/auto/declarative/},
                           qr{^tests/auto/qtquick2/},
                           qr{^tests/benchmarks/declarative/javascript/data/},
