@@ -138,10 +138,10 @@ sub run
     $self->{ status } = ($exitcode << 8);
 
     if ($self->{ stdout_cb }) {
-        $self->_activate_callback( $self->{ stdout_cb }, $stdout );
+        $self->_activate_callback( $self->{ stdout_cb }, *STDOUT, $stdout );
     }
     if ($self->{ stderr_cb }) {
-        $self->_activate_callback( $self->{ stderr_cb }, $stderr );
+        $self->_activate_callback( $self->{ stderr_cb }, *STDERR, $stderr );
     }
 
     return;
@@ -188,7 +188,7 @@ sub maxtime {
 
 sub _activate_callback
 {
-    my ($self, $cb, $text) = @_;
+    my ($self, $cb, $handle, $text) = @_;
     while ($text =~ m{
         \G             # beginning of string or end of last match
         (
@@ -196,7 +196,7 @@ sub _activate_callback
             (?:\n|\z)  # ... up to the next newline (or end of string)
         )
     }gxms) {
-        $cb->( $self, $1 );
+        $cb->( $handle, $1 ) if $1;
     }
 
     return;
