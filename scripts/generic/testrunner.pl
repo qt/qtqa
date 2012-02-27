@@ -895,21 +895,25 @@ sub create_proc
 {
     my ($self) = @_;
 
+    my $proc;
     if ($OSNAME =~ m{win32}i) {
-        my $proc = $self->create_proc_win32( );
-        $proc->maxtime( $self->{timeout} );
-        return $proc;
+        $proc = $self->create_proc_win32( );
+        # There are no Windows-only options
+    } else {
+        $proc = Proc::Reliable->new( );
+
+        # These options only work for platforms other than Windows
+        $proc->stdin_error_ok( 1 );                 # OK if child does not read all stdin
+        $proc->num_tries( 1 );                      # don't automatically retry on error
+        $proc->child_exit_time( $LONG_TIME );       # don't consider it an error if the test
+                                                    # doesn't quit soon after closing stdout
+        $proc->time_per_try( $self->{timeout} );    # don't run for longer than this
+        $proc->want_single_list( 0 );               # force stdout/stderr handled separately
     }
 
-    my $proc = Proc::Reliable->new( );
+    # These options work for all platforms
 
-    $proc->stdin_error_ok( 1 );                 # OK if child does not read all stdin
-    $proc->num_tries( 1 );                      # don't automatically retry on error
-    $proc->child_exit_time( $LONG_TIME );       # don't consider it an error if the test
-                                                # doesn't quit soon after closing stdout
-    $proc->time_per_try( $self->{timeout} );    # don't run for longer than this
-    $proc->maxtime( $self->{timeout} );         # ...and again (need to set both)
-    $proc->want_single_list( 0 );               # force stdout/stderr handled separately
+    $proc->maxtime( $self->{timeout} );
 
     # Default callbacks just print everything as we receive it.
     # The logging setup function is permitted to change these callbacks.

@@ -256,9 +256,7 @@ sub _handle_stdout
 {
     my ($self, $handle, $text) = @_;
 
-    if (!$WINDOWS) {
-        $handle->printflush( $text );
-    }
+    $handle->printflush( $text );
     $self->_foreach_strategy( sub { shift->process_stdout( $text ) } );
 
     return;
@@ -268,9 +266,7 @@ sub _handle_stderr
 {
     my ($self, $handle, $text) = @_;
 
-    if (!$WINDOWS) {
-        $handle->printflush( $text );
-    }
+    $handle->printflush( $text );
     $self->_foreach_strategy( sub { shift->process_stderr( $text ) } );
 
     return;
