@@ -146,8 +146,6 @@ For example, if the following command is run:
 ...and if $HOME/test-logs/qstring-testlog-00.xml does not exist when the test completes,
 the test will be considered a failure.
 
-B<NOTE>: not yet supported on Windows.
-
 =item B<--tee-logs> <directory>
 
 Exactly like C<--capture-logs directory>, except that stdout/stderr from the autotest
@@ -157,8 +155,6 @@ to the captured log file.
 When using the testlib multiple-file logger, with stdout as one of the logger
 destinations, --tee-logs and --capture-logs are identical.  This is intentional,
 as testlib is already implementing its own tee-like behavior.
-
-B<NOTE>: not yet supported on Windows.
 
 =item B<--plugin> <plugin>
 
@@ -327,17 +323,12 @@ sub run
 
     my $tee_logs;
 
-    my $win = ($OSNAME =~ m{win32}i);
-    my $disable = sub {
-        warn "FIXME: option `$_[0]' is currently not implemented on $OSNAME";
-    };
-
     GetOptionsFromArray( \@args,
         'help|?'            =>  sub { pod2usage(1) },
         'timeout=i'         =>  \$self->{ timeout },
-        'capture-logs=s'    =>  ($win ? $disable : \$self->{ capture_logs }),
+        'capture-logs=s'    =>  \$self->{ capture_logs },
         'plugin=s'          =>  \@{$self->{ plugin_names }},
-        'tee-logs=s'        =>  ($win ? $disable : \$tee_logs),
+        'tee-logs=s'        =>  \$tee_logs,
     ) || pod2usage(2);
 
     # tee-logs implies that we both capture the logs, and print the output like `tee'

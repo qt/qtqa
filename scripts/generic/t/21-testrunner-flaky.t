@@ -408,28 +408,24 @@ sub test_testrunner_flaky
     my $tempdir = tempdir( basename($0).'.XXXXXX', TMPDIR => 1, CLEANUP => 1 );
 
     # basic check of interaction with logging
-    TODO: {
-        todo_skip( '--capture-logs does not yet work on Windows', 1 ) if $OSNAME =~ m{win32}i;
-
-        test_run({
-            testname         => 'flaky with log',
-            args             => [
-                '--capture-logs',
-                $tempdir,
-                '--plugin',
-                'flaky',
-                '--',
-                'perl',
-                '-e',
-                $PERL_DIFFERING_FAILURE,
-            ],
-            expected_success => 0,
-            expected_stdout  => q{},
-            expected_stderr  => q{},
-            expected_logfile => "$tempdir/perl-00.txt",
-            expected_logtext => $LOG_DIFFERING_FAILURE_MODE_WORST,
-        });
-    }
+    test_run({
+        testname         => 'flaky with log',
+        args             => [
+            '--capture-logs',
+            $tempdir,
+            '--plugin',
+            'flaky',
+            '--',
+            'perl',
+            '-e',
+            $PERL_DIFFERING_FAILURE,
+        ],
+        expected_success => 0,
+        expected_stdout  => q{},
+        expected_stderr  => q{},
+        expected_logfile => "$tempdir/perl-00.txt",
+        expected_logtext => $LOG_DIFFERING_FAILURE_MODE_WORST,
+    });
 
     # interaction with core
     # (core only works on linux)

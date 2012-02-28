@@ -37,6 +37,8 @@ use Time::HiRes qw( sleep );
 use lib "$FindBin::Bin/../../lib/perl5";
 use QtQA::Test::More qw( is_or_like );
 
+Readonly my $WINDOWS => ($OSNAME =~ m{mswin32}i);
+
 # Stream markers for use in TEST_OUTPUT
 Readonly my $STREAM_OUTPUT        => 1;  # well-behaved output, to stdout or to -o testlog
 Readonly my $STREAM_ERROR         => 2;  # standard error
@@ -79,11 +81,28 @@ Readonly my @TESTRUNNER => (
 # Whether or not we appear to have superuser permissions (used to skip one test)
 Readonly my $IS_SUPERUSER
     =>  ($EFFECTIVE_USER_ID == 0)          # unix:    are we root?
-     || ($OSNAME            =~ m{win32}i)  # windows: no sane way to tell for now, so be safe
+     || $WINDOWS                           # windows: no sane way to tell for now, so be safe
                                            #          and always act like we're an admin
      || ($OSNAME            =~ m{darwin}i) # mac:     users other than root may have elevated
                                            #          permissions, so play it safe
 ;
+
+# Returns expected error text when a nonexistent $cmd is run
+sub error_nonexistent_command
+{
+    my ($cmd) = @_;
+
+    # Note subtle difference here: on Unix, it is QtQA::App::TestRunner who
+    # determines that the command doesn't exist.  On Windows, there is always
+    # an intermediate cmd.exe (due to the way system() works on Windows), and
+    # that process is the one who determines that the command doesn't exist.
+    if ($WINDOWS) {
+        return "'$cmd' is not recognized as an internal or external command,\n"
+              ."operable program or batch file.\n";
+    }
+
+    return "QtQA::App::TestRunner: $cmd: No such file or directory\n";
+}
 
 # Do a test run for a single dataset.
 #
@@ -387,10 +406,6 @@ sub rx_for_lines
 # Primary entry point for the test.
 sub run
 {
-    if ($OSNAME =~ m{win32}i) {
-        plan 'skip_all', "capture-logs feature is not yet implemented for $OSNAME";
-    }
-
     my $debug;
 
     GetOptions(
@@ -930,8 +945,7 @@ sub run
         testrunner_args  => [ '--capture-logs', $tempdir, '--'],
         command          => [ 'command_which_does_not_exist' ],
         expected_logfile => "$tempdir/command_which_does_not_exist-00.txt",
-        expected_logtext => 'QtQA::App::TestRunner: command_which_does_not_exist: '
-                           ."No such file or directory\n",
+        expected_logtext => error_nonexistent_command('command_which_does_not_exist'),
         expected_stderr  => "",
         expected_success => 0,
     });
@@ -940,33 +954,38 @@ sub run
         testrunner_args  => [ '--tee-logs', $tempdir, '--'],
         command          => [ 'command_which_does_not_exist' ],
         expected_logfile => "$tempdir/command_which_does_not_exist-01.txt",
-        expected_logtext => 'QtQA::App::TestRunner: command_which_does_not_exist: '
-                           ."No such file or directory\n",
-        expected_stderr  => 'QtQA::App::TestRunner: command_which_does_not_exist: '
-                           ."No such file or directory\n",
+        expected_logtext => error_nonexistent_command('command_which_does_not_exist'),
+        expected_stderr  => error_nonexistent_command('command_which_does_not_exist'),
         expected_success => 0,
     });
 
-    my $crash_rx
-        = qr{\AQtQA::App::TestRunner: Process exited due to signal 11(; dumped core)?\n\z}ms;
-    run_one_test({
-        testname         => 'capture error crashing',
-        testrunner_args  => [ '--capture-logs', $tempdir, '--'],
-        command          => [ 'perl', '-e', 'kill 11, $$' ],
-        expected_logfile => "$tempdir/perl-00.txt",
-        expected_logtext => $crash_rx,
-        expected_stderr  => "",
-        expected_success => 0,
-    });
-    run_one_test({
-        testname         => 'tee error crashing',
-        testrunner_args  => [ '--tee-logs', $tempdir, '--'],
-        command          => [ 'perl', '-e', 'kill 11, $$' ],
-        expected_logfile => "$tempdir/perl-01.txt",
-        expected_logtext => $crash_rx,
-        expected_stderr  => $crash_rx,
-        expected_success => 0,
-    });
+    TODO: {
+        # This is skipped because "crashing" is not really the same on Windows and Unix;
+        # Windows doesn't have the same kind of signals.
+        # Doing a `kill 11, $pid' on Windows simply makes the process exit with exit code 11.
+        # It is possible that there's a sensible way to rewrite this test for Windows.
+        todo_skip( 'simulating crashes does not yet work on Windows', 1 ) if $WINDOWS;
+        my $crash_rx
+            = qr{\AQtQA::App::TestRunner: Process exited due to signal 11(; dumped core)?\n\z}ms;
+        run_one_test({
+            testname         => 'capture error crashing',
+            testrunner_args  => [ '--capture-logs', $tempdir, '--'],
+            command          => [ 'perl', '-e', 'kill 11, $$' ],
+            expected_logfile => "$tempdir/perl-00.txt",
+            expected_logtext => $crash_rx,
+            expected_stderr  => "",
+            expected_success => 0,
+        });
+        run_one_test({
+            testname         => 'tee error crashing',
+            testrunner_args  => [ '--tee-logs', $tempdir, '--'],
+            command          => [ 'perl', '-e', 'kill 11, $$' ],
+            expected_logfile => "$tempdir/perl-01.txt",
+            expected_logtext => $crash_rx,
+            expected_stderr  => $crash_rx,
+            expected_success => 0,
+        });
+    }
 
 
     done_testing( );
