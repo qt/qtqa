@@ -302,9 +302,23 @@ sub _stop_reader_threads
     return;
 }
 
+sub _stringify_command
+{
+    my ($self, @command) = @_;
+    my @out;
+    while (@command) {
+        push @out, q{}.shift(@command);
+    }
+    return @out;
+}
+
 sub run
 {
     my ($self, $command_ref) = @_;
+
+    # Stringify everything in @{$command_ref} (they may be Getopt::Long callback
+    # objects, which cannot be serialized by freeze())
+    $command_ref = [ $self->_stringify_command( @{$command_ref} ) ];
 
     $self->_reset( );
 
