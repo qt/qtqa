@@ -137,6 +137,7 @@ sub all_required_cpan_modules
         File::Copy::Recursive
         File::Fetch
         File::Find::Rule
+        File::HomeDir
         File::Slurp
         IO::CaptureOutput
         IO::Uncompress::AnyInflate

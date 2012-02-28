@@ -178,6 +178,7 @@ sub test_testrunner
             $tempdir,
             '--plugin',
             'core',
+            '--sync-output',
             '--',
             'perl',
             '-e',

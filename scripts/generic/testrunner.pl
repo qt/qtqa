@@ -156,6 +156,24 @@ When using the testlib multiple-file logger, with stdout as one of the logger
 destinations, --tee-logs and --capture-logs are identical.  This is intentional,
 as testlib is already implementing its own tee-like behavior.
 
+=item B<--sync-output>
+
+Buffer and synchronize outputs to avoid interleaved output from multiple tests
+in parallel.
+
+When this option is in use, and multiple testrunner instances are running in parallel
+(as the same user), each instance will co-operate to ensure that each test's output
+appears as a contiguous block.  The output from each test will be buffered until
+the test completes, then written to standard output as a single block.
+
+This provides the benefit of a more readable test log, but has the downside
+that a test which is currently running provides no progress information.
+
+If this option is used while only a single test is running, it has no effect.
+
+As a side effect of this option, standard output and standard error from the test
+may be merged.
+
 =item B<--plugin> <plugin>
 
 Loads the specified testrunner plugin to customize behavior.
@@ -261,11 +279,15 @@ use Getopt::Long qw(
 );
 
 use Carp;
+use Capture::Tiny qw( capture_merged );
 use Cwd qw( realpath );
 use English qw( -no_match_vars );
+use Fcntl qw( :flock );
 use File::Basename;
+use File::HomeDir;
 use File::Path qw( mkpath );
 use File::Spec::Functions;
+use IO::File;
 use IO::Handle;
 use Pod::Usage qw( pod2usage );
 use Readonly;
@@ -329,6 +351,7 @@ sub run
         'capture-logs=s'    =>  \$self->{ capture_logs },
         'plugin=s'          =>  \@{$self->{ plugin_names }},
         'tee-logs=s'        =>  \$tee_logs,
+        'sync-output'       =>  \$self->{ sync_output },
     ) || pod2usage(2);
 
     # tee-logs implies that we both capture the logs, and print the output like `tee'
@@ -345,7 +368,13 @@ sub run
         shift @args;
     }
 
-    $self->do_subprocess( @args );
+    if ($self->{ sync_output }) {
+        $self->do_subprocess_with_sync_output( @args );
+    }
+    else {
+        $self->do_subprocess( @args );
+    }
+
     $self->exit_appropriately( );
 
     return;
@@ -825,14 +854,23 @@ sub append_logbuffer_to_logfiles
     return;
 }
 
-# Callback for Proc::Reliable which simply prints to the given handle (i.e. non-capturing).
+# Callback for Proc::Reliable which prints to the given handle,
+# or if --sync-output is enabled, prints to a buffer to be output later.
 # The first parameter to the callback is the correct IO handle (STDOUT or STDERR)
 sub proc_reliable_print_to_handle
 {
     my ($self, $handle, @to_print) = @_;
 
-    # flush so we print as much as possible if we're killed without completing
-    $handle->printflush( @to_print );
+    if ($self->{ sync_output }) {
+        # --sync-output mode, buffer for later.
+        # $handle is ignored, all output is merged into one buffer.
+        # This is a documented limitation of --sync-output
+        $self->{ sync_output_buffer } .= join( q{}, @to_print );
+    }
+    else {
+        # flush so we print as much as possible if we're killed without completing
+        $handle->printflush( @to_print );
+    }
 
     return;
 }
@@ -850,7 +888,12 @@ sub proc_reliable_print_to_log
     return;
 }
 
-# Print a message to the logfiles (if any), or STDERR (if no log), or both (in tee-logs mode)
+# Print a message to the right place, which means:
+#  - the logfiles (if any), or...
+#  - sync_output_buffer (if --sync-output mode), or...
+#  - STDERR (if no log and no --sync-output mode), or...
+#  - both (a logfile) AND (sync_output_buffer OR STDERR) (if tee-logs mode)
+#
 sub print_to_log_or_stderr
 {
     my ($self, @to_print) = @_;
@@ -860,7 +903,13 @@ sub print_to_log_or_stderr
         $fh->printflush( @to_print );
     }
     if (!$self->{ logfh } || !@{ $self->{ logfh } } || $self->{ tee }) {
-        STDERR->printflush( @to_print );
+        if ($self->{ sync_output }) {
+            # --sync-output mode, buffer for later.
+            $self->{ sync_output_buffer } .= join( q{}, @to_print );
+        }
+        else {
+            STDERR->printflush( @to_print );
+        }
     }
 
     return;
@@ -919,6 +968,35 @@ sub create_proc_win32
     my ($self) = @_;
 
     return QtQA::Proc::Reliable::Win32->new( );
+}
+
+sub do_subprocess_with_sync_output
+{
+    my ($self, @args) = @_;
+
+    my $lockfile = catfile( File::HomeDir->my_data, '.qtqa-testrunner-lock' );
+    my $fh = IO::File->new( $lockfile, '>>' ) || die "open $lockfile: $!";
+
+    # First, try non-blocking.  If that succeeds, great!  We're the only
+    # running test at the time we started, so we don't need to do any buffering.
+    if (flock($fh, LOCK_EX|LOCK_NB)) {
+        $self->{ sync_output } = 0;
+        $self->do_subprocess( @args );
+        $fh->close( ) || die "close $lockfile: $!";
+        return;
+    }
+
+    # OK, someone else has the lock.
+    # Then the output will be buffered while we run the subprocess ...
+    $self->{ sync_output_buffer } = q{};
+    $self->do_subprocess( @args );
+    # ...and we can't output until we can get the lock
+    flock($fh, LOCK_EX) || die "flock $lockfile: $!";
+
+    local $OUTPUT_AUTOFLUSH = 1;
+    print $self->{ sync_output_buffer };
+    $fh->close( ) || die "close $lockfile: $!";
+    return;
 }
 
 # Run a subprocess for the given @command, and do all appropriate logging.

@@ -339,7 +339,7 @@ sub test_testrunner_flaky
     });
     test_run({
         testname         => 'vanishing failure (flaky-mode worst)',
-        args             => [ qw(--plugin flaky --flaky-mode worst -- perl -e), $PERL_VANISHING_FAILURE ],
+        args             => [ qw(--sync-output --plugin flaky --flaky-mode worst -- perl -e), $PERL_VANISHING_FAILURE ],
         expected_success => 0,
         expected_stdout  => $OUTPUT_VANISHING_FAILURE,
         expected_stderr  => $ERROR_VANISHING_FAILURE_MODE_WORST,
@@ -383,7 +383,7 @@ sub test_testrunner_flaky
     });
     test_run({
         testname         => 'differing failure (flaky-mode ignore)',
-        args             => [ qw(--plugin flaky --flaky-mode ignore -- perl -e), $PERL_DIFFERING_FAILURE ],
+        args             => [ qw(--sync-output --plugin flaky --flaky-mode ignore -- perl -e), $PERL_DIFFERING_FAILURE ],
         expected_success => 1,
         expected_stdout  => $OUTPUT_DIFFERING_FAILURE,
         expected_stderr  => $ERROR_DIFFERING_FAILURE_MODE_IGNORE,
