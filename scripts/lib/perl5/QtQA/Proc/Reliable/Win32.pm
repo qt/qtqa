@@ -59,6 +59,8 @@ BEGIN {
     if ($OSNAME =~ m{win32}i) {
         require Win32::Job;
         Win32::Job->import( );
+        require Win32::Process;
+        Win32::Process->import( );
     }
 }
 
@@ -422,7 +424,11 @@ sub run
         $exitcode = 294;
     }
 
-    $self->{ status } = ($exitcode << 8);
+    {
+        # status needs to exceed 32 bits in some cases; see CAVEATS
+        use bigint;
+        $self->{ status } = ($exitcode << 8);
+    }
 
     $self->_stop_reader_threads( [ $stdout_w, $stderr_w ], [ $stdout_thr, $stderr_thr ] );
 
@@ -512,7 +518,36 @@ sub _activate_callback
 if (!caller && exists( $ENV{ $ENV_EXEC_KEY } )) {
     my $command = delete $ENV{ $ENV_EXEC_KEY };
     $command = thaw decode_base64 $command;
-    exit( system( @{$command} ) >> 8);
+
+    # If we use plain system/waitpid, perl already converts all exit codes
+    # to POSIX-compatible semantics.  In the usual case that is fine, but
+    # in the crashing case and a few others, it destroys information:
+    #
+    #   - POSIX uses 8 bits as various "status" info and 8 bits as the exit code
+    #   - Windows has no concept of "status" and uses a full 32 bits as exit code
+    #
+    # Therefore Windows exit codes can easily overflow and lose information
+    # when converted to POSIX-style exit codes.
+    #
+    # Luckily, perl does provide a workaround: as documented in "perlport",
+    # the special system( 1, @args ) syntax returns the pid of the process
+    # (without waiting for it to complete), and we can use native Win32 API
+    # to get the _real_ exit status.
+
+    my ($pid, $child_process, $this_process, $exitcode);
+    $pid = system( 1, @{$command} );
+
+    Win32::Process::Open( $child_process, $pid, 0 ) || die __PACKAGE__.": OpenProcess child: $!";
+    $child_process->Wait( Win32::Process::INFINITE() );
+    $child_process->GetExitCode( $exitcode );
+
+    # A plain exit() will discard all but the lower 16 bits of the exit code.
+    # Use Win32-native API to retain all information.
+    Win32::Process::Open( $this_process, $$, 0 ) || die __PACKAGE__.": OpenProcess self: $!";
+    $this_process->Kill( $exitcode );
+
+    # should not happen
+    die __PACKAGE__.": internal error: still alive after Kill( $exitcode ) on self";
 }
 
 =head1 NAME
@@ -528,8 +563,10 @@ The primary motivation of this class is to avoid usage of perl's fork()
 emulation on Windows, which is considered too buggy for general usage.
 
 This class implements a very limited subset of the Proc::Reliable API.
-stdout_cb and stderr_cb are supported with the following caveats
-compared to Proc::Reliable:
+Notably, the stdout_cb/stderr_cb callbacks are supported, with some
+caveats.
+
+=head1 CAVEATS
 
 =over
 
@@ -556,6 +593,19 @@ a plain LF by the time it arrives in stdout_cb/stderr_cb.
 This is intentional, but may cause problems if the subprocess outputs
 binary data.  So, don't do that.  A workaround could be added if there
 is a valid use-case.
+
+=item status() returns a big integer
+
+On Unix-like platforms, the exit code of a process is a mere 8 bits;
+Windows, on the other hand, uses a full 32 bits for the exit code.
+Rather than truncating that exit code, this module retains the full
+32 bits.
+
+However, on Unix, it's necessary to shift the process exit B<status>
+right by 8 bits in order to get the exit B<code>.  The status() function
+here follows those semantics (as it would be error-prone and inconvenient
+otherwise), but this means status() needs to return (up to) a 40-bit
+integer on Windows.
 
 =back
 

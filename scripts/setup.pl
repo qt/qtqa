@@ -195,6 +195,7 @@ sub all_required_cpan_modules
     # available _only_ on Windows
     push @out, qw(
         Win32::Job
+        Win32::Process
     ) if $WINDOWS;
 
     return @out;
