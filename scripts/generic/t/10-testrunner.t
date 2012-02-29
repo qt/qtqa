@@ -19,6 +19,7 @@ types of subprocesses and verify that behavior is as expected.
 
 use Encode;
 use English qw( -no_match_vars );
+use File::Spec::Functions;
 use FindBin;
 use Readonly;
 use Test::More;
@@ -29,6 +30,9 @@ use QtQA::Test::More qw( is_or_like );
 
 # 1 if Windows
 Readonly my $WINDOWS => ($OSNAME =~ m{win32}i);
+
+# Directory containing some helper scripts
+Readonly my $HELPER_DIR => catfile( $FindBin::Bin, 'helpers' );
 
 # perl to print @ARGV unambiguously from a subprocess
 # (not used directly)
@@ -43,15 +47,19 @@ Readonly my $TESTSCRIPT_SUCCESS
 Readonly my $TESTSCRIPT_FAIL
     => $TESTSCRIPT_BASE . 'exit 3';
 
-# perl to print @ARGV unambiguously and crash
-Readonly my $TESTSCRIPT_CRASH
-    => $TESTSCRIPT_BASE . 'kill 11, $$';
-
-# expected STDERR when wrapping the above;
+# expected STDERR when a process segfaults;
 # note that we have no way to control if the system will create core dumps or not,
 # so we will accept either case
 Readonly my $TESTERROR_CRASH
-    => qr{\AQtQA::App::TestRunner: Process exited due to signal 11(?:; dumped core)?\n\z};
+    => ($WINDOWS)
+        ? "QtQA::App::TestRunner: Process exited with exit code 0xC0000005 (STATUS_ACCESS_VIOLATION)\n"
+        : qr{\AQtQA::App::TestRunner: Process exited due to signal 11(?:; dumped core)?\n\z};
+
+# expected STDERR when a process divides by zero
+Readonly my $TESTERROR_DIVIDE_BY_ZERO
+    => ($WINDOWS)
+        ? "QtQA::App::TestRunner: Process exited with exit code 0xC0000094 (STATUS_INTEGER_DIVIDE_BY_ZERO)\n"
+        : qr{\AQtQA::App::TestRunner: Process exited due to signal 8(?:; dumped core)?\n\z};
 
 # perl to print @ARGV unambiguously and hang
 Readonly my $TESTSCRIPT_HANG
@@ -206,13 +214,30 @@ sub test_normal_nonzero_exitcode
 
 sub test_crashing
 {
+    my $crash_script = catfile( $HELPER_DIR, 'dereference_bad_pointer.pl' );
     while (my ($testdata_name, $testdata_ref) = each %TESTSCRIPT_ARGUMENTS) {
         test_run({
-            args                =>  [ 'perl', '-e', $TESTSCRIPT_CRASH, @{$testdata_ref->[0]} ],
+            args                =>  [ 'perl', $crash_script, @{$testdata_ref->[0]} ],
             expected_stdout     =>  undef,  # output is undefined when crashing
             expected_stderr     =>  $TESTERROR_CRASH,
             expected_success    =>  0,
             testname            =>  "crash $testdata_name",
+        });
+    }
+
+    return;
+}
+
+sub test_divide_by_zero
+{
+    my $crash_script = catfile( $HELPER_DIR, 'divide_by_zero.pl' );
+    while (my ($testdata_name, $testdata_ref) = each %TESTSCRIPT_ARGUMENTS) {
+        test_run({
+            args                =>  [ 'perl', $crash_script, @{$testdata_ref->[0]} ],
+            expected_stdout     =>  undef,  # output is undefined when crashing
+            expected_stderr     =>  $TESTERROR_DIVIDE_BY_ZERO,
+            expected_success    =>  0,
+            testname            =>  "divide by zero $testdata_name",
         });
     }
 
@@ -288,16 +313,11 @@ sub run
 
     test_success;
     test_normal_nonzero_exitcode;
-
-    TODO: {
-        # This is skipped because "crashing" is not really the same on Windows and Unix;
-        # Windows doesn't have the same kind of signals.
-        # Doing a `kill 11, $pid' on Windows simply makes the process exit with exit code 11.
-        # It is possible that there's a sensible way to rewrite this test for Windows.
-        todo_skip( 'simulating crashes does not yet work on Windows', 1 ) if $WINDOWS;
-        test_crashing;
+    test_crashing;
+    SKIP: {
+        skip( 'divide by zero is unpredictable on mac', 1 ) if ($OSNAME =~ m{darwin}i);
+        test_divide_by_zero;
     }
-
     test_hanging;
 
     done_testing;

@@ -164,6 +164,7 @@ sub all_required_cpan_modules
         File::Slurp
         IO::CaptureOutput
         IO::Uncompress::AnyInflate
+        Inline::C
         Lingua::EN::Inflect
         Lingua::EN::Numbers
         List::Compare

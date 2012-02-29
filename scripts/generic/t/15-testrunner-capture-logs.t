@@ -26,6 +26,7 @@ use Encode qw( encode_utf8 );
 use English qw( -no_match_vars );
 use File::Path qw( rmtree );
 use File::Slurp qw( read_file );
+use File::Spec::Functions;
 use File::Temp qw( tempdir );
 use FindBin;
 use Getopt::Long;
@@ -38,6 +39,9 @@ use lib "$FindBin::Bin/../../lib/perl5";
 use QtQA::Test::More qw( is_or_like );
 
 Readonly my $WINDOWS => ($OSNAME =~ m{mswin32}i);
+
+# Directory containing some helper scripts
+Readonly my $HELPER_DIR => catfile( $FindBin::Bin, 'helpers' );
 
 # Stream markers for use in TEST_OUTPUT
 Readonly my $STREAM_OUTPUT        => 1;  # well-behaved output, to stdout or to -o testlog
@@ -959,33 +963,28 @@ sub run
         expected_success => 0,
     });
 
-    TODO: {
-        # This is skipped because "crashing" is not really the same on Windows and Unix;
-        # Windows doesn't have the same kind of signals.
-        # Doing a `kill 11, $pid' on Windows simply makes the process exit with exit code 11.
-        # It is possible that there's a sensible way to rewrite this test for Windows.
-        todo_skip( 'simulating crashes does not yet work on Windows', 1 ) if $WINDOWS;
-        my $crash_rx
-            = qr{\AQtQA::App::TestRunner: Process exited due to signal 11(; dumped core)?\n\z}ms;
-        run_one_test({
-            testname         => 'capture error crashing',
-            testrunner_args  => [ '--capture-logs', $tempdir, '--'],
-            command          => [ 'perl', '-e', 'kill 11, $$' ],
-            expected_logfile => "$tempdir/perl-00.txt",
-            expected_logtext => $crash_rx,
-            expected_stderr  => "",
-            expected_success => 0,
-        });
-        run_one_test({
-            testname         => 'tee error crashing',
-            testrunner_args  => [ '--sync-output', '--tee-logs', $tempdir, '--'],
-            command          => [ 'perl', '-e', 'kill 11, $$' ],
-            expected_logfile => "$tempdir/perl-01.txt",
-            expected_logtext => $crash_rx,
-            expected_stderr  => $crash_rx,
-            expected_success => 0,
-        });
-    }
+    my $crash_script = catfile( $HELPER_DIR, 'dereference_bad_pointer.pl' );
+    my $crash_rx = ($WINDOWS)
+        ? "QtQA::App::TestRunner: Process exited with exit code 0xC0000005 (STATUS_ACCESS_VIOLATION)\n"
+        : qr{\AQtQA::App::TestRunner: Process exited due to signal 11(; dumped core)?\n\z}ms;
+    run_one_test({
+        testname         => 'capture error crashing',
+        testrunner_args  => [ '--capture-logs', $tempdir, '--'],
+        command          => [ 'perl', $crash_script ],
+        expected_logfile => "$tempdir/perl-00.txt",
+        expected_logtext => $crash_rx,
+        expected_stderr  => "",
+        expected_success => 0,
+    });
+    run_one_test({
+        testname         => 'tee error crashing',
+        testrunner_args  => [ '--sync-output', '--tee-logs', $tempdir, '--'],
+        command          => [ 'perl', $crash_script ],
+        expected_logfile => "$tempdir/perl-01.txt",
+        expected_logtext => $crash_rx,
+        expected_stderr  => $crash_rx,
+        expected_success => 0,
+    });
 
 
     done_testing( );

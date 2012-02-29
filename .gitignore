@@ -257,3 +257,6 @@ src/xml/lib/
 *.dep
 *.map
 work
+
+# Build artifacts from Inline::C
+_Inline/
