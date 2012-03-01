@@ -120,6 +120,28 @@ my $WINDOWS = ($OSNAME =~ m{win32}i);
 
 #====================== perl stuff ============================================
 
+# Module metadata.
+#
+# Available metadata is:
+#
+#  interactive-yes  ->  Instead of installing the standard non-interactive way,
+#                       ask CPAN to install this module interatively, and
+#                       answer all questions with "y" (yes).  Used for broken
+#                       installers.
+#
+my %CPAN_MODULE_META = (
+    'Inline::C' => {
+        # installer bug on mac; the compiler is named like gcc-4.2, and
+        # Inline installer incorrectly interprets this as a command named
+        # "gcc-4" with an executable extension of "2".  It can't find this
+        # in PATH, so it disables Inline::C by default.  Luckily, enabling it
+        # by passing "y" works fine.
+        ($OSNAME =~ m{darwin}i)
+            ? ('interactive-yes' => 1)
+            : ()
+    },
+);
+
 # Returns a list of all CPAN modules needed (including those which
 # are already installed).
 #
@@ -212,7 +234,7 @@ sub missing_required_cpan_modules
 
     foreach my $module (@all) {
         print "$module - ";
-        my $cmd = "perl -m$module -e1";
+        my $cmd = qq{perl -e "require $module; 1"};
 
         if (!$self->run_module_test( $cmd, $arg_ref )) {
             push @need_install, $module;
@@ -269,14 +291,18 @@ sub install_cpanminus
 
 # Ask cpan to install the given @modules.
 #
-# This function will run the cpan command only once.  It does not attempt to
+# This may result in more than one execution of cpan, depending on the metadata
+# of the installed modules.
+#
+# This function will not retry the cpan command(s).  It does not attempt to
 # be robust in case of failure.
 #
 # Parameters:
 #
 #  @modules -   list of modules to install (e.g. qw(Date::Calc SOAP::Lite))
 #
-# Returns the exit status of the cpan command.
+# Returns the exit status of the cpan command (or the worst exit status, if
+# multiple commands were run).
 #
 sub run_cpan
 {
@@ -310,8 +336,37 @@ sub run_cpan
         }
     }
 
-    print "+ @cpan @modules\n";
-    return system(@cpan, @modules);
+    my $out = 0;
+
+    my @modules_normal;
+    my @modules_yes;
+    foreach my $module (@modules) {
+        if ($CPAN_MODULE_META{ $module }{ 'interactive-yes' }) {
+            push @modules_yes, $module;
+        }
+        else {
+            push @modules_normal, $module;
+        }
+    }
+
+    if (@modules_normal) {
+        print "+ @cpan @modules_normal\n";
+        $out ||= system(@cpan, @modules_normal);
+    }
+
+    if (@modules_yes) {
+        # use interactive installer and answer yes to all
+        my @cpan_yes = (
+            '/bin/sh',
+            '-c',
+            'yes | '.join(' ', @cpan, '--interactive', @modules_yes),
+        );
+
+        print "+ @cpan_yes\n";
+        $out ||= system(@cpan_yes);
+    }
+
+    return $out;
 }
 
 # Import the local::lib module into the current process or exit.
