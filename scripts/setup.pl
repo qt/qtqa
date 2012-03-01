@@ -134,6 +134,7 @@ sub all_required_cpan_modules
         Capture::Tiny
         Class::Factory::Util
         Env::Path
+        File::chdir
         File::Copy::Recursive
         File::Fetch
         File::Find::Rule

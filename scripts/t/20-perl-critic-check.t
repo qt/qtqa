@@ -14,17 +14,24 @@ checks of all perl scripts and modules within this repo.
 
 =cut
 
+use autodie;
 use Cwd                   qw( abs_path        );
 use File::Spec::Functions qw( catfile         );
 use FindBin               qw();
 use Test::Perl::Critic    qw( -severity stern );
 use Test::More;
 
+use lib $FindBin::Bin;
+use QtQA::PerlChecks;
 
 sub main
 {
     my $base = abs_path( catfile( $FindBin::Bin, '..' ) );
-    all_critic_ok( $base );
+    chdir( $base );
+
+    foreach my $file (QtQA::PerlChecks::all_perl_files_in_git( )) {
+        critic_ok( $file );
+    }
     done_testing( );
 
     return;

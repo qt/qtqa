@@ -18,8 +18,10 @@ use Cwd                 qw( abs_path       );
 use File::Spec          qw();
 use FindBin             qw();
 use IO::CaptureOutput   qw( qxy            );
-use Perl::Critic::Utils qw( all_perl_files );
 use Test::More;
+
+use lib $FindBin::Bin;
+use QtQA::PerlChecks;
 
 # Returns a true-ish value if a particular syntax error should be permitted.
 #
@@ -97,7 +99,7 @@ sub main
     my $base = abs_path(File::Spec->catfile($FindBin::Bin, '..'));
     chdir($base);
 
-    foreach my $file (all_perl_files($base)) {
+    foreach my $file (QtQA::PerlChecks::all_perl_files_in_git( )) {
         syntax_check_one_perl( $file );
     }
 
