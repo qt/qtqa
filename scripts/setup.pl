@@ -363,7 +363,7 @@ sub run_cpan
         my @cpan_yes = (
             '/bin/sh',
             '-c',
-            'for i in $(seq 1 100); do echo y; done | '
+            q/perl -E 'for my $i (1..100) { say q{y} }' | /
                 .join(' ', @cpan, '--interactive', @modules_yes),
         );
 
