@@ -357,11 +357,14 @@ sub run_cpan
     }
 
     if (@modules_yes) {
-        # use interactive installer and answer yes to all
+        # use interactive installer and answer yes to all;
+        # we print "y" a limited amount of times because some installers
+        # will read from STDIN until it is closed.
         my @cpan_yes = (
             '/bin/sh',
             '-c',
-            'yes | '.join(' ', @cpan, '--interactive', @modules_yes),
+            'for i in $(seq 1 100); do echo y; done | '
+                .join(' ', @cpan, '--interactive', @modules_yes),
         );
 
         print "+ @cpan_yes\n";
