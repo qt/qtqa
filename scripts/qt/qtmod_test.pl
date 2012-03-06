@@ -281,6 +281,8 @@ sub default_qt_tests_args
 {
     my ($self) = @_;
 
+    my @out = ('-silent');
+
     # If we're capturing logs, arrange to capture native XML by default
     # for maximum fidelity, and also print to stdout for live feedback.
     if ($self->{ 'qt.tests.capture_logs' } || $self->{ 'qt.tests.tee_logs' }) {
@@ -290,10 +292,10 @@ sub default_qt_tests_args
         #   path/to/capturedir/tst_qwidget-testresults-00.xml
         #
         # ...etc.
-        return q{-o testresults.xml,xml -o -,txt};
+        push @out, '-o', 'testresults.xml,xml', '-o', '-,txt';
     }
 
-    return q{};
+    return join(' ', @out);
 }
 
 sub default_make_check_bin
