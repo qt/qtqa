@@ -388,7 +388,12 @@ thread.  This will be printed to STDERR and/or appended to the test log.
 
 =head1 CAVEATS
 
-Only works on Linux.
+Only works on Linux and Mac.
+
+On Mac, core dumps can be very slow to create.  In practice, times of up to
+20 minutes to create a single core dump have been observed.  This may make the
+usage of this plugin prohibitively slow on Mac.  Consider using the
+Mac-specific "crashreporter" plugin instead.
 
 It is not possible for a normal user to control the location where core files
 are generated.  Also, it is possible for the system to be configured in such

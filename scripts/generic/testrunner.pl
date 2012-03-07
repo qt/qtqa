@@ -194,7 +194,12 @@ be available include:
 =item core
 
 Attempt to intercept core dumps from any crashing process, and append a backtrace
-to the test log.  (Linux only)
+to the test log.  (Linux and Mac only, not recommended on Mac)
+
+=item crashreporter
+
+Attempt to find and print crash logs from the CrashReporter service from any
+crashing process.  (Mac only)
 
 =item flaky
 
