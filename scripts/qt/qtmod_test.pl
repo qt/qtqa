@@ -155,9 +155,10 @@ my @PROPERTIES = (
     q{qt.tests.tee_logs}       => q{like qt.tests.capture_logs, but also print the test logs to }
                                 . q{STDOUT/STDERR as normal while the tests are running},
 
-    q{qt.tests.backtraces}     => q{if 1, attempt to capture backtraces from crashing tests; }
-                                . q{currently, this requires gdb, and is known to work on Linux }
-                                . q{and Mac, but can be very slow on Mac},
+    q{qt.tests.backtraces}     => q{if 1, attempt to capture backtraces from crashing tests, }
+                                . q{using the platform's best available mechanism; currently }
+                                . q{uses gdb on Linux, CrashReporter on Mac, and does not work }
+                                . q{on Windows},
 
     q{qt.tests.flaky_mode}     => q{how to handle flaky autotests ("best", "worst" or "ignore")},
 
@@ -249,7 +250,7 @@ sub default_qt_tests_enabled
 sub default_qt_tests_backtraces
 {
     my ($self) = @_;
-    return ($OSNAME =~ m{linux}i);
+    return ($OSNAME =~ m{linux|darwin}i);
 }
 
 sub default_qt_qtqa_tests_insignificant
@@ -868,7 +869,12 @@ sub get_testrunner_command
     }
 
     if ($qt_tests_backtraces) {
-        push @testrunner_with_args, '--plugin', 'core';
+        if ($OSNAME =~ m{linux}i) {
+            push @testrunner_with_args, '--plugin', 'core';
+        }
+        elsif ($OSNAME =~ m{darwin}i) {
+            push @testrunner_with_args, '--plugin', 'crashreporter';
+        }
     }
 
     # give more info about unstable / flaky tests
