@@ -1373,6 +1373,15 @@ my %RE = (
         |
 
         (?:
+            # Removes more insignificant lines from gdb during a crashed autotest.
+            # gdb will try to open libc sources when doing a backtrace of abort(), these
+            # sources are generally unavailable.
+            \Q../nptl/sysdeps/unix/sysv/linux/raise.c: No such file or directory.\E
+        )
+
+        |
+
+        (?:
             # nmake's output when a command in a submake fails is devoid of any useful information;
             # in particular it doesn't include any details about which directory we were in when
             # compile failed.  These messages are nothing but noise.
