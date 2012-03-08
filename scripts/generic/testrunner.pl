@@ -300,6 +300,8 @@ use Readonly;
 use FindBin;
 use lib "$FindBin::Bin/../lib/perl5";
 
+use QtQA::Win32::Status;
+
 BEGIN {
     # Proc::Reliable is not reliable on Windows
     if ($OSNAME !~ m{win32}i) {
@@ -333,42 +335,6 @@ Readonly my $EXIT_PROCESS_SIGNALED => 3;
 
 # exit code if we can't capture logs as requested
 Readonly my $EXIT_LOGGING_ERROR => 58;
-
-# Number to symbol map for common Windows status codes.
-# Source: http://source.winehq.org/source/include/winnt.h
-# Add any more as they are needed.
-Readonly my %WIN32_STATUS_TO_STRING => (
-    0x40000005 => 'STATUS_SEGMENT_NOTIFICATION',
-    0x80000001 => 'STATUS_GUARD_PAGE_VIOLATION',
-    0x80000002 => 'STATUS_DATATYPE_MISALIGNMENT',
-    0x80000003 => 'STATUS_BREAKPOINT',
-    0x80000004 => 'STATUS_SINGLE_STEP',
-    0xC0000005 => 'STATUS_ACCESS_VIOLATION',
-    0xC0000006 => 'STATUS_IN_PAGE_ERROR',
-    0xC0000008 => 'STATUS_INVALID_HANDLE',
-    0xC0000017 => 'STATUS_NO_MEMORY',
-    0xC000001D => 'STATUS_ILLEGAL_INSTRUCTION',
-    0xC0000025 => 'STATUS_NONCONTINUABLE_EXCEPTION',
-    0xC0000026 => 'STATUS_INVALID_DISPOSITION',
-    0xC000008C => 'STATUS_ARRAY_BOUNDS_EXCEEDED',
-    0xC000008D => 'STATUS_FLOAT_DENORMAL_OPERAND',
-    0xC000008E => 'STATUS_FLOAT_DIVIDE_BY_ZERO',
-    0xC000008F => 'STATUS_FLOAT_INEXACT_RESULT',
-    0xC0000090 => 'STATUS_FLOAT_INVALID_OPERATION',
-    0xC0000091 => 'STATUS_FLOAT_OVERFLOW',
-    0xC0000092 => 'STATUS_FLOAT_STACK_CHECK',
-    0xC0000093 => 'STATUS_FLOAT_UNDERFLOW',
-    0xC0000094 => 'STATUS_INTEGER_DIVIDE_BY_ZERO',
-    0xC0000095 => 'STATUS_INTEGER_OVERFLOW',
-    0xC0000096 => 'STATUS_PRIVILEGED_INSTRUCTION',
-    0xC00000FD => 'STATUS_STACK_OVERFLOW',
-    0xC000013A => 'STATUS_CONTROL_C_EXIT',
-    0xC00002B4 => 'STATUS_FLOAT_MULTIPLE_FAULTS',
-    0xC00002B5 => 'STATUS_FLOAT_MULTIPLE_TRAPS',
-    0xC00002C9 => 'STATUS_REG_NAT_CONSUMPTION',
-    0xC015000F => 'STATUS_SXS_EARLY_DEACTIVATION',
-    0xC0150010 => 'STATUS_SXS_INVALID_DEACTIVATION',
-);
 
 sub new
 {
@@ -859,7 +825,7 @@ sub check_abnormal_exit_win32
         $out .= sprintf( "Process exited with exit code 0x%X", $exitcode );
 
         # Do we also have some text form of this status code?
-        if (my $str = $WIN32_STATUS_TO_STRING{ $exitcode }) {
+        if (my $str = $QtQA::Win32::Status::INTEGER_TO_SYMBOL{ $exitcode }) {
             $out .= " ($str)";
         }
 
