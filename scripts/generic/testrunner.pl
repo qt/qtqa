@@ -294,11 +294,16 @@ use File::Path qw( mkpath );
 use File::Spec::Functions;
 use IO::File;
 use IO::Handle;
+use List::Util qw( first );
 use Pod::Usage qw( pod2usage );
 use Readonly;
 
+# We may be run from `scripts' or from `bin' via symlink.
+# Support both cases for finding our own modules.
 use FindBin;
-use lib "$FindBin::Bin/../lib/perl5";
+use lib (
+    first { -d $_ } ("$FindBin::Bin/../lib/perl5", "$FindBin::Bin/../scripts/lib/perl5")
+);
 
 use QtQA::Win32::Status;
 
