@@ -172,11 +172,13 @@ sub all_required_cpan_modules
         Params::Validate
         Perl::Critic
         Readonly
+        ReleaseAction
         Test::Exception
         Test::Exit
         Test::More
         Test::NoWarnings
         Test::Perl::Critic
+        Test::Warn
         Text::Diff
         Text::Trim
         Text::Wrap
