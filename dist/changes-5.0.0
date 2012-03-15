@@ -34,7 +34,7 @@ Third party components
 
 - The part of tests/shared/headers that dealt with license headers has been
   removed and a more exhaustive license header autotest has been added under
-  tests/shared/license/.
+  tests/prebuild/license/.
 
 
 ****************************************************************************
