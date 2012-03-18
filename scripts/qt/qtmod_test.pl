@@ -160,6 +160,14 @@ my @PROPERTIES = (
                                 . q{uses gdb on Linux, CrashReporter on Mac, and does not work }
                                 . q{on Windows},
 
+    q{qt.tests.testscheduler}  => q{if 1, run the autotests via the testscheduler script, rather }
+                                . q{than directly by `make check'; this is intended to eventually }
+                                . q{become the default},
+
+    q{qt.tests.testscheduler.args}
+                               => q{arguments to pass to testscheduler, if any; for example, -j4 }
+                                . q{to run autotests in parallel},
+
     q{qt.tests.flaky_mode}     => q{how to handle flaky autotests ("best", "worst" or "ignore")},
 
     q{qt.qtqa-tests.enabled}   => q{if 1, run the shared autotests in qtqa (over this module }
@@ -379,6 +387,8 @@ sub read_and_store_configuration
         'qt.minimal_deps'         => \&default_qt_minimal_deps                   ,
         'qt.install.dir'          => \&default_qt_install_dir                    ,
         'qt.tests.enabled'        => \&default_qt_tests_enabled                  ,
+        'qt.tests.testscheduler'  => 0                                           ,
+        'qt.tests.testscheduler.args' => q{}                                     ,
         'qt.tests.insignificant'  => 0                                           ,
         'qt.tests.timeout'        => 60*15                                       ,
         'qt.tests.capture_logs'   => q{}                                         ,
@@ -838,6 +848,25 @@ sub get_testrunner_command
 {
     my ($self) = @_;
 
+    my $testrunner = catfile( $FindBin::Bin, '..', '..', 'bin', 'testrunner' );
+    $testrunner    = canonpath abs_path( $testrunner );
+
+    # sanity check
+    confess( "internal error: $testrunner does not exist" ) if (! -e $testrunner);
+
+    my @testrunner_with_args = (
+        $testrunner,
+        $self->get_testrunner_args( ),
+    );
+
+    return join(' ', @testrunner_with_args);
+}
+
+# Returns appropriate testrunner arguments
+sub get_testrunner_args
+{
+    my ($self) = @_;
+
     my $qt_tests_timeout         = $self->{ 'qt.tests.timeout' };
     my $qt_tests_capture_logs    = $self->{ 'qt.tests.capture_logs' };
     my $qt_coverage_tool         = $self->{ 'qt.coverage.tool' };
@@ -848,52 +877,45 @@ sub get_testrunner_command
     my $qt_tests_backtraces      = $self->{ 'qt.tests.backtraces' };
     my $qt_tests_flaky_mode      = $self->{ 'qt.tests.flaky_mode' };
 
-    my $testrunner = catfile( $FindBin::Bin, '..', '..', 'bin', 'testrunner' );
-    $testrunner    = canonpath abs_path( $testrunner );
-
-    # sanity check
-    confess( "internal error: $testrunner does not exist" ) if (! -e $testrunner);
-
-    my @testrunner_with_args = (
-        $testrunner,        # run the tests through our testrunner script ...
+    my @testrunner_args = (
         '--timeout',
         $qt_tests_timeout,  # kill any test which takes longer than this ...
     );
 
     # capture or tee logs to a given directory
     if ($qt_tests_capture_logs) {
-        push @testrunner_with_args, '--capture-logs', canonpath $qt_tests_capture_logs;
+        push @testrunner_args, '--capture-logs', canonpath $qt_tests_capture_logs;
     }
     elsif ($qt_tests_tee_logs) {
-        push @testrunner_with_args, '--tee-logs', canonpath $qt_tests_tee_logs;
+        push @testrunner_args, '--tee-logs', canonpath $qt_tests_tee_logs;
     }
 
     if ($qt_tests_backtraces) {
         if ($OSNAME =~ m{linux}i) {
-            push @testrunner_with_args, '--plugin', 'core';
+            push @testrunner_args, '--plugin', 'core';
         }
         elsif ($OSNAME =~ m{darwin}i) {
-            push @testrunner_with_args, '--plugin', 'crashreporter';
+            push @testrunner_args, '--plugin', 'crashreporter';
         }
     }
 
     # give more info about unstable / flaky tests
-    push @testrunner_with_args, '--plugin', 'flaky';
+    push @testrunner_args, '--plugin', 'flaky';
     if ($qt_tests_flaky_mode) {
-        push @testrunner_with_args, '--flaky-mode', $qt_tests_flaky_mode;
+        push @testrunner_args, '--flaky-mode', $qt_tests_flaky_mode;
     }
 
     if ($qt_coverage_tool) {
-        push @testrunner_with_args, '--plugin', $qt_coverage_tool;
-        push @testrunner_with_args, "--${qt_coverage_tool}-qt-gitmodule-dir", canonpath $qt_gitmodule_dir;
-        push @testrunner_with_args, "--${qt_coverage_tool}-qt-gitmodule", $qt_gitmodule;
+        push @testrunner_args, '--plugin', $qt_coverage_tool;
+        push @testrunner_args, "--${qt_coverage_tool}-qt-gitmodule-dir", canonpath $qt_gitmodule_dir;
+        push @testrunner_args, "--${qt_coverage_tool}-qt-gitmodule", $qt_gitmodule;
     }
 
     if ($qt_coverage_tests_output) {
-        push @testrunner_with_args, "--${qt_coverage_tool}-tests-output", $qt_coverage_tests_output;
+        push @testrunner_args, "--${qt_coverage_tool}-tests-output", $qt_coverage_tests_output;
     }
 
-    push @testrunner_with_args, '--'; # no more args
+    push @testrunner_args, '--'; # no more args
 
     # We cannot handle passing arguments with spaces into `make TESTRUNNER...',
     # so detect and abort right now if that's the case.
@@ -903,13 +925,13 @@ sub get_testrunner_command
     # be affected by the value of the PATH environment variable when make is run, etc...),
     # so we will not do it unless it becomes necessary.
     #
-    if (any { /\s/ } @testrunner_with_args) {
+    if (any { /\s/ } @testrunner_args) {
         confess( "Some arguments to testrunner contain spaces, which is currently not supported.\n"
                 ."Try removing spaces from build / log paths, if there are any.\n"
-                .'testrunner and arguments: '.Dumper(\@testrunner_with_args)."\n" );
+                .'testrunner arguments: '.Dumper(\@testrunner_args)."\n" );
     }
 
-    return join(' ', @testrunner_with_args);
+    return @testrunner_args;
 }
 
 sub run_autotests
@@ -1030,14 +1052,14 @@ sub _run_autotests_impl
     my $make_check_bin = $self->{ 'make-check.bin' };
     my $make_check_args = $self->{ 'make-check.args' };
     my $qt_tests_args  = $self->{ 'qt.tests.args' };
+    my $qt_tests_testscheduler = $self->{ 'qt.tests.testscheduler' };
+    my $qt_tests_testscheduler_args = $self->{ 'qt.tests.testscheduler.args' };
 
     # settings for this autotest run
     my $tests_dir            = $args{ tests_dir };
     my $insignificant_option = $args{ insignificant_option };
     my $do_compile           = $args{ do_compile };
     my $insignificant        = $self->{ $insignificant_option };
-
-    my $testrunner_command = $self->get_testrunner_command( );
 
     # Add tools from all the modules to PATH.
     # If shadow-build with install enabled, then we need to add install path
@@ -1072,14 +1094,43 @@ sub _run_autotests_impl
             $self->exe( $make_bin, '-k', @make_args );
         }
 
-        my @make_check_args = split(/ /, $make_check_args);
+        if ($qt_tests_testscheduler) {
+            my @testrunner_args = $self->get_testrunner_args( );
 
-        $self->exe( $make_check_bin,
-            @make_check_args,                   # include args requested by user
-            "TESTRUNNER=$testrunner_command",   # use our testrunner script
-            "TESTARGS=$qt_tests_args",          # and our test args (may be empty)
-            'check',                            # run the autotests :)
-        );
+            $self->exe(
+                $EXECUTABLE_NAME,
+                catfile( "$FindBin::Bin/../generic/testplanner.pl" ),
+                '--input',
+                '.',
+                '--output',
+                'testplan.txt',
+                '--make',
+                $make_bin,
+                '--',
+                split(/ /, $qt_tests_args),
+            );
+
+            $self->exe(
+                $EXECUTABLE_NAME,
+                catfile( "$FindBin::Bin/../generic/testscheduler.pl" ),
+                '--plan',
+                'testplan.txt',
+                split( m{ }, $qt_tests_testscheduler_args ),
+                @testrunner_args,
+            );
+
+        } else {
+            my $testrunner_command = $self->get_testrunner_command( );
+
+            my @make_check_args = split(/ /, $make_check_args);
+
+            $self->exe( $make_check_bin,
+                @make_check_args,                   # include args requested by user
+                "TESTRUNNER=$testrunner_command",   # use our testrunner script
+                "TESTARGS=$qt_tests_args",          # and our test args (may be empty)
+                'check',                            # run the autotests :)
+            );
+        }
     };
 
     if ($insignificant) {

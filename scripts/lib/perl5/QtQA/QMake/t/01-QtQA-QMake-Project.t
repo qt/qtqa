@@ -12,6 +12,7 @@ use FindBin;
 use lib "$FindBin::Bin/../../..";
 
 use QtQA::QMake::Project;
+use QtQA::Test::More qw(find_qmake);
 
 use English qw(-no_match_vars);
 use File::Spec::Functions;
@@ -22,7 +23,6 @@ use Test::More;
 use Test::Warn;
 
 Readonly my $TESTDATA => catfile( $FindBin::Bin, 'test_projects' );
-Readonly my $QT_VERSION => 5;
 Readonly my $QMAKE => find_qmake( );
 Readonly my $ERROR_RE => qr/^QtQA::QMake::Project:/;
 
@@ -370,30 +370,6 @@ sub run_test
     test_ordering( $proj );
     test_error( $proj );
     test_make_error( $proj );
-
-    return;
-}
-
-sub find_qmake
-{
-    # Try to find the "right" qmake - not particularly easy.
-    my $repo_base = catfile( $FindBin::Bin, qw(.. .. .. .. .. ..) );
-    my $qmake = canonpath catfile( $repo_base, qw(.. qtbase bin qmake) );
-    if ($OSNAME =~ m{win32}i) {
-        $qmake .= '.exe';
-    }
-
-    if (-f $qmake) {
-        diag "Using qmake from sibling qtbase: $qmake";
-        return $qmake;
-    }
-
-    # OK, then just try to use qmake from PATH
-    my $output = qx(qmake -v 2>&1);
-    if ($? == 0 && $output =~ m{Using Qt version $QT_VERSION}) {
-        diag "Using qmake from PATH";
-        return 'qmake';
-    }
 
     return;
 }

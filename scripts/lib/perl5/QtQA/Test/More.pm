@@ -44,9 +44,12 @@ use strict;
 use warnings;
 
 use Carp;
+use Cwd qw(abs_path);
 use Data::Dumper;
 use IO::File;
 use File::Basename;
+use File::Spec::Functions;
+use File::Which;
 use List::MoreUtils qw( any );
 use Params::Validate qw( :all );
 use Readonly;
@@ -57,8 +60,11 @@ use base 'Exporter';
 Readonly our @EXPORT_OK => qw(
     is_or_like
     create_mock_command
+    find_qmake
 );
 Readonly our %EXPORT_TAGS => ( all => \@EXPORT_OK );
+
+Readonly my $QT_VERSION => 5;
 
 ## no critic (Subroutines::RequireArgUnpacking)
 #  This policy does not work nicely with Params::Validate
@@ -264,6 +270,42 @@ die "no more test steps!\n"
     return;
 }
 
+sub find_qmake
+{
+    # Try to find the "right" qmake - not particularly easy.
+    my $this_dir = $INC{ 'QtQA/Test/More.pm' };
+    if (!$this_dir) {
+        diag "Warning: can't find QtQA/Test/More.pm in %INC.  Included unusually?\n"
+            ."find_qmake() will probably fail.";
+        $this_dir = '.';
+    }
+    $this_dir = dirname( $this_dir );
+
+    my $repo_base = catfile( $this_dir, qw(.. .. .. .. ..) );
+    my $qmake = catfile( $repo_base, qw(.. qtbase bin qmake) );
+    if ($OSNAME =~ m{win32}i) {
+        $qmake .= '.exe';
+    }
+
+    if (-f $qmake) {
+        $qmake = abs_path $qmake;
+        diag "Using qmake from sibling qtbase: $qmake";
+        return $qmake;
+    }
+
+    # OK, then just try to use qmake from PATH
+    $qmake = which 'qmake';
+    my $output = qx("$qmake" -v 2>&1);
+    if ($? == 0 && $output =~ m{Using Qt version $QT_VERSION}) {
+        diag "Using qmake from PATH: $qmake\n$output";
+        return $qmake;
+    }
+
+    diag 'Warning: no qmake found';
+
+    return;
+}
+
 
 
 =head1 NAME
@@ -436,6 +478,28 @@ will die, noisily).
 
 =back
 
+=item B<find_qmake>
+
+Attempts to find and return a qmake command string suitable for running from
+within a test:
+
+=over
+
+=item *
+
+If the "qtqa" directory has a sibling "qtbase" directory, the qmake from that
+qtbase will be used, if available.  The full path to qmake is returned.
+
+=item *
+
+Otherwise, if a qmake from Qt 5 is in PATH, it will be used.
+The string "qmake" is returned.
+
+=item *
+
+Otherwise, an undefined value is returned.
+
+=back
 
 =back
 

@@ -162,6 +162,7 @@ sub all_required_cpan_modules
         File::Find::Rule
         File::HomeDir
         File::Slurp
+        File::Which
         IO::CaptureOutput
         IO::Uncompress::AnyInflate
         Inline::C
