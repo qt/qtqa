@@ -659,12 +659,11 @@ sub run
                 4:stdout
             )],
         ),
+        # because we used --sync-output, stdout and stderr are merged
         expected_stdout  =>
-            "1:stdout\n2:stdout\n"
-           ."3:stdout\n4:stdout\n"
-        ,
-        expected_stderr  =>
             "1:stderr\n2:stderr\n"
+           ."1:stdout\n2:stdout\n"
+           ."3:stdout\n4:stdout\n"
            ."3:stderr\n4:stderr\n"
         ,
     });
@@ -739,7 +738,7 @@ sub run
     #
     run_one_test({
         testname         => 'mixed_nonascii new style -o, tee, multiple logs, one stdout',
-        testrunner_args  => [ '--sync-output', '--tee-logs', $tempdir, '--' ],
+        testrunner_args  => [ '--tee-logs', $tempdir, '--' ],
         command_args     => [ '-o', 'testlog.xml,xml', '-o', 'testlog.txt,txt', '-o', '-,txt', 'mixed_nonascii' ],
         expected_logfiles => [ "$tempdir/perl-testlog-01.xml", "$tempdir/perl-testlog-00.txt" ],
         expected_logtexts => [
@@ -902,7 +901,7 @@ sub run
     });
     run_one_test({
         testname         => 'mixed_nonascii with capture and ignored -o and tee',
-        testrunner_args  => [ '--sync-output', '--tee-logs', $tempdir, '--' ],
+        testrunner_args  => [ '--tee-logs', $tempdir, '--' ],
         command_args     => [ '-o', 'testlog.log.txt', '--skip-log', 'mixed_nonascii' ],
         expected_logtext => rx_for_lines(
             [
@@ -978,7 +977,7 @@ sub run
     });
     run_one_test({
         testname         => 'tee error crashing',
-        testrunner_args  => [ '--sync-output', '--tee-logs', $tempdir, '--'],
+        testrunner_args  => [ '--tee-logs', $tempdir, '--'],
         command          => [ 'perl', $crash_script ],
         expected_logfile => "$tempdir/perl-01.txt",
         expected_logtext => $crash_rx,

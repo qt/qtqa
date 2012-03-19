@@ -161,15 +161,13 @@ as testlib is already implementing its own tee-like behavior.
 Buffer and synchronize outputs to avoid interleaved output from multiple tests
 in parallel.
 
-When this option is in use, and multiple testrunner instances are running in parallel
-(as the same user), each instance will co-operate to ensure that each test's output
-appears as a contiguous block.  The output from each test will be buffered until
-the test completes, then written to standard output as a single block.
+When this option is in use, each concurrent testrunner instance will co-operate
+to ensure that each test's output appears as a contiguous block.  The output from
+each test will be buffered until the test completes, then written to standard output
+as a single block.
 
 This provides the benefit of a more readable test log, but has the downside
 that a test which is currently running provides no progress information.
-
-If this option is used while only a single test is running, it has no effect.
 
 As a side effect of this option, standard output and standard error from the test
 may be merged.
@@ -1040,17 +1038,7 @@ sub do_subprocess_with_sync_output
     my $lockfile = catfile( File::HomeDir->my_data, '.qtqa-testrunner-lock' );
     my $fh = IO::File->new( $lockfile, '>>' ) || die "open $lockfile: $!";
 
-    # First, try non-blocking.  If that succeeds, great!  We're the only
-    # running test at the time we started, so we don't need to do any buffering.
-    if (flock($fh, LOCK_EX|LOCK_NB)) {
-        $self->{ sync_output } = 0;
-        $self->do_subprocess( @args );
-        $fh->close( ) || die "close $lockfile: $!";
-        return;
-    }
-
-    # OK, someone else has the lock.
-    # Then the output will be buffered while we run the subprocess ...
+    # The output will be buffered while we run the subprocess ...
     $self->{ sync_output_buffer } = q{};
     $self->do_subprocess( @args );
     # ...and we can't output until we can get the lock

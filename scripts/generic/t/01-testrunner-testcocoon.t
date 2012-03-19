@@ -271,7 +271,7 @@ sub test_merge_other_csmes_failure
 
     test_run({
         testname         => 'cmmerge other csmes failure',
-        args             => [ '--sync-output', '--plugin', 'testcocoon', '--testcocoon-tests-output', $tests_csmes, '--testcocoon-qt-gitmodule-dir', $module_gitdir, '--testcocoon-qt-gitmodule', 'module', '--', "$tempdir/mytest",'testname' ],
+        args             => [ '--plugin', 'testcocoon', '--testcocoon-tests-output', $tests_csmes, '--testcocoon-qt-gitmodule-dir', $module_gitdir, '--testcocoon-qt-gitmodule', 'module', '--', "$tempdir/mytest",'testname' ],
         expected_success => 0,
         expected_stdout  => $CMMERGE_OTHERCSMES,
         expected_stderr  => qr{cmmerge failure other csmes\n},
@@ -371,7 +371,7 @@ sub test_cmcsexeimport_failure
 
     test_run({
         testname         => 'cmcsexeimport failure',
-        args             => [ '--sync-output', '--plugin', 'testcocoon', '--testcocoon-tests-output', $tests_csmes, '--testcocoon-qt-gitmodule-dir', $module_gitdir, '--testcocoon-qt-gitmodule', 'module', '--', "$tempdir/mytest",'testname' ],
+        args             => [ '--plugin', 'testcocoon', '--testcocoon-tests-output', $tests_csmes, '--testcocoon-qt-gitmodule-dir', $module_gitdir, '--testcocoon-qt-gitmodule', 'module', '--', "$tempdir/mytest",'testname' ],
         expected_success => 0,
         expected_stdout  => $CMCSEXEIMPORT,
         expected_stderr  => qr{cmcsexeimport failure\n},
