@@ -97,6 +97,12 @@ Separates the options to testrunner from the test command and arguments (mandato
 If the test takes longer than <value> seconds, it will be killed, and
 the testrunner will exit with a non-zero exit code to indicate failure.
 
+=item B<-C> <directory>
+
+=item B<--chdir> <directory>
+
+Change to the specified directory before running the test.
+
 =item B<--capture-logs> <directory>
 
 The output of the test will be stored in a file under the given <directory>.
@@ -290,6 +296,7 @@ use File::Basename;
 use File::HomeDir;
 use File::Path qw( mkpath );
 use File::Spec::Functions;
+use File::chdir;
 use IO::File;
 use IO::Handle;
 use List::Util qw( first );
@@ -362,6 +369,7 @@ sub run
         'plugin=s'          =>  \@{$self->{ plugin_names }},
         'tee-logs=s'        =>  \$tee_logs,
         'sync-output'       =>  \$self->{ sync_output },
+        'C|chdir=s'         =>  \$CWD,
     ) || pod2usage(2);
 
     # tee-logs implies that we both capture the logs, and print the output like `tee'

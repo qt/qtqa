@@ -19,7 +19,9 @@ types of subprocesses and verify that behavior is as expected.
 
 use Encode;
 use English qw( -no_match_vars );
+use File::Basename;
 use File::Spec::Functions;
+use File::chdir;
 use FindBin;
 use Readonly;
 use Test::More;
@@ -46,6 +48,10 @@ Readonly my $TESTSCRIPT_SUCCESS
 # perl to print @ARGV unambiguously and exit normally but unsuccessfully
 Readonly my $TESTSCRIPT_FAIL
     => $TESTSCRIPT_BASE . 'exit 3';
+
+# perl to print current working directory and exit normally
+Readonly my $TESTSCRIPT_PRINT_CWD
+    => q{use File::chdir; use File::Spec::Functions; say canonpath $CWD};
 
 # expected STDERR when a process segfaults;
 # note that we have no way to control if the system will create core dumps or not,
@@ -307,6 +313,41 @@ sub test_arg_parsing
     return;
 }
 
+sub test_chdir
+{
+    my (undef, $parentdir) = fileparse( $CWD );
+    $parentdir = canonpath $parentdir;
+
+    my @cmd = ('perl', '-E', $TESTSCRIPT_PRINT_CWD);
+
+    # Without chdir, CWD should be the same as parent process
+    test_run({
+        args                =>  [ '--', @cmd ],
+        expected_stdout     => "$CWD\n",
+        expected_stderr     => q{},
+        expected_success    => 1,
+        testname            => 'cwd as expected with no chdir',
+    });
+
+    test_run({
+        args                =>  [ '--chdir', $parentdir, '--', @cmd ],
+        expected_stdout     => "$parentdir\n",
+        expected_stderr     => q{},
+        expected_success    => 1,
+        testname            => 'cwd as expected with --chdir',
+    });
+
+    test_run({
+        args                =>  [ '-C', $parentdir, '--', @cmd ],
+        expected_stdout     => "$parentdir\n",
+        expected_stderr     => q{},
+        expected_success    => 1,
+        testname            => 'cwd as expected with -C',
+    });
+
+    return;
+}
+
 sub run
 {
     test_arg_parsing;
@@ -319,6 +360,7 @@ sub run
         test_divide_by_zero;
     }
     test_hanging;
+    test_chdir;
 
     done_testing;
 
