@@ -455,6 +455,13 @@ my %RE = (
             \QCommand 'bootstrap' completed with status error\E
         )
 
+        |
+
+        (?:
+            # the cloning of the qtqa repository failed;
+            # this has a number of different triggers, however it won't be related to the code under test.
+            git\ clone[^']+'\ exited\ with\ code\ \d+\ at\ .*[\\/]test\.pl
+        )
 
         # add more as discovered
     }xms,
