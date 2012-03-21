@@ -117,6 +117,9 @@ Readonly my $RE => {
 \QQtQA::App::TestRunner: the test seems to be flaky, please fix this\E                                      \n
 \QQtQA::App::TestRunner: this flaky test is being treated as a FAIL\E                                       \n
     }xms,
+
+    verbose_begin => qr{\QQtQA::App::TestRunner: begin [perl]\E[^\n]*},
+    verbose_end   => qr{\QQtQA::App::TestRunner: end [perl]\E[^\n]*},
 };
 
 # perl to simulate a test which hangs (for 10 seconds)
@@ -221,6 +224,14 @@ END_MESSAGE
 Readonly my $ERROR_DIFFERING_FAILURE_MODE_WORST => $ERROR_DIFFERING_FAILURE . <<"END_MESSAGE";
 QtQA::App::TestRunner: this flaky test is being treated as a FAIL
 END_MESSAGE
+
+# above, with --verbose
+Readonly my $VERBOSE_ERROR_DIFFERING_FAILURE_MODE_WORST => qr|
+\A
+$RE->{ verbose_begin }\n
+\Q$ERROR_DIFFERING_FAILURE_MODE_WORST\E
+$RE->{ verbose_end }\Q, exit code 22\E\n
+|xms;
 
 # above, in `ignore' flaky mode
 Readonly my $ERROR_DIFFERING_FAILURE_MODE_IGNORE => $ERROR_DIFFERING_FAILURE . <<"END_MESSAGE";
@@ -369,10 +380,10 @@ sub test_testrunner_flaky
     });
     test_run({
         testname         => 'differing failure (flaky-mode worst)',
-        args             => [ qw(--plugin flaky --flaky-mode worst -- perl -e), $PERL_DIFFERING_FAILURE ],
+        args             => [ qw(--verbose --plugin flaky --flaky-mode worst -- perl -e), $PERL_DIFFERING_FAILURE ],
         expected_success => 0,
         expected_stdout  => $OUTPUT_DIFFERING_FAILURE,
-        expected_stderr  => $ERROR_DIFFERING_FAILURE_MODE_WORST,
+        expected_stderr  => $VERBOSE_ERROR_DIFFERING_FAILURE_MODE_WORST,
     });
     test_run({
         testname         => 'differing failure (flaky-mode best)',

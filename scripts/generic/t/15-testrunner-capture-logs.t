@@ -91,6 +91,16 @@ Readonly my $IS_SUPERUSER
                                            #          permissions, so play it safe
 ;
 
+# Pattern matching --verbose 'begin' line, without trailing \n.
+Readonly my $TESTRUNNER_VERBOSE_BEGIN
+    => qr{\QQtQA::App::TestRunner: begin [perl]\E[^\n]*};
+
+# Pattern matching --verbose 'end' line, without trailing \n.
+# Ends with [^\n]*, so it can match or not match the exit status portion,
+# as appropriate.
+Readonly my $TESTRUNNER_VERBOSE_END
+    => qr{\QQtQA::App::TestRunner: end [perl]\E[^\n]*};
+
 # Returns expected error text when a nonexistent $cmd is run
 sub error_nonexistent_command
 {
@@ -329,7 +339,8 @@ sub run_from_subprocess
 
 # Calculate a set of regular expressions to match sequences of lines.
 #
-# Input: a list of arrayrefs, each containing a sequence of lines (strings, _without_ trailing \n)
+# Input: a list of arrayrefs, each containing a sequence of lines (strings or regular expressions,
+# _without_ trailing \n)
 #
 # Returns: an arrayref containing a set of regular expressions.  Some text satisfies _all_ the
 # line sequences only if _all_ the regular expressions match.
@@ -371,7 +382,13 @@ sub rx_for_lines
     my $line_count = 0;
 
     foreach my $lines (@line_refs) {
-        my @rx_lines = map { quotemeta($_).'\n' } @{$lines};
+        my @rx_lines = map {
+            if (ref($_) eq 'Regexp') {
+                "$_";
+            } else {
+                quotemeta($_).'\n'
+            }
+        } @{$lines};
         $line_count += scalar( @rx_lines );
 
         my $rx;
@@ -540,20 +557,24 @@ sub run
     });
     run_one_test({
         testname         => 'mixed with capture',
-        testrunner_args  => [ '--sync-output', '--capture-logs', $tempdir, '--'],
+        testrunner_args  => [ '--sync-output', '--verbose', '--capture-logs', $tempdir, '--'],
         command_args     => [ 'mixed' ],
         expected_logfile => "$tempdir/perl-02.txt",
         expected_logtext => rx_for_lines(
-            [qw(
-                1:testlog
-                2:testlog
-                1:stdout
-                2:stdout
-                3:stdout
-                4:stdout
-                3:testlog
-                4:testlog
-            )],
+            [
+                $TESTRUNNER_VERBOSE_BEGIN,
+                qw(
+                    1:testlog
+                    2:testlog
+                    1:stdout
+                    2:stdout
+                    3:stdout
+                    4:stdout
+                    3:testlog
+                    4:testlog
+                ),
+                qr{$TESTRUNNER_VERBOSE_END, exit code 0},
+            ],
             [qw(
                 1:stderr
                 2:stderr
@@ -572,8 +593,8 @@ sub run
     # of the log by the testrunner.
     rmtree( $tempdir );
     run_one_test({
-        testname         => 'mixed_nonascii with capture and -o',
-        testrunner_args  => [ '--capture-logs', $tempdir, '--' ],
+        testname         => 'mixed_nonascii with capture and verbose and -o',
+        testrunner_args  => [ '--capture-logs', $tempdir, '--verbose', '--' ],
         command_args     => [ '--exitcode', 12, '-o', 'testlog.log', 'mixed_nonascii' ],
         expected_success => 0,
         # note the naming convention with -o is to reuse the basename and extension
@@ -601,6 +622,15 @@ sub run
                 4:stdout:你好马？
             )],
         ),
+        # Known limitation: with --capture-logs and -o, these messages can't go to
+        # the captured log, because they may be printed before the test has created
+        # the log file.
+        expected_stderr => qr{
+            \A
+            $TESTRUNNER_VERBOSE_BEGIN \n
+            $TESTRUNNER_VERBOSE_END \Q, exit code 12\E\n
+            \z
+        }xms,
     });
     run_one_test({
         testname         => 'mixed with capture and -o',

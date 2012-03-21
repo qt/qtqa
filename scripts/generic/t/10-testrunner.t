@@ -53,13 +53,31 @@ Readonly my $TESTSCRIPT_FAIL
 Readonly my $TESTSCRIPT_PRINT_CWD
     => q{use File::chdir; use File::Spec::Functions; say canonpath $CWD};
 
+# Pattern matching --verbose 'begin' line, without trailing \n.
+Readonly my $TESTRUNNER_VERBOSE_BEGIN
+    => qr{\QQtQA::App::TestRunner: begin [perl]\E[^\n]*};
+
+# Pattern matching --verbose 'end' line, without trailing \n.
+# Ends with [^\n]*, so it can match or not match the exit status portion,
+# as appropriate.
+Readonly my $TESTRUNNER_VERBOSE_END
+    => qr{\QQtQA::App::TestRunner: end [perl]\E[^\n]*};
+
 # expected STDERR when a process segfaults;
 # note that we have no way to control if the system will create core dumps or not,
 # so we will accept either case
-Readonly my $TESTERROR_CRASH
-    => ($WINDOWS)
-        ? "QtQA::App::TestRunner: Process exited with exit code 0xC0000005 (STATUS_ACCESS_VIOLATION)\n"
-        : qr{\AQtQA::App::TestRunner: Process exited due to signal 11(?:; dumped core)?\n\z};
+Readonly my $TESTERROR_CRASH_VERBOSE
+    => qr{\A $TESTRUNNER_VERBOSE_BEGIN \n}xms
+      .(($WINDOWS)
+          ? qr{
+              \QQtQA::App::TestRunner: Process exited with exit code 0xC0000005 (STATUS_ACCESS_VIOLATION)\E\n
+              $TESTRUNNER_VERBOSE_END\Q, exit code 3221225477\E\n
+            \z}xms
+          : qr{
+              \QQtQA::App::TestRunner: Process exited due to signal 11\E(?:;\ dumped\ core)?\n
+              $TESTRUNNER_VERBOSE_END\Q, signal 11\E\n
+            \z}xms
+      );
 
 # expected STDERR when a process divides by zero
 Readonly my $TESTERROR_DIVIDE_BY_ZERO
@@ -85,12 +103,8 @@ Readonly my $KILL_MESSAGE =>
 
 # expected STDERR when wrapping the above
 Readonly my $TESTERROR_HANG => qr{
-
-        \A
         QtQA::App::TestRunner:\ Timed\ out\ after\ \d+\ seconds?\n
         $KILL_MESSAGE
-        \z
-
 }xms;
 
 
@@ -197,6 +211,61 @@ sub test_success
     return;
 }
 
+# Basic test of --verbose with passing, failing or hanging test.
+# Crashing with --verbose is tested in test_crashing
+sub test_verbose
+{
+    my ($args_ref, $stdout) = @{ $TESTSCRIPT_ARGUMENTS{ 'trivial' } };
+    my @args = @{ $args_ref };
+
+    my $stderr_success = qr{
+        \A
+        $TESTRUNNER_VERBOSE_BEGIN\n
+        $TESTRUNNER_VERBOSE_END\Q, exit code 0\E\n
+        \z
+    }xms;
+
+    my $stderr_fail = qr{
+        \A
+        $TESTRUNNER_VERBOSE_BEGIN\n
+        $TESTRUNNER_VERBOSE_END\Q, exit code 3\E\n
+        \z
+    }xms;
+
+    my $stderr_hang = qr{
+        \A
+        $TESTRUNNER_VERBOSE_BEGIN\n
+        $TESTERROR_HANG
+        $TESTRUNNER_VERBOSE_END\n   # note, exit status is undefined (thus untested) on hang
+    }xms;
+
+    test_run({
+        args                =>  [ '--verbose', '--', 'perl', '-e', $TESTSCRIPT_SUCCESS, @args ],
+        expected_stdout     =>  $stdout,
+        expected_stderr     =>  $stderr_success,
+        expected_success    =>  1,
+        testname            =>  "verbose success",
+    });
+
+    test_run({
+        args                =>  [ '--verbose', '--', 'perl', '-e', $TESTSCRIPT_FAIL, @args ],
+        expected_stdout     =>  $stdout,
+        expected_stderr     =>  $stderr_fail,
+        expected_success    =>  0,
+        testname            =>  "verbose fail",
+    });
+
+    test_run({
+        args                =>  [ '--verbose', '--timeout', $TIMEOUT, '--', 'perl', '-e', $TESTSCRIPT_HANG, @args ],
+        expected_stdout     =>  undef,  # output is undefined when killed from timeout
+        expected_stderr     =>  $stderr_hang,
+        expected_success    =>  0,
+        testname            =>  "verbose hanging",
+    });
+
+    return;
+}
+
 sub test_normal_nonzero_exitcode
 {
     while (my ($testdata_name, $testdata_ref) = each %TESTSCRIPT_ARGUMENTS) {
@@ -223,9 +292,9 @@ sub test_crashing
     my $crash_script = catfile( $HELPER_DIR, 'dereference_bad_pointer.pl' );
     while (my ($testdata_name, $testdata_ref) = each %TESTSCRIPT_ARGUMENTS) {
         test_run({
-            args                =>  [ 'perl', $crash_script, @{$testdata_ref->[0]} ],
+            args                =>  [ '--verbose', '--', 'perl', $crash_script, @{$testdata_ref->[0]} ],
             expected_stdout     =>  undef,  # output is undefined when crashing
-            expected_stderr     =>  $TESTERROR_CRASH,
+            expected_stderr     =>  qr{$TESTERROR_CRASH_VERBOSE},
             expected_success    =>  0,
             testname            =>  "crash $testdata_name",
         });
@@ -266,7 +335,7 @@ sub test_hanging
         test_run({
             args                =>  \@args,
             expected_stdout     =>  undef,  # output is undefined when killed from timeout
-            expected_stderr     =>  $TESTERROR_HANG,
+            expected_stderr     =>  qr{\A$TESTERROR_HANG\z},
             expected_success    =>  0,
             testname            =>  "hanging $testdata_name",
         });
@@ -353,6 +422,7 @@ sub run
     test_arg_parsing;
 
     test_success;
+    test_verbose;
     test_normal_nonzero_exitcode;
     test_crashing;
     SKIP: {
