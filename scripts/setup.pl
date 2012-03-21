@@ -184,6 +184,7 @@ sub all_required_cpan_modules
         Text::Trim
         Text::Wrap
         Tie::IxHash
+        Timer::Simple
         autodie
     );
 

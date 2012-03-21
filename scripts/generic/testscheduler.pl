@@ -109,8 +109,11 @@ use File::Spec::Functions;
 use FindBin;
 use IO::File;
 use Lingua::EN::Inflect qw(inflect);
+use List::MoreUtils qw(before after_incl any);
+use List::Util qw(sum);
 use Pod::Usage;
 use Readonly;
+use Timer::Simple;
 
 use Getopt::Long qw(
     GetOptionsFromArray
@@ -119,6 +122,9 @@ use Getopt::Long qw(
 
 # testrunner script
 Readonly my $TESTRUNNER => catfile( $FindBin::Bin, 'testrunner.pl' );
+
+# declarations of static functions
+sub timestr;
 
 sub new
 {
@@ -152,6 +158,11 @@ sub run
     }
 
     my @results = $self->do_testplan( $self->{ testplan } );
+
+    $self->print_timing( @results );
+    $self->print_failures( @results );
+    $self->print_totals( @results );
+
     $self->exit_appropriately( @results );
 
     return;
@@ -164,7 +175,123 @@ sub do_testplan
     my @tests = $self->read_tests_from_testplan( $testplan );
     @tests = sort { $a->{ TARGET } cmp $b->{ TARGET } } @tests;
 
-    return $self->execute_tests_from_testplan( @tests );
+    my @out = $self->execute_tests_from_testplan( @tests );
+
+    return @out;
+}
+
+sub print_failures
+{
+    my ($self, @tests) = @_;
+
+    my @failures = grep { $_->{ status } } @tests;
+    @failures or return;
+
+    print <<'EOF';
+=== Failures: ==================================================================
+EOF
+    foreach my $test (@failures) {
+        my $out = "  $test->{ TARGET }";
+        if ($test->{ insignificant_test }) {
+            $out .= " [insignificant]";
+        }
+        print "$out\n";
+    }
+
+    return;
+}
+
+sub print_totals
+{
+    my ($self, @tests) = @_;
+
+    my $total = 0;
+    my $pass = 0;
+    my $fail = 0;
+    my $insignificant_fail = 0;
+
+    foreach my $test (@tests) {
+        ++$total;
+        if ($test->{ status } == 0) {
+            ++$pass;
+        } elsif ($test->{ insignificant_test }) {
+            ++$insignificant_fail;
+        } else {
+            ++$fail;
+        }
+    }
+
+    my $message = inflect "=== Totals: NO(test,$total), NO(pass,$pass)";
+    if ($fail) {
+        $message .= inflect ", NO(fail,$fail)";
+    }
+    if ($insignificant_fail) {
+        $message .= inflect ", NO(insignificant fail,$insignificant_fail)";
+    }
+
+    $message .= ' ';
+
+    while (length($message) < 80) {
+        $message .= '=';
+    }
+
+    print "$message\n";
+
+    return;
+}
+
+sub print_timing
+{
+    my ($self, @tests) = @_;
+
+    my $parallel_total = $self->{ parallel_timer }->elapsed;
+    my $serial_total = $self->{ serial_timer }->elapsed;
+    my $total = $parallel_total + $serial_total;
+
+    # This is the time it would have taken to run the parallel tests
+    # if they were not actually run in parallel.
+    my $parallel_j1_total = sum( map( {
+        ($self->{ jobs } > 1 && $_->{ parallel_test }) ? $_->{ timer }->elapsed : 0
+    } @tests )) || 0;
+
+    # This fudge factor adjusts for the fact that some tests would be able
+    # to run faster if they were the only test running.
+    # Another way of thinking of this is: by running tests in parallel, we
+    # assume we've slowed down individual tests by about 10%.
+    if ($self->{ jobs } > 1) {
+        $parallel_j1_total *= 0.9;
+    }
+
+    # This is the time we estimate we've "wasted" on insignificant tests.
+    my $insignificant_total = sum map( {
+        if (!$_->{ insignificant_test }) {
+            0;
+        } elsif ($_->{ parallel_count}) {
+            $_->{ timer }->elapsed / $_->{ parallel_count };
+        } else {
+            $_->{ timer }->elapsed;
+        }
+    } @tests );
+
+    my $parallel_speedup = $parallel_j1_total - $parallel_total;
+
+    printf( <<'EOF',
+=== Timing: =================== TEST RUN COMPLETED! ============================
+  Total:                                       %s
+  Serial tests:                                %s
+  Parallel tests:                              %s
+  Estimated time spent on insignificant tests: %s
+  Estimated time saved by -j%d:                 %s
+EOF
+        timestr( $total ),
+        timestr( $serial_total ),
+        timestr( $parallel_total ),
+        timestr( $insignificant_total ),
+        $self->{ jobs },
+        timestr( $parallel_speedup ),
+    );
+
+    return;
 }
 
 sub read_tests_from_testplan
@@ -218,7 +345,9 @@ sub execute_tests_from_testplan
         die 'aborting due to SIGINT';
     };
 
+    $self->{ parallel_timer } = Timer::Simple->new( );
     $self->execute_parallel_tests( @parallel_tests );
+    $self->{ parallel_timer }->stop( );
 
     if (@parallel_tests && @serial_tests) {
         my $p = scalar( @parallel_tests );
@@ -227,7 +356,9 @@ sub execute_tests_from_testplan
         $self->print_info( inflect "ran NO(parallel test,$p).  Starting NO(serial test,$s).\n" );
     }
 
+    $self->{ serial_timer } = Timer::Simple->new( );
     $self->execute_serial_tests( @serial_tests );
+    $self->{ serial_timer }->stop( );
 
     my @test_results = @{ $self->{ test_results } };
 
@@ -314,6 +445,7 @@ sub spawn_subtest
     );
 
     my @cmd = (@testrunner_cmd, '--', @cmd_and_args );
+    $test->{ timer } = Timer::Simple->new( );
     my $pid = $self->spawn( @cmd );
     $self->{ test_by_pid }{ $pid } = $test;
 
@@ -330,15 +462,15 @@ sub running_tests_count
 # Waits for one test to complete and writes the 'status' key for that test.
 sub wait_for_test_to_complete
 {
-    my ($self) = @_;
+    my ($self, $flags) = @_;
 
     return if (!$self->running_tests_count( ));
 
-    my $pid = waitpid( -1, 0 );
+    my $pid = waitpid( -1, $flags || 0 );
     my $status = $?;
     if ($pid <= 0) {
-        # should never happen
-        die "internal error: waitpid returned $pid (status $status)";
+        # this means no child processes
+        return;
     }
 
     my $test = delete $self->{ test_by_pid }{ $pid };
@@ -347,7 +479,9 @@ sub wait_for_test_to_complete
         return;
     }
 
+    $test->{ timer }->stop( );
     $test->{ status } = $status;
+    $test->{ parallel_count } = $self->running_tests_count( );
 
     $self->print_test_fail_info( $test );
 
@@ -401,33 +535,62 @@ sub exit_appropriately
 {
     my ($self, @tests) = @_;
 
-    my $total = 0;
-    my $pass = 0;
-    my $fail = 0;
-    my $insignificant_fail = 0;
-
-    foreach my $test (@tests) {
-        ++$total;
-        if ($test->{ status } == 0) {
-            ++$pass;
-        } elsif ($test->{ insignificant_test }) {
-            ++$insignificant_fail;
-        } else {
-            ++$fail;
-        }
-    }
-
-    my $message = inflect "Totals: NO(test,$total), NO(pass,$pass)";
-    if ($fail) {
-        $message .= inflect ", NO(fail,$fail)";
-    }
-    if ($insignificant_fail) {
-        $message .= inflect ", NO(insignificant fail,$insignificant_fail)";
-    }
-
-    print "$message\n";
+    my $fail = any { $_->{ status } && !$_->{ insignificant_test } } @tests;
 
     exit( $fail ? 1 : 0 );
+}
+
+#======= static functions =========================================================================
+
+# Given an interval of time in seconds, returns a human-readable string
+# using the units a reader would most likely prefer to see;
+# e.g.
+#
+#    timestr(12345) -> '3 hours 25 minutes'
+#    timestr(123)   -> '2 minutes 3 seconds'
+#
+sub timestr
+{
+    my ($seconds) = @_;
+
+    if (!$seconds) {
+        return '(no time)';
+    }
+
+    $seconds = int($seconds);
+
+    if (!$seconds) {
+        # Not zero before truncation to int,
+        # but now it is zero; then, an almost-zero time
+        return '< 1 second';
+    }
+
+    my $hours;
+    my $minutes;
+
+    if ($seconds > 60*60) {
+        $hours = int($seconds/60/60);
+        $seconds -= $hours*60*60;
+
+        $minutes = int($seconds/60);
+        $seconds = 0;
+    } elsif ($seconds > 60) {
+        $minutes = int($seconds/60);
+        $seconds -= $minutes*60;
+    }
+
+    my @out;
+    if ($hours) {
+        push @out, inflect( "NO(hour,$hours)" );
+    }
+    if ($minutes) {
+        push @out, inflect( "NO(minute,$minutes)" );
+    }
+    if ($seconds) {
+        push @out, inflect( "NO(second,$seconds)" );
+    }
+
+    return "@out";
 }
 
 #==================================================================================================
