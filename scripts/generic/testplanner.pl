@@ -253,17 +253,28 @@ sub default_make
     return 'make';
 }
 
-# Returns text usable within make to evaluate the current makefile.
-sub makefile_var
+# Returns 'GNU', 'MS' or 'unknown' depending on the type of make
+sub make_flavor
 {
     my ($self) = @_;
 
     my $make = $self->{ make };
 
-    # whether or not this is a Microsoft-style make
-    my $msish = ($make =~ m{\bjom|\bnmake}i);
+    if ($make =~ m{\bjom|\bnmake}i) {
+        return 'MS';
+    }
+    if ($make =~ m{\bgmake|\bmake|\bmingw32-make}) {
+        return 'GNU';
+    }
+    return 'unknown';
+}
 
-    if ($msish) {
+# Returns text usable within make to evaluate the current makefile.
+sub makefile_var
+{
+    my ($self) = @_;
+
+    if ($self->make_flavor( ) eq 'MS') {
         # FIXME: how to accurately figure out the calling Makefile on Windows?
         # We know $(MAKEDIR) points to the right directory, but the actual
         # filename appears not exposed in any way.
@@ -274,12 +285,16 @@ sub makefile_var
         # Makefile.Release etc) for our purpose, since its "check" target
         # always links back to the active test configuration anyway.
         #
-        # Note that it is necessary to double-escape the variable ($$),
-        # otherwise it is evaluated too early.  It's not entirely clear
-        # why this is necessary for nmake/jom and not for GNU make; the method
-        # which nmake uses to pass "TESTRUNNER" etc args to submakes is
-        # undocumented.
-        return '$$(MAKEDIR)\Makefile';
+        # Note that for nmake specifically, and not jom, it is necessary to
+        # double-escape the variable ($$), otherwise it is evaluated too early.
+        # It's not entirely clear why this is necessary for nmake and not for
+        # other tools; the method which nmake uses to pass "TESTRUNNER" etc
+        # args to submakes appears to be undocumented.
+        my $out = '$(MAKEDIR)\Makefile';
+        if ($self->{ make } =~ m{\bnmake}i) {
+            $out = '$'.$out;
+        }
+        return $out;
     }
 
     # $(CURDIR): initial working directory of make.
@@ -296,7 +311,9 @@ sub plan_testcase
     my $output = $self->{ output };
 
     my $prj = QtQA::QMake::Project->new( $makefile );
-    $prj->set_make( $make );
+
+    # Due to QTCREATORBUG-7170, we cannot let QtQA::QMake::Project use jom
+    $prj->set_make( ($make =~ m{\bjom}i) ? 'nmake' : $make );
 
     # Collect all interesting info about the tests.
     my @qmake_tests = qw(
@@ -369,15 +386,14 @@ sub run_make_check
 
     my @command = ( $make );
 
-    my %gnulike = map { $_ => 1 } qw(make gmake mingw32-make);
-    my %mslike = map { $_ => 1 } qw(nmake jom);
+    my $make_flavor = $self->make_flavor( );
 
-    if ($gnulike{ $make }) {
+    if ($make_flavor eq 'GNU') {
         push @command, '-s', '-j4';
-    } elsif ($mslike{ $make }) {
+    } elsif ($make_flavor eq 'MS') {
         push @command, '/NOLOGO', '/S';
-        if ($make eq 'jom') {
-            push @command, '/J4';
+        if ($make =~ m{\bjom}i) {
+            push @command, '-j4';
         }
     } else {
         warn "Unknown make command $make.  May be slow and noisy.\n";

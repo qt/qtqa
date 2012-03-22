@@ -933,6 +933,9 @@ by C<test> and C<values>.
 
 =head1 CAVEATS
 
+jom <= 1.0.11 should not be used as the make command with this module,
+due to a bug in those versions of jom (QTCREATORBUG-7170).
+
 Write permissions are required to both the directory containing the .pro
 file and the directory containing the Makefile.
 
