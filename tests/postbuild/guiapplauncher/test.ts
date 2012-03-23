@@ -918,8 +918,8 @@ Assistent ist nicht einsatzbereit!</translation>
     </message>
     <message>
         <location/>
-        <source>&lt;img src=&quot;:/trolltech/assistant/images/wrap.png&quot;&gt;&amp;nbsp;Search wrapped</source>
-        <translation>&lt;img src=&quot;:/trolltech/assistant/images/wrap.png&quot;&gt;&amp;nbsp;Seitenende</translation>
+        <source>&lt;img src=&quot;:/qt-project.org/assistant/images/wrap.png&quot;&gt;&amp;nbsp;Search wrapped</source>
+        <translation>&lt;img src=&quot;:/qt-project.org/assistant/images/wrap.png&quot;&gt;&amp;nbsp;Seitenende</translation>
     </message>
 </context>
 <context>
