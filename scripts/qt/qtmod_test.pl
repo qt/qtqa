@@ -923,8 +923,14 @@ sub run_autotests
     # Add this module's `bin' directory to PATH.
     # FIXME: verify if this is really needed (should each module's tools build directly
     # into the prefix `bin' ?)
-    local $ENV{ PATH } = $ENV{ PATH };
+    local %ENV = %ENV;
     Env::Path->PATH->Prepend( canonpath catfile( $qt_gitmodule_build_dir, 'bin' ) );
+
+    # In qt4, we need to set QTDIR to run some autotests like 'tst_bic', 'tst_compilerwarnings',
+    # 'tst_symbols', etc
+    if ($self->{ 'qt.gitmodule' } eq 'qt') {
+        $ENV{ QTDIR } = $qt_gitmodule_build_dir; ## no critic
+    }
 
     # In qt5, all tests are expected to be correctly set up in top-level .pro files, so they
     # do not need an explicit added compile step.
