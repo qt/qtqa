@@ -405,7 +405,12 @@ my %RE = (
     glitch => qr{
         (?:
             # note, deliberately not anchored at \A - this can occur in the middle of a line!
-            \QRecipe terminated with an error: Agent status changed to 'invalid master' while recipe in progress\E
+            \QRecipe terminated with an error: \E
+            (?:
+                \QAgent status changed to 'invalid master' while recipe in progress\E
+                |
+                \QAgent idle before recipe expected to complete\E
+            )
         )
 
         |
@@ -1408,6 +1413,15 @@ my %RE = (
             \Q : return code '0x\E
             [0-9a-f]{1,16}
             '
+        )
+
+        |
+
+        (?:
+            # We deliberately disable "Saved Application State" on mac by denying applications
+            # write permission to the relevant directory; unfortunately this generates these
+            # spurious warnings.
+            \QPersistent UI failed to open file \E.{0,200}/Saved%20Application%20State/.{0,200}\Q: Permission denied\E
         )
 
         # add more as discovered
