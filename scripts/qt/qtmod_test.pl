@@ -54,6 +54,7 @@ use Cwd qw( abs_path );
 use Data::Dumper;
 use English qw( -no_match_vars );
 use Env::Path;
+use File::chdir;
 use File::Path;
 use File::Spec::Functions;
 use List::MoreUtils qw( any apply );
@@ -992,14 +993,12 @@ sub run_qtqa_autotests
     # director(ies) of modules we want to test
     my @module_dirs;
 
-    if (($qt_gitmodule ne 'qt5') or ($qt_gitmodule ne 'qt')) {
-        # testing just one module
-        push @module_dirs, $qt_gitmodule_dir;
-    }
-    else {
-        # we're testing all modules;
-        # we judge that the qtqa tests are applicable to any module with a tests/global/global.cfg
-        chdir $qt_gitmodule_dir;
+    # module itself is always tested
+    push @module_dirs, $qt_gitmodule_dir;
+
+    # if there are submodules, all of those are also tested
+    {
+        local $CWD = $qt_gitmodule_dir;
 
         my ($testable_modules) = trim $self->exe_qx(
             'git',
@@ -1010,11 +1009,13 @@ sub run_qtqa_autotests
         );
         my @testable_modules = split(/\n/, $testable_modules);
 
-        print __PACKAGE__ . ": qtqa $type autotests will be run over modules: @testable_modules\n";
-
         push @module_dirs, map { catfile( $qt_gitmodule_dir, $_ ) } @testable_modules;
     }
 
+    # message is superfluous if only one tested module
+    if (@module_dirs > 1) {
+        print __PACKAGE__ . ": qtqa $type autotests will be run over modules: @module_dirs\n";
+    }
 
     my $compiled_qtqa_tests = 0;    # whether or not the tests have been compiled
 
