@@ -173,7 +173,9 @@ sub do_testplan
     my ($self, $testplan) = @_;
 
     my @tests = $self->read_tests_from_testplan( $testplan );
-    @tests = sort { $a->{ TARGET } cmp $b->{ TARGET } } @tests;
+
+    # tests are sorted for predictable execution order.
+    @tests = sort { $a->{ label } cmp $b->{ label } } @tests;
 
     my @out = $self->execute_tests_from_testplan( @tests );
 
@@ -184,14 +186,14 @@ sub print_failures
 {
     my ($self, @tests) = @_;
 
-    my @failures = grep { $_->{ status } } @tests;
+    my @failures = grep { $_->{ _status } } @tests;
     @failures or return;
 
     print <<'EOF';
 === Failures: ==================================================================
 EOF
     foreach my $test (@failures) {
-        my $out = "  $test->{ TARGET }";
+        my $out = "  $test->{ label }";
         if ($test->{ insignificant_test }) {
             $out .= " [insignificant]";
         }
@@ -212,7 +214,7 @@ sub print_totals
 
     foreach my $test (@tests) {
         ++$total;
-        if ($test->{ status } == 0) {
+        if ($test->{ _status } == 0) {
             ++$pass;
         } elsif ($test->{ insignificant_test }) {
             ++$insignificant_fail;
@@ -251,7 +253,7 @@ sub print_timing
     # This is the time it would have taken to run the parallel tests
     # if they were not actually run in parallel.
     my $parallel_j1_total = sum( map( {
-        ($self->{ jobs } > 1 && $_->{ parallel_test }) ? $_->{ timer }->elapsed : 0
+        ($self->{ jobs } > 1 && $_->{ parallel_test }) ? $_->{ _timer }->elapsed : 0
     } @tests )) || 0;
 
     # This fudge factor adjusts for the fact that some tests would be able
@@ -266,10 +268,10 @@ sub print_timing
     my $insignificant_total = sum map( {
         if (!$_->{ insignificant_test }) {
             0;
-        } elsif ($_->{ parallel_count}) {
-            $_->{ timer }->elapsed / $_->{ parallel_count };
+        } elsif ($_->{ _parallel_count}) {
+            $_->{ _timer }->elapsed / $_->{ _parallel_count };
         } else {
-            $_->{ timer }->elapsed;
+            $_->{ _timer }->elapsed;
         }
     } @tests );
 
@@ -320,6 +322,16 @@ sub execute_tests_from_testplan
 
     my $jobs = $self->{ jobs };
 
+    # Results will be recorded here.
+    # Each element is equal to an input element from @tests with additional keys added.
+    # Any keys added from testscheduler start with an '_' so they won't clash with
+    # keys from the testplan.
+    #
+    # Result keys include:
+    #   _status         =>  exit status of test
+    #   _parallel_count =>  amount of tests still running at the time this test completed
+    #   _timer          =>  Timer::Simple object for this test's runtime
+    #
     $self->{ test_results } = [];
 
     # Do all the parallel tests first, then serial.
@@ -445,7 +457,7 @@ sub spawn_subtest
     );
 
     my @cmd = (@testrunner_cmd, '--', @cmd_and_args );
-    $test->{ timer } = Timer::Simple->new( );
+    $test->{ _timer } = Timer::Simple->new( );
     my $pid = $self->spawn( @cmd );
     $self->{ test_by_pid }{ $pid } = $test;
 
@@ -459,7 +471,7 @@ sub running_tests_count
     return scalar keys %{ $self->{ test_by_pid } || {} };
 }
 
-# Waits for one test to complete and writes the 'status' key for that test.
+# Waits for one test to complete and writes the '_status' key for that test.
 sub wait_for_test_to_complete
 {
     my ($self, $flags) = @_;
@@ -479,9 +491,9 @@ sub wait_for_test_to_complete
         return;
     }
 
-    $test->{ timer }->stop( );
-    $test->{ status } = $status;
-    $test->{ parallel_count } = $self->running_tests_count( );
+    $test->{ _timer }->stop( );
+    $test->{ _status } = $status;
+    $test->{ _parallel_count } = $self->running_tests_count( );
 
     $self->print_test_fail_info( $test );
 
@@ -494,11 +506,11 @@ sub print_test_fail_info
 {
     my ($self, $test) = @_;
 
-    if ($test->{ status } == 0) {
+    if ($test->{ _status } == 0) {
         return;
     }
 
-    my $msg = "$test->{ TARGET } failed";
+    my $msg = "$test->{ label } failed";
     if ($test->{ insignificant_test }) {
         $msg .= ', but it is marked with insignificant_test';
     }
@@ -535,7 +547,7 @@ sub exit_appropriately
 {
     my ($self, @tests) = @_;
 
-    my $fail = any { $_->{ status } && !$_->{ insignificant_test } } @tests;
+    my $fail = any { $_->{ _status } && !$_->{ insignificant_test } } @tests;
 
     exit( $fail ? 1 : 0 );
 }

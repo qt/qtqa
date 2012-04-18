@@ -164,6 +164,7 @@ sub run
         'input=s' => \$self->{ input },
         'output=s' => \$self->{ output },
         'make=s' => \$self->{ make },
+        'makefile=s' => \$self->{ makefile },
         'testcase' => \$testcase,
     ) || pod2usage(2);
 
@@ -252,26 +253,49 @@ sub default_make
     return 'make';
 }
 
+# Returns text usable within make to evaluate the current makefile.
+sub makefile_var
+{
+    my ($self) = @_;
+
+    my $make = $self->{ make };
+
+    # whether or not this is a Microsoft-style make
+    my $msish = ($make =~ m{\bjom|\bnmake}i);
+
+    if ($msish) {
+        # FIXME: how to accurately figure out the calling Makefile on Windows?
+        # We know $(MAKEDIR) points to the right directory, but the actual
+        # filename appears not exposed in any way.
+        #
+        # In practice this is not thought to be a problem - even qmake assumes
+        # the makefile is always called "Makefile" in various places.
+        # It is also OK to invoke the top-level Makefile (rather than
+        # Makefile.Release etc) for our purpose, since its "check" target
+        # always links back to the active test configuration anyway.
+        #
+        # Note that it is necessary to double-escape the variable ($$),
+        # otherwise it is evaluated too early.  It's not entirely clear
+        # why this is necessary for nmake/jom and not for GNU make; the method
+        # which nmake uses to pass "TESTRUNNER" etc args to submakes is
+        # undocumented.
+        return '$$(MAKEDIR)\Makefile';
+    }
+
+    # $(CURDIR): initial working directory of make.
+    # $(firstword $(MAKEFILE_LIST)): first processed Makefile.
+    return '$(CURDIR)/$(firstword $(MAKEFILE_LIST))';
+}
+
 sub plan_testcase
 {
     my ($self, $testcase, @args) = @_;
 
     my $make = $self->{ make };
+    my $makefile = $self->{ makefile } || 'Makefile';
     my $output = $self->{ output };
 
-    # FIXME: how to accurately figure out the calling Makefile on all
-    # platforms?
-    #
-    # For GNU make, this could be done by using the $(MAKEFILE_LIST) variable.
-    # For nmake, there doesn't seem a clear, generic solution.
-    # The GNU make solution is deliberately unimplemented so that, if this
-    # should ever start to cause problems, the problems will be reproducible
-    # on all platforms.
-    #
-    # In practice this is not thought to be a problem - even qmake assumes
-    # the makefile is always called "Makefile" in various places.
-
-    my $prj = QtQA::QMake::Project->new( 'Makefile' );
+    my $prj = QtQA::QMake::Project->new( $makefile );
     $prj->set_make( $make );
 
     # Collect all interesting info about the tests.
@@ -294,6 +318,10 @@ sub plan_testcase
     # flatten info before passing to Data::Dumper
     @info{ @qmake_keys } = apply { $_ = "$_" } @info{ @qmake_keys };
 
+    # add a nice "label", which is the primary human-readable name for the
+    # test in test reports.
+    $info{ label } = basename( $info{ TARGET } );
+
     my $dumper = Data::Dumper->new( [ \%info ] );
     $dumper->Indent( 0 );   # all output on one line
     $dumper->Terse( 1 );    # omit leading $VAR1
@@ -315,7 +343,7 @@ sub plan_testcase
     flock( $fh, LOCK_UN );
     close( $fh );
 
-    print "  testplan: $info{ TARGET }\n";
+    print "  testplan: $info{ label }\n";
 
     return;
 }
@@ -355,7 +383,8 @@ sub run_make_check
         warn "Unknown make command $make.  May be slow and noisy.\n";
     }
 
-    my $subcmd = "$EXECUTABLE_NAME $this_script --make $make --output $output --testcase";
+    my $makefile_var = $self->makefile_var( );
+    my $subcmd = "$EXECUTABLE_NAME $this_script --make $make --makefile $makefile_var --output $output --testcase";
 
     push @command, (
         'check',

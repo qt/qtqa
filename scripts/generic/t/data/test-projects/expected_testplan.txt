@@ -1,6 +1,6 @@
-{"TARGET" => "failing_custom_check_target","args" => ["perl","-E","say q{Custom failing}; exit 2"],"cwd" => "%TESTDATA_DIR%/tests/failing_custom_check_target","insignificant_test" => 0,"parallel_test" => 0}
-{"TARGET" => "failing_insignificant_test","args" => ["./failing_insignificant_test"],"cwd" => "%TESTDATA_DIR%/tests/failing_insignificant_test","insignificant_test" => 1,"parallel_test" => 0}
-{"TARGET" => "failing_significant_test","args" => ["./failing_significant_test"],"cwd" => "%TESTDATA_DIR%/tests/failing_significant_test","insignificant_test" => 0,"parallel_test" => 1}
-{"TARGET" => "passing_custom_check_target","args" => ["perl","-E","say q{Custom passing}; exit 0"],"cwd" => "%TESTDATA_DIR%/tests/passing_custom_check_target","insignificant_test" => 0,"parallel_test" => 0}
-{"TARGET" => "passing_insignificant_test","args" => ["./passing_insignificant_test"],"cwd" => "%TESTDATA_DIR%/tests/passing_insignificant_test","insignificant_test" => 1,"parallel_test" => 1}
-{"TARGET" => "passing_significant_test","args" => ["./passing_significant_test"],"cwd" => "%TESTDATA_DIR%/tests/passing_significant_test","insignificant_test" => 0,"parallel_test" => 0}
+{"TARGET" => "failing_custom_check_target","args" => ["perl","-E","say q{Custom failing}; exit 2"],"cwd" => "%TESTDATA_DIR%/tests/failing_custom_check_target","insignificant_test" => 0,"label" => "failing_custom_check_target","parallel_test" => 0}
+{"TARGET" => "failing_insignificant_test","args" => ["./failing_insignificant_test"],"cwd" => "%TESTDATA_DIR%/tests/failing_insignificant_test","insignificant_test" => 1,"label" => "failing_insignificant_test","parallel_test" => 0}
+{"TARGET" => "failing_significant_test","args" => ["./failing_significant_test"],"cwd" => "%TESTDATA_DIR%/tests/failing_significant_test","insignificant_test" => 0,"label" => "failing_significant_test","parallel_test" => 1}
+{"TARGET" => "passing_custom_check_target","args" => ["perl","-E","say q{Custom passing}; exit 0"],"cwd" => "%TESTDATA_DIR%/tests/dummy","insignificant_test" => 0,"label" => "passing_custom_check_target","parallel_test" => 0}
+{"TARGET" => "passing_insignificant_test","args" => ["./passing_insignificant_test"],"cwd" => "%TESTDATA_DIR%/tests/passing_insignificant_test","insignificant_test" => 1,"label" => "passing_insignificant_test","parallel_test" => 1}
+{"TARGET" => "passing_significant_test","args" => ["./passing_significant_test"],"cwd" => "%TESTDATA_DIR%/tests/passing_significant_test","insignificant_test" => 0,"label" => "passing_significant_test","parallel_test" => 0}
