@@ -425,7 +425,17 @@ my %RE = (
 
         (?:
             # Bizarre error on mac - see QTQAINFRA-376
-            \Q/bin/sh: /bin/sh: cannot execute binary file\E
+            # Format is:
+            #  cmd: cmd: cannot execute binary file
+            # ... where "cmd" is a core utility, e.g. from /bin or /usr/bin.
+            (?<cmd>
+                (?:/usr)?
+                /bin/[^: ]{0,50}
+            )
+            :[ ]
+            \k<cmd>
+            :[ ]
+            \Qcannot execute binary file\E
         )
 
         |

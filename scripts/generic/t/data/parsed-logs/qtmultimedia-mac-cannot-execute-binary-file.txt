@@ -1,0 +1,12 @@
+[ '--summarize', "$DATADIR/raw-logs/qtmultimedia-mac-cannot-execute-binary-file.txt" ]
+An unexpected error occurred, most likely due to no fault in the tested
+code itself :(
+
+Please point some CI administrator towards this problem.  Meanwhile, it
+may be worthwhile to attempt the build again.
+
+  /bin/cp: /bin/cp: cannot execute binary file
+  make[3]: *** [../../lib/QtPrintSupport.framework/Versions/5/Headers/QAbstractPageSetupDialog] Error 126
+  make[2]: *** [release] Error 2
+  make[1]: *** [sub-printsupport-make_default-ordered] Error 2
+  make: *** [module-qtbase] Error 2
