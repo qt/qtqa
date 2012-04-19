@@ -107,7 +107,9 @@ my @PROPERTIES = (
                                 . q{enable code coverage using the tool given here. e.g. testcocoon },
 
     q{qt.dir}                  => q{top-level source directory of Qt superproject; }
-                                . q{the script will clone qt.repository into this location},
+                                . q{the script will clone qt.repository into this location if it }
+                                . q{does not exist. Testing without the superproject is not }
+                                . q{supported},
 
     q{qt.install.dir}          => q{directory where Qt is expected to be installed (e.g. as set by }
                                 . q{-prefix option to configure). Mandatory if qt.make_install is 1. }
@@ -489,7 +491,7 @@ sub run_git_checkout
     chdir( $base_dir );
 
     # Clone the Qt superproject
-    if ($qt_gitmodule ne 'qt5') {
+    if ($qt_gitmodule ne 'qt5' && ! -d $qt_dir) {
         $self->exe( 'git', 'clone', '--branch', $qt_branch, $qt_repository, $qt_dir );
     }
 
