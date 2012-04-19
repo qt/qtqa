@@ -865,7 +865,7 @@ sub get_testrunner_command
     return join(' ', @testrunner_with_args);
 }
 
-# Returns appropriate testrunner arguments
+# Returns appropriate testrunner arguments (not including trailing --)
 sub get_testrunner_args
 {
     my ($self) = @_;
@@ -917,8 +917,6 @@ sub get_testrunner_args
     if ($qt_coverage_tests_output) {
         push @testrunner_args, "--${qt_coverage_tool}-tests-output", $qt_coverage_tests_output;
     }
-
-    push @testrunner_args, '--'; # no more args
 
     # We cannot handle passing arguments with spaces into `make TESTRUNNER...',
     # so detect and abort right now if that's the case.
@@ -1129,7 +1127,7 @@ sub _run_autotests_impl
 
             $self->exe( $make_check_bin,
                 @make_check_args,                   # include args requested by user
-                "TESTRUNNER=$testrunner_command",   # use our testrunner script
+                "TESTRUNNER=$testrunner_command --",# use our testrunner script
                 "TESTARGS=$qt_tests_args",          # and our test args (may be empty)
                 'check',                            # run the autotests :)
             );
