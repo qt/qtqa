@@ -408,6 +408,34 @@ EOF
     return;
 }
 
+sub test_fatal_error
+{
+    my $script = QtQA::TestScript->new;
+
+    throws_ok {
+        $script->fatal_error(
+            "Error occurred while making sandwich:\n"
+           ."Somebody left the fridge door open all weekend\n"
+        );
+    } qr{
+
+    # Note it is OK to have some stuff before and after the YAML.
+    # However, the header must always be on its own line and the
+    # footer must always be followed by a newline.
+
+(?:\n|\A)
+\Q--- !qtqa.qt-project.org/error
+error: |
+  Error occurred while making sandwich:
+  Somebody left the fridge door open all weekend
+...\E
+(?:\n|\z)
+
+    }xms, 'fatal_error output looks OK';
+
+    return;
+}
+
 # Run all the tests
 sub run_test
 {
@@ -424,6 +452,8 @@ sub run_test
 
     test_exe;
     test_exe_qx;
+
+    test_fatal_error;
 
     return;
 }

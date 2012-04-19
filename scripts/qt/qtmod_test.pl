@@ -454,8 +454,18 @@ sub read_dependencies
     }
     else {
         unless ( do $dependency_file ) {
-            confess "I couldn't parse $dependency_file, which I need to determine dependencies.\nThe error was $@\n" if $@;
-            confess "I couldn't execute $dependency_file, which I need to determine dependencies.\nThe error was $!\n" if $!;
+            my ($action, $error);
+            if ($@) {
+                ($action, $error) = ('parse', $@);
+            } elsif ($!) {
+                ($action, $error) = ('execute', $!);
+            }
+            if ($error) {
+                $self->fatal_error(
+                    "I couldn't $action $dependency_file, which I need to determine dependencies.\n"
+                   ."The error was $error\n"
+                );
+            }
         }
         if (! %dependencies) {
             $default_reason = "Although $dependency_file exists, it did not specify any \%dependencies";
@@ -736,7 +746,9 @@ sub run_compile
         # Figure out the interesting .pro file (must be only one)
         my @pro_files = glob( "$qt_gitmodule_dir/*.pro" );
         if (@pro_files > 1) {
-            confess "There are several .pro files (@pro_files), I don't know which one to use!";
+            $self->fatal_error(
+                "There are several .pro files (@pro_files), I don't know which one to use!"
+            );
         }
 
         if (! -e $qt_gitmodule_build_dir) {
@@ -839,8 +851,10 @@ sub run_install_check
     my @required_files = map { "$qt_install_dir/$_" } qw(bin include);
     my @missing_files = grep { ! -e $_ } @required_files;
     if (@missing_files) {
-        confess 'The make install command exited successfully, but the following expected file(s) '
-               .'are missing from the install tree:'.join("\n ", q{}, @missing_files)."\n";
+        $self->fatal_error(
+            'The make install command exited successfully, but the following expected file(s) '
+           .'are missing from the install tree:'.join("\n ", q{}, @missing_files)."\n"
+        );
     }
 
     return;
@@ -855,7 +869,7 @@ sub get_testrunner_command
     $testrunner    = canonpath abs_path( $testrunner );
 
     # sanity check
-    confess( "internal error: $testrunner does not exist" ) if (! -e $testrunner);
+    $self->fatal_error( "internal error: $testrunner does not exist" ) if (! -e $testrunner);
 
     my @testrunner_with_args = (
         $testrunner,
@@ -927,9 +941,11 @@ sub get_testrunner_args
     # so we will not do it unless it becomes necessary.
     #
     if (any { /\s/ } @testrunner_args) {
-        confess( "Some arguments to testrunner contain spaces, which is currently not supported.\n"
-                ."Try removing spaces from build / log paths, if there are any.\n"
-                .'testrunner arguments: '.Dumper(\@testrunner_args)."\n" );
+        $self->fatal_error(
+            "Some arguments to testrunner contain spaces, which is currently not supported.\n"
+           ."Try removing spaces from build / log paths, if there are any.\n"
+           .'testrunner arguments: '.Dumper(\@testrunner_args)."\n"
+        );
     }
 
     return @testrunner_args;
@@ -1164,7 +1180,7 @@ sub run_coverage
     $coveragerunner    = canonpath abs_path( $coveragerunner );
 
     # sanity check
-    confess( "internal error: $coveragerunner does not exist" ) if (! -e $coveragerunner);
+    $self->fatal_error( "internal error: $coveragerunner does not exist" ) if (! -e $coveragerunner);
 
     my @coverage_runner_args = (
         '--qt-gitmodule-dir',

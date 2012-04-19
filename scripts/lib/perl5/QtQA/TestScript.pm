@@ -57,6 +57,8 @@ use List::MoreUtils qw(zip);
 use Params::Validate qw(validate);
 use Pod::Simple::Text;
 use Pod::Usage qw(pod2usage);
+use YAML qw();
+use YAML::Node;
 
 use QtQA::Proc::Reliable;
 
@@ -88,6 +90,16 @@ sub new
     return \%self;
 }
 
+sub _croak
+{
+    my ($self, @rest) = @_;
+
+    local %Carp::Internal = $self->_carp_internal( );
+    croak @rest;
+
+    return;
+}
+
 
 sub set_permitted_properties
 {
@@ -105,12 +117,14 @@ sub property
     my $default_value = shift;
 
     unless ($self->{permitted_properties}) {
-        croak q{test script error: `property' was called before `set_permitted_properties'};
+        $self->_croak( q{test script error: `property' was called before `set_permitted_properties'} );
     }
 
     unless (exists($self->{permitted_properties}->{$property_name})) {
-        croak "test script error: test script attempted to read property `$property_name', "
-            . "but did not declare it as a permitted property";
+        $self->_croak(
+            "test script error: test script attempted to read property `$property_name', "
+          . "but did not declare it as a permitted property"
+        );
     }
 
     my $value = $self->_resolved_property($property_name);
@@ -232,7 +246,7 @@ sub _handle_exe_status
     my ($self, $status, @command) = @_;
 
     if ($status != 0) {
-        croak "@command exited with status $status";
+        $self->_croak( "@command exited with status $status" );
     }
 
     return;
@@ -346,6 +360,25 @@ sub _format_signal
     ;
 }
 
+# Returns a hash suitable for assignment to %Carp::Internal to ensure Carp reports
+# backtraces relative to the correct place.
+sub _carp_internal
+{
+    my ($self) = @_;
+
+    my %out = %Carp::Internal;
+
+    foreach my $package (qw(
+        QtQA::Proc::Reliable
+        QtQA::TestScript
+        Capture::Tiny
+    )) {
+        $out{ $package }++;
+    }
+
+    return %out;
+}
+
 # Warn with $message, and prefix each line with the package name so that it is obvious where
 # this message is coming from.  Also, carp is used so that the message hopefully ends up
 # pointing out a relevant line in the actual test script.
@@ -358,20 +391,7 @@ sub _warn
     $message =~ s{\n}{\n$prefix}g;
     $message = $prefix . $message;
 
-    # Try hard to make sure Carp logs this message relative to the test script.
-    # We do this here in _warn, rather than using @CARP_NOT, to ensure that only
-    # "controlled" warnings have this smart logic - any kind of unexpected warnings
-    # from internal coding errors should not be munged.
-
-    local %Carp::Internal = %Carp::Internal;
-
-    foreach my $package (qw(
-        QtQA::Proc::Reliable
-        QtQA::TestScript
-        Capture::Tiny
-    )) {
-        $Carp::Internal{ $package }++;
-    }
+    local %Carp::Internal = $self->_carp_internal( );
 
     carp $message;
 
@@ -403,11 +423,33 @@ sub exe_qx
     }
 
     if ($status != 0) {
-        croak( Data::Dumper->new( [\@command], ['command'] )->Indent( 0 )->Dump( )
-             . qq{ exited with status $status} );
+        $self->_croak(
+            Data::Dumper->new( [\@command], ['command'] )->Indent( 0 )->Dump( )
+          . qq{ exited with status $status}
+        );
     }
 
     return wantarray ? ($stdout, $stderr) : $stdout;
+}
+
+sub fatal_error
+{
+    my ($self, $error) = @_;
+
+    # We want to ensure that the 'error' key always comes first.
+    # This is why we use YAML::Node.
+    my $ynode = YAML::Node->new({}, 'qtqa.qt-project.org/error' );
+    %{$ynode} = (
+        error => $error,
+        ### what else should go here?
+    );
+
+    local $YAML::UseBlock = 1;
+    my $formatted = YAML::Dump( $ynode );
+
+    $self->_croak( "$formatted...\n" );
+
+    return;
 }
 
 
@@ -595,7 +637,7 @@ sub _croak_from_missing_property
         $message .= join(q{}, map { "  $_\n" } @set_methods);
     }
 
-    croak $message;
+    $self->_croak( $message );
 }
 
 # Attempt to return this host's most significant IP address
@@ -771,6 +813,28 @@ Example:
 
   # later ...
   my @configure_args = split(/ /, $self->property('configure.args'));
+
+
+
+=item B<fatal_error>( STRING )
+
+Formats the given error STRING into a human and machine-readable value, then dies
+with the formatted string.
+
+The output error message is formatted with YAML in a manner intended to be quite
+human-readable, but also possible to robustly extract from a plain text log by
+a YAML parsing script.
+
+The format of the message is loosely defined as a YAML document of type
+C<QtQA::TestScript::Error>, containing a mapping from the scalar 'error' to
+an error string. Beyond this, the format is undefined; the message is permitted
+to include additional metadata.
+
+This function should be used in place of "die" or "confess" when a useful error
+string is known.  If the error message is generic - for example, "process <foo>
+exited with status 123" where the process is expected to output its own error
+messages - it is generally better not to use this function, as the formatted
+error message is unlikely to provide any additional value.
 
 
 

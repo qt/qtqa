@@ -125,6 +125,7 @@ use List::MoreUtils qw(any);
 use Pod::Usage;
 use Readonly;
 use Text::Wrap;
+use YAML qw();
 
 # Contact details of some CI admins who can deal with problems.
 # Put a public email address here once we have one!
@@ -1355,6 +1356,22 @@ my %RE = (
         \QQtQA::App::TestRunner: the test seems to be flaky\E
     }xms,
 
+    # The line where a QtQA::TestScript::fatal_error YAML error opens.
+    #
+    yaml_begin => qr{
+        \A
+        \Q--- !qtqa.qt-project.org/error\E
+        \z
+    }xms,
+
+    # The line where a QtQA::TestScript::fatal_error YAML error ends.
+    #
+    yaml_end => qr{
+        \A
+        \Q...\E
+        \z
+    }xms,
+
     # Generic strerror-based pattern.
     #
     # This pattern will find any line containing an error string commonly returned by strerror()
@@ -1645,12 +1662,10 @@ sub identify_failures
 
     my $out = {};
 
-    # While we are reading the log relating to a `make check' fail,
-    # this holds info about the failure.
-    my $make_check_fail;
-    # The max amount of lines we're willing to read before giving up
+    # The max amount of lines we're willing to buffer before giving up,
+    # when attempting to identify a "make check" chunk or a YAML chunk
     # (quite large, since autotests can have large logs ...)
-    Readonly my $MAKE_CHECK_FAIL_MAX_LINES => 5000;
+    Readonly my $MAX_CHUNK_LINES => 5000;
 
     # The max amount of characters permitted in a line;
     # any more than this and we will not attempt to scan the line at all.
@@ -1661,6 +1676,65 @@ sub identify_failures
     # If 0, we should not care about any more failures we see.
     my $save_failures = 1;
 
+    my %special_chunk_stash;
+
+    # Generic handler for "special" blobs of text.
+    # First parameter is an identifier for this kind of chunk.
+    # Second parameter is the incoming line.
+    # Third parameter is a hashref with keys:
+    #
+    #   begin_re:   regular expression to match beginning of chunk (i.e. to terminate
+    #               processing of the chunk)
+    #   begin_sub:  callback when begin_re is matched
+    #   read_sub:   callback when reading each line (optional)
+    #
+    # Callbacks take one parameter: the chunk data (a hashref).
+    #
+    # Returns true iff processing should skip to the next line.
+    my $handle_special_chunk = sub {
+        my ($name, $line, $options) = @_;
+
+        my $chunk = $special_chunk_stash{ $name };
+        return unless $chunk;
+
+        my $length = length($line);
+
+        # are we done?
+        if ($length <= $MAX_LINE_LENGTH && $line =~ $options->{ begin_re }) {
+            $options->{ begin_sub }->( $chunk );
+            delete $special_chunk_stash{ $name };
+            return 1;
+        }
+
+        # no, we're not done.
+        # shall we give up?
+        if (++$chunk->{ lines } > $MAX_CHUNK_LINES) {
+            if ($self->{ debug }) {
+                print STDERR "giving up on reading `$name' details, too many lines.\n";
+            }
+            delete $special_chunk_stash{ $name };
+            return 1;
+        }
+
+        # no, we're not giving up.
+        $chunk->{ details } = "$line\n" . $chunk->{ details };
+
+        if ($options->{ read_sub }) {
+            $options->{ read_sub }->( $chunk );
+        }
+
+        return 1;
+    };
+
+    # Call this to start processing the special chunk of the given name
+    my $start_special_chunk = sub {
+        my ($name, $data) = @_;
+
+        $special_chunk_stash{ $name } = { details => $data || q{} };
+
+        return;
+    };
+
     # We are trying to identify the reasons why this build failed.
     # We start from the end of the log and move backwards, since we're interested in what caused
     # the build to terminate.
@@ -1668,41 +1742,47 @@ sub identify_failures
 
         my $length = length($line);
 
-        # reading a test log?
-        if ($make_check_fail) {
-            # are we done?
-            if ($length <= $MAX_LINE_LENGTH && $line =~ $RE{ autotest_begin }) {
-                my $name = $+{ name };
-                $name =~ s{\.exe$}{}i; # don't care about trailing .exe, if any
-                push @{$out->{ autotest_fail }}, {
-                    name    =>  $name,
-                    details =>  $make_check_fail->{ details },
-                    flaky   =>  $make_check_fail->{ flaky },
-                };
-                undef $make_check_fail;
-                next;
+        next if $handle_special_chunk->(
+            'make check',
+            $line,
+            {
+                begin_re => $RE{ autotest_begin },
+                begin_sub => sub {
+                    my ($make_check_fail) = @_;
+                    my $name = $+{ name };
+                    $name =~ s{\.exe$}{}i; # don't care about trailing .exe, if any
+                    push @{$out->{ autotest_fail }}, {
+                        name    =>  $name,
+                        details =>  $make_check_fail->{ details },
+                        flaky   =>  $make_check_fail->{ flaky },
+                    };
+                },
+                read_sub => sub {
+                    my ($make_check_fail) = @_;
+                    if ($length <= $MAX_LINE_LENGTH && $line =~ $RE{ autotest_flaky }) {
+                        $make_check_fail->{ flaky } = $line;
+                    }
+                },
             }
+        );
 
-            # no, we're not done.
-            # shall we give up?
-            if (++$make_check_fail->{ lines } > $MAKE_CHECK_FAIL_MAX_LINES) {
-                if ($self->{ debug }) {
-                    print STDERR "giving up on reading `make check' details, too many lines.\n";
-                }
-                undef $make_check_fail;
+        next if $handle_special_chunk->(
+            'yaml',
+            $line,
+            {
+                begin_re => $RE{ yaml_begin },
+                begin_sub => sub {
+                    my ($yaml_fail) = @_;
+                    my $text = "$line\n" . $yaml_fail->{ details };
+                    my $loaded = eval { YAML::Load( $text ) };
+                    if ($loaded) {
+                        push @{$out->{ yaml_fail }}, $loaded;
+                    } else {
+                        warn "log seems to contain a corrupt YAML block:\n$text\nFailed to parse: $@";
+                    }
+                },
             }
-
-            # no, we're not giving up.
-            else {
-                $make_check_fail->{ details } = "$line\n" . $make_check_fail->{ details };
-
-                if ($length <= $MAX_LINE_LENGTH && $line =~ $RE{ autotest_flaky }) {
-                    $make_check_fail->{ flaky } = $line;
-                }
-
-                next;
-            }
-        }
+        );
 
         # ignore too long lines
         next if ($length > $MAX_LINE_LENGTH);
@@ -1741,12 +1821,15 @@ sub identify_failures
                 $out->{ make_check_fail } = $line;
 
                 # start reading the details of the failure.
-                $make_check_fail = {
-                    details => q{},
-                };
+                $start_special_chunk->( 'make check' );
             }
 
             $out->{ significant_lines }{ $line } = 1;
+        }
+
+        # opening a YAML error message?
+        elsif ($save_failures && $line =~ $RE{ yaml_end }) {
+            $start_special_chunk->( 'yaml' );
         }
 
         # compiler failed?
@@ -1857,8 +1940,24 @@ sub extract_autotest_fail
     my $indent = $args{ indent };
     my $lines_ref = $args{ lines_ref };
 
-    foreach my $autotest (@{ $fail->{ autotest_fail }} ) {
+    foreach my $autotest (@{ $fail->{ autotest_fail } || []} ) {
         my @lines = split( /\n/, $autotest->{ details } );
+        push @{$lines_ref}, map( { "$indent$_\n" } @lines ), "\n";
+    }
+
+    return;
+}
+
+sub extract_yaml_fail
+{
+    my ($self, %args) = @_;
+
+    my $fail = $args{ fail };
+    my $indent = $args{ indent };
+    my $lines_ref = $args{ lines_ref };
+
+    foreach my $error (@{ $fail->{ yaml_fail } || []} ) {
+        my @lines = split( /\n/, $error->{ error } );
         push @{$lines_ref}, map( { "$indent$_\n" } @lines ), "\n";
     }
 
@@ -1903,18 +2002,19 @@ sub extract_and_output
         $indent = "  ";
     }
 
-    # Output any autotest failures first.
-    # FIXME: outputting these first can mean that an autotest failure is printed
-    # earlier than some other extracted message, even if in reality they appeared
-    # in the opposite order.  Should we care about this?  Or is this a better
-    # way to do it?
-    if ($fail->{ autotest_fail }) {
-        $self->extract_autotest_fail(
-            fail => $fail,
-            indent => $indent,
-            lines_ref => \@lines_to_print,
-        );
-    }
+    # YAML failures (explicit failure messages from the test script(s)) come first.
+    $self->extract_yaml_fail(
+        fail => $fail,
+        indent => $indent,
+        lines_ref => \@lines_to_print,
+    );
+
+    # Output any autotest failures next.
+    $self->extract_autotest_fail(
+        fail => $fail,
+        indent => $indent,
+        lines_ref => \@lines_to_print,
+    );
 
     # Mark a line as significant and print it.
     #

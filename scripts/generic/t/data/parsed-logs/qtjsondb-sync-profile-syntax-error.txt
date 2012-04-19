@@ -1,0 +1,4 @@
+[ '--summarize', "$DATADIR/raw-logs/qtjsondb-sync-profile-syntax-error.txt" ]
+  I couldn't parse /build/recipes/179081964/base/sync.profile, which I need to determine dependencies.
+  The error was syntax error at /build/recipes/179081964/base/sync.profile line 36, near ""libedit""
+

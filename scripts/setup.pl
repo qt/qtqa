@@ -185,6 +185,8 @@ sub all_required_cpan_modules
         Text::Wrap
         Tie::IxHash
         Timer::Simple
+        YAML
+        YAML::Node
         autodie
     );
 

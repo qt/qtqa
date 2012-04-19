@@ -1,0 +1,197 @@
+4/12/12 5:32:00 AM EST: Checking recipe agent requirements...
+4/12/12 5:32:00 AM EST: Requirements satisfied by at least one online agent.
+4/12/12 5:32:00 AM EST: Recipe assigned to agent bq-ubuntu1110-x64-07
+4/12/12 5:32:03 AM EST: Recipe 'generic test' commenced
+4/12/12 5:32:03 AM EST: Recipe dispatched to agent bq-ubuntu1110-x64-07
+4/12/12 5:32:03 AM EST: Command 'bootstrap' commenced
+============================[ command output below ]============================
+4/12/12 5:32:03 AM EST: Checking out to /build/recipes/179081964/base
+4/12/12 5:32:03 AM EST: >> git init
+4/12/12 5:32:03 AM EST: Initialized empty Git repository in /build/recipes/179081964/base/.git/
+4/12/12 5:32:03 AM EST: >> git remote add -f -t qtjsondb-master-integration -m qtjsondb-master-integration origin qtgitreadonly:qa-dungeon/working-area.git
+4/12/12 5:32:41 AM EST: From git://scm.dev.nokia.troll.no/qa-dungeon/working-area
+4/12/12 5:32:41 AM EST:  + a6932b5...ff66811 qtdeclarative-api-changes-integration -> qtgitreadonly____qa-dungeon_working-area/qtdeclarative-api-changes-integration  (forced update)
+4/12/12 5:32:41 AM EST:  + 44a55a6...cdb2a54 qtjsondb-master-integration -> qtgitreadonly____qa-dungeon_working-area/qtjsondb-master-integration  (forced update)
+4/12/12 5:32:47 AM EST: From git://scm.dev.nokia.troll.no/qa-dungeon/working-area
+4/12/12 5:32:47 AM EST:  * [new branch]      qtjsondb-master-integration -> origin/qtjsondb-master-integration
+4/12/12 5:32:53 AM EST: >> git merge origin
+4/12/12 5:32:53 AM EST: >> git checkout -f -b local origin/qtjsondb-master-integration
+4/12/12 5:32:53 AM EST: Switched to a new branch 'local'
+4/12/12 5:32:53 AM EST: Branch local set up to track remote branch qtjsondb-master-integration from origin.
+4/12/12 5:32:53 AM EST: >> git checkout -f -b tmp.cdb2a54f345221ca520c6959aa3a3ef42d785fb1 cdb2a54f345221ca520c6959aa3a3ef42d785fb1
+4/12/12 5:32:53 AM EST: Switched to a new branch 'tmp.cdb2a54f345221ca520c6959aa3a3ef42d785fb1'
+============================[ command output above ]============================
+4/12/12 5:32:53 AM EST: Command 'bootstrap' completed with status success
+4/12/12 5:32:54 AM EST: Command 'Clean before build' commenced
+============================[ command output below ]============================
+============================[ command output above ]============================
+4/12/12 5:32:54 AM EST: Command 'Clean before build' completed with status success
+4/12/12 5:32:54 AM EST: Command details: 
+4/12/12 5:32:54 AM EST:          command line: /home/qt/bin/git clean -dffx
+4/12/12 5:32:54 AM EST:             exit code: 0
+4/12/12 5:32:54 AM EST:     working directory: /build/recipes/179081964/base
+4/12/12 5:32:54 AM EST: End command details.
+4/12/12 5:32:54 AM EST: Command 'git clone testconfig' commenced
+============================[ command output below ]============================
+4/12/12 5:32:56 AM EST: Initialized empty Git repository in /build/recipes/179081964/base/_testconfig/.git/
+4/12/12 5:33:06 AM EST: From git://scm.dev.nokia.troll.no/qa-dungeon/testconfig-public
+4/12/12 5:33:06 AM EST:  * [new branch]      master     -> origin/master
+4/12/12 5:33:09 AM EST: origin/HEAD set to master
+4/12/12 5:33:09 AM EST: Already on 'master'
+4/12/12 5:33:09 AM EST: Branch master set up to track remote branch master from origin.
+============================[ command output above ]============================
+4/12/12 5:33:09 AM EST: Command 'git clone testconfig' completed with status success
+4/12/12 5:33:09 AM EST: Command details: 
+4/12/12 5:33:09 AM EST:          command line: /home/qt/bin/git clone git://scm.dev.nokia.troll.no/qa-dungeon/testconfig-public _testconfig
+4/12/12 5:33:09 AM EST:             exit code: 0
+4/12/12 5:33:09 AM EST:     working directory: /build/recipes/179081964/base
+4/12/12 5:33:09 AM EST: End command details.
+4/12/12 5:33:09 AM EST: Command 'Run test' commenced
+============================[ command output below ]============================
+4/12/12 5:33:09 AM EST: PULSE_AGENT=bq-ubuntu1110-x64-07
+4/12/12 5:33:09 AM EST: PULSE_AGENT_DATA_PATTERN='${data.dir}'
+4/12/12 5:33:09 AM EST: PULSE_BASE_DIR='/build/recipes/179081964/base'
+4/12/12 5:33:09 AM EST: PULSE_BUILD_COUNT=738
+4/12/12 5:33:09 AM EST: PULSE_BUILD_DIR='/home/pulseserver/.pulse2/data/projects/129728515/00000739'
+4/12/12 5:33:09 AM EST: PULSE_BUILD_NUMBER=739
+4/12/12 5:33:09 AM EST: PULSE_BUILD_REASON='trigger via remote api by qtintegration'
+4/12/12 5:33:09 AM EST: PULSE_BUILD_REVISION=cdb2a54f345221ca520c6959aa3a3ef42d785fb1
+4/12/12 5:33:09 AM EST: PULSE_BUILD_TIMESTAMP='2012-04-12 05:32'
+4/12/12 5:33:09 AM EST: PULSE_BUILD_TIMESTAMP_MILLIS=1334172720179
+4/12/12 5:33:09 AM EST: PULSE_BUILD_VERSION=739
+4/12/12 5:33:09 AM EST: PULSE_COMPRESS_ARTIFACTS=true
+4/12/12 5:33:09 AM EST: PULSE_DATA_DIR='/build'
+4/12/12 5:33:09 AM EST: PULSE_GIT_BRANCH=qtjsondb-master-integration
+4/12/12 5:33:09 AM EST: PULSE_GIT_REPOSITORY='qtgitreadonly:qa-dungeon/working-area.git'
+4/12/12 5:33:09 AM EST: PULSE_INCREMENTAL_BOOTSTRAP=false
+4/12/12 5:33:09 AM EST: PULSE_INCREMENTAL_BUILD=false
+4/12/12 5:33:09 AM EST: PULSE_LOCAL_BUILD=false
+4/12/12 5:33:09 AM EST: QTQA_MAKE_ARGS=-j30
+4/12/12 5:33:09 AM EST: PULSE_MASTER_URL='http://pulse.test.qt.nokia.com:8080'
+4/12/12 5:33:09 AM EST: PULSE_OUTPUT_DIR='/build/recipes/179081964/output/00000003-Run%20test'
+4/12/12 5:33:09 AM EST: PULSE_OWNER='QtJsonDb master Integration'
+4/12/12 5:33:09 AM EST: PULSE_PERSISTENT_WORK_PATTERN='${agent.data.dir}/work/${project.handle}'
+4/12/12 5:33:09 AM EST: PULSE_PERSONAL_BUILD=false
+4/12/12 5:33:09 AM EST: PULSE_PROJECT='QtJsonDb master Integration'
+4/12/12 5:33:09 AM EST: QTQA_QT_CONFIGURE_ARGS='-silent -no-pch -developer-build -opensource -confirm-license -qtnamespace TestNamespace -qtlibinfix TestInfix -separate-debug-info -force-pkg-config -make libs -make examples -make tests'
+4/12/12 5:33:09 AM EST: QTQA_QT_DIR='/build/recipes/179081964/base/qt'
+4/12/12 5:33:09 AM EST: QTQA_QT_GITMODULE=qtjsondb
+4/12/12 5:33:09 AM EST: QTQA_QT_INIT_REPOSITORY_ARGS=-no-webkit
+4/12/12 5:33:09 AM EST: QTQA_QT_INSTALL_DIR='/build/recipes/179081964/base/qt/qtbase'
+4/12/12 5:33:09 AM EST: QTQA_QT_QTQA_TESTS_ENABLED=1
+4/12/12 5:33:09 AM EST: QTQA_QT_TESTS_ENABLED=1
+4/12/12 5:33:09 AM EST: QTQA_QT_TESTS_FLAKY_MODE=best
+4/12/12 5:33:09 AM EST: QTQA_QT_TESTS_TEE_LOGS='/build/recipes/179081964/base/_artifacts/test-logs'
+4/12/12 5:33:09 AM EST: PULSE_RECIPE='generic test'
+4/12/12 5:33:09 AM EST: PULSE_RECIPE_ID=179081964
+4/12/12 5:33:09 AM EST: PULSE_RECIPE_STATUS=success
+4/12/12 5:33:09 AM EST: PULSE_RECIPE_TIMESTAMP='2012-04-12 05:32'
+4/12/12 5:33:09 AM EST: PULSE_RECIPE_TIMESTAMP_MILLIS=1334172721480
+4/12/12 5:33:09 AM EST: PULSE_RETRIEVAL_PATTERN='lib/[artifact].[ext]'
+4/12/12 5:33:09 AM EST: PULSE_STAGE='linux-g++ developer-build qtnamespace qtlibinfix Ubuntu 11.10 x64'
+4/12/12 5:33:09 AM EST: PULSE_SUCCESS_COUNT=467
+4/12/12 5:33:09 AM EST: PULSE_SYNC_DESTINATION=true
+4/12/12 5:33:09 AM EST: QML_BAD_GUI_RENDER_LOOP=1
+4/12/12 5:33:09 AM EST: export PULSE_AGENT PULSE_AGENT_DATA_PATTERN PULSE_BASE_DIR PULSE_BUILD_COUNT PULSE_BUILD_DIR PULSE_BUILD_NUMBER PULSE_BUILD_REASON PULSE_BUILD_REVISION PULSE_BUILD_TIMESTAMP PULSE_BUILD_TIMESTAMP_MILLIS PULSE_BUILD_VERSION PULSE_COMPRESS_ARTIFACTS PULSE_DATA_DIR PULSE_GIT_BRANCH PULSE_GIT_REPOSITORY PULSE_INCREMENTAL_BOOTSTRAP PULSE_INCREMENTAL_BUILD PULSE_LOCAL_BUILD QTQA_MAKE_ARGS PULSE_MASTER_URL PULSE_OUTPUT_DIR PULSE_OWNER PULSE_PERSISTENT_WORK_PATTERN PULSE_PERSONAL_BUILD PULSE_PROJECT QTQA_QT_CONFIGURE_ARGS QTQA_QT_DIR QTQA_QT_GITMODULE QTQA_QT_INIT_REPOSITORY_ARGS QTQA_QT_INSTALL_DIR QTQA_QT_QTQA_TESTS_ENABLED QTQA_QT_TESTS_ENABLED QTQA_QT_TESTS_FLAKY_MODE QTQA_QT_TESTS_TEE_LOGS PULSE_RECIPE PULSE_RECIPE_ID PULSE_RECIPE_STATUS PULSE_RECIPE_TIMESTAMP PULSE_RECIPE_TIMESTAMP_MILLIS PULSE_RETRIEVAL_PATTERN PULSE_STAGE PULSE_SUCCESS_COUNT PULSE_SYNC_DESTINATION QML_BAD_GUI_RENDER_LOOP
+4/12/12 5:33:09 AM EST: git clone qtgitreadonly:qt/qtqa.git _qtqa_latest
+4/12/12 5:33:09 AM EST: perl _qtqa_latest/scripts/setup.pl --install && perl _qtqa_latest/scripts/qt/qtmod_test.pl
+4/12/12 5:33:09 AM EST: ========== TO REPRODUCE THIS BUILD, COPY THE ABOVE ===============
+4/12/12 5:33:11 AM EST: + git clone qtgitreadonly:qt/qtqa.git _qtqa_latest
+4/12/12 5:33:11 AM EST: Initialized empty Git repository in /build/recipes/179081964/base/_qtqa_latest/.git/
+4/12/12 5:33:16 AM EST: From git://scm.dev.nokia.troll.no/qt/qtqa
+4/12/12 5:33:16 AM EST:  * [new branch]      master     -> origin/master
+4/12/12 5:33:26 AM EST: origin/HEAD set to master
+4/12/12 5:33:26 AM EST: Already on 'master'
+4/12/12 5:33:26 AM EST: Branch master set up to track remote branch master from origin.
+4/12/12 5:33:26 AM EST: + perl _qtqa_latest/scripts/setup.pl --install && perl _qtqa_latest/scripts/qt/qtmod_test.pl
+
+4/12/12 5:33:26 AM EST: Checking perl modules ...
+4/12/12 5:33:26 AM EST: Capture::Tiny - OK
+4/12/12 5:33:26 AM EST: Class::Factory::Util - OK
+4/12/12 5:33:26 AM EST: Env::Path - OK
+4/12/12 5:33:26 AM EST: File::chdir - OK
+4/12/12 5:33:26 AM EST: File::Copy::Recursive - OK
+4/12/12 5:33:26 AM EST: File::Fetch - OK
+4/12/12 5:33:26 AM EST: File::Find::Rule - OK
+4/12/12 5:33:26 AM EST: File::HomeDir - OK
+4/12/12 5:33:26 AM EST: File::Slurp - OK
+4/12/12 5:33:26 AM EST: IO::CaptureOutput - OK
+4/12/12 5:33:26 AM EST: IO::Uncompress::AnyInflate - OK
+4/12/12 5:33:26 AM EST: Inline::C - OK
+4/12/12 5:33:26 AM EST: Lingua::EN::Inflect - OK
+4/12/12 5:33:26 AM EST: Lingua::EN::Numbers - OK
+4/12/12 5:33:26 AM EST: List::Compare - OK
+4/12/12 5:33:26 AM EST: List::MoreUtils - OK
+4/12/12 5:33:26 AM EST: Params::Validate - OK
+4/12/12 5:33:26 AM EST: Perl::Critic - OK
+4/12/12 5:33:26 AM EST: Readonly - OK
+4/12/12 5:33:26 AM EST: Test::Exception - OK
+4/12/12 5:33:26 AM EST: Test::Exit - OK
+4/12/12 5:33:26 AM EST: Test::More - OK
+4/12/12 5:33:26 AM EST: Test::NoWarnings - OK
+4/12/12 5:33:26 AM EST: Test::Perl::Critic - OK
+4/12/12 5:33:26 AM EST: Text::Diff - OK
+4/12/12 5:33:26 AM EST: Text::Trim - OK
+4/12/12 5:33:26 AM EST: Text::Wrap - OK
+4/12/12 5:33:26 AM EST: Tie::IxHash - OK
+4/12/12 5:33:26 AM EST: autodie - OK
+4/12/12 5:33:26 AM EST: BSD::Resource - OK
+4/12/12 5:33:26 AM EST: Proc::Reliable - OK
+4/12/12 5:33:26 AM EST: Tie::Sysctl - OK
+
+4/12/12 5:33:26 AM EST: It looks like your CPAN setup is complete :)
+4/12/12 5:33:26 AM EST: + git clone --branch master git://scm.dev.nokia.troll.no/qt/qt5.git /build/recipes/179081964/base/qt
+4/12/12 5:33:31 AM EST: Cloning into /build/recipes/179081964/base/qt...
+4/12/12 5:33:32 AM EST: String found where operator expected at /build/recipes/179081964/base/sync.profile line 36, near ""libedit""
+4/12/12 5:33:32 AM EST:         (Missing semicolon on previous line?)
+4/12/12 5:33:32 AM EST: --- !qtqa.qt-project.org/error
+4/12/12 5:33:32 AM EST: error: |+
+4/12/12 5:33:32 AM EST:   I couldn't parse /build/recipes/179081964/base/sync.profile, which I need to determine dependencies.
+4/12/12 5:33:32 AM EST:   The error was syntax error at /build/recipes/179081964/base/sync.profile line 36, near ""libedit""
+4/12/12 5:33:32 AM EST: 
+4/12/12 5:33:32 AM EST: ...
+4/12/12 5:33:32 AM EST:  at _qtqa_latest/scripts/qt/qtmod_test.pl line 444
+4/12/12 5:33:32 AM EST:         QtQA::ModuleTest::read_dependencies('QtQA::ModuleTest=HASH(0x9daa310)', '/home/rmcgover/build/qt/qt5/qtsvg/sync.profile') called at ../qtqa/scripts/qt/qtmod_test.pl line 513
+4/12/12 5:33:32 AM EST:         QtQA::ModuleTest::run_git_checkout('QtQA::ModuleTest=HASH(0x9daa310)') called at ../qtqa/scripts/qt/qtmod_test.pl line 211
+4/12/12 5:33:32 AM EST:         QtQA::ModuleTest::run('QtQA::ModuleTest=HASH(0x9daa310)') called at ../qtqa/scripts/qt/qtmod_test.pl line 1202
+4/12/12 5:33:32 AM EST:         QtQA::ModuleTest::main('QtQA::ModuleTest') called at ../qtqa/scripts/qt/qtmod_test.pl line 1207
+4/12/12 5:33:32 AM EST: `perl _qtqa_latest/scripts/setup.pl --install && perl _qtqa_latest/scripts/qt/qtmod_test.pl' exited with code 255 at _testconfig/test.pl line 1103.
+============================[ command output above ]============================
+4/12/12 5:33:32 AM EST: Command 'Run test' completed with status failure
+4/12/12 5:33:32 AM EST: Command details: 
+4/12/12 5:33:32 AM EST:          command line: /usr/bin/perl _testconfig/test.pl
+4/12/12 5:33:32 AM EST:             exit code: 25
+4/12/12 5:33:32 AM EST:     working directory: /build/recipes/179081964/base
+4/12/12 5:33:32 AM EST: End command details.
+4/12/12 5:33:32 AM EST: Command 'Clean after build' commenced
+============================[ command output below ]============================
+4/12/12 5:33:32 AM EST: Removing _qtqa_latest/
+4/12/12 5:33:32 AM EST: Removing _testconfig/
+4/12/12 5:33:32 AM EST: Removing qt/
+============================[ command output above ]============================
+4/12/12 5:33:32 AM EST: Command 'Clean after build' completed with status success
+4/12/12 5:33:32 AM EST: Command details: 
+4/12/12 5:33:32 AM EST:          command line: /home/qt/bin/git clean -dffx
+4/12/12 5:33:32 AM EST:             exit code: 0
+4/12/12 5:33:32 AM EST:     working directory: /build/recipes/179081964/base
+4/12/12 5:33:32 AM EST: End command details.
+4/12/12 5:33:32 AM EST: Storing test results...
+4/12/12 5:33:32 AM EST: Test results stored.
+4/12/12 5:33:32 AM EST: Compressing recipe artifacts...
+4/12/12 5:33:32 AM EST: Artifacts compressed.
+4/12/12 5:33:32 AM EST: Recipe 'generic test' completed with status failure
+4/12/12 5:33:32 AM EST: Collecting recipe artifacts...
+4/12/12 5:33:33 AM EST: Collection complete
+4/12/12 5:33:33 AM EST: Cleaning up agent work area...
+4/12/12 5:33:33 AM EST: Clean up complete.
+4/12/12 5:33:33 AM EST: Running post stage hooks...
+4/12/12 5:33:33 AM EST: Hook 'reboot agents' commenced
+============================[ command output below ]============================
+============================[ command output above ]============================
+4/12/12 5:34:24 AM EST: Hook 'reboot agents' completed
+4/12/12 5:34:24 AM EST: Hook 'stage first aid' commenced
+============================[ command output below ]============================
+============================[ command output above ]============================
+4/12/12 5:34:24 AM EST: Hook 'stage first aid' completed
+4/12/12 5:34:24 AM EST: Hook 'publish build logs: post-stage' commenced
+============================[ command output below ]============================
