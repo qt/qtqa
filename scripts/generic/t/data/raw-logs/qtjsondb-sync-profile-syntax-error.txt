@@ -149,6 +149,10 @@
 4/12/12 5:33:32 AM EST:   I couldn't parse /build/recipes/179081964/base/sync.profile, which I need to determine dependencies.
 4/12/12 5:33:32 AM EST:   The error was syntax error at /build/recipes/179081964/base/sync.profile line 36, near ""libedit""
 4/12/12 5:33:32 AM EST: 
+4/12/12 5:33:32 AM EST: while:
+4/12/12 5:33:32 AM EST:   - reading dependencies from qtjsondb/sync.profile
+4/12/12 5:33:32 AM EST:   - setting up git repositories
+4/12/12 5:33:32 AM EST:   - testing qtjsondb
 4/12/12 5:33:32 AM EST: ...
 4/12/12 5:33:32 AM EST:  at _qtqa_latest/scripts/qt/qtmod_test.pl line 444
 4/12/12 5:33:32 AM EST:         QtQA::ModuleTest::read_dependencies('QtQA::ModuleTest=HASH(0x9daa310)', '/home/rmcgover/build/qt/qt5/qtsvg/sync.profile') called at ../qtqa/scripts/qt/qtmod_test.pl line 513

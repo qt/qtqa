@@ -57,6 +57,7 @@ use List::MoreUtils qw(zip);
 use Params::Validate qw(validate);
 use Pod::Simple::Text;
 use Pod::Usage qw(pod2usage);
+use ReleaseAction qw(on_release);
 use YAML qw();
 use YAML::Node;
 
@@ -96,8 +97,6 @@ sub _croak
 
     local %Carp::Internal = $self->_carp_internal( );
     croak @rest;
-
-    return;
 }
 
 
@@ -441,8 +440,12 @@ sub fatal_error
     my $ynode = YAML::Node->new({}, 'qtqa.qt-project.org/error' );
     %{$ynode} = (
         error => $error,
-        ### what else should go here?
     );
+    my @context = @{ $self->{ _context } || [] };
+
+    if (@context) {
+        $ynode->{'while'} = [reverse @context];
+    }
 
     local $YAML::UseBlock = 1;
     my $formatted = YAML::Dump( $ynode );
@@ -452,6 +455,40 @@ sub fatal_error
     return;
 }
 
+
+sub doing
+{
+    my ($self, $thing) = @_;
+
+    if (! defined wantarray) {
+        $self->_warn( 'useless call to doing( ) in void context' );
+        return;
+    }
+
+    $self->_push_context( $thing );
+    return on_release { $self->_pop_context( $thing ) };
+}
+
+sub _push_context
+{
+    my ($self, $thing) = @_;
+
+    push @{ $self->{ _context } }, $thing;
+
+    return;
+}
+
+sub _pop_context
+{
+    my ($self, $thing) = @_;
+
+    my $actual_thing = pop @{ $self->{ _context } || [] };
+    if ($actual_thing ne $thing) {
+        $self->_warn( "scope mismatch: leaving context '$actual_thing', expecting to leave '$thing'" );
+    }
+
+    return;
+}
 
 sub print_when_verbose
 {
@@ -638,6 +675,8 @@ sub _croak_from_missing_property
     }
 
     $self->_croak( $message );
+
+    return;
 }
 
 # Attempt to return this host's most significant IP address
@@ -816,6 +855,62 @@ Example:
 
 
 
+=item B<doing>( STRING )
+
+Pushes the given STRING onto an internal context stack, which may then be used for
+stack traces produced on error (e.g. by L<fatal_error>).  The STRING should be a
+human-readable summary of a task (e.g. "compiling the autotests").
+
+Returns a reference.  When that reference is destroyed, the task is popped off
+the context stack.  It is invalid to call this function without storing the return
+value.
+
+Example:
+
+  sub run {
+    my ($self) = @_;
+    my $doing = $self->doing( 'testing the frobnitz' );
+    $self->configure( );
+    $self->compile( );
+    $self->compile_autotests( );
+    $self->run_autotests( );
+  }
+
+  ...
+
+  sub compile {
+    my ($self) = @_;
+    my $doing = $self->doing( 'compiling the frobnitz' );
+
+    # sanity check
+    (-e 'Makefile') || $self->fatal_error(
+        'configure succeeded, but no Makefile found!'
+    );
+
+    $self->exe( 'make' );
+  }
+
+  ...
+
+In the above example, if the sanity check for the Makefile failed, the fatal
+error message would include a trace of the form:
+
+  while:
+    - compiling the frobnitz
+    - testing the frobnitz
+
+Usage note: the most important consumer of this information is the
+C<parse_build_log.pl> script in the qtqa repository.  When this script finds
+a fatal error with context information, it uses the topmost part of the context
+stack as the failure summary (which is usually pasted into Gerrit).  The failure
+from the previous example code may be summarized as:
+
+  Compiling the frobnitz failed :(
+
+    configure succeeded, but no Makefile found!
+
+
+
 =item B<fatal_error>( STRING )
 
 Formats the given error STRING into a human and machine-readable value, then dies
@@ -835,6 +930,9 @@ string is known.  If the error message is generic - for example, "process <foo>
 exited with status 123" where the process is expected to output its own error
 messages - it is generally better not to use this function, as the formatted
 error message is unlikely to provide any additional value.
+
+It is highly recommended to make use of this function together with L<doing>.
+See the documentation of that function for more information.
 
 
 

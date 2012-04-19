@@ -121,7 +121,7 @@ use Getopt::Long qw(GetOptionsFromArray);
 use IO::Uncompress::AnyInflate qw(anyinflate);
 use Lingua::EN::Inflect qw(inflect PL WORDLIST);
 use Lingua::EN::Numbers qw(num2en);
-use List::MoreUtils qw(any);
+use List::MoreUtils qw(any apply);
 use Pod::Usage;
 use Readonly;
 use Text::Wrap;
@@ -2332,6 +2332,35 @@ sub output_summary
                   ."This is NOT the fault of the code under test!"
                   ."\n\nPlease contact $CI_CONTACT to resolve this problem.  Meanwhile, it may "
                   ."be worthwhile to attempt the build again.";
+    }
+
+    # YAML failure from a test script?
+    if ($fail->{ yaml_fail }) {
+
+        # If the test failure has some context (a 'while' stack),
+        # use the top thing from the stack as the human-readable description of
+        # what we were doing when we failed.
+        my @failed_while = map
+            { $_->{ 'while' }
+                ? $_->{ 'while' }[0]
+                : ()
+            } @{ $fail->{ yaml_fail } };
+
+        # capitalize first letter:
+        #
+        #   setting up git repository -> Setting up git repository
+        #
+        @failed_while = apply { $_ =~ s{^([a-z])}{\u$1} } @failed_while;
+
+        # append "failed :("
+        #
+        #   Setting up git repository -> Setting up git repository failed :(
+        #
+        @failed_while = apply { $_ .= " failed :(" } @failed_while;
+
+        if (@failed_while) {
+            $summary = join( qq{\n\n}, @failed_while );
+        }
     }
 
     # Badly understood glitchy behavior?

@@ -436,6 +436,45 @@ error: |
     return;
 }
 
+sub test_doing_with_fatal_error
+{
+    my $script = QtQA::TestScript->new;
+
+    my $error_header = qq{--- !qtqa.qt-project.org/error\nerror: };
+
+    my $expected_error_for_scopes = sub {
+        my ($error, @scopes) = @_;
+        @scopes = reverse @scopes;
+        return
+            "${error_header}$error\n"
+           .(@scopes
+                ? "while:\n  - "
+                 .join("\n  - ", @scopes)
+                 ."\n"
+                : q{}
+            )
+           ."...\n";
+    };
+
+    {
+        my $outer = $script->doing( 'outer1' );
+
+        {
+            my $inner1 = $script->doing( 'inner1' );
+            my $expected = $expected_error_for_scopes->( 'quux', 'outer1', 'inner1' );
+            throws_ok { $script->fatal_error( 'quux' ) } qr{\A\Q$expected\E}, 'two scopes';
+        }
+
+        my $expected = $expected_error_for_scopes->( 'bar', 'outer1' );
+        throws_ok { $script->fatal_error( 'bar' ) } qr{\A\Q$expected\E}, 'one scope';
+    }
+
+    my $expected = $expected_error_for_scopes->( 'baz' );
+    throws_ok { $script->fatal_error( 'baz' ) } qr{\A\Q$expected\E}, 'no scope';
+
+    return;
+}
+
 # Run all the tests
 sub run_test
 {
@@ -454,6 +493,7 @@ sub run_test
     test_exe_qx;
 
     test_fatal_error;
+    test_doing_with_fatal_error;
 
     return;
 }

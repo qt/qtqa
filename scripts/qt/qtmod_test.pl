@@ -56,7 +56,7 @@ use English qw( -no_match_vars );
 use Env::Path;
 use File::chdir;
 use File::Path;
-use File::Spec::Functions;
+use File::Spec::Functions qw( :ALL );
 use List::MoreUtils qw( any apply );
 use autodie;
 use Readonly;
@@ -208,6 +208,10 @@ sub run
     my ($self) = @_;
 
     $self->read_and_store_configuration;
+
+    my $qt_gitmodule = $self->{ 'qt.gitmodule' };
+    my $doing = $self->doing( "testing $qt_gitmodule" );
+
     $self->run_git_checkout;
     $self->run_configure;
     $self->run_qtqa_autotests( 'prebuild' );
@@ -444,6 +448,9 @@ sub read_and_store_configuration
 sub read_dependencies
 {
     my ($self, $dependency_file) = @_;
+
+    my $doing = $self->doing( "reading dependencies from ".abs2rel( $dependency_file ) );
+
     our (%dependencies);
 
     my %default_dependencies = ( 'qtbase' => 'refs/heads/master' );
@@ -485,6 +492,8 @@ sub read_dependencies
 sub run_git_checkout
 {
     my ($self) = @_;
+
+    my $doing = $self->doing( 'setting up git repositories' );
 
     my $base_dir      = $self->{ 'base.dir'      };
     my $qt_init_repository_args
@@ -597,6 +606,8 @@ sub run_configure
 {
     my ($self) = @_;
 
+    my $doing = $self->doing( 'configuring Qt' );
+
     # properties
     my $qt_dir                  = $self->{ 'qt.dir'                  };
     my $qt_build_dir            = $self->{ 'qt.build.dir'            };
@@ -653,6 +664,8 @@ sub run_configure
 sub run_compile
 {
     my ($self) = @_;
+
+    my $doing = $self->doing( 'compiling Qt' );
 
     # properties
     my $qt_dir                  = $self->{ 'qt.dir'                  };
@@ -794,6 +807,8 @@ sub run_install
 {
     my ($self) = @_;
 
+    my $doing = $self->doing( 'installing Qt' );
+
     my $make_bin        = $self->{ 'make.bin' };
     my $qt_dir          = $self->{ 'qt.dir' };
     my $qt_build_dir    = $self->{ 'qt.build.dir' };
@@ -841,6 +856,8 @@ sub run_install
 sub run_install_check
 {
     my ($self) = @_;
+
+    my $doing = $self->doing( 'checking the installation' );
 
     my $qt_install_dir  = $self->{ 'qt.install.dir' };
     my $qt_make_install = $self->{ 'qt.make_install' };
@@ -957,6 +974,8 @@ sub run_autotests
 
     return if (!$self->{ 'qt.tests.enabled' });
 
+    my $doing = $self->doing( 'running the autotests' );
+
     my $qt_gitmodule_build_dir = $self->{ 'qt.gitmodule.build.dir' };
 
     # Add this module's `bin' directory to PATH.
@@ -1002,6 +1021,8 @@ sub run_qtqa_autotests
     my $qt_gitmodule           = $self->{ 'qt.gitmodule' };
     my $qt_gitmodule_dir       = $self->{ 'qt.gitmodule.dir' };
     my $qt_gitmodule_build_dir = $self->{ 'qt.gitmodule.build.dir' };
+
+    my $doing = $self->doing( "running the qtqa tests on $qt_gitmodule" );
 
     # path to the qtqa shared autotests.
     my $qtqa_tests_dir = catfile( $FindBin::Bin, qw(.. .. tests), $type );
@@ -1170,6 +1191,8 @@ sub run_coverage
     my ($self) = @_;
 
     return if ((!$self->{ 'qt.tests.enabled' }) or (!$self->{ 'qt.coverage.tool' }));
+
+    my $doing = $self->doing( 'gathering coverage data' );
 
     my $qt_coverage_tool         = $self->{ 'qt.coverage.tool' };
     my $qt_coverage_tests_output = $self->{ 'qt.coverage.tests_output' };
