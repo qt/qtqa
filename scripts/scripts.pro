@@ -4,7 +4,7 @@ TEMPLATE = subdirs
 # scripts.  This requires a modern-ish CPAN setup, so we will enable it only
 # for platforms as we test it.
 win32|mac|linux* {
-    check.commands = perl $$_PRO_FILE_PWD_/test.pl
+    check.commands = $(TESTRUNNER) perl $$_PRO_FILE_PWD_/test.pl
 }
 linux* {
     # On Linux, we can do a --clean test, which will verify that all needed CPAN
