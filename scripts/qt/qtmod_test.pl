@@ -910,6 +910,7 @@ sub get_testrunner_args
     my $qt_tests_tee_logs        = $self->{ 'qt.tests.tee_logs' };
     my $qt_tests_backtraces      = $self->{ 'qt.tests.backtraces' };
     my $qt_tests_flaky_mode      = $self->{ 'qt.tests.flaky_mode' };
+    my $qt_tests_testscheduler   = $self->{ 'qt.tests.testscheduler' };
 
     my @testrunner_args = (
         '--timeout',
@@ -947,6 +948,12 @@ sub get_testrunner_args
 
     if ($qt_coverage_tests_output) {
         push @testrunner_args, "--${qt_coverage_tool}-tests-output", $qt_coverage_tests_output;
+    }
+
+    # If using testscheduler, there is no predictable beginning/end line for each test
+    # (e.g. from `make check') unless we request --verbose mode, so do that
+    if ($qt_tests_testscheduler) {
+        push @testrunner_args, '--verbose';
     }
 
     # We cannot handle passing arguments with spaces into `make TESTRUNNER...',
