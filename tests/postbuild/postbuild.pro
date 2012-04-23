@@ -3,8 +3,7 @@ SUBDIRS += \
     bic \
     headers \
     symbols \
-    guiapplauncher \
-    compilerwarnings
+    guiapplauncher
 
 # This test is not valid for Windows CE
 wince*: SUBDIRS -= guiapplauncher

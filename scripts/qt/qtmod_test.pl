@@ -991,7 +991,7 @@ sub run_autotests
     local %ENV = %ENV;
     Env::Path->PATH->Prepend( canonpath catfile( $qt_gitmodule_build_dir, 'bin' ) );
 
-    # In qt4, we need to set QTDIR to run some autotests like 'tst_bic', 'tst_compilerwarnings',
+    # In qt4, we need to set QTDIR to run some autotests like 'tst_bic',
     # 'tst_symbols', etc
     if ($self->{ 'qt.gitmodule' } eq 'qt') {
         $ENV{ QTDIR } = $qt_gitmodule_build_dir; ## no critic
