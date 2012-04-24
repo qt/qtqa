@@ -75,6 +75,11 @@ Execute tests in parallel, up to N concurrently.
 Note that only tests marked with parallel_test in the testplan
 are permitted to run in parallel.
 
+=item --debug
+
+Output a lot of additional information.  Use it for debugging,
+when something goes wrong.
+
 =back
 
 All other arguments are passed to the "testrunner" script,
@@ -104,7 +109,10 @@ Test failures may be ignored if a test is marked with insignificant_test.
 
 =cut
 
+use feature 'switch';
+
 use English qw(-no_match_vars);
+use Data::Dumper;
 use File::Spec::Functions;
 use FindBin;
 use IO::File;
@@ -132,6 +140,7 @@ sub new
 
     return bless {
         jobs => 1,
+        debug => 0,
     }, $class;
 }
 
@@ -143,6 +152,7 @@ sub run
         'help|?'    =>  sub { pod2usage(0) },
         'plan=s'    =>  \$self->{ testplan },
         'j|jobs=i'  =>  \$self->{ jobs },
+        'debug'     =>  \$self->{ debug },
     ) || pod2usage(2);
 
     # Strip trailing --, if that's what ended our argument processing
@@ -159,6 +169,8 @@ sub run
 
     my @results = $self->do_testplan( $self->{ testplan } );
 
+    $self->debug( sub { 'results: '.Dumper(\@results) } );
+
     $self->print_timing( @results );
     $self->print_failures( @results );
     $self->print_totals( @results );
@@ -168,11 +180,36 @@ sub run
     return;
 }
 
+sub debug
+{
+    my ($self, $to_print) = @_;
+
+    return unless $self->{ debug };
+
+    my @to_print;
+    given (ref($to_print)) {
+        when ('CODE')  { @to_print = $to_print->(); }
+        when ('ARRAY') { @to_print = @{$to_print}; }
+        default        { @to_print = ($to_print); }
+    };
+
+    my $message = __PACKAGE__ . ": debug: @to_print";
+    if ($message !~ m{\n\z}) {
+        $message .= "\n";
+    }
+
+    warn $message;
+
+    return;
+}
+
 sub do_testplan
 {
     my ($self, $testplan) = @_;
 
     my @tests = $self->read_tests_from_testplan( $testplan );
+
+    $self->debug( sub { 'testplan: '.Dumper(\@tests) } );
 
     # tests are sorted for predictable execution order.
     @tests = sort { $a->{ label } cmp $b->{ label } } @tests;
@@ -468,7 +505,11 @@ sub running_tests_count
 {
     my ($self) = @_;
 
-    return scalar keys %{ $self->{ test_by_pid } || {} };
+    my $out = scalar keys %{ $self->{ test_by_pid } || {} };
+
+    $self->debug( "$out test(s) currently running" );
+
+    return $out;
 }
 
 # Waits for one test to complete and writes the '_status' key for that test.
@@ -480,6 +521,9 @@ sub wait_for_test_to_complete
 
     my $pid = waitpid( -1, $flags || 0 );
     my $status = $?;
+
+    $self->debug( sprintf( "waitpid: (pid: %d, status: %d, exitcode: %d)", $pid, $status, $status >> 8) );
+
     if ($pid <= 0) {
         # this means no child processes
         return;
@@ -539,6 +583,8 @@ sub spawn
             die "exec: $!";
         }
     }
+
+    $self->debug( sub { "spawned $pid <- ".join(' ', map { "[$_]" } @cmd) } );
 
     return $pid;
 }
