@@ -125,6 +125,20 @@ my @PROPERTIES = (
                                 . q{(e.g. `qtbase').  Use special value `qt5' for testing of }
                                 . q{all modules together in the qt5 superproject},
 
+    q{qt.revdep.gitmodule}     => q{git module name of the reverse dependency module under test }
+                                . q{(e.g. `qtdeclarative').  Normally left empty.  Setting this }
+                                . q{will switch the script into a mode where it tests the revdep }
+                                . q{git module on top of one of its dependencies (e.g. testing }
+                                . q{qtdeclarative on top of qtbase)},
+
+    q{qt.revdep.revdep_ref}    => q{git ref for the name of the reverse dependency module under test }
+                                . q{(e.g. `refs/heads/master'); mandatory iff qt.revdep.gitmodule is }
+                                . q{set},
+
+    q{qt.revdep.dep_ref}       => q{git ref for the name of the dependency module upon which the }
+                                . q{revdep shall be tested (e.g. `refs/heads/master'); mandatory iff }
+                                . q{qt.revdep.gitmodule is set},
+
     q{qt.repository}           => q{giturl of Qt superproject; only used if }
                                 . q{qt.gitmodule != "qt5"},
 
@@ -203,6 +217,35 @@ my %MAKE_CHECK_BLACKLIST = map { $_ => 1 } qw(
     qtwebkit
 );
 
+# Like abs_path, but dies instead of returning an empty value if dirname($path)
+# doesn't exist.
+sub safe_abs_path
+{
+    my ($self, $path) = @_;
+
+    my $abs_path = abs_path( $path );
+    if (!$abs_path) {
+        $self->fatal_error(
+            "path '$path' unexpectedly does not exist (while in directory: $CWD)"
+        );
+    }
+
+    return $abs_path;
+}
+
+# Returns 1 if ($path_a, $path_b) refer to the same path.
+# Dies if either of dirname($path_a) or dirname($path_b) don't exist.
+sub path_eq
+{
+    my ($self, $path_a, $path_b) = @_;
+    return 1 if ($path_a eq $path_b);
+
+    ($path_a, $path_b) = ($self->safe_abs_path( $path_a ), $self->safe_abs_path( $path_b ));
+    return 1 if ($path_a eq $path_b);
+
+    return 0;
+}
+
 sub run
 {
     my ($self) = @_;
@@ -213,6 +256,9 @@ sub run
     my $doing = $self->doing( "testing $qt_gitmodule" );
 
     $self->run_git_checkout;
+
+    my $doing_revdep = $self->maybe_enter_revdep_context;
+
     $self->run_configure;
     $self->run_qtqa_autotests( 'prebuild' );
     $self->run_compile;
@@ -272,6 +318,15 @@ sub default_qt_qtqa_tests_insignificant
 {
     my ($self) = @_;
     return $self->{ 'qt.tests.insignificant' };
+}
+
+sub default_qt_revdep_ref
+{
+    my ($self) = @_;
+
+    # If qt.revdep.gitmodule is set, this is mandatory.
+    # Otherwise, it is unused.
+    return $self->{ 'qt.revdep.gitmodule' } ? undef : q{};
 }
 
 sub default_qt_dir
@@ -348,7 +403,7 @@ sub default_qt_minimal_deps
 {
     my ($self) = @_;
 
-    my $gitmodule = $self->{ 'qt.gitmodule' };
+    my $gitmodule = $self->{ 'qt.revdep.gitmodule' } || $self->{ 'qt.gitmodule' };
 
     # minimal dependencies makes sense for everything but these three
     return ($gitmodule ne 'qt5' && $gitmodule ne 'qtbase' && $gitmodule ne 'qt');
@@ -372,6 +427,8 @@ sub read_and_store_configuration
 {
     my $self = shift;
 
+    my $doing = $self->doing( 'determining test script configuration' );
+
     $self->read_and_store_properties(
         'base.dir'                => \&QtQA::TestScript::default_common_property ,
         'shadowbuild.dir'         => \&QtQA::TestScript::default_common_property ,
@@ -382,6 +439,9 @@ sub read_and_store_configuration
         'make-check.args'         => \&default_make_check_args                   ,
         'make-check.bin'          => \&default_make_check_bin                    ,
         'qt.gitmodule'            => undef                                       ,
+        'qt.revdep.gitmodule'     => q{}                                         ,
+        'qt.revdep.revdep_ref'    => \&default_qt_revdep_ref                     ,
+        'qt.revdep.dep_ref'       => \&default_qt_revdep_ref                     ,
         'qt.dir'                  => \&default_qt_dir                            ,
         'qt.repository'           => \&default_qt_repository                     ,
         'qt.branch'               => q{master}                                   ,
@@ -436,11 +496,30 @@ sub read_and_store_configuration
         die "'$self->{'qt.coverage.tool'}' is not a valid Qt coverage tool; try one of ".join(q{,}, keys %COVERAGE_TOOLS);
     }
 
-    if ($self->{'qt.minimal_deps'} && ($self->{'qt.gitmodule'} eq 'qt5' || $self->{'qt.gitmodule'} eq 'qtbase')) {
+    if ($self->{'qt.minimal_deps'}
+        && !$self->{'qt.revdep.gitmodule'}
+        && ($self->{'qt.gitmodule'} eq 'qt5' || $self->{'qt.gitmodule'} eq 'qtbase'))
+    {
         warn "qt.minimal_deps is set to 1.  This has no effect on $self->{ 'qt.gitmodule' }.\n";
         $self->{'qt.minimal_deps'} = 0;
     }
 
+    # Make sure revdep settings are sensible:
+    #  - revdep test doesn't make sense for modules with no dependencies.
+    #  - revdep test on top of qt4 (not modular) doesn't make sense
+    #  - revdep test on top of qt5 could make sense, but is not yet supported
+    my %no_dependencies = map { $_ => 1 } qw(qt qt5 qtbase);
+    my %not_supported_revdep_base = map { $_ => 1 } qw(qt qt5);
+    if ($no_dependencies{ $self->{'qt.revdep.gitmodule'} }) {
+        $self->fatal_error(
+            "'$self->{'qt.revdep.gitmodule'}' does not make sense for a revdep test; "
+           ."it has no dependencies"
+        );
+    } elsif ($self->{'qt.revdep.gitmodule'} && $not_supported_revdep_base{ $self->{'qt.gitmodule'} }) {
+        $self->fatal_error(
+            "doing a revdep test on top of $self->{'qt.gitmodule'} is currently not supported"
+        );
+    }
 
     return;
 }
@@ -489,6 +568,137 @@ sub read_dependencies
     return %dependencies;
 }
 
+# If revdep mode is enabled, set qt.gitmodule=qt.revdep.gitmodule, so the rest of the
+# script will test the revdep.  This should be called after the initial git setup.
+#
+# Warning: this is non-reversible!
+#
+sub maybe_enter_revdep_context
+{
+    my ($self) = @_;
+
+    my $qt_revdep_gitmodule = $self->{ 'qt.revdep.gitmodule' };
+    my $qt_revdep_revdep_ref = $self->{ 'qt.revdep.revdep_ref' };
+    my $qt_gitmodule = $self->{ 'qt.gitmodule' };
+
+    return unless $qt_revdep_gitmodule;
+
+    my $what = "testing reverse dependency $qt_revdep_gitmodule ($qt_revdep_revdep_ref) "
+              ."on top of $qt_gitmodule";
+
+    print __PACKAGE__ . ": $what\n";
+
+    $self->{ 'qt.gitmodule' } = $qt_revdep_gitmodule;
+    $self->{ 'qt.gitmodule.build.dir' } = catfile( $self->{'qt.build.dir'}, $self->{'qt.gitmodule'} );
+
+    return $self->doing( $what );
+}
+
+# Run init-repository for the given @modules.
+# This may be safely run more than once to incrementally clone additional modules.
+# @modules may be omitted to imply _all_ modules.
+sub do_init_repository
+{
+    my ($self, @modules) = @_;
+
+    my $doing = $self->doing( 'running init-repository for '.join(',', @modules) );
+
+    my $qt_dir = $self->{ 'qt.dir' };
+    my $qt_init_repository_args = $self->{ 'qt.init-repository.args' };
+    my $location = $self->{ 'location' };
+
+    local $CWD = $qt_dir;
+
+    my @init_repository_arguments = split( q{ }, $qt_init_repository_args );
+
+    if (defined( $location ) && ($location eq 'brisbane')) {
+        push @init_repository_arguments, '-brisbane-nokia-developer';
+    }
+    elsif (defined( $location ) && ($location eq 'oslo')) {
+        push @init_repository_arguments, '-nokia-developer';
+    }
+
+    if (@modules) {
+        push @init_repository_arguments, '--module-subset='.join(q{,}, @modules);
+    }
+
+    # We use `-force' so that init-repository can be restarted if it hits an error
+    # halfway through.  Without this, it would refuse.
+    push @init_repository_arguments, '-force';
+
+    $self->exe( { reliable => 'git' },  # recover from transient git errors during init-repository
+        'perl', './init-repository', @init_repository_arguments
+    );
+
+    return;
+}
+
+sub set_module_refs
+{
+    my ($self, %module_to_ref) = @_;
+
+    my $qt_dir = $self->{ 'qt.dir' };
+
+    # Checkout dependencies as specified in the sync.profile, which specifies the sha1s/refs within them
+    # Also, this code assumes that init-repository always uses `origin' as the remote.
+    while ( my ($module, $ref) = each %module_to_ref ) {
+        local $CWD = catfile( $qt_dir, $module );
+
+        # FIXME how do we guarantee we have this SHA1?
+        # If it's not reachable from a branch obtained from a default `clone', it could be missing.
+        if ( $ref =~ /^[0-9a-f]{40}$/) { # Is a SHA1, else is a ref and may need to be fetched
+            $self->exe( 'git', 'reset', '--hard', $ref );
+        }
+        else {
+            # Only "git fetch" if we do not already have the desired ref
+            qx(git rev-parse --verify --quiet $ref);
+            if ($?) {
+                $self->exe( 'git', 'fetch', '--verbose', 'origin', "+$ref:$ref" );
+            }
+            $self->exe( 'git', 'reset', '--hard', $ref );
+        }
+
+        # init-repository is expected to initialize any nested gitmodules where
+        # necessary; however, since we are changing the tracked SHA1 here, we
+        # need to redo a `submodule update' in case any gitmodule content is
+        # affected.  Note that the `submodule update' is a no-op in the usual case
+        # of no nested gitmodules.
+        $self->exe( 'git', 'submodule', 'update', '--recursive', '--init' );
+    }
+
+    return;
+}
+
+# Maybe skip (warn and exit with 0 exit code) the revdep test, if:
+#  - the revdep module actually does not depend on _this_ module.
+#  - the revdep sync.profile refers to a ref other than qt.revdep.dep_ref
+#
+sub maybe_skip_revdep_test
+{
+    my ($self, %module_to_ref) = @_;
+
+    my $qt_gitmodule = $self->{ 'qt.gitmodule' };
+    my $qt_revdep_gitmodule = $self->{ 'qt.revdep.gitmodule' };
+    my $qt_revdep_dep_ref = $self->{ 'qt.revdep.dep_ref' };
+
+    if (! exists $module_to_ref{ $qt_gitmodule }) {
+        warn "revdep module [$qt_revdep_gitmodule] does not depend on this module "
+            ."[$qt_gitmodule].\nrevdep test skipped.\n";
+        exit 0;
+    }
+
+    my $wanted_dep_ref = $module_to_ref{ $qt_gitmodule };
+    if ($wanted_dep_ref ne $qt_revdep_dep_ref) {
+        warn "revdep module's sync.profile refers to a ref other than this one:\n"
+            ."  [$qt_revdep_gitmodule]: $qt_gitmodule => $wanted_dep_ref\n"
+            ."  [$qt_gitmodule]: qt.revdep.dep_ref => $qt_revdep_dep_ref\n"
+            ."revdep test skipped.\n";
+        exit 0;
+    }
+
+    return;
+}
+
 sub run_git_checkout
 {
     my ($self) = @_;
@@ -502,6 +712,8 @@ sub run_git_checkout
     my $qt_repository = $self->{ 'qt.repository' };
     my $qt_dir        = $self->{ 'qt.dir'        };
     my $qt_gitmodule  = $self->{ 'qt.gitmodule'  };
+    my $qt_revdep_gitmodule = $self->{ 'qt.revdep.gitmodule' };
+    my $qt_revdep_revdep_ref = $self->{ 'qt.revdep.revdep_ref' };
     my $location      = $self->{ 'location'      };
 
     # We don't need to clone submodules for qt/qt.git
@@ -509,95 +721,68 @@ sub run_git_checkout
 
     chdir( $base_dir );
 
+    # Store the SHA1 to be tested into refs/testing before doing anything which might
+    # move us to some other revision.
+    $self->exe( 'git', 'update-ref', 'refs/testing', 'HEAD' );
+
     # Clone the Qt superproject
     if ($qt_gitmodule ne 'qt5' && ! -d $qt_dir) {
         $self->exe( 'git', 'clone', '--branch', $qt_branch, $qt_repository, $qt_dir );
     }
 
-    chdir( $qt_dir );
+    local $CWD = $qt_dir;
 
-    # Load sync.profile for this module.
-    # qt5 and qtbase never have dependencies.
-    my %dependencies = ();
-    if ($qt_gitmodule ne 'qt5' && $qt_gitmodule ne 'qtbase') {
-        %dependencies = $self->read_dependencies( "$base_dir/sync.profile" );
+    # map from gitmodule name to desired ref for testing
+    my %module_to_ref;
+
+    # list of modules we need to clone via init-repository
+    my @needed_modules;
+
+    if ($qt_revdep_gitmodule) {
+        # In revdep mode, the revdep determines the needed modules...
+        $self->do_init_repository( $qt_revdep_gitmodule );
+        $self->set_module_refs( $qt_revdep_gitmodule => $qt_revdep_revdep_ref );
+        %module_to_ref = $self->read_dependencies( catfile($qt_revdep_gitmodule, 'sync.profile') );
+        $self->maybe_skip_revdep_test( %module_to_ref );
+        # ...but we don't respect the revdep's sync.profile entry for _this_ module, since we're testing
+        # an incoming change
+        delete $module_to_ref{ $qt_gitmodule };
+    } elsif ($qt_gitmodule ne 'qt5' && $qt_gitmodule ne 'qtbase') {
+        %module_to_ref = $self->read_dependencies( catfile($base_dir, 'sync.profile') );
     }
 
-    my @init_repository_arguments = split( q{ }, $qt_init_repository_args );
+    # clone any remaining modules we haven't got yet.
+    push @needed_modules, keys( %module_to_ref );
 
-    if (defined( $location ) && ($location eq 'brisbane')) {
-        push @init_repository_arguments, '-brisbane-nokia-developer';
-    }
-    elsif (defined( $location ) && ($location eq 'oslo')) {
-        push @init_repository_arguments, '-nokia-developer';
-    }
-
-    # Tell init-repository to only use the modules specified as dependencies
-    # qtbase doesn't depend on anything
-    if (%dependencies || $qt_gitmodule eq 'qtbase') {
-        my @modules = keys( %dependencies );
-        if (-d $qt_gitmodule) {
-            push @modules, $qt_gitmodule;
-        }
-        push @init_repository_arguments, '--module-subset='.join(q{,}, @modules);
-    }
-
-    # We use `-force' so that init-repository can be restarted if it hits an error
-    # halfway through.  Without this, it would refuse.
-    push @init_repository_arguments, '-force';
-
-    $self->exe( { reliable => 'git' },  # recover from transient git errors during init-repository
-        'perl', './init-repository', @init_repository_arguments
-    );
-
-    # Checkout dependencies as specified in the sync.profile, which specifies the sha1s/refs within them
-    # Also, this code assumes that init-repository always uses `origin' as the remote.
-    while ( my ($module, $ref) = each %dependencies ) {
-        chdir( $module );
-        # FIXME how do we guarantee we have this SHA1?
-        # If it's not reachable from a branch obtained from a default `clone', it could be missing.
-        if ( $ref =~ /^[0-9a-f]{40}$/) { # Is a SHA1, else is a ref and may need to be fetched
-            $self->exe( 'git', 'reset', '--hard', $ref );
-        }
-        else {
-            $self->exe( 'git', 'fetch', '--verbose', 'origin', "+$ref:refs/qtmod_test" );
-            $self->exe( 'git', 'reset', '--hard', 'refs/qtmod_test' );
-        }
-
-        # init-repository is expected to initialize any nested gitmodules where
-        # necessary; however, since we are changing the tracked SHA1 here, we
-        # need to redo a `submodule update' in case any gitmodule content is
-        # affected.  Note that the `submodule update' is a no-op in the usual case
-        # of no nested gitmodules.
-        $self->exe( 'git', 'submodule', 'update', '--recursive', '--init' );
-
-        chdir( '..' );
+    # only do init-repository if there's at least one needed module, or if we're
+    # testing qt5 (in which case we expect to test _all_ modules).
+    # Note that @needed_modules should _not_ contain $qt_gitmodule, that is handled
+    # in the next step.
+    if (@needed_modules || $qt_gitmodule eq 'qt5') {
+        $self->do_init_repository( @needed_modules );
     }
 
     # Now we need to set the submodule content equal to our tested module's base.dir
     if ($qt_gitmodule ne 'qt5') {
-        if (-d $qt_gitmodule) {
-            # The module is hosted in qt5, so just update it.
-            chdir( $qt_gitmodule );
-            $self->exe( 'git', 'fetch', $base_dir, '+HEAD:refs/heads/testing' );
-            $self->exe( 'git', 'reset', '--hard', 'testing' );
+        # Store a flag telling us whether or not this is a module hosted in qt5.git;
+        # the build/test procedure can differ slightly depending on this value.
+        $self->{ module_in_qt5 } = (-d $qt_gitmodule);
 
-            # Again, since we changed the SHA1, we potentially need to update any submodules.
-            $self->exe( 'git', 'submodule', 'update', '--recursive', '--init' );
-
-            $self->{ module_in_qt5 } = 1;
-        }
-        else {
-            # The module is not hosted in qt5, so we have to clone it anew.
+        if ($self->path_eq( $base_dir, $qt_gitmodule )) {
+            # If the gitmodule directory in qt5.git is equal to base.dir, then we already
+            # have the repo; we just need to set the revision back to what it was before
+            # init-repository.
+            $module_to_ref{ $qt_gitmodule } = 'refs/testing';
+        } else {
+            # Otherwise, we don't have the repo (we didn't pass it to init-repository).
+            # base.dir's HEAD should still point at what we want to test, so just clone
+            # it, and no further work required.
             $self->exe( 'git', 'clone', '--shared', $base_dir, $qt_gitmodule );
-
-            # Get submodules (if any)
-            chdir( $qt_gitmodule );
-            $self->exe( 'git', 'submodule', 'update', '--recursive', '--init' );
-
-            $self->{ module_in_qt5 } = 0;
         }
     }
+
+    # Set various modules to the SHA1s we want.
+    $self->set_module_refs( %module_to_ref );
 
     return;
 }
