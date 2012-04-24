@@ -1,0 +1,17 @@
+[ '--summarize', "$DATADIR/raw-logs/qt-module-testscheduler-test-fail.txt" ]
+Autotest `tst_qmdiarea' failed for macx-clang OSX 10.7 :(
+
+  Testing tst_QMdiArea
+  XPASS  : tst_QMdiArea::subWindowActivated2() QCOMPARE(spy.count(), 1) returned TRUE unexpectedly.
+     Loc: [tst_qmdiarea.cpp(536)]
+  2012-04-24 11:34:02.743 tst_qmdiarea[17589:107] not in fullscreen state
+  Totals: 49 passed, 1 failed, 0 skipped
+  QtQA::App::TestRunner: test failed, running again to see if it is flaky...
+  Testing tst_QMdiArea
+  XPASS  : tst_QMdiArea::subWindowActivated2() QCOMPARE(spy.count(), 1) returned TRUE unexpectedly.
+     Loc: [tst_qmdiarea.cpp(536)]
+  2012-04-24 11:34:20.622 tst_qmdiarea[17679:107] not in fullscreen state
+  Totals: 49 passed, 1 failed, 0 skipped
+  QtQA::App::TestRunner: test failure could be reproduced twice consecutively
+  QtQA::App::TestRunner: end [./tst_qmdiarea.app/Contents/MacOS/tst_qmdiarea] [-silent] [-o] [/Users/qt/.pulse2-agent/data/recipes/179090167/base/_artifacts/test-logs/tst_qmdiarea-testresults-00.xml,xml] [-o] [-,txt], exit code 1
+

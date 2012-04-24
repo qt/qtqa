@@ -1295,21 +1295,39 @@ my %RE = (
 
     # The line where execution of an autotest begins.
     #
-    # Example:
+    # Example (old style):
     #   make[3]: Entering directory `/home/qt/.pulse2-agent/data/recipes/129375783/base/qt/qtsystems/tests/auto/common'
     #   /home/qt/.pulse2-agent/data/recipes/129371992/base/_qtqa_latest/scripts/generic/testrunner.pl --timeout 900 --tee-logs /home/qt/.pulse2-agent/data/recipes/129371992/base/_artifacts/test-logs --plugin core --plugin flaky -- ./tst_qhostinfo
+    #
+    # Example (new style):
+    #   QtQA::App::TestRunner: begin [./tst_qmdiarea.app/Contents/MacOS/tst_qmdiarea] [-silent] [-o] [/Users/qt/.pulse2-agent/data/recipes/179090167/base/_artifacts/test-logs/tst_qmdiarea-testresults-00.xml,xml] [-o] [-,txt]
     #
     # Captures:
     #   name    -   basename of autotest (e.g. tst_foobar, sys_quux)
     #
     # Caveats:
-    #   Depends on usage of testrunner.pl or special output from make.
-    #   So, a little prone to error.
+    #   The old style depends on usage of testrunner.pl or special output from make,
+    #   and is a little prone to error.
+    #   The new style should be robust when testscheduler is used.
     #
     autotest_begin => qr{
         \A
 
         (?:
+            # new style, testscheduler
+            QtQA::App::TestRunner:\ begin\ \[
+            [^\]]{1,100}
+            (?:/|\\)
+            (?<name>
+                [^\]]{1,100}
+            )
+            \]
+        )
+
+        |
+
+        (?:
+            # old style
 
             .*?
             (?:
@@ -1347,6 +1365,13 @@ my %RE = (
             )
             '
         )
+    }xms,
+
+    # Indicator that an autotest failed.
+    autotest_fail => qr{
+        \A
+        QtQA::App::TestScheduler:\ .{1,200}\ failed
+        \z
     }xms,
 
     # Indicator that an autotest was flaky.
@@ -1743,24 +1768,24 @@ sub identify_failures
         my $length = length($line);
 
         next if $handle_special_chunk->(
-            'make check',
+            'autotest',
             $line,
             {
                 begin_re => $RE{ autotest_begin },
                 begin_sub => sub {
-                    my ($make_check_fail) = @_;
+                    my ($autotest_fail) = @_;
                     my $name = $+{ name };
                     $name =~ s{\.exe$}{}i; # don't care about trailing .exe, if any
                     push @{$out->{ autotest_fail }}, {
                         name    =>  $name,
-                        details =>  $make_check_fail->{ details },
-                        flaky   =>  $make_check_fail->{ flaky },
+                        details =>  $autotest_fail->{ details },
+                        flaky   =>  $autotest_fail->{ flaky },
                     };
                 },
                 read_sub => sub {
-                    my ($make_check_fail) = @_;
+                    my ($autotest_fail) = @_;
                     if ($length <= $MAX_LINE_LENGTH && $line =~ $RE{ autotest_flaky }) {
-                        $make_check_fail->{ flaky } = $line;
+                        $autotest_fail->{ flaky } = $line;
                     }
                 },
             }
@@ -1821,10 +1846,15 @@ sub identify_failures
                 $out->{ make_check_fail } = $line;
 
                 # start reading the details of the failure.
-                $start_special_chunk->( 'make check' );
+                $start_special_chunk->( 'autotest' );
             }
 
             $out->{ significant_lines }{ $line } = 1;
+        }
+
+        # autotest failed?
+        elsif ($save_failures && $line =~ $RE{ autotest_fail }) {
+            $start_special_chunk->( 'autotest' );
         }
 
         # opening a YAML error message?
