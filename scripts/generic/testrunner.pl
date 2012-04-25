@@ -444,6 +444,10 @@ sub exit_with_logging_error
        ."please check the test environment.\n"
     );
 
+    # We're about to do an emergency exit; in sync-output mode, flush
+    # the buffer (even if we don't have a lock on the output lockfile)
+    $self->flush_sync_output_buffer( );
+
     exit $EXIT_LOGGING_ERROR;
 }
 
@@ -1081,9 +1085,23 @@ sub do_subprocess_with_sync_output
     # ...and we can't output until we can get the lock
     flock($fh, LOCK_EX) || die "flock $lockfile: $!";
 
-    local $OUTPUT_AUTOFLUSH = 1;
-    print $self->{ sync_output_buffer };
+    $self->flush_sync_output_buffer( );
+
     $fh->close( ) || die "close $lockfile: $!";
+    return;
+}
+
+# Empties the sync_output_buffer, printing its content to stdout.
+sub flush_sync_output_buffer
+{
+    my ($self) = @_;
+
+    if (my $buffer = $self->{ sync_output_buffer }) {
+        local $OUTPUT_AUTOFLUSH = 1;
+        print $buffer;
+        $self->{ sync_output_buffer } = q{};
+    }
+
     return;
 }
 
