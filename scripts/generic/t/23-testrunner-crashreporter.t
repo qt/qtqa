@@ -195,7 +195,11 @@ sub run
         plan 'skip_all', "test is not relevant on $OSNAME";
     }
 
-    test_testrunner;
+    TODO: {
+        local $TODO = 'QTQAINFRA-488, mac crash report collection is unstable';
+        test_testrunner;
+    }
+
     done_testing;
 
     return;
