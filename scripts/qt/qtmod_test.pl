@@ -55,6 +55,7 @@ use Data::Dumper;
 use English qw( -no_match_vars );
 use Env::Path;
 use File::chdir;
+use File::Basename;
 use File::Path;
 use File::Spec::Functions qw( :ALL );
 use List::MoreUtils qw( any apply );
@@ -113,6 +114,7 @@ my @PROPERTIES = (
 
     q{qt.install.dir}          => q{directory where Qt is expected to be installed (e.g. as set by }
                                 . q{-prefix option to configure). Mandatory if qt.make_install is 1. }
+                                . q{This directory will be recursively deleted if it already exists. }
                                 . q{After installation, basic verification of the install will be }
                                 . q{performed},
 
@@ -246,6 +248,20 @@ sub path_eq
     return 0;
 }
 
+# Returns 1 if $sub is underneath or equal to $base.
+# Dies if either of dirname($base) or dirname($sub) don't exist.
+sub path_under
+{
+    my ($self, $base, $sub) = @_;
+    return 1 if ($base eq $sub);
+
+    ($base, $sub) = map { canonpath( $self->safe_abs_path( $_ ) ) } ($base, $sub);
+    return 1 if ($base eq $sub);
+
+    return 1 if ($sub =~ m{\A\Q$base\E(?:/|\\)});
+    return 0;
+}
+
 sub run
 {
     my ($self) = @_;
@@ -255,6 +271,7 @@ sub run
     my $qt_gitmodule = $self->{ 'qt.gitmodule' };
     my $doing = $self->doing( "testing $qt_gitmodule" );
 
+    $self->run_clean_directories;
     $self->run_git_checkout;
 
     my $doing_revdep = $self->maybe_enter_revdep_context;
@@ -568,6 +585,55 @@ sub read_dependencies
     return %dependencies;
 }
 
+sub run_clean_directories
+{
+    my ($self) = @_;
+
+    my $doing = $self->doing( 'cleaning existing target directories' );
+
+    my $qt_dir = $self->{ 'qt.dir' };
+    my $qt_build_dir = $self->{ 'qt.build.dir' };
+    my $qt_install_dir = $self->{ 'qt.install.dir' };
+
+    my @to_delete;
+    my @to_create;
+
+    if ($qt_dir ne $qt_build_dir) {
+        # shadow build?  make sure we start clean.
+        if (-e $qt_build_dir) {
+            push @to_delete, $qt_build_dir;
+        }
+        push @to_create, $qt_build_dir;
+    }
+
+    if ($qt_install_dir
+            && -d dirname( $qt_install_dir )
+            && !$self->path_under( $qt_build_dir, $qt_install_dir )
+            && -e $qt_install_dir
+    ) {
+        push @to_delete, $qt_install_dir;
+        # note we do not create the install dir, `make install' is expected to do that
+    }
+
+    if (@to_delete) {
+        local $LIST_SEPARATOR = qq{\n*** WARNING:    };
+        warn(
+             ("*" x 80)."\n"
+            ."*** WARNING: About to remove:$LIST_SEPARATOR@to_delete\n"
+            ."*** WARNING: You have only a few seconds to abort (CTRL+C) !\n"
+            .("*" x 80)."\n"
+        );
+        warn "Removing...\n";
+        sleep 15;
+        rmtree( \@to_delete );
+        warn "Removed.\n";
+    }
+
+    mkpath( \@to_create );
+
+    return;
+}
+
 # If revdep mode is enabled, set qt.gitmodule=qt.revdep.gitmodule, so the rest of the
 # script will test the revdep.  This should be called after the initial git setup.
 #
@@ -809,22 +875,6 @@ sub run_configure
         # In minimal deps mode, we turn off the optional build parts globally, then later
         # turn them on explicitly for this particular module under test.
         $qt_configure_extra_args .= join( ' -nomake ', q{}, @OPTIONAL_BUILD_PARTS );
-    }
-
-    if ($qt_dir ne $qt_build_dir) {
-        # shadow build?  make sure we start clean.
-        if (-e $qt_build_dir) {
-            warn(
-                 ("*" x 80)."\n"
-                ."*** WARNING: Build dir $qt_build_dir already exists - going to delete it.\n"
-                ."*** WARNING: You have only a few seconds to abort (CTRL+C) !\n"
-                .("*" x 80)."\n"
-            );
-            sleep 15;
-            rmtree( $qt_build_dir );
-            warn "Removed $qt_build_dir.\n";
-        }
-        mkpath( $qt_build_dir );
     }
 
     chdir( $qt_build_dir );
