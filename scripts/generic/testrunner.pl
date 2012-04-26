@@ -564,7 +564,12 @@ sub create_and_open_logfiles
         my $logdir = dirname( $logfile );
 
         if (! -d $logdir && ! mkpath( $logdir )) {
-            $self->exit_with_logging_error( "mkpath $logdir: $!" );
+            # $logdir could be created by another process in parallel; this is why we need
+            # a check both before and after the mkpath().
+            sleep 1;
+            if (! -d $logdir) {
+                $self->exit_with_logging_error( "mkpath $logdir: $!" );
+            }
         }
 
         open( my $fh, '>', $logfile ) || $self->exit_with_logging_error( "open $logfile: $!" ); ## no critic
