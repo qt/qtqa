@@ -225,11 +225,23 @@ sub safe_abs_path
 {
     my ($self, $path) = @_;
 
-    my $abs_path = abs_path( $path );
-    if (!$abs_path) {
+    # On Windows, abs_path dies if $path doesn't exist.
+    # On Unix, it is OK if $path doesn't exist, as long as dirname($path) exists.
+    # Adjust the lookup to get the same behavior on both platforms.
+    my $end;
+    if (! -e $path) {
+        ($end, $path) = fileparse( $path );
+    }
+
+    my $abs_path = eval { abs_path( $path ) };
+    if ($@ || !$abs_path) {
         $self->fatal_error(
             "path '$path' unexpectedly does not exist (while in directory: $CWD)"
         );
+    }
+
+    if ($end) {
+        $abs_path = catfile( $abs_path, $end );
     }
 
     return $abs_path;
