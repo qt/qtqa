@@ -255,6 +255,26 @@ sub test_single_pass
     return;
 }
 
+sub test_single_pass_no_summary
+{
+    my ($testplan, $unlink) = make_testplan_from_directory "$TESTDATA_DIR/tests/passing_significant_test";
+
+    my $status;
+    my $output = capture_merged {
+        $status = system(
+            $EXECUTABLE_NAME,
+            $TESTSCHEDULER,
+            '--plan',
+            "$testplan",
+            '--no-summary',
+        );
+    };
+    is( $status, 0, 'testscheduler with single pass and --no-summary is a pass' );
+    is( $output, "passing. 1 arg(s)\n", 'testscheduler output as expected' );
+
+    return;
+}
+
 sub run
 {
     # qmake the testdata before doing anything else.
@@ -272,6 +292,7 @@ sub run
     test_single_fail;
     test_single_insignificant_fail;
     test_single_pass;
+    test_single_pass_no_summary;
     test_mixed;
     done_testing;
 

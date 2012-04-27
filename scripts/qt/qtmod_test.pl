@@ -1323,6 +1323,9 @@ sub run_qtqa_autotests
 
             # Only need to `qmake', `make' the tests the first time.
             do_compile           =>  !$compiled_qtqa_tests,
+
+            # Testscheduler summary is not useful for qtqa tests
+            testscheduler_args   =>  [ '--no-summary' ],
         );
 
         $compiled_qtqa_tests = 1;
@@ -1407,6 +1410,7 @@ sub _run_autotests_impl
                 catfile( "$FindBin::Bin/../generic/testscheduler.pl" ),
                 '--plan',
                 'testplan.txt',
+                @{ $args{ testscheduler_args } || []},
                 split( m{ }, $qt_tests_testscheduler_args ),
                 @testrunner_args,
             );

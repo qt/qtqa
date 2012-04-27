@@ -75,6 +75,13 @@ Execute tests in parallel, up to N concurrently.
 Note that only tests marked with parallel_test in the testplan
 are permitted to run in parallel.
 
+=item --no-summary
+
+=item --summary
+
+Disable/enable printing a summary of test timing, failures, and
+totals at the end of the test run.  Enabled by default.
+
 =item --debug
 
 Output a lot of additional information.  Use it for debugging,
@@ -141,6 +148,7 @@ sub new
     return bless {
         jobs => 1,
         debug => 0,
+        summary => 1,
     }, $class;
 }
 
@@ -153,6 +161,7 @@ sub run
         'plan=s'    =>  \$self->{ testplan },
         'j|jobs=i'  =>  \$self->{ jobs },
         'debug'     =>  \$self->{ debug },
+        'summary!'  =>  \$self->{ summary },
     ) || pod2usage(2);
 
     # Strip trailing --, if that's what ended our argument processing
@@ -171,9 +180,11 @@ sub run
 
     $self->debug( sub { 'results: '.Dumper(\@results) } );
 
-    $self->print_timing( @results );
-    $self->print_failures( @results );
-    $self->print_totals( @results );
+    if ($self->{ summary }) {
+        $self->print_timing( @results );
+        $self->print_failures( @results );
+        $self->print_totals( @results );
+    }
 
     $self->exit_appropriately( @results );
 
