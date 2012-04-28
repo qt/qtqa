@@ -62,7 +62,7 @@ bool QBic::isBlacklisted(const QString &className) const
         return true;
 
     for (int i = 0; i < blackList.count(); ++i)
-        if (blackList.at(i).exactMatch(className))
+        if (blackList[i].exactMatch(className))
             return true;
     return false;
 }

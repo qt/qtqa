@@ -85,7 +85,7 @@ public:
     SizeDiff diffSizes(const Info &oldLib, const Info &newLib) const;
 
 private:
-    QList<QRegExp> blackList;
+    mutable QList<QRegExp> blackList;
 };
 
 #endif
