@@ -87,12 +87,19 @@ sub run_one_test
         );
     };
 
-    # First line of stdout should always be the command.
-    my $logged_command = quotemeta( '+ '.join(' ', @{$command}) );
-    like( $stdout, qr{\A $logged_command \n}xms, "$testname stdout first line looks correct" );
+    # Immediately prior to stdout should always be the command;
+    # Prior to that may be either CWD or PATH lines.
+    my $prefix = quotemeta( '+ '.join(' ', @{$command}) );
+    $prefix = qr{
+        \A
+        (?:\+\ CWD:\ [^\n]+\n)?
+        (?:\+\ PATH:\ [^\n]+\n)?
+        $prefix \n
+    }xms;
+    like( $stdout, $prefix, "$testname stdout first line looks correct" );
 
-    # Remove first line for subsequent comparison
-    $stdout =~ s{\A [^\n]+ \n}{}xms;
+    # Remove prefix for subsequent comparison
+    $stdout =~ s{$prefix}{}xms;
 
     is_or_like( $stdout,  $expected_stdout,  "$testname stdout looks correct" );
     is_or_like( $stderr,  $expected_stderr,  "$testname stderr looks correct" );

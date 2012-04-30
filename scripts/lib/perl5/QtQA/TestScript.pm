@@ -50,6 +50,7 @@ use Carp;
 use Config;
 use Cwd qw();
 use Data::Dumper qw();
+use File::chdir;
 use Getopt::Long qw(GetOptionsFromArray);
 use IO::Socket::INET;
 use Lingua::EN::Numbers qw(num2en_ordinal);
@@ -234,8 +235,32 @@ sub exe
 
     local @ENV{@property_env_keys} = values %{$self->{resolved_property}};
 
+    $self->_track_exe_environment( );
     $self->print_when_verbose(0, '+ ', join(' ', @command), "\n");
     $self->_reliable_exe( \%options, @command );
+
+    return;
+}
+
+# Immediately prior to running a subprocess, record the CWD and PATH,
+# and print the value(s) of these if they are different from last time.
+# Should be called once for each exe() invocation.
+sub _track_exe_environment
+{
+    my ($self) = @_;
+
+    my $last_cwd = $self->{ _last_exe_cwd };
+    if (!$last_cwd || $last_cwd ne $CWD) {
+        $self->print_when_verbose( 0, "+ CWD: $CWD\n" );
+        $self->{ _last_exe_cwd } = $CWD;
+    }
+
+    my $PATH = $ENV{ PATH };
+    my $last_path = $self->{ _last_exe_path };
+    if (!$last_path || $last_path ne $PATH) {
+        $self->print_when_verbose( 0, "+ PATH: $PATH\n" );
+        $self->{ _last_exe_path } = $PATH;
+    }
 
     return;
 }
