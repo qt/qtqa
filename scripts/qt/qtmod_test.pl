@@ -635,8 +635,8 @@ sub run_clean_directories
             ."*** WARNING: You have only a few seconds to abort (CTRL+C) !\n"
             .("*" x 80)."\n"
         );
-        warn "Removing...\n";
         sleep 15;
+        warn "Removing...\n";
         rmtree( \@to_delete );
         warn "Removed.\n";
     }
