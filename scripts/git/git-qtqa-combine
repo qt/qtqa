@@ -1,0 +1,974 @@
+#!/usr/bin/env perl
+#############################################################################
+##
+## Copyright (C) 2012 Nokia Corporation and/or its subsidiary(-ies).
+## Contact: http://www.qt-project.org/
+##
+## This file is part of the Quality Assurance module of the Qt Toolkit.
+##
+## $QT_BEGIN_LICENSE:LGPL$
+## GNU Lesser General Public License Usage
+## This file may be used under the terms of the GNU Lesser General Public
+## License version 2.1 as published by the Free Software Foundation and
+## appearing in the file LICENSE.LGPL included in the packaging of this
+## file. Please review the following information to ensure the GNU Lesser
+## General Public License version 2.1 requirements will be met:
+## http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html.
+##
+## In addition, as a special exception, Nokia gives you certain additional
+## rights. These rights are described in the Nokia Qt LGPL Exception
+## version 1.1, included in the file LGPL_EXCEPTION.txt in this package.
+##
+## GNU General Public License Usage
+## Alternatively, this file may be used under the terms of the GNU General
+## Public License version 3.0 as published by the Free Software Foundation
+## and appearing in the file LICENSE.GPL included in the packaging of this
+## file. Please review the following information to ensure the GNU General
+## Public License version 3.0 requirements will be met:
+## http://www.gnu.org/copyleft/gpl.html.
+##
+## Other Usage
+## Alternatively, this file may be used in accordance with the terms and
+## conditions contained in a signed written agreement between you and Nokia.
+##
+##
+##
+##
+##
+##
+## $QT_END_LICENSE$
+##
+#############################################################################
+use strict;
+use warnings;
+
+=head1 NAME
+
+git-qtqa-combine - combine (overlay) multiple git repositories into one
+
+=head1 SYNOPSIS
+
+  git-qtqa-combine [OPTIONS] IN1 IN2 ... OUT1 [ IN3 IN4 ... OUT2 ]
+
+Combine multiple input git repositories into an output repository.
+Multiple sets of input and output repositories may be supplied in a
+single command; the order of arguments determines how they are combined.
+
+This command would typically be used from within a cron job to help maintain
+a vendor branch of an open-source git repository, automatically merging
+changes.
+
+=head2 OPTIONS
+
+=over
+
+=item --workdir DIR
+
+Use DIR as the working directory for git operations.  It will be created
+and initialized as a git repository if it does not yet exist.
+
+This should not be pointed towards a git repository with valuable contents,
+as the work tree and refs will be rewritten.
+
+If this script is expected to be run multiple times, performance will benefit
+significantly from using the same workdir for each run.
+
+=item --monitor
+
+If passed, the script will monitor the input repositories for updates and
+automatically re-run whenever they change.
+
+This is currently implemented by polling every few minutes.  The poll interval
+is not configurable.
+
+=item --in key=val [key=val ...]
+
+Specify an input repository for handling.
+
+Input repositories are processed in the order they appear on the command-line.
+Repositories which appear later in the command-line may overwrite files from
+earlier repositories.
+
+See L<REPOSITORY OPTIONS> for details on the accepted keys/values.
+
+=item --out key=val [key=val ...]
+
+Specify an output repository for handling.  All B<--in> repositories since
+the beginning of the command-line or since the last B<--out> option will be
+combined into this output repository.
+
+See L<REPOSITORY OPTIONS> for details on the accepted keys/values.
+
+=back
+
+=head2 REPOSITORY OPTIONS
+
+When specifying a repository to the --in or --out options, the following
+repository attributes may be specified.
+
+=over
+
+=item url [mandatory]
+
+The git repository URL.
+
+This will typically be a URL using the git:// scheme (read-only) for input
+repositories, and the ssh:// scheme (writable) for output repositories.
+
+However, any URL accepted by git commands will work, including local
+directories (useful for testing).
+
+=item ref [mandatory]
+
+The input or output reference (e.g. B<refs/heads/master> for master branch).
+
+Input refs must exist.  Output refs may or may not exist.  If an output ref
+exists, it will be merged into the result (output refs are not force pushed).
+
+=item submodule [input only]
+
+The input submodule name.
+
+If this is passed, the content from this input repository is taken from the
+named submodule.  The submodule's revision is taken from the url and ref
+of the containing repository.  For example, url=qt5, ref=refs/heads/master and
+submodule=qtbase will take content from whatever qtbase revision is set in
+the master branch of qt5.
+
+=item files [input only]
+
+A file pattern as understood by the B<git ls-files> command.
+
+If given, only files matching this pattern will be taken from the input
+repository.  Otherwise, all files are taken.
+
+=back
+
+=head1 EXAMPLES
+
+Take the stable version of qtbase from qt5 master, and the "mkspecs" directory
+from the "master" branch of an internal device-specific repo, and push the
+combined contents to the "merged" branch of the device repo.
+
+  git-qtqa-combine \
+    --in url=git://qt.gitorious.org/qt/qt5 \
+        ref=refs/heads/master \
+        submodule=qtbase \
+    --in url=git://example.com/git/secret-device-qtbase \
+        ref=refs/heads/master \
+        files=mkspecs \
+    --out url=git@example.com/git/secret-device-qtbase \
+        ref=refs/heads/merged
+
+=cut
+
+package QtQA::App::GitCombine;
+
+use AnyEvent;
+use Capture::Tiny qw(capture_merged);
+use Carp;
+use Data::Dumper;
+use English qw(-no_match_vars);
+use File::Path qw(make_path);
+use File::chdir;
+use Getopt::Long qw(GetOptionsFromArray :config no_permute pass_through);
+use List::MoreUtils qw(pairwise uniq);
+use Pod::Usage;
+use autodie;
+
+############################### Static functions #####################################
+
+# The functions here relating to git require that the current working directory is
+# a git repository.
+
+# Execute some code repeatedly, with exponential backoff, until it succeeds
+# or some maximum amount of tries has passed.
+#
+# Returns the return value from $sub (if it succeeds).
+#
+# The global variable $ROBUSTLY_MAX_ATTEMPTS may be set to adjust the maximum
+# amount of attempts at running the code.
+#
+our $ROBUSTLY_MAX_ATTEMPTS = 8;
+sub robustly(&) ## no critic ProhibitSubroutinePrototypes
+{
+    my ($sub) = @_;
+
+    my $max_iters = $ROBUSTLY_MAX_ATTEMPTS;
+    my $max_sleep = 60*5;
+    my $sleep = 1;
+    my $iter = 0;
+
+    my @out;
+
+    while ($iter++ < $max_iters) {
+
+        (@out) = wantarray
+            ? eval { $sub->() }
+            : scalar( eval { $sub->() } );
+
+        last unless $@;
+
+        if ($iter != $max_iters) {
+            warn "$@\nRetry in $sleep seconds.\n";
+            sleep $sleep;
+            $sleep = $sleep * 2;
+            if ($sleep > $max_sleep) {
+                $sleep = $max_sleep;
+            }
+        }
+
+    }
+
+    if ($@) {
+        die;
+    }
+
+    return wantarray ? @out : $out[0];
+}
+
+# Parse a list of command-line @args and return a list of tasks (hashrefs).
+# Dies if any unrecognized argument is seen, or if not all arguments are consumed.
+#
+# A "task" is a mapping between a set of input repositories and a single output
+# repository.
+sub parse_tasks_from_args
+{
+    my (@args) = @_;
+
+    # Options are broken up into "tasks".
+    # One task is a mapping from multiple input repos to a single output repo.
+    # The --out option terminates a task specifier.
+    my $this_in;
+    my $this_out;
+    my $this_thing;
+    my %this_task;
+    my @tasks;
+
+    while (@args) {
+        $this_thing = undef;
+
+        GetOptionsFromArray(\@args,
+            'in' => sub { $this_in = {}; $this_thing = $this_in; die '!FINISH' },
+            'out' => sub { $this_out = {}; $this_thing = $this_out; die '!FINISH' },
+        ) || die $!;
+
+        if (@args && !defined( $this_thing )) {
+            die "unexpected arguments: @args";
+        }
+
+        while (@args && $args[0] =~ m{\A ([^=]+) = (.+) \z}xms) {
+            my ($key, $val) = ($1, $2);
+            # Note, we use "" here to flatten the Getopt::Long objects
+            $this_thing->{ "$key" } = "$val";
+            shift @args;
+        }
+
+        if (defined $this_in) {
+            push @{$this_task{ in }}, $this_in;
+            $this_in = undef;
+        } else {
+            $this_task{ out } = $this_out;
+            push @tasks, {%this_task};
+            ($this_in, $this_out, $this_thing, %this_task) = ();
+        }
+    }
+
+    if (%this_task) {
+        die "error: --in option(s) without corresponding --out option!\n";
+    }
+
+    return @tasks;
+}
+
+# Given a list of @tasks, dies if they aren't all valid.
+# "valid" means they have the bare minimum mandatory attributes to make sense.
+sub validate_tasks
+{
+    my (@tasks) = @_;
+
+    # URL and ref are absolutely mandatory
+    my @mandatory = qw(url ref);
+
+    foreach my $task (@tasks) {
+        if (!$task->{ in }) {
+            die "error: missing input repositories";
+        }
+
+        foreach my $thing (@{$task->{ in }}, $task->{ out }) {
+            foreach my $m (@mandatory) {
+                if (!$thing->{ $m }) {
+                    die "error: missing $m in: ".Dumper($thing);
+                }
+            }
+        }
+    }
+
+    return;
+}
+
+# Given a $line of output from "git ls-files --stage <submodule>", parses
+# the line and returns a (sha1, name) pair, or dies if the line does not
+# appear to be in the correct format.
+sub parse_submodule_line
+{
+    my ($line) = @_;
+
+    if ($line =~ m{\A \d+ \s+ ([0-9a-f]{40}) \s+ \d \s+ ([^\s]+) \z}xms) {
+        return ($1, $2);
+    }
+
+    die "line '$line' did not parse as a submodule line";
+}
+
+# Returns 1 iff the specified git $object appears to be in the local repository.
+sub have_git_object
+{
+    my ($object) = @_;
+
+    qx(git rev-list -n1 $object 2>&1);
+    return $? ? 0 : 1;
+}
+
+# Like qx, but die on failure, and chomp the returned output.
+sub safe_qx
+{
+    my ($cmd) = @_;
+
+    my @out;
+
+    (@out) = wantarray ? qx($cmd) : scalar(qx($cmd));
+
+    if (my $status = $?) {
+        croak "$cmd exited with status $status";
+    }
+
+    chomp @out;
+
+    return wantarray ? @out : $out[0];
+}
+
+# Given a $repo hashref, returns a human-readable string briefly
+# describing it, suitable for use in output or in commit messages.
+sub stringy_repo
+{
+    my ($repo) = @_;
+
+    my $out = sprintf "%s#%s", $repo->{ url }, $repo->{ 'ref' };
+
+    my @attrs = qw(submodule files);
+
+    $out .= join(q{}, map {
+        my $val = $repo->{ $_ };
+        if ($val) {
+            " [$_ $val]";
+        } else {
+            ();
+        }
+    } @attrs);
+
+    return $out;
+}
+
+# Given two git revisions $rev1 and $rev2, returns 1 iff there is any
+# difference in content between the two revisions.
+sub differs
+{
+    my ($rev1, $rev2) = @_;
+
+    my $diff = '.git/diff.txt';
+
+    system_or_die( qq{git diff "$rev1" "$rev2" > $diff} );
+
+    my $out = (filesize( $diff ) != 0);
+
+    unlink $diff;
+
+    return $out;
+}
+
+# Returns size of a $file, in bytes.
+sub filesize
+{
+    my ($file) = @_;
+    return (stat($file))[7];
+}
+
+# Returns 1 iff 'target' rev is reachable from 'from' rev.
+# Named arguments are used to lessen the risk of getting the
+# order wrong.
+sub reachable
+{
+    my (%args) = @_;
+
+    foreach my $k (qw(target from)) {
+        $args{ $k } || croak "missing '$k' option to reachable";
+    }
+
+    my $target_sha = safe_qx( "git rev-parse --verify $args{ target }" );
+    my $from_sha = safe_qx( "git rev-parse --verify $args{ from }" );
+
+    # 'target' is reachable from 'from' iff the merge-base of the two
+    # is 'target'; this implies target is an ancestor of from.
+    my $merge_base = eval { safe_qx( "git merge-base $target_sha $from_sha" ) };
+    if ($@) {
+        undef $@;
+        return 0;
+    }
+
+    return ($merge_base eq $target_sha);
+}
+
+# Returns 1 iff the specified 'ref' exists on the remote given by 'url'.
+sub ref_exists
+{
+    my (%args) = @_;
+
+    my $out = robustly { safe_qx( "git ls-remote $args{url} $args{ref}" ) };
+
+    return $out ? 1 : 0;
+}
+
+# Given a label and a block of code, runs the block with a simple "OK" or "error" summary.
+# All output from the block is hidden, and printed only if there is an error.
+#
+# Example:
+#
+#  do_with_progress "Doing git clone", { system_or_die( "git clone foo" ) }
+#
+# ... would output something like this, on success:
+#
+#  Doing git clone ... OK.
+#
+# ... and something like this, on error:
+#
+#  Doing git clone ... error!
+#   (error details)
+#
+# If the $sub returns a value, that value is printed rather than "OK".
+#
+# The global variable PROGRESS_PREFIX may be set to prepend a string to each output line.
+#
+our $PROGRESS_PREFIX = q{};
+sub do_with_progress
+{
+    my ($label, $sub) = @_;
+
+    {
+        local $OUTPUT_AUTOFLUSH = 1;
+        printf( "%-90s ... ", $PROGRESS_PREFIX.$label );
+    }
+
+    my $status;
+    my $output = capture_merged { eval { $status = $sub->() } };
+    if ($@) {
+        print "error!\n";
+        warn $output;
+        croak "$@\n";
+    }
+
+    if ($status) {
+        print "$status\n";
+    } else {
+        print "OK.\n";
+    }
+
+    return;
+}
+
+# Like system(), but die on error.
+sub system_or_die
+{
+    my (@command) = @_;
+    my $status = system( @command );
+    if ($status) {
+        croak "@command exited with status $status";
+    }
+    return;
+}
+
+############################### Member functions #####################################
+
+sub new
+{
+    my ($class) = @_;
+    return bless {}, $class;
+}
+
+sub run
+{
+    my ($self, @args) = @_;
+
+    my $workdir;
+    my $monitor;
+
+    # Common arguments are parsed here.
+    GetOptionsFromArray(\@args,
+        'h|?|help'  => sub { pod2usage(1) },
+        'workdir=s' => \$workdir,
+        'monitor'   => \$monitor,
+    ) || die $!;
+
+    $workdir || die 'Missing mandatory --workdir argument';
+
+    # All other arguments are parsed here.
+    my @tasks = parse_tasks_from_args( @args );
+
+    validate_tasks( @tasks );
+
+    # We create the workdir and make it into a git repo, if needed.
+    if (! -d $workdir) {
+        make_path( $workdir );
+    }
+
+    local $CWD = $workdir;
+
+    if (! -d '.git') {
+        system_or_die( 'git', 'init' );
+    }
+
+    $self->{ task_count } = 0;
+
+    local $ROBUSTLY_MAX_ATTEMPTS = $ROBUSTLY_MAX_ATTEMPTS;
+
+    my $cv;
+    if ($monitor) {
+        $cv = $self->setup_monitor( @tasks );
+        # in monitor mode, we expect to run for a long time, unattended.
+        # It makes more sense to try harder to recover from errors here
+        # (e.g. due to scheduled maintenance on git servers).
+        $ROBUSTLY_MAX_ATTEMPTS = 30;
+    }
+
+    # Do all tasks once...
+    $self->do_tasks( @tasks );
+
+    # ... then, if in monitor mode, keep doing whatever tasks the monitor $cv
+    # tells us to do.
+    if ($cv) {
+        print "Monitoring new changes.\n";
+        my @new_tasks;
+        while (($cv, @new_tasks) = $cv->recv( )) {
+            $self->do_tasks( @new_tasks );
+        }
+    }
+
+    print "All done.\n";
+
+    return;
+}
+
+# Given a list of @tasks, sets up monitoring for the input repositories
+# for those tasks.
+#
+# Returns an AnyEvent condition variable.
+#
+# The condition variable receives ($cv, @tasks), where $cv is a new
+# condition variable and @tasks is the list of tasks which need to
+# be re-evaluated due to changes on input repositories.
+# @tasks may be empty if nothing has changed.
+#
+sub setup_monitor
+{
+    my ($self, @tasks) = @_;
+
+    # Find every unique input repository and map their refs to tasks.
+    #
+    # Example:
+    #
+    # %input_to_task = (
+    #   'git://gitorious.org/qt/qtbase' => {
+    #      'refs/heads/master' => [ $task1, $task2 ]
+    #   },
+    #   ...
+    # );
+    #
+    my %input_to_task;
+    foreach my $task (@tasks) {
+        foreach my $in ( @{$task->{ in }} ) {
+            my ($url, $ref) = ($in->{ url }, $in->{ 'ref' });
+            push @{ $input_to_task{ $url }{ $ref } }, $task;
+        }
+    }
+
+    my $cv = AnyEvent->condvar( );
+    $self->{ poll_timer } = $self->make_git_poll_timer( input_map => \%input_to_task, cv => $cv );
+
+    return $cv;
+}
+
+# Create and return the AnyEvent timer object for git polling.
+# The timer interval is hardcoded within this function.
+sub make_git_poll_timer
+{
+    my ($self, %args) = @_;
+
+    my $interval = 4*60;
+
+    return AnyEvent->timer(
+        after => $interval,
+        cb => sub {
+            $self->on_git_poll_interval( %args );
+        },
+    );
+}
+
+# Callback invoked at each git poll interval.
+# Checks which refs on input repositories have changed and does a
+# send() on the condvar with appropriate arguments.
+sub on_git_poll_interval
+{
+    my ($self, %args) = @_;
+
+    my $input_map = $args{ input_map };
+    my $cv = $args{ cv };
+
+    # Find value of all relevant refs
+    my $new_refs = $self->find_remote_refs( %{ $input_map } );
+
+    # Find all tasks which should be executed.
+    my @tasks;
+    foreach my $url (keys %{$input_map}) {
+        foreach my $ref (keys %{$input_map->{ $url }}) {
+            my $old = $self->{ remote_refs }{ $url }{ $ref } || '<nothing>';
+            my $new = $new_refs->{ $url }{ $ref } || '<nothing>';
+            if ($old ne $new) {
+                print "$url $ref changed from $old to $new.\n";
+                push @tasks, @{ $input_map->{ $url }{ $ref } };
+            }
+        }
+    }
+
+    $self->{ remote_refs } = $new_refs;
+
+    # Set up a new cv and poll_timer, this one is finished.
+    $args{ cv } = AnyEvent->condvar( );
+    $self->{ poll_timer } = $self->make_git_poll_timer( %args );
+
+    # Send to the old cv, to be received by run().
+    $cv->send( $args{ cv }, uniq @tasks );
+
+    return;
+}
+
+# Given an input of the form:
+#
+#   (
+#       'git://gitorious.org/qt/qtbase' => {
+#           'refs/heads/master' => ...,
+#       },
+#       ...
+#   )
+#
+# Runs "git ls-remote" on each repository and returns the current
+# value of each ref, in the form:
+#
+#   {
+#       'git://gitorious.org/qt/qtbase' => {
+#           'refs/heads/master' => <some SHA1>,
+#       },
+#       ...
+#   }
+#
+sub find_remote_refs
+{
+    my ($self, %input) = @_;
+
+    my %output;
+
+    while (my ($url, $refs) = each %input) {
+        my @refs = keys %{$refs};
+        do_with_progress "Checking refs on $url", sub {
+            my @out = robustly { safe_qx( qq{git ls-remote "$url" @refs} ) };
+            foreach my $line (@out) {
+                if ($line !~ m{\A ([0-9a-f]{40}) \s+ ([^\s].*) \z}xms) {
+                    die "line '$line' is not expected output from 'git ls-remote'";
+                }
+                my ($sha, $ref) = ($1, $2);
+                $output{ $url }{ $ref } = $sha;
+            }
+        };
+    }
+
+    return \%output;
+}
+
+# Performs all the @tasks.
+sub do_tasks
+{
+    my ($self, @tasks) = @_;
+
+    foreach my $task (@tasks) {
+        $self->do_task( $task );
+    }
+
+    return;
+}
+
+# Performs one $task, dies on error.
+sub do_task
+{
+    my ($self, $task) = @_;
+
+    # Put a unique prefix on all messages while doing this task.
+    $self->{ task_count } = ($self->{ task_count } + 1) % 100;
+    local $PROGRESS_PREFIX = sprintf "[%02d] ", $self->{ task_count };
+
+    my @in = @{ $task->{ in } };
+    my $out = $task->{ out };
+
+    my @local_refs = $self->fetch_refs( @in );
+
+    if (scalar(@in) != scalar(@local_refs)) {
+        die "internal error: repo/ref count mismatch.\n"
+           ."  in: @in\n"
+           ."  local_refs: @local_refs";
+    }
+
+    # include each local_ref into the input repos
+    for my $i (0..@local_refs-1) {
+        $in[$i]->{ local_ref } = $local_refs[$i];
+    }
+
+    # fetch the output ref too - we will need to merge with this.
+    # However, if it doesn't exist, we'll create it.
+
+    do_with_progress "Checking $out->{ url } $out->{ ref }", sub {
+        if (ref_exists( %{$out} )) {
+            $out->{ local_ref } = 'refs/qtqa-combine-out';
+            return 'exists';
+        } else {
+            return "doesn't exist";
+        }
+    };
+
+    if ($out->{ local_ref }) {
+        do_with_progress "Fetching $out->{ url } $out->{ ref }", sub {
+            robustly {
+                system_or_die( 'git', 'fetch', '--verbose', $out->{ url }, "+$out->{ ref }:$out->{ local_ref }" );
+            }
+        };
+    }
+
+    # update index to the desired content, according to @in
+    $self->update_index( @in );
+
+    # git write-tree makes a tree object for the current index and returns its identifier.
+    my $tree = safe_qx('git write-tree');
+
+    # Now we can commit the tree.  $task is used here to decide which parent commit(s)
+    # the new commit should use, and to generate the commit message.
+    my $commit = $self->commit_tree( $task, $tree );
+
+    my $do_push = 1;
+
+    do_with_progress "Checking if a push is needed", sub {
+        if (!$out->{ local_ref }) {
+            return 'yes, remote ref does not exist yet';
+        }
+        if (differs( $commit, $out->{ local_ref } )) {
+            return 'yes, content is different';
+        }
+        $do_push = 0;
+        return 'no, new content identical to old';
+    };
+
+    if ($do_push) {
+        do_with_progress "Pushing $commit to $out->{ url } $out->{ ref }", sub {
+            robustly { system_or_die( 'git', 'push', $out->{ url }, "$commit:$out->{ ref }" ) };
+        };
+    }
+
+    return;
+}
+
+# Given a list of @in repositories (hashrefs), fetches each one into a local ref
+# (possibly fetching from submodule if the 'submodule' key is set), then returns
+# the list of up-to-date local refs.  The size of the returned list is equal
+# to the size of the @in list.
+sub fetch_refs
+{
+    my ($self, @in) = @_;
+
+    my @out;
+
+    foreach my $in (@in) {
+        my $count = scalar @out;
+        my $dest_ref = "refs/qtqa-combine-in/$count";
+
+        do_with_progress "Fetching $in->{ url } $in->{ ref }", sub {
+            robustly {
+                system_or_die( 'git', 'fetch', '--verbose', $in->{ url }, "+$in->{ ref }:$dest_ref" )
+            }
+        };
+
+        # Cache this SHA1 so we can later determine if it has changed.
+        $self->{ remote_refs }{ $in->{ url } }{ $in->{ 'ref' } } = safe_qx( "git rev-parse $dest_ref" );
+
+        if (my $submodule = $in->{ submodule }) {
+            my $sha;
+            do_with_progress "Finding SHA1 for submodule $submodule", sub {
+                system_or_die( 'git', 'reset', '--hard', $dest_ref );
+
+                my $submodule_line = safe_qx(qq{git ls-files --error-unmatch --stage -- "$submodule"});
+                if ($?) {
+                    die "git ls-files for submodule $submodule in $in->{ url } failed with status $?";
+                }
+
+                ($sha, my $name) = parse_submodule_line $submodule_line;
+                if ($name ne $submodule) {
+                    die "git ls-files for $submodule output something for $name instead";
+                }
+
+                return $sha;
+            };
+
+            if (!have_git_object $sha) {
+                my $url = safe_qx(qq{git config -f .gitmodules "submodule.$submodule.url"});
+                if ($?) {
+                    die "failed to git $submodule URL";
+                }
+                do_with_progress "Fetching $url $sha", sub {
+                    robustly {
+                        system_or_die( 'git', 'fetch', $url, '+refs/heads/*:refs/submodule-stash/*' );
+                    }
+                };
+            }
+
+            system_or_die( 'git', 'update-ref', $dest_ref, $sha );
+        }
+
+        push @out, $dest_ref;
+    }
+
+    return @out;
+}
+
+# Given a list of @in repositories, sets the current state of the index to
+# be equal to the overlayed content from each repository.
+#
+# Order matters; the content is set up from each repository in order, so
+# a repo later in the list can overwrite files from an earlier repo.
+#
+# Returns nothing, and dies on error.
+sub update_index
+{
+    my ($self, @in) = @_;
+
+    # This file holds a list of some files to be operated on.
+    my $list = '.git/list.txt';
+
+    my $in = shift @in;
+
+    do_with_progress "Adding ".stringy_repo( $in )." to index", sub {
+        system_or_die( 'git', 'reset', '--hard', $in->{ local_ref } );
+
+        if ($in->{ files }) {
+            system_or_die( qq(git ls-files -- "$in->{ files }" > $list) );
+            system_or_die( qq(git rm -r -- .) );
+            # note: this reset _must_ be --quiet.  Otherwise it gives a non-zero exit code
+            # to indicate that a "git checkout" needs to be done.
+            system_or_die( qq(xargs git reset --quiet HEAD -- < $list) );
+            system_or_die( qq(xargs git checkout -- < $list) );
+        }
+    };
+
+    while ($in = shift @in) {
+        do_with_progress "Adding ".stringy_repo( $in )." to index", sub {
+            my $files = $in->{ files } || q{};
+            my $ref = $in->{ local_ref };
+            system_or_die( qq(git ls-files --with-tree=$ref -- $files > $list) );
+
+            if (filesize( $list ) == 0) {
+                croak "'$files' does not match any files for ".stringy_repo( $in );
+            }
+
+            system_or_die( qq(xargs git checkout --force $ref -- < $list) );
+            system_or_die( qq(xargs git add -f -- < $list) );
+        };
+    }
+
+    if (-e $list) {
+        unlink $list;
+    }
+
+    return;
+}
+
+# Given the current $task and a $tree identifier, commits the tree
+# and returns the SHA1.
+#
+# The commit's parents and message are decided based on the content of
+# $task.  The commit will usually be a merge commit which conceptually
+# represents a merge into the output from whichever inputs changed since
+# the last merge.
+sub commit_tree
+{
+    my ($self, $task, $tree) = @_;
+
+    local $ENV{ GIT_AUTHOR_NAME } = 'Qt Repository Combine Bot';
+    local $ENV{ GIT_AUTHOR_EMAIL } = 'qt-info@nokia.com';
+    local $ENV{ GIT_COMMITTER_NAME } = $ENV{ GIT_AUTHOR_NAME };
+    local $ENV{ GIT_COMMITTER_EMAIL } = $ENV{ GIT_AUTHOR_EMAIL };
+
+    # The revision on the output repo/ref, prior to the push we're about to do.
+    # Can be undefined.
+    my $previous_output_revision = $task->{ out }{ local_ref };
+
+    # The output repo's ref is always the first parent commit if it exists
+    # (conceptually, we're merging into the output repo).
+    my @refs;
+    if ($previous_output_revision) {
+        push @refs, $previous_output_revision;
+    }
+
+    # Only merge commits which aren't already reachable.  This means the history
+    # will more clearly show what is being merged by each commit.
+    my @in_to_merge = @{ $task->{ in } };
+    if ($previous_output_revision) {
+        @in_to_merge = grep {
+            !reachable(
+                from => $previous_output_revision,
+                target => $_->{ local_ref }
+            )
+        } @in_to_merge;
+    }
+
+    push @refs, map( { $_->{ local_ref } } @in_to_merge);
+
+    my @cmd = ('git', 'commit-tree', $tree);
+
+    foreach my $ref (@refs) {
+        my $sha = safe_qx( "git rev-parse --verify $ref" );
+        push @cmd, '-p', $sha;
+    }
+
+    my $commit_message = "Combined repositories.\n\n";
+
+    # If there is only one merged repository, directly put that as the summary.
+    # This should be the normal case, if the script is being run regularly.
+    if (scalar(@in_to_merge) == 1) {
+        $commit_message = "Merged ".stringy_repo(@in_to_merge);
+    } else {
+        $commit_message .= join( "\n\n", map { "  Merged ".stringy_repo($_) } @in_to_merge );
+    }
+
+    my $commit_message_file = '.git/commit_message.txt';
+
+    open( my $fh, '>', $commit_message_file );
+    print $fh $commit_message;
+    close( $fh );
+
+    my $commit;
+    do_with_progress "Committing", sub {
+        $commit = safe_qx( "@cmd < $commit_message_file" );
+        return $commit;
+    };
+
+    unlink $commit_message_file;
+
+    return $commit;
+}
+
+QtQA::App::GitCombine->new( )->run( @ARGV ) if (!caller);
+1;
