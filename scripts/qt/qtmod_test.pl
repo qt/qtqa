@@ -667,6 +667,7 @@ sub maybe_enter_revdep_context
     print __PACKAGE__ . ": $what\n";
 
     $self->{ 'qt.gitmodule' } = $qt_revdep_gitmodule;
+    $self->{ 'qt.gitmodule.dir' } = catfile( $self->{'qt.dir'}, $self->{'qt.gitmodule'} );
     $self->{ 'qt.gitmodule.build.dir' } = catfile( $self->{'qt.build.dir'}, $self->{'qt.gitmodule'} );
 
     return $self->doing( $what );
