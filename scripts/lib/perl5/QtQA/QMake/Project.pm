@@ -172,7 +172,7 @@ sub _qx_or_croak
         # If $output contains this magic, we deliberately exited, and the status can
         # be ignored.
         if ($output !~ m/\Q$MAGIC_QMAKE_EXIT_STRING\E/) {
-            croak __PACKAGE__.": command `$cmd' exited with status $?, output follows:\n$output\n";
+            croak __PACKAGE__.": command `$cmd', in directory $CWD, exited with status $?, output follows:\n$output\n";
         }
         return $output;
     }
