@@ -279,18 +279,16 @@ sub makefile_var
         # We know $(MAKEDIR) points to the right directory, but the actual
         # filename appears not exposed in any way.
         #
-        # In practice this is not thought to be a problem - even qmake assumes
-        # the makefile is always called "Makefile" in various places.
-        # It is also OK to invoke the top-level Makefile (rather than
-        # Makefile.Release etc) for our purpose, since its "check" target
-        # always links back to the active test configuration anyway.
+        # Since there's no way to accurately determine it, we instead glob for
+        # all "Makefile*", and decide ourselves which one is the right one
+        # (e.g. discounting Makefile.Release and Makefile.Debug).
         #
         # Note that for nmake specifically, and not jom, it is necessary to
         # double-escape the variable ($$), otherwise it is evaluated too early.
         # It's not entirely clear why this is necessary for nmake and not for
         # other tools; the method which nmake uses to pass "TESTRUNNER" etc
         # args to submakes appears to be undocumented.
-        my $out = '$(MAKEDIR)\Makefile';
+        my $out = '$(MAKEDIR)\Makefile*';
         if ($self->{ make } =~ m{\bnmake}i) {
             $out = '$'.$out;
         }
@@ -302,12 +300,54 @@ sub makefile_var
     return '$(CURDIR)/$(firstword $(MAKEFILE_LIST))';
 }
 
+sub resolved_makefile
+{
+    my ($self) = @_;
+
+    my $makefile = $self->{ makefile } || 'Makefile';
+
+    # no globbing necessary on platforms other than Windows.
+    if (!$WINDOWS) {
+        return $makefile;
+    }
+
+    my @globbed = glob $makefile;
+
+    # Omit .Debug and .Release makefiles.  There should be a top-level makefile.
+    @globbed = grep { $_ !~ m{\. (?:Debug|Release) \z}xms } @globbed;
+
+    if (!@globbed) {
+         die "In $CWD, no makefile found (looking for: $makefile)\n";
+    }
+
+    # If we found multiple makefiles, sort them by length (and then name, if there
+    # are multiple of the same length).  The shortest one is considered the "main"
+    # makefile.  However, we'll warn about this, since there is some risk we've
+    # picked the wrong one.
+    @globbed = sort {
+        my $out = length($a) <=> length($b);
+        if ($out == 0) {
+            $out = $a cmp $b;
+        }
+        return $out;
+    } @globbed;
+
+    if (@globbed > 1) {
+        warn "Warning: ambiguous makefiles:\n"
+            .join( q{}, map { "  $_\n" } @globbed )
+            ."Using $globbed[0]\n"
+            ."This may be caused by the usage of .pro files in SUBDIRS.\n";
+    }
+
+    return $globbed[0];
+}
+
 sub plan_testcase
 {
     my ($self, $testcase, @args) = @_;
 
     my $make = $self->{ make };
-    my $makefile = $self->{ makefile } || 'Makefile';
+    my $makefile = $self->resolved_makefile( );
     my $output = $self->{ output };
 
     my $prj = QtQA::QMake::Project->new( $makefile );
