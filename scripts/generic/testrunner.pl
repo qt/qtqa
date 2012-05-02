@@ -552,6 +552,23 @@ sub set_logfiles
     return;
 }
 
+# Like File::Path::mkpath, but does not fail if multiple processes mkpath() concurrently.
+# On success, or if the path already exists, returns 1.
+# On failure, returns 0.
+sub safe_mkpath
+{
+    my ($self, $path) = @_;
+
+    # $path could be created by another process in parallel; this is why we need
+    # a check both before and after the mkpath().
+    if (! -d $path && !mkpath( $path )) {
+        sleep 1;
+        return (-d $path);
+    }
+
+    return 1;
+}
+
 # Creates new, empty logfiles, and returns an arrayref of open filehandles to them.
 sub create_and_open_logfiles
 {
@@ -563,13 +580,8 @@ sub create_and_open_logfiles
     while (my ($logfile, $format) = each %{ $logfiles }) {
         my $logdir = dirname( $logfile );
 
-        if (! -d $logdir && ! mkpath( $logdir )) {
-            # $logdir could be created by another process in parallel; this is why we need
-            # a check both before and after the mkpath().
-            sleep 1;
-            if (! -d $logdir) {
-                $self->exit_with_logging_error( "mkpath $logdir: $!" );
-            }
+        if (!$self->safe_mkpath( $logdir )) {
+            $self->exit_with_logging_error( "mkpath $logdir: $!" );
         }
 
         open( my $fh, '>', $logfile ) || $self->exit_with_logging_error( "open $logfile: $!" ); ## no critic
@@ -598,7 +610,7 @@ sub setup_file_to_file_logging
 
     # We'd better create the directory if it doesn't exist - testlib won't do this.
     my $logdir = $self->{ capture_logs };
-    if ((! -d $logdir) && (! mkpath( $logdir ))) {
+    if (!$self->safe_mkpath( $logdir )) {
         $self->exit_with_logging_error( "mkpath $logdir: $!" );
     }
 
