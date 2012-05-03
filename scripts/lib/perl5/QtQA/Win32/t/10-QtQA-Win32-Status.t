@@ -20,6 +20,7 @@ sub test_integer_to_symbol
     is( $QtQA::Win32::Status::INTEGER_TO_SYMBOL{ 0xC0000005 }, 'STATUS_ACCESS_VIOLATION' );
     is( $QtQA::Win32::Status::INTEGER_TO_SYMBOL{ 0x00000000 }, 'STATUS_SUCCESS' );
     is( $QtQA::Win32::Status::INTEGER_TO_SYMBOL{ 0x00010001 }, 'DBG_EXCEPTION_HANDLED' );
+    is( $QtQA::Win32::Status::INTEGER_TO_SYMBOL{ 123 },        undef );
     return;
 }
 
@@ -29,6 +30,7 @@ sub test_symbol_to_integer
     is( $QtQA::Win32::Status::SYMBOL_TO_INTEGER{ 'STATUS_SUCCESS' },          0x00000000 );
     is( $QtQA::Win32::Status::SYMBOL_TO_INTEGER{ 'STATUS_WAIT_0' },           0x00000000 );
     is( $QtQA::Win32::Status::SYMBOL_TO_INTEGER{ 'DBG_EXCEPTION_HANDLED' },   0x00010001 );
+    is( $QtQA::Win32::Status::SYMBOL_TO_INTEGER{ 'quux' },                    undef );
     return;
 }
 
