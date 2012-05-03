@@ -181,6 +181,7 @@ sub all_required_cpan_modules
         Test::Perl::Critic
         Test::Warn
         Text::Diff
+        Text::ParseWords
         Text::Trim
         Text::Wrap
         Tie::IxHash
@@ -203,6 +204,7 @@ sub all_required_cpan_modules
     push @out, qw(
         Win32::Job
         Win32::Process
+        Win32::Process::Info
     ) if $WINDOWS;
 
     return @out;

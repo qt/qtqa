@@ -320,26 +320,32 @@ sub resolved_makefile
          die "In $CWD, no makefile found (looking for: $makefile)\n";
     }
 
-    # If we found multiple makefiles, sort them by length (and then name, if there
-    # are multiple of the same length).  The shortest one is considered the "main"
-    # makefile.  However, we'll warn about this, since there is some risk we've
-    # picked the wrong one.
-    @globbed = sort {
-        my $out = length($a) <=> length($b);
-        if ($out == 0) {
-            $out = $a cmp $b;
-        }
-        return $out;
-    } @globbed;
-
-    if (@globbed > 1) {
-        warn "Warning: ambiguous makefiles:\n"
-            .join( q{}, map { "  $_\n" } @globbed )
-            ."Using $globbed[0]\n"
-            ."This may be caused by the usage of .pro files in SUBDIRS.\n";
+    # If we found only one makefile, great!  That's the one.
+    # This is the expected case, the vast majority of the time.
+    if (@globbed == 1) {
+        return $globbed[0];
     }
 
-    return $globbed[0];
+    # Otherwise, call out to our helper script which can figure out the calling
+    # makefile from the process table.
+    my $calling_makefile = qx("$EXECUTABLE_NAME" "$FindBin::Bin/print_calling_makefile.pl");
+    my $status = $?;
+    chomp $calling_makefile;
+
+    # Worst case scenario - we can't figure out the makefile at all.
+    # Give up.
+    if (!$calling_makefile || $status) {
+        die "Error: ambiguous makefiles:\n"
+            .join( q{}, map { "  $_\n" } @globbed );
+    }
+
+    # $calling_makefile would most likely be a relative path, make it absolute.
+    # It is resolved relative to whatever directory was used in the glob pattern.
+    if (!file_name_is_absolute( $calling_makefile )) {
+        $calling_makefile = rel2abs( $calling_makefile, dirname( $makefile ) );
+    }
+
+    return $calling_makefile;
 }
 
 sub plan_testcase
