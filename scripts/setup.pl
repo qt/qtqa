@@ -173,6 +173,7 @@ sub all_required_cpan_modules
         List::MoreUtils
         Params::Validate
         Perl::Critic
+        QMake::Project
         Readonly
         ReleaseAction
         Test::Exception

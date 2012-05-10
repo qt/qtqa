@@ -133,14 +133,13 @@ use IO::File;
 use Lingua::EN::Inflect qw(inflect);
 use List::MoreUtils qw(any apply);
 use Pod::Usage;
+use QMake::Project;
 use Readonly;
 
 use FindBin;
 use lib "$FindBin::Bin/../lib/perl5";
 
 use autodie;
-
-use QtQA::QMake::Project;
 
 Readonly my $WINDOWS => ($OSNAME =~ m{win32}i);
 
@@ -356,9 +355,9 @@ sub plan_testcase
     my $makefile = $self->resolved_makefile( );
     my $output = $self->{ output };
 
-    my $prj = QtQA::QMake::Project->new( $makefile );
+    my $prj = QMake::Project->new( $makefile );
 
-    # Due to QTCREATORBUG-7170, we cannot let QtQA::QMake::Project use jom
+    # Due to QTCREATORBUG-7170, we cannot let QMake::Project use jom
     $prj->set_make( ($make =~ m{\bjom}i) ? 'nmake' : $make );
 
     # Collect all interesting info about the tests.

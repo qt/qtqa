@@ -1,6 +1,0 @@
-TEMPLATE=app
-TARGET=myapp
-SOURCES=main.cpp
-
-ERROR=$$(FORCE_QMAKE_ERROR)
-!isEmpty(ERROR):error($$ERROR)
