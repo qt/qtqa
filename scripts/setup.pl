@@ -187,6 +187,7 @@ sub all_required_cpan_modules
         Text::Wrap
         Tie::IxHash
         Timer::Simple
+        Win32::Status
         YAML
         YAML::Node
         autodie

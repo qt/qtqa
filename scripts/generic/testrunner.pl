@@ -329,6 +329,7 @@ use IO::Handle;
 use List::Util qw( first );
 use Pod::Usage qw( pod2usage );
 use Readonly;
+use Win32::Status;
 
 # We may be run from `scripts' or from `bin' via symlink.
 # Support both cases for finding our own modules.
@@ -336,8 +337,6 @@ use FindBin;
 use lib (
     first { -d $_ } ("$FindBin::Bin/../lib/perl5", "$FindBin::Bin/../scripts/lib/perl5")
 );
-
-use QtQA::Win32::Status;
 
 BEGIN {
     # Proc::Reliable is not reliable on Windows
@@ -886,7 +885,7 @@ sub check_abnormal_exit_win32
         $out .= sprintf( "Process exited with exit code 0x%X", $exitcode );
 
         # Do we also have some text form of this status code?
-        if (my $str = $QtQA::Win32::Status::INTEGER_TO_SYMBOL{ $exitcode }) {
+        if (my $str = $Win32::Status::INTEGER_TO_SYMBOL{ $exitcode }) {
             $out .= " ($str)";
         }
 
