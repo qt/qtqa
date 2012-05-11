@@ -124,7 +124,7 @@ use File::Spec::Functions;
 use FindBin;
 use IO::File;
 use Lingua::EN::Inflect qw(inflect);
-use List::MoreUtils qw(before after_incl any);
+use List::MoreUtils qw(before after_incl any part);
 use List::Util qw(sum);
 use Pod::Usage;
 use Readonly;
@@ -237,15 +237,18 @@ sub print_failures
     my @failures = grep { $_->{ _status } } @tests;
     @failures or return;
 
+    # Partition the failures into significant first, then insignificant.
+    # Significant failures are shown first because they are, well, more significant :)
+    my @parted_failures = part { $_->{ insignificant_test } ? 1 : 0 } @failures;
+
     print <<'EOF';
 === Failures: ==================================================================
 EOF
-    foreach my $test (@failures) {
-        my $out = "  $test->{ label }";
-        if ($test->{ insignificant_test }) {
-            $out .= " [insignificant]";
-        }
-        print "$out\n";
+    foreach my $test (@{ $parted_failures[0] || []}) {
+        print "  $test->{ label }\n";
+    }
+    foreach my $test (@{ $parted_failures[1] || []}) {
+        print "  $test->{ label } [insignificant]\n";
     }
 
     return;
