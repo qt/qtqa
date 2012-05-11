@@ -637,7 +637,7 @@ my %RE = (
     #
     # Captures:
     #   file        -   name of the file in which error occurred (exactly as output by the
-    #                   compiler - could be relative, absolute, or totally bogus)
+    #                   compiler - could be relative, absolute, missing, or totally bogus)
     #   line        -   line number at which the error occurred (if available)
     #   error       -   text of the error message
     #
@@ -783,6 +783,26 @@ my %RE = (
 
             (?<error>
                 \QError: \E
+                .+
+            )
+
+            \z
+        )
+
+        |
+
+        # cc1plus errors
+        # example:
+        #    cc1plus: error: unrecognized command line option "-Wlogical-op"
+        (?:
+            \A
+
+            cc1plus:
+
+            [ ]
+
+            (?<error>
+                \Qerror: \E
                 .+
             )
 
@@ -1866,7 +1886,10 @@ sub identify_failures
         #
         elsif ($save_failures && $line =~ $RE{ compile_fail }) {
             $out->{ compile_fail }                       = $line;
-            $out->{ compile_fail_sources }{ $+{ file } } = $line;
+
+            if ($+{ file }) {
+                $out->{ compile_fail_sources }{ $+{ file } } = $line
+            }
 
             if ($out->{ qtmodule }) {
                 $out->{ compile_fail_qtmodule } = $out->{ qtmodule };
