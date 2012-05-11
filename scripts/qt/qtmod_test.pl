@@ -1436,6 +1436,9 @@ sub _run_autotests_impl
             warn "$EVAL_ERROR\n"
                 .qq{This is a warning, not an error, because the `$insignificant_option' option }
                 . q{was used.  This means the tests are currently permitted to fail};
+        } else {
+            print "Note: $insignificant_option is set, but the tests succeeded. "
+                 ."This may indicate it is safe to remove $insignificant_option.\n";
         }
     }
     else {
