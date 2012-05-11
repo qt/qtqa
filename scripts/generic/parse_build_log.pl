@@ -825,6 +825,10 @@ my %RE = (
     #                    from mapsgl/map2d/map2d_p.h:55,
     #                    from mapsgl/map2d/map2d_p.cpp:41:
     #
+    #   src/corelib/kernel/qvariant.h(254): could be 'QVariant::QVariant(QVariant &&)'
+    #   src/corelib/kernel/qvariant.h(207): or       'QVariant::QVariant(int)'
+    #          while trying to match the argument list '(QKeySequence)'
+    #
     # Captures: nothing
     #
     # Caveats:
@@ -859,7 +863,7 @@ my %RE = (
         |
 
         (?:
-            # MSVC providing context from an earlier header.
+            # MSVC providing context from an earlier error.
             # example:
             #
             #   winsock2.h(2370) : error C2375: 'WSAAsyncGetServByPort' : redefinition; different linkage
@@ -870,7 +874,18 @@ my %RE = (
                 \Qsee previous definition of\E
                 |
                 \Qsee declaration of\E
+                |
+                \Qcould be '\E
+                |
+                \Qor       '\E
             )
+        )
+
+        |
+
+        (?:
+            # MSVC last line from an ambiguous function call
+            \Qwhile trying to match the argument list '\E
         )
 
         |
