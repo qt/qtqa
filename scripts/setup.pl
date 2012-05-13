@@ -178,6 +178,7 @@ sub all_required_cpan_modules
         IO::Uncompress::AnyInflate
         Inline::C
         JSON
+        LWP::UserAgent::Determined
         Lingua::EN::Inflect
         Lingua::EN::Numbers
         List::Compare
