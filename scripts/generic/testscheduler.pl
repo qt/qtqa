@@ -297,7 +297,10 @@ sub print_timing
 {
     my ($self, @tests) = @_;
 
-    my $parallel_total = $self->{ parallel_timer }->elapsed;
+    my $parallel_total = $self->{ parallel_timer }
+        ? $self->{ parallel_timer }->elapsed
+        : 0;
+
     my $serial_total = $self->{ serial_timer }->elapsed;
     my $total = $parallel_total + $serial_total;
 
@@ -328,7 +331,9 @@ sub print_timing
 
     my $parallel_speedup = $parallel_j1_total - $parallel_total;
 
-    printf( <<'EOF',
+    if ($parallel_total) {
+
+        printf( <<'EOF',
 === Timing: =================== TEST RUN COMPLETED! ============================
   Total:                                       %s
   Serial tests:                                %s
@@ -336,13 +341,26 @@ sub print_timing
   Estimated time spent on insignificant tests: %s
   Estimated time saved by -j%d:                 %s
 EOF
-        timestr( $total ),
-        timestr( $serial_total ),
-        timestr( $parallel_total ),
-        timestr( $insignificant_total ),
-        $self->{ jobs },
-        timestr( $parallel_speedup ),
-    );
+            timestr( $total ),
+            timestr( $serial_total ),
+            timestr( $parallel_total ),
+            timestr( $insignificant_total ),
+            $self->{ jobs },
+            timestr( $parallel_speedup ),
+        );
+
+    } else {
+
+        printf( <<'EOF',
+=== Timing: =================== TEST RUN COMPLETED! ============================
+  Total:                                       %s
+  Estimated time spent on insignificant tests: %s
+EOF
+            timestr( $total ),
+            timestr( $insignificant_total ),
+        );
+
+    }
 
     return;
 }
@@ -408,9 +426,11 @@ sub execute_tests_from_testplan
         die 'aborting due to SIGINT';
     };
 
-    $self->{ parallel_timer } = Timer::Simple->new( );
-    $self->execute_parallel_tests( @parallel_tests );
-    $self->{ parallel_timer }->stop( );
+    if (@parallel_tests) {
+        $self->{ parallel_timer } = Timer::Simple->new( );
+        $self->execute_parallel_tests( @parallel_tests );
+        $self->{ parallel_timer }->stop( );
+    }
 
     if (@parallel_tests && @serial_tests) {
         my $p = scalar( @parallel_tests );

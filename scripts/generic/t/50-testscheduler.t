@@ -56,24 +56,22 @@ sub make_regexes
     $out{ timing_section_begin } = qr|
 $out{ timing_header } \n
 [ ]+ Total: [ ]+                                            $out{ time_seconds } \n
-[ ]+ \QSerial tests:\E [ ]+                                 $out{ time_seconds } \n
-[ ]+ \QParallel tests:\E [ ]+                               $out{ time_seconds } \n
     |xms;
 
     $out{ timing_section_j1 } = qr|
 $out{ timing_section_begin }
 [ ]+ \QEstimated time spent on insignificant tests:\E [ ]+  $out{ no_time } \n
-[ ]+ \QEstimated time saved by -j1:\E [ ]+                  $out{ time_seconds } \n
     |xms;
 
     $out{ timing_section_j1_with_insignificant } = qr|
 $out{ timing_section_begin }
 [ ]+ \QEstimated time spent on insignificant tests:\E [ ]+  $out{ time_seconds } \n
-[ ]+ \QEstimated time saved by -j1:\E [ ]+                  $out{ time_seconds } \n
     |xms;
 
     $out{ timing_section_j4_with_insignificant } = qr|
 $out{ timing_section_begin }
+[ ]+ \QSerial tests:\E [ ]+                                 $out{ time_seconds } \n
+[ ]+ \QParallel tests:\E [ ]+                               $out{ time_seconds } \n
 [ ]+ \QEstimated time spent on insignificant tests:\E [ ]+  $out{ time_seconds } \n
 [ ]+ \QEstimated time saved by -j4:\E [ ]+                  $out{ time_seconds } \n
     |xms;
