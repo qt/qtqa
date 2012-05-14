@@ -131,7 +131,7 @@ use File::chdir;
 use Getopt::Long;
 use IO::File;
 use Lingua::EN::Inflect qw(inflect);
-use List::MoreUtils qw(any apply);
+use List::MoreUtils qw(any apply all pairwise each_arrayref);
 use Pod::Usage;
 use QMake::Project;
 use Readonly;
@@ -209,9 +209,8 @@ sub run
 }
 
 # finalize the test plan;
-# currently does not actually modify the test plan in any way,
-# just does a basic sanity check that it exists, can be parsed,
-# and summarizes it.
+# this may modify the test plan slightly (e.g. changing some labels to ensure
+# there are no duplicate testcase names).
 sub finalize_test_plan
 {
     my ($self, $filename) = @_;
@@ -226,19 +225,132 @@ sub finalize_test_plan
         return;
     }
 
+    my @tests;
     my $count = 0;
     my $fh = IO::File->new( $filename, '<' ) || die "open $filename: $!";
     while (my $line = <$fh>) {
         ++$count;
-        eval $line;  ## no critic (ProhibitStringyEval) - no way around it
+        my $test = eval $line;  ## no critic (ProhibitStringyEval) - no way around it
         if (my $error = $@) {
             die "$filename:$count: error: $error";
         }
+        push @tests, $test;
+    }
+
+    if ($self->ensure_distinct_labels( \@tests )) {
+        # modified - have to write it back out again.
+        open( my $fh, '>', $filename ) || die "open $filename for truncate: $!";
+        close( $fh ) || die "close $filename after truncate: $!";
+        $self->write_testcase( @tests );
     }
 
     print inflect "Test plan generated for NO(test,$count) at $filename\n";
 
     return;
+}
+
+# Ensures that all tests referred to by $all_tests_ref (arrayref) have a unique
+# label.  Returns 1 if the labels had to be modified in order to achieve this.
+#
+# Currently the labels may be modified by finding the first unique word in a
+# test's CWD and command combined.  For example, for these two tests:
+#
+#   /build/qtdeclarative/tests/auto/tst_examples/tst_examples
+#   /build/qtquick1/tests/auto/tst_examples/tst_examples
+#
+# Their default label would be "tst_examples"; this function would amend them
+# to "tst_examples (qtdeclarative)" and "tst_examples (qtquick1)".
+#
+sub ensure_distinct_labels
+{
+    my ($self, $all_tests_ref) = @_;
+
+    my $modified = 0;
+
+    # Build a map from each label to a list of tests with that label
+    my %tests_by_label;
+    foreach my $test (@{ $all_tests_ref }) {
+        my $label = $test->{ label };
+        push @{ $tests_by_label{ $label } }, $test;
+    }
+
+    while (my ($label, $tests_ref) = each %tests_by_label) {
+        my @tests = @{ $tests_ref };
+        next unless @tests > 1; # nothing to be done if already unique ...
+
+        # found something not unique, we'll have to modify it.
+        $modified = 1;
+
+        # For each test, make a string containing that test's CWD and command/args.
+        # There must be some difference in this value between the tests (otherwise
+        # it is the same test!)
+        #
+        # Example:
+        #   "/build/qtdeclarative/tests/auto/tst_examples ./tst_examples"
+        #   "/build/qtquick1/tests/auto/tst_examples ./tst_examples"
+        #
+        my @cwd_and_args = map { join(' ', $_->{ cwd }, @{ $_->{ args }}) } @tests;
+
+        # Find the first unique word from each CWD-and-args string.
+        #
+        # Example:
+        #   ("qtdeclarative", "qtquick1")
+        #
+        my @words = $self->find_first_unique_word( @cwd_and_args );
+
+        # append the unique words to the label.
+        pairwise {
+            # this line avoids "used only once: possible typo" warnings
+            our ($a, $b);
+            if ($b) {
+                $a->{ label } .= " ($b)"
+            }
+        } @tests, @words;
+    }
+
+    return $modified;
+}
+
+# Given a list of @input strings, returns a list (of the same size) of output words.
+# Each word is the first unique word from each string (where "word" is defined in
+# the perl regular expression sense).
+sub find_first_unique_word
+{
+    my ($self, @input) = @_;
+
+    # Split on word boundaries, and also consume the non-word characters (e.g.
+    # directory separators).
+    # Conceptually, this gives us a two-dimensional array where the rows are input
+    # strings and columns are individual words in that string.
+    my @input_words = map { [
+        split( /\W*\b\W*/, $_ )
+    ] } @input;
+
+    # Prepare output, initialized as a list of empty strings, already at the right size.
+    my @output = (q{}) x (scalar(@input));
+
+    # Iterate over each column in the array ...
+    my $ea = each_arrayref @input_words;
+    while (my @words = $ea->()) {
+
+        # for each output not yet set ...
+        for (my $i = 0; $i < @output; ++$i) {
+            next if ($output[$i]);
+
+            # if the word at this column is unique, set it as output.
+            my $word = $words[$i];
+            next unless $word;
+            my $count = scalar( grep { $_ eq $word } @words );
+            if ($count == 1) {
+                $output[$i] = $word;
+            }
+        }
+
+        # terminate if all output has been set.
+        last if all { $_ } @output;
+    }
+
+    return @output;
 }
 
 sub default_make
@@ -353,7 +465,6 @@ sub plan_testcase
 
     my $make = $self->{ make };
     my $makefile = $self->resolved_makefile( );
-    my $output = $self->{ output };
 
     my $prj = QMake::Project->new( $makefile );
 
@@ -384,7 +495,42 @@ sub plan_testcase
     # test in test reports.
     $info{ label } = basename( $info{ TARGET } );
 
-    my $dumper = Data::Dumper->new( [ \%info ] );
+    # Now write the info to the testplan.
+    $self->write_testcase( \%info );
+
+    print "  testplan: $info{ label }\n";
+
+    return;
+}
+
+# Write all of the given testcase @info (array of hashrefs) to the output file.
+sub write_testcase
+{
+    my ($self, @info) = @_;
+
+    my $output = $self->{ output };
+
+    my @info_strings = map { $self->testcase_to_string( $_ ) } @info;
+    my $text = join( "\n", @info_strings )."\n";
+
+    # Now write the info to the testplan (single line).
+    open( my $fh, '>>', $output );
+    flock( $fh, LOCK_EX );
+    seek( $fh, 0, SEEK_END );
+    print $fh $text;
+    flock( $fh, LOCK_UN );
+    close( $fh );
+
+    return;
+}
+
+# Given a testcase $info hashref, returns a serialized string representing
+# the info.  Guaranteed not to contain any newlines.
+sub testcase_to_string
+{
+    my ($self, $info) = @_;
+
+    my $dumper = Data::Dumper->new( [ $info ] );
     $dumper->Indent( 0 );   # all output on one line
     $dumper->Terse( 1 );    # omit leading $VAR1
     $dumper->Sortkeys( 1 ); # get a predictable order
@@ -397,17 +543,7 @@ sub plan_testcase
         die "internal error: multiple lines in testcase info string:\n$info_string";
     }
 
-    # Now write the info to the testplan (single line).
-    open( my $fh, '>>', $output );
-    flock( $fh, LOCK_EX );
-    seek( $fh, 0, SEEK_END );
-    print $fh "$info_string\n";
-    flock( $fh, LOCK_UN );
-    close( $fh );
-
-    print "  testplan: $info{ label }\n";
-
-    return;
+    return $info_string;
 }
 
 sub run_make_check

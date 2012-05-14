@@ -130,19 +130,25 @@ sub test_mixed
 \Qfailing. 1 arg(s)
 QtQA::App::TestScheduler: failing_significant_test failed
 passing. 1 arg(s)
-QtQA::App::TestScheduler: ran 2 parallel tests.  Starting 4 serial tests.
+QtQA::App::TestScheduler: ran 2 parallel tests.  Starting 6 serial tests.
 Custom failing
 QtQA::App::TestScheduler: failing_custom_check_target failed
 failing. 1 arg(s)
 QtQA::App::TestScheduler: failing_insignificant_test failed, but it is marked with insignificant_test
 Custom passing
 passing. 1 arg(s)
+failing. 1 arg(s)
+QtQA::App::TestScheduler: subtest (sub1) failed
+failing. 1 arg(s)
+QtQA::App::TestScheduler: subtest (sub2) failed
 \E $RE{ timing_section_j4_with_insignificant }
 \Q=== Failures: ==================================================================
   failing_significant_test
   failing_custom_check_target
+  subtest (sub1)
+  subtest (sub2)
   failing_insignificant_test [insignificant]
-=== Totals: 6 tests, 3 passes, 2 fails, 1 insignificant fail ===================
+=== Totals: 8 tests, 3 passes, 4 fails, 1 insignificant fail ===================
 \E|xms, 'testscheduler output as expected' );
 
     return;
