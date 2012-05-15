@@ -250,7 +250,37 @@ sub change_id
         confess "Somehow failed to calculate any Change-Id" if (!$change_id);
     }
 
+    # Check if we seem to have this change id already.
+    # This can happen if an author other than ourself has already used the change id.
+    my ($found) = trim $self->exe_qx(
+        'git',
+        "--git-dir=$base_dir/.git",
+        'log',
+        '-n1000',   # don't search too far
+        "--grep=I$change_id",
+        'HEAD',
+    );
+
+    if ($found) {
+        warn "The desired Change-Id, I$change_id, is unexpectedly already used!\n"
+            ."Falling back to a random Change-Id...\n";
+        $change_id = $self->random_change_id( );
+    }
+
     return "I$change_id";
+}
+
+# Returns a random change id, used as a last resort if none of the calculated change ids
+# are available.
+sub random_change_id
+{
+    my ($self) = @_;
+
+    return sprintf(
+        # 40 hex digits (32 bits gives 8 hex digits)
+        "%08x" x 5,
+        map { rand()*(2**32) } (1..5)
+    );
 }
 
 # Push the current HEAD of base.dir to some repository.
