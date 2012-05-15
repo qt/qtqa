@@ -154,6 +154,48 @@ QtQA::App::TestScheduler: subtest (sub2) failed
     return;
 }
 
+sub test_mixed_parallel_stress
+{
+    my ($testplan, $unlink) = make_testplan_from_directory $TESTDATA_DIR;
+
+    my $status;
+    my $output = capture_merged {
+        $status = system(
+            $EXECUTABLE_NAME,
+            $TESTSCHEDULER,
+            '--plan',
+            "$testplan",
+            '-j4',
+            '--sync-output',
+            '--parallel-stress'
+        );
+    };
+    isnt( $status, 0, '[parallel-stress] testscheduler fails if some tests fail' );
+
+
+    # We don't test the output from the tests, the order is unpredictable.
+    # We also don't test "Suggest removing ...", because we would have to write
+    # a test script which _stably_ fails if run concurrently with itself, and
+    # otherwise passes.  This is a basic test.
+
+    like( $output, qr|\Q
+=== Parallel stress test: ======================================================
+  Suggest adding CONFIG+=parallel_test to these:
+    passing_custom_check_target
+    passing_significant_test
+=== 3 parallel-safe, 0 parallel-unsafe, 5 unknown, 2 to modify =================
+=== Failures: ==================================================================
+  failing_custom_check_target
+  failing_significant_test
+  subtest (sub1)
+  subtest (sub2)
+  failing_insignificant_test [insignificant]
+=== Totals: 8 tests, 3 passes, 4 fails, 1 insignificant fail ===================
+\E|xms, '[parallel-stress] testscheduler output as expected' );
+
+    return;
+}
+
 # Test what happens with a directory containing no tests
 sub test_none
 {
@@ -298,6 +340,7 @@ sub run
     test_single_pass;
     test_single_pass_no_summary;
     test_mixed;
+    test_mixed_parallel_stress;
     done_testing;
 
     return;

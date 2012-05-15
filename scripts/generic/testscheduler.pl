@@ -82,6 +82,22 @@ are permitted to run in parallel.
 Disable/enable printing a summary of test timing, failures, and
 totals at the end of the test run.  Enabled by default.
 
+=item --parallel-stress
+
+Parallel stress testing mode.  This is a special test run mode
+to help determine whether or not autotests are parallel-safe.
+
+In this mode, multiple instances of each test are run concurrently,
+whether or not they are marked with parallel_test.  If a test fails
+when run concurrently, it will be run again by itself.
+
+Any test which fails when run concurrently but passes when run by itself
+is considered parallel-unsafe.  All other tests are considered
+parallel-safe.
+
+The test scheduler will output a summary of its suggested modifications
+to the test configuration.
+
 =item --debug
 
 Output a lot of additional information.  Use it for debugging,
@@ -162,6 +178,7 @@ sub run
         'j|jobs=i'  =>  \$self->{ jobs },
         'debug'     =>  \$self->{ debug },
         'summary!'  =>  \$self->{ summary },
+        'parallel-stress' => \$self->{ parallel_stress },
     ) || pod2usage(2);
 
     # Strip trailing --, if that's what ended our argument processing
@@ -176,12 +193,21 @@ sub run
         die "Missing mandatory --plan argument";
     }
 
+    if ($self->{ parallel_stress } && $self->{ jobs } <= 1) {
+        die q{error: --parallel-stress mode doesn't make sense with -j1};
+    }
+
     my @results = $self->do_testplan( $self->{ testplan } );
 
     $self->debug( sub { 'results: '.Dumper(\@results) } );
 
     if ($self->{ summary }) {
-        $self->print_timing( @results );
+        # timing info does not make sense in parallel-stress mode
+        if ($self->{ parallel_stress }) {
+            $self->print_parallel_stress_results( @results );
+        } else {
+            $self->print_timing( @results );
+        }
         $self->print_failures( @results );
         $self->print_totals( @results );
     }
@@ -225,7 +251,17 @@ sub do_testplan
     # tests are sorted for predictable execution order.
     @tests = sort { $a->{ label } cmp $b->{ label } } @tests;
 
-    my @out = $self->execute_tests_from_testplan( @tests );
+    local $SIG{ INT } = sub {
+        die 'aborting due to SIGINT';
+    };
+
+    my @out;
+
+    if ($self->{ parallel_stress }) {
+        @out = $self->execute_parallel_stress( @tests );
+    } else {
+        @out = $self->execute_tests_from_testplan( @tests );
+    }
 
     return @out;
 }
@@ -365,6 +401,59 @@ EOF
     return;
 }
 
+sub print_parallel_stress_results
+{
+    my ($self, @tests) = @_;
+
+    @tests = sort { $a->{ label } cmp $b->{ label } } @tests;
+
+    # test passed when run concurrently: parallel-safe
+    my @parallel_safe = grep { $_->{ _status_parallel } == 0 } @tests;
+
+    # test failed when run concurrently, passed when run serially: parallel-unsafe
+    my @parallel_unsafe = grep { $_->{ _status_parallel } != 0 && $_->{ _status_serial } == 0 } @tests;
+
+    # test failed concurrently and serially: no comment can be made on its parallel safety.
+    my @unknown = grep { $_->{ _status_serial } } @tests;
+
+    print "=== Parallel stress test: ======================================================\n";
+
+    local $LIST_SEPARATOR = "\n    ";
+
+    my $modify_count = 0;
+
+    # parallel-safe but not marked as such?
+    if (my @add_parallel_test = grep { !$_->{ parallel_test } } @parallel_safe) {
+        my @tests_to_modify = map { $_->{ label } } @add_parallel_test;
+        $modify_count += @tests_to_modify;
+        print "  Suggest adding CONFIG+=parallel_test to these:\n    @tests_to_modify\n";
+    }
+
+    # parallel-unsafe but marked as parallel-safe?
+    if (my @remove_parallel_test = grep { $_->{ parallel_test } } @parallel_unsafe) {
+        my @tests_to_modify = map { $_->{ label } } @remove_parallel_test;
+        $modify_count += @tests_to_modify;
+        print "  Suggest removing CONFIG+=parallel_test from these:\n    @tests_to_modify\n";
+    }
+
+    my $safe_count = @parallel_safe;
+    my $unsafe_count = @parallel_unsafe;
+    my $unknown_count = @unknown;
+
+    my $message = "=== $safe_count parallel-safe, $unsafe_count parallel-unsafe, "
+                 ."$unknown_count unknown, $modify_count to modify";
+
+    $message .= ' ';
+
+    while (length($message) < 80) {
+        $message .= '=';
+    }
+
+    print "$message\n";
+
+    return;
+}
+
 sub read_tests_from_testplan
 {
     my ($self, $testplan) = @_;
@@ -422,10 +511,6 @@ sub execute_tests_from_testplan
         @parallel_tests = ();
     }
 
-    local $SIG{ INT } = sub {
-        die 'aborting due to SIGINT';
-    };
-
     if (@parallel_tests) {
         $self->{ parallel_timer } = Timer::Simple->new( );
         $self->execute_parallel_tests( @parallel_tests );
@@ -452,6 +537,73 @@ sub execute_tests_from_testplan
     }
 
     return @test_results;
+}
+
+# Do parallel stress test.
+# Compared to normal execution, the following additional result keys are
+# associated with each test:
+#
+#  _status_parallel => (worst) exit status of the test when run in parallel
+#  _status_serial   => exit status of the test when run in serial (unset if
+#                      _status_parallel is 0)
+#
+sub execute_parallel_stress
+{
+    my ($self, @tests) = @_;
+    return unless @tests;
+
+    my @all_tests = @tests;
+    my @failed_tests;
+
+    my $j = $self->{ jobs };
+
+    while (my $test = shift @all_tests) {
+        # Run each test $j times concurrently.
+        for (my $i = 0; $i < $j; ++$i) {
+            $self->spawn_subtest(
+                test => $test,
+                testrunner_args => [ '--sync-output' ],
+            );
+        }
+
+        # Then wait for them all to complete.
+        my $worst_status = -1;
+        while ($self->running_tests_count()) {
+            my $status = $self->wait_for_test_to_complete( );
+            if (defined( $status ) && $status > $worst_status) {
+                $worst_status = $status;
+            }
+        }
+
+        $test->{ _status_parallel } = $worst_status;
+
+        if ($worst_status) {
+            # If the test (ever) failed, we'll run it again serially later,
+            # and make sure _status reflects the failure (rather than being set to the status
+            # of whichever process happened to finish last).
+            push @failed_tests, $test;
+            $test->{ _status } = $worst_status;
+        }
+    }
+
+    if (my $count = @failed_tests) {
+        $self->print_info( "parallel-stress: running $count failed tests again, in serial\n" );
+    }
+
+    # We've run all tests in parallel, now run all failed tests again, serially.
+    while (my $test = shift @failed_tests) {
+        $self->spawn_subtest(
+            test => $test,
+            testrunner_args => [ '--sync-output' ],
+        );
+        while ($self->running_tests_count()) {
+            if (defined(my $status = $self->wait_for_test_to_complete( ))) {
+                $test->{ _status_serial } = $status;
+            }
+        }
+    }
+
+    return @tests;
 }
 
 sub execute_parallel_tests
@@ -547,6 +699,7 @@ sub running_tests_count
 }
 
 # Waits for one test to complete and writes the '_status' key for that test.
+# The exit status is returned.
 sub wait_for_test_to_complete
 {
     my ($self, $flags) = @_;
@@ -577,7 +730,7 @@ sub wait_for_test_to_complete
 
     push @{ $self->{ test_results } }, $test;
 
-    return;
+    return $status;
 }
 
 sub print_test_fail_info
