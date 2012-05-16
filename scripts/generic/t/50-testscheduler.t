@@ -143,8 +143,8 @@ failing. 1 arg(s)
 QtQA::App::TestScheduler: subtest (sub2) failed
 \E $RE{ timing_section_j4_with_insignificant }
 \Q=== Failures: ==================================================================
-  failing_significant_test
   failing_custom_check_target
+  failing_significant_test
   subtest (sub1)
   subtest (sub2)
   failing_insignificant_test [insignificant]

@@ -270,6 +270,8 @@ sub print_failures
 {
     my ($self, @tests) = @_;
 
+    @tests = sort { $a->{ label } cmp $b->{ label } } @tests;
+
     my @failures = grep { $_->{ _status } } @tests;
     @failures or return;
 
