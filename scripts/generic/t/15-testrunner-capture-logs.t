@@ -878,6 +878,8 @@ sub run
         expected_logfile => "$tempdir/perl-testlog-00.log",
         expected_logtext => rx_for_lines(
             [
+                q{Log file created by QtQA::App::TestRunner},
+                q{},
                 q{QtQA::App::TestRunner: FAIL! Test was badly behaved, the `-o' argument was ignored.},
                 q{QtQA::App::TestRunner: stdout/stderr follows:},
                 qw(
@@ -908,6 +910,8 @@ sub run
         expected_logfile => "$tempdir/perl-testlog.log-00.txt",
         expected_logtext => rx_for_lines(
             [
+                q{Log file created by QtQA::App::TestRunner},
+                q{},
                 q{QtQA::App::TestRunner: FAIL! Test was badly behaved, the `-o' argument was ignored.},
                 q{QtQA::App::TestRunner: stdout/stderr follows:},
                 map { encode_utf8($_) } qw(
@@ -935,6 +939,8 @@ sub run
         command_args     => [ '-o', 'testlog.log.txt', '--skip-log', 'mixed_nonascii' ],
         expected_logtext => rx_for_lines(
             [
+                q{Log file created by QtQA::App::TestRunner},
+                q{},
                 q{QtQA::App::TestRunner: FAIL! Test was badly behaved, the `-o' argument was ignored.},
                 q{QtQA::App::TestRunner: stdout/stderr follows:},
                 map { encode_utf8($_) } qw(

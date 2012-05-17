@@ -373,6 +373,9 @@ Readonly my $EXIT_PROCESS_SIGNALED => 3;
 # exit code if we can't capture logs as requested
 Readonly my $EXIT_LOGGING_ERROR => 58;
 
+# initial content of created log files
+Readonly my $INITIAL_LOG_CONTENT => 'Log file created by '.__PACKAGE__;
+
 sub new
 {
     my ($class) = @_;
@@ -477,6 +480,10 @@ sub generate_unique_logfile_name
     my $directory = $self->{ capture_logs };
     return if (!$directory);
 
+    my $lockfile = catfile( File::HomeDir->my_data, '.qtqa-testrunner-logfile-lock' );
+    my $lockfh = IO::File->new( $lockfile, '>>' ) || $self->exit_with_logging_error( "open $lockfile: $!" );
+    flock( $lockfh, LOCK_EX ) || die "flock $lockfile: $!";
+
     # We need to come up with a unique filename.
     # Our chosen naming pattern is:
     #
@@ -524,7 +531,36 @@ sub generate_unique_logfile_name
         );
     }
 
+    # Ensure the file exists before we release the lock, so that other testrunner instances
+    # won't clobber it.  The file is initialized with some text so we can identify that it
+    # was created by us.
+    my $fh = $self->create_and_open_logfile( $candidate, "$INITIAL_LOG_CONTENT\n" );
+    close( $fh );
+    flock( $lockfh, LOCK_UN ) || die "flock $lockfile (unlock): $!";
+
     return $candidate;
+}
+
+# Creates a log file at the given $filename, and returns an open file handle.
+# The file's contents are initialized to $content (if set).
+# The file is truncated if it already exists.
+#
+# The log may later be checked for the existence of $content to decide if the
+# log file has been correctly overwritten by the test process.
+sub create_and_open_logfile
+{
+    my ($self, $filename, $content) = @_;
+
+    my $logdir = dirname( $filename );
+    $self->safe_mkpath( $logdir ) || $self->exit_with_logging_error( "mkpath $logdir: $!" );
+
+    open( my $fh, '>', $filename ) || $self->exit_with_logging_error( "open $filename for write: $!" );
+
+    if (defined $content) {
+        print $fh $content;
+    }
+
+    return $fh;
 }
 
 # Returns a hashref for the logfiles which should be used.  Generates a new filename if necessary.
@@ -568,22 +604,17 @@ sub safe_mkpath
     return 1;
 }
 
-# Creates new, empty logfiles, and returns an arrayref of open filehandles to them.
+# Creates new logfiles, and returns an arrayref of open filehandles to them.
+# The logfiles will be initialized with $content, if given.
 sub create_and_open_logfiles
 {
-    my ($self) = @_;
+    my ($self, $content) = @_;
 
     my $logfiles = $self->logfiles( );
     my @out;
 
     while (my ($logfile, $format) = each %{ $logfiles }) {
-        my $logdir = dirname( $logfile );
-
-        if (!$self->safe_mkpath( $logdir )) {
-            $self->exit_with_logging_error( "mkpath $logdir: $!" );
-        }
-
-        open( my $fh, '>', $logfile ) || $self->exit_with_logging_error( "open $logfile: $!" ); ## no critic
+        my $fh = $self->create_and_open_logfile( $logfile, $content );
         push @out, $fh;
     }
 
@@ -895,6 +926,29 @@ sub check_abnormal_exit_win32
     return $out;
 }
 
+# Returns 1 iff $filename appears to contain a valid test log.
+#
+# "valid" currently means "exists, and was not created by testrunner.pl"
+#
+sub looks_like_valid_log
+{
+    my ($self, $filename) = @_;
+
+    if (! -f $filename) {
+        return 0;
+    }
+
+    open( my $fh, '<', $filename ) ## no critic
+        || $self->exit_with_logging_error( "open $filename for read: $!" );
+
+    my $firstline = <$fh>;
+    if ($firstline && $firstline eq "$INITIAL_LOG_CONTENT\n") {
+        return 0;
+    }
+
+    return 1;
+}
+
 # Finish up the logging of $proc, which should have completed by now.
 sub finalize_logging
 {
@@ -909,16 +963,17 @@ sub finalize_logging
     # In this case, we expect the subprocess to have created a log file, so we have to
     # check that (and also append to it if necessary).
     my $logfiles = $self->logfiles( );
-    my $all_logfiles_exist = 1;
+    my $all_logfiles_valid = 1;
 
     foreach my $logfile (keys %{ $logfiles }) {
-        next if -f $logfile;
-        $all_logfiles_exist = 0;
-        last;
+        if (!$self->looks_like_valid_log( $logfile )) {
+            $all_logfiles_valid = 0;
+            last;
+        }
     }
 
     # Expected to create some log files, but didn't do so?
-    if (!$all_logfiles_exist) {
+    if (!$all_logfiles_valid) {
         $self->{ force_failure_exitcode } ||= $EXIT_LOGGING_ERROR;
         $self->append_logbuffer_to_logfiles( $self->format_info(
             "FAIL! Test was badly behaved, the `-o' argument was ignored.\n"
