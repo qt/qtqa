@@ -329,6 +329,7 @@ use IO::Handle;
 use List::Util qw( first );
 use Pod::Usage qw( pod2usage );
 use Readonly;
+use Timer::Simple;
 use Win32::Status;
 
 # We may be run from `scripts' or from `bin' via symlink.
@@ -1192,6 +1193,8 @@ sub do_subprocess
 
     $self->setup_logging( );  # this is allowed to modify the command
 
+    $self->{ timer } = Timer::Simple->new( );
+
     $self->print_test_begin_info( );
 
     my $keep_running = 1;
@@ -1230,6 +1233,8 @@ sub do_subprocess
         $keep_running = $result->{ retry };
         ++$attempt;
     }
+
+    $self->{ timer }->stop( );
 
     $self->{ force_failure_exitcode } ||= $force_failure_exitcode;
 
@@ -1279,7 +1284,15 @@ sub print_test_end_info
     my $proc = $self->proc( );
     my $status = $proc->status( );
 
-    my $message = "end @command";
+    # If it was at least two seconds, only report the integer part.
+    # For very fast tests, we report the fractional part as well - mostly
+    # because "0 seconds" looks weird.
+    my $seconds = $self->{ timer }->elapsed( );
+    if ($seconds > 1) {
+        $seconds = int($seconds);
+    }
+
+    my $message = "end @command, $seconds seconds";
 
     if ($status == -1) {
         $message .= ", status -1 (unusual error)";
