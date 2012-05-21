@@ -141,7 +141,7 @@ use FindBin;
 use IO::File;
 use Lingua::EN::Inflect qw(inflect);
 use List::MoreUtils qw(before after_incl any part);
-use List::Util qw(sum);
+use List::Util qw(sum max);
 use Pod::Usage;
 use Readonly;
 use Timer::Simple;
@@ -560,8 +560,16 @@ sub execute_parallel_stress
     my $j = $self->{ jobs };
 
     while (my $test = shift @all_tests) {
-        # Run each test $j times concurrently.
-        for (my $i = 0; $i < $j; ++$i) {
+        my @status;
+
+        # Run each test a total of $j*2 times, maximum of $j times concurrently.
+        for (my $i = 0; $i < 2*$j; ++$i) {
+            while ($self->running_tests_count() > $j) {
+                my $status = $self->wait_for_test_to_complete( );
+                if (defined( $status )) {
+                    push @status, $status;
+                }
+            }
             $self->spawn_subtest(
                 test => $test,
                 testrunner_args => [ '--sync-output' ],
@@ -569,13 +577,14 @@ sub execute_parallel_stress
         }
 
         # Then wait for them all to complete.
-        my $worst_status = -1;
         while ($self->running_tests_count()) {
             my $status = $self->wait_for_test_to_complete( );
-            if (defined( $status ) && $status > $worst_status) {
-                $worst_status = $status;
+            if (defined( $status )) {
+                push @status, $status;
             }
         }
+
+        my $worst_status = max @status;
 
         $test->{ _status_parallel } = $worst_status;
 
