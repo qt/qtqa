@@ -462,7 +462,8 @@ sub fatal_error
 
     # We want to ensure that the 'error' key always comes first.
     # This is why we use YAML::Node.
-    my $ynode = YAML::Node->new({}, 'qtqa.qt-project.org/error' );
+    my $id = 'qtqa.qt-project.org/error';
+    my $ynode = YAML::Node->new({}, $id );
     %{$ynode} = (
         error => $error,
     );
@@ -475,7 +476,7 @@ sub fatal_error
     local $YAML::UseBlock = 1;
     my $formatted = YAML::Dump( $ynode );
 
-    $self->_croak( "$formatted...\n" );
+    $self->_croak( "$formatted... # end $id\n" );
 
     return;
 }

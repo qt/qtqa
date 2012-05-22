@@ -153,7 +153,7 @@
 4/12/12 5:33:32 AM EST:   - reading dependencies from qtjsondb/sync.profile
 4/12/12 5:33:32 AM EST:   - setting up git repositories
 4/12/12 5:33:32 AM EST:   - testing qtjsondb
-4/12/12 5:33:32 AM EST: ...
+4/12/12 5:33:32 AM EST: ... # end qtqa.qt-project.org/error
 4/12/12 5:33:32 AM EST:  at _qtqa_latest/scripts/qt/qtmod_test.pl line 444
 4/12/12 5:33:32 AM EST:         QtQA::ModuleTest::read_dependencies('QtQA::ModuleTest=HASH(0x9daa310)', '/home/rmcgover/build/qt/qt5/qtsvg/sync.profile') called at ../qtqa/scripts/qt/qtmod_test.pl line 513
 4/12/12 5:33:32 AM EST:         QtQA::ModuleTest::run_git_checkout('QtQA::ModuleTest=HASH(0x9daa310)') called at ../qtqa/scripts/qt/qtmod_test.pl line 211

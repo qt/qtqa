@@ -1428,7 +1428,7 @@ my %RE = (
     #
     yaml_end => qr{
         \A
-        \Q...\E
+        \Q... \E\#\Q end qtqa.qt-project.org/error\E
         \z
     }xms,
 

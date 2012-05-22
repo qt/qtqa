@@ -428,7 +428,7 @@ sub test_fatal_error
 error: |
   Error occurred while making sandwich:
   Somebody left the fridge door open all weekend
-...\E
+... \E\#\Q end qtqa.qt-project.org/error\E
 (?:\n|\z)
 
     }xms, 'fatal_error output looks OK';
@@ -453,7 +453,7 @@ sub test_doing_with_fatal_error
                  ."\n"
                 : q{}
             )
-           ."...\n";
+           ."... # end qtqa.qt-project.org/error\n";
     };
 
     {
