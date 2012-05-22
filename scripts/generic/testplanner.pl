@@ -116,6 +116,10 @@ Indicates the result of the test can be ignored.
 
 Indicates the test is safe to run in parallel with other tests.
 
+=item testcase.timeout=I<timeout>
+
+The maximum permitted runtime of the test, in seconds.
+
 =back
 
 
@@ -135,6 +139,7 @@ use List::MoreUtils qw(any apply all pairwise each_arrayref);
 use Pod::Usage;
 use QMake::Project;
 use Readonly;
+use Scalar::Defer qw(force);
 
 use FindBin;
 use lib "$FindBin::Bin/../lib/perl5";
@@ -478,6 +483,7 @@ sub plan_testcase
     );
     my @qmake_scalar_values = qw(
         TARGET
+        testcase.timeout
     );
     my @qmake_keys = (@qmake_tests, @qmake_scalar_values);
 
@@ -489,7 +495,12 @@ sub plan_testcase
     );
 
     # flatten info before passing to Data::Dumper
-    @info{ @qmake_keys } = apply { $_ = "$_" } @info{ @qmake_keys };
+    @info{ @qmake_keys } = apply { $_ = force $_ } @info{ @qmake_keys };
+
+    # Eliminate any undefined values
+    if (my @undefined = grep { !defined( $info{ $_ }) } @qmake_keys) {
+        delete @info{ @undefined };
+    }
 
     # add a nice "label", which is the primary human-readable name for the
     # test in test reports.

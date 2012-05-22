@@ -135,8 +135,10 @@ Custom failing
 QtQA::App::TestScheduler: failing_custom_check_target failed
 failing. 1 arg(s)
 QtQA::App::TestScheduler: failing_insignificant_test failed, but it is marked with insignificant_test
+QtQA::App::TestScheduler: passing_custom_check_target: ignored invalid testcase.timeout value of "-120"
 Custom passing
 passing. 1 arg(s)
+QtQA::App::TestScheduler: subtest (sub1): ignored invalid testcase.timeout value of "Some bogus timeout"
 failing. 1 arg(s)
 QtQA::App::TestScheduler: subtest (sub1) failed
 failing. 1 arg(s)

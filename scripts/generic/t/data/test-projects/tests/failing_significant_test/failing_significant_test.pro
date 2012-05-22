@@ -4,3 +4,5 @@ CONFIG+=testcase release
 CONFIG+=parallel_test
 win32:CONFIG+=console
 SOURCES=../../src/fail.cpp
+
+testcase.timeout = 60

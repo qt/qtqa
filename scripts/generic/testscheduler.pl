@@ -669,6 +669,27 @@ sub print_info
     return;
 }
 
+# Returns a list of any additional testrunner args for the given $test,
+# based on its metadata.  May return an empty list.
+sub testrunner_args_for_test
+{
+    my ($self, $test) = @_;
+
+    my $label = $test->{ label };
+
+    my @out;
+
+    if (my $timeout = $test->{ 'testcase.timeout' }) {
+        if ($timeout =~ m{\A [0-9]+ \z}ms) {
+            push @out, ('--timeout', $timeout);
+        } else {
+            $self->print_info( "$label: ignored invalid testcase.timeout value of \"$timeout\"\n" );
+        }
+    }
+
+    return @out;
+}
+
 sub spawn_subtest
 {
     my ($self, %args) = @_;
@@ -681,6 +702,8 @@ sub spawn_subtest
         @{ $args{ testrunner_args } || []},
         @{ $self->{ testrunner_args } || []},
     );
+
+    push @testrunner_args, $self->testrunner_args_for_test( $test );
 
     my @cmd_and_args = @{ $test->{ args } };
 

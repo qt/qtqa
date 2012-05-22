@@ -3,3 +3,6 @@ CONFIG-=qt build_all debug app_bundle
 CONFIG+=testcase release
 win32:CONFIG+=console
 SOURCES=../../../../src/fail.cpp
+
+testcase.timeout = "Some bogus timeout"
+

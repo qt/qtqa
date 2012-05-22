@@ -160,9 +160,10 @@ my @PROPERTIES = (
 
     q{qt.tests.args}           => q{additional arguments to pass to the tests},
 
-    q{qt.tests.timeout}        => q{maximum runtime permitted for each autotest, in seconds; any }
-                                . q{test which does not completed within this time will be }
-                                . q{killed and considered a failure},
+    q{qt.tests.timeout}        => q{default maximum runtime permitted for each autotest, in seconds; }
+                                . q{any test which does not completed within this time will be }
+                                . q{killed and considered a failure. When using testscheduler, may }
+                                . q{be overridden by setting testcase.timeout in a test .pro file},
 
     q{qt.tests.capture_logs}   => q{if set to a directory name, capture all test logs into this }
                                 . q{directory.  For example, setting qt.tests.capture_logs=}
