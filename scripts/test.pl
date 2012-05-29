@@ -190,6 +190,9 @@ sub run_prove
         #
         '--state=save',
 
+        # run in parallel (-j3 chosen fairly arbitrarily, should be safe)
+        '-j3',
+
         # Let tests freely use modules under lib/perl5
         '-I',
         "$FindBin::Bin/lib/perl5",
