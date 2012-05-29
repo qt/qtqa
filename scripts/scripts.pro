@@ -1,5 +1,7 @@
 TEMPLATE = subdirs
 
+testcase.timeout = 1200 # slow because we are running many autotests
+
 # Override `make check' to run our script which knows how to test our perl
 # scripts.  This requires a modern-ish CPAN setup, so we will enable it only
 # for platforms as we test it.
