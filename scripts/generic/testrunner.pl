@@ -377,6 +377,9 @@ Readonly my $EXIT_LOGGING_ERROR => 58;
 # initial content of created log files
 Readonly my $INITIAL_LOG_CONTENT => 'Log file created by '.__PACKAGE__;
 
+# default fractional value for timeout duration warning
+Readonly my $TIMEOUT_DURATION_WARNING => .75;
+
 sub new
 {
     my ($class) = @_;
@@ -843,6 +846,15 @@ sub proc_print_exit_info
         # Don't mention the `Exceeded retry limit'; we never retry, so it would only be
         # confusing.  Note that this can (and often will) reduce $msg to nothing.
         $msg =~ s{ ^ Exceeded \s retry \s limit \s* }{}xms;
+    }
+
+    # Print out a warning message if the process took longer than a certain percentage
+    # of the timeout amount.
+    my $test_duration = int( $self->{ timer }->elapsed( ) );
+    my $warning_threshold = $self->{ timeout } * $TIMEOUT_DURATION_WARNING;
+    if ($test_duration > $warning_threshold && $test_duration < $self->{ timeout }) {
+        $msg .= "warning: test duration ($test_duration seconds) is dangerously close to maximum permitted time ($self->{ timeout } seconds)\n";
+        $msg .= "warning: Either modify the test to reduce its runtime, or use a higher timeout.\n";
     }
 
     my $status = $proc->status( );
