@@ -191,7 +191,7 @@ sub run
     print "End of list\n";
 
     # Create global database
-    copy($csmes_source, $csmes_global) or confess "copy $csmes_source: $!";
+    move($csmes_source, $csmes_global) or confess "move $csmes_source: $!";
 
     # Merge tests into global
     $self->exe('cmmerge',
@@ -199,6 +199,9 @@ sub run
                "--output=$csmes_global",
                $csmes_tests
     );
+
+    # Delete the tests csmes to save space.
+    unlink($csmes_tests) or confess "unlink $csmes_tests: $!";
 
     # Generate report
     $self->exe('cmreport',
@@ -209,10 +212,6 @@ sub run
         '--source-sort=name',
         '--global=all'
     );
-
-    # Delete the sources and tests csmes to save space.
-    unlink($csmes_source) or confess "unlink $csmes_source: $!";
-    unlink($csmes_tests) or confess "unlink $csmes_source: $!";
 
     # Compress global csmes to save space
     $self->exe('gzip',
