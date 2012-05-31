@@ -680,7 +680,7 @@ sub testrunner_args_for_test
     my @out;
 
     if (my $timeout = $test->{ 'testcase.timeout' }) {
-        if ($timeout =~ m{\A [0-9]+ \z}ms) {
+        if ($timeout =~ m{\A [0-9]+ \z}xms) {
             push @out, ('--timeout', $timeout);
         } else {
             $self->print_info( "$label: ignored invalid testcase.timeout value of \"$timeout\"\n" );

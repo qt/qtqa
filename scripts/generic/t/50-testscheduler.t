@@ -127,6 +127,7 @@ sub test_mixed
     };
     isnt( $status, 0, 'testscheduler fails if some tests fail' );
     like( $output, qr|
+\A
 \Qfailing. 1 arg(s)
 QtQA::App::TestScheduler: failing_significant_test failed
 passing. 1 arg(s)
@@ -151,7 +152,8 @@ QtQA::App::TestScheduler: subtest (sub2) failed
   subtest (sub2)
   failing_insignificant_test [insignificant]
 === Totals: 8 tests, 3 passes, 4 fails, 1 insignificant fail ===================
-\E|xms, 'testscheduler output as expected' );
+\E
+\z|xms, 'testscheduler output as expected' );
 
     return;
 }
@@ -193,7 +195,8 @@ sub test_mixed_parallel_stress
   subtest (sub2)
   failing_insignificant_test [insignificant]
 === Totals: 8 tests, 3 passes, 4 fails, 1 insignificant fail ===================
-\E|xms, '[parallel-stress] testscheduler output as expected' );
+\E
+\z|xms, '[parallel-stress] testscheduler output as expected' );
 
     return;
 }
@@ -214,8 +217,10 @@ sub test_none
     };
     is( $status, 0, 'testscheduler with no tests is a pass' );
     like( $output, qr|
+\A
 $RE{ timing_section_j1 }
 \Q=== Totals: no tests, no passes ================================================\E \n
+\z
         |xms, 'testscheduler output as expected' );
 
     return;
@@ -237,13 +242,15 @@ sub test_single_fail
     };
     isnt( $status, 0, 'testscheduler with single fail is a fail' );
     like( $output, qr|
+\A
 \Qfailing. 1 arg(s)
 QtQA::App::TestScheduler: failing_significant_test failed
 \E $RE{ timing_section_j1 }
 \Q=== Failures: ==================================================================
   failing_significant_test
 === Totals: 1 test, no passes, 1 fail ==========================================
-\E|xms, 'testscheduler output as expected' );
+\E
+\z|xms, 'testscheduler output as expected' );
 
     return;
 }
@@ -269,13 +276,15 @@ sub test_single_insignificant_fail
     };
     is( $status, 0, 'testscheduler with single insignificant fail is a pass' );
     like( $output, qr|
+\A
 \Qfailing. 3 arg(s)
 QtQA::App::TestScheduler: failing_insignificant_test failed, but it is marked with insignificant_test
 \E $RE{ timing_section_j1_with_insignificant }
 \Q=== Failures: ==================================================================
   failing_insignificant_test [insignificant]
 === Totals: 1 test, no passes, 1 insignificant fail ============================
-\E|xms, 'testscheduler output as expected' );
+\E
+\z|xms, 'testscheduler output as expected' );
 
     return;
 }
@@ -295,10 +304,12 @@ sub test_single_pass
     };
     is( $status, 0, 'testscheduler with single pass is a pass' );
     like( $output, qr|
+\A
 \Qpassing. 1 arg(s)
 \E $RE{ timing_section_j1 }
 \Q=== Totals: 1 test, 1 pass =====================================================
-\E|xms, 'testscheduler output as expected' );
+\E
+\z|xms, 'testscheduler output as expected' );
 
     return;
 }
