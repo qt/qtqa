@@ -129,7 +129,7 @@ sub test_mixed
     like( $output, qr|
 \A
 \Qfailing. 1 arg(s)
-QtQA::App::TestScheduler: failing_significant_test failed
+QtQA::App::TestScheduler: failing_significant_test failed; run concurrently with passing_insignificant_test
 passing. 1 arg(s)
 QtQA::App::TestScheduler: ran 2 parallel tests.  Starting 6 serial tests.
 Custom failing

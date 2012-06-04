@@ -490,6 +490,7 @@ sub execute_tests_from_testplan
     # Result keys include:
     #   _status         =>  exit status of test
     #   _parallel_count =>  amount of tests still running at the time this test completed
+    #   _parallel_tests =>  list of all tests which have run concurrently with this one
     #   _timer          =>  Timer::Simple object for this test's runtime
     #
     $self->{ test_results } = [];
@@ -715,6 +716,16 @@ sub spawn_subtest
 
     my @cmd = (@testrunner_cmd, '--', @cmd_and_args );
     $test->{ _timer } = Timer::Simple->new( );
+
+    # Save a reference to all tests running at the time this test began,
+    # and also associate this test we've started with all other currently running tests
+    $test->{ _parallel_tests } = [];
+    foreach my $other_pid (keys %{ $self->{ test_by_pid } || {} }) {
+        my $other_test = $self->{ test_by_pid }{ $other_pid };
+        push @{ $test->{ _parallel_tests } }, $other_test;
+        push @{ $other_test->{ _parallel_tests } }, $test;
+    }
+
     my $pid = $self->spawn( @cmd );
     $self->{ test_by_pid }{ $pid } = $test;
 
@@ -778,6 +789,15 @@ sub print_test_fail_info
     my $msg = "$test->{ label } failed";
     if ($test->{ insignificant_test }) {
         $msg .= ', but it is marked with insignificant_test';
+    }
+
+    # dump the list of tests run concurrently with this one; it can
+    # be relevant for debugging failures from parallel tests.
+    if (my @other_tests = @{ $test->{ _parallel_tests } || []}) {
+        local $LIST_SEPARATOR = ', ';
+        my @labels = map { $_->{ label } } @other_tests;
+        @labels = sort @labels;
+        $msg .= "; run concurrently with @labels";
     }
 
     $self->print_info( "$msg\n" );
