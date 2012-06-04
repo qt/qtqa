@@ -983,7 +983,7 @@ my %RE = (
         |
 
         (?:
-            # Linux-style `undefined reference', e.g.
+            # Linux-style undefined or multiply defined symbol, e.g.
             #  tst_sphere.o: In function `tst_Sphere::planes() const':
             #  tst_sphere.cpp:(.text+0x244): undefined reference to `ViewportCamera::ViewportCamera()'
             #  tst_sphere.o:tst_sphere.cpp:(.text+0x3bb): more undefined references to `Frustum::plane(QFlags<Frustum::Plane>) const' follow
@@ -999,6 +999,8 @@ my %RE = (
                 \Qundefined reference to `\E
                 |
                 \Qmore undefined references to `\E
+                |
+                \Qmultiple definition of `\E
             )
 
             .+
@@ -1094,6 +1096,14 @@ my %RE = (
 
             .+
             \z
+        )
+
+        |
+
+        (?:
+            # referring to the first place a symbol was defined when
+            # failing with a "multiple definition of ..." error
+            \Q: first defined here\E
         )
 
 

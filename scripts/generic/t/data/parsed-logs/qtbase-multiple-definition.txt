@@ -1,0 +1,259 @@
+[ '--summarize', "$DATADIR/raw-logs/qtbase-multiple-definition.txt" ]
+qtbase failed to compile for linux-arm-gnueabi-g++ Ubuntu 11.10 x86 :(
+
+  .obj/release-shared/adler32.o: In function `adler32':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/adler32.c:69: multiple definition of `adler32'
+  .obj/release-shared/adler32.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/adler32.c:69: first defined here
+  .obj/release-shared/adler32.o: In function `adler32_combine':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/adler32.c:160: multiple definition of `adler32_combine'
+  .obj/release-shared/adler32.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/adler32.c:160: first defined here
+  .obj/release-shared/adler32.o: In function `adler32_combine64':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/adler32.c:168: multiple definition of `adler32_combine64'
+  .obj/release-shared/adler32.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/adler32.c:168: first defined here
+  .obj/release-shared/compress.o: In function `compress2':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/compress.c:28: multiple definition of `compress2'
+  .obj/release-shared/compress.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/compress.c:28: first defined here
+  .obj/release-shared/compress.o: In function `compress':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/compress.c:67: multiple definition of `compress'
+  .obj/release-shared/compress.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/compress.c:67: first defined here
+  .obj/release-shared/compress.o: In function `compressBound':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/compress.c:78: multiple definition of `compressBound'
+  .obj/release-shared/compress.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/compress.c:78: first defined here
+  .obj/release-shared/crc32.o: In function `get_crc_table':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/crc32.c:213: multiple definition of `get_crc_table'
+  .obj/release-shared/crc32.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/crc32.c:213: first defined here
+  .obj/release-shared/crc32.o: In function `crc32':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/crc32.c:225: multiple definition of `crc32'
+  .obj/release-shared/crc32.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/crc32.c:225: first defined here
+  .obj/release-shared/crc32.o: In function `crc32_combine':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/crc32.c:433: multiple definition of `crc32_combine'
+  .obj/release-shared/crc32.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/crc32.c:433: first defined here
+  .obj/release-shared/crc32.o: In function `crc32_combine64':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/crc32.c:441: multiple definition of `crc32_combine64'
+  .obj/release-shared/crc32.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/crc32.c:441: first defined here
+  .obj/release-shared/deflate.o: In function `deflateSetDictionary':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/deflate.c:315: multiple definition of `deflateSetDictionary'
+  .obj/release-shared/deflate.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/deflate.c:315: first defined here
+  .obj/release-shared/deflate.o: In function `deflateReset':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/deflate.c:355: multiple definition of `deflateReset'
+  .obj/release-shared/deflate.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/deflate.c:355: first defined here
+  .obj/release-shared/deflate.o: In function `deflateSetHeader':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/deflate.c:393: multiple definition of `deflateSetHeader'
+  .obj/release-shared/deflate.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/deflate.c:393: first defined here
+  .obj/release-shared/deflate.o: In function `deflatePrime':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/deflate.c:404: multiple definition of `deflatePrime'
+  .obj/release-shared/deflate.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/deflate.c:404: first defined here
+  .obj/release-shared/deflate.o: In function `deflateTune':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/deflate.c:457: multiple definition of `deflateTune'
+  .obj/release-shared/deflate.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/deflate.c:457: first defined here
+  .obj/release-shared/deflate.o: In function `deflateBound':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/deflate.c:496: multiple definition of `deflateBound'
+  .obj/release-shared/deflate.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/deflate.c:496: first defined here
+  .obj/release-shared/deflate.o: In function `deflate':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/deflate.c:585: multiple definition of `deflate'
+  .obj/release-shared/deflate.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/deflate.c:585: first defined here
+  .obj/release-shared/deflate.o: In function `deflateParams':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/deflate.c:416: multiple definition of `deflateParams'
+  .obj/release-shared/deflate.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/deflate.c:416: first defined here
+  .obj/release-shared/deflate.o: In function `deflateEnd':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/deflate.c:897: multiple definition of `deflateEnd'
+  .obj/release-shared/deflate.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/deflate.c:897: first defined here
+  .obj/release-shared/deflate.o: In function `deflateInit2_':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/deflate.c:220: multiple definition of `deflateInit2_'
+  .obj/release-shared/deflate.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/deflate.c:220: first defined here
+  .obj/release-shared/deflate.o: In function `deflateInit_':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/deflate.c:203: multiple definition of `deflateInit_'
+  .obj/release-shared/deflate.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/deflate.c:203: first defined here
+  .obj/release-shared/deflate.o: In function `deflateCopy':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/deflate.c:933: multiple definition of `deflateCopy'
+  .obj/release-shared/deflate.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/deflate.c:933: first defined here
+  .obj/release-shared/deflate.o:(.rodata+0x0): multiple definition of `deflate_copyright'
+  .obj/release-shared/deflate.o:(.rodata+0x0): first defined here
+  .obj/release-shared/gzclose.o: In function `gzclose':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/gzclose.c:17: multiple definition of `gzclose'
+  .obj/release-shared/gzclose.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/gzclose.c:17: first defined here
+  .obj/release-shared/gzlib.o: In function `gzbuffer':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/gzlib.c:231: multiple definition of `gzbuffer'
+  .obj/release-shared/gzlib.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/gzlib.c:231: first defined here
+  .obj/release-shared/gzlib.o: In function `gztell64':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/gzlib.c:369: multiple definition of `gztell64'
+  .obj/release-shared/gzlib.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/gzlib.c:369: first defined here
+  .obj/release-shared/gzlib.o: In function `gztell':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/gzlib.c:382: multiple definition of `gztell'
+  .obj/release-shared/gzlib.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/gzlib.c:382: first defined here
+  .obj/release-shared/gzlib.o: In function `gzoffset64':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/gzlib.c:392: multiple definition of `gzoffset64'
+  .obj/release-shared/gzlib.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/gzlib.c:392: first defined here
+  .obj/release-shared/gzlib.o: In function `gzoffset':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/gzlib.c:415: multiple definition of `gzoffset'
+  .obj/release-shared/gzlib.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/gzlib.c:415: first defined here
+  .obj/release-shared/gzlib.o: In function `gzeof':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/gzlib.c:425: multiple definition of `gzeof'
+  .obj/release-shared/gzlib.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/gzlib.c:425: first defined here
+  .obj/release-shared/gzlib.o: In function `gzerror':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/gzlib.c:444: multiple definition of `gzerror'
+  .obj/release-shared/gzlib.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/gzlib.c:444: first defined here
+  .obj/release-shared/gzlib.o: In function `gz_error':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/gzlib.c:489: multiple definition of `gz_error'
+  .obj/release-shared/gzlib.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/gzlib.c:489: first defined here
+  .obj/release-shared/gzlib.o: In function `gzclearerr':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/gzlib.c:463: multiple definition of `gzclearerr'
+  .obj/release-shared/gzlib.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/gzlib.c:463: first defined here
+  .obj/release-shared/gzlib.o: In function `gzrewind':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/gzlib.c:255: multiple definition of `gzrewind'
+  .obj/release-shared/gzlib.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/gzlib.c:255: first defined here
+  .obj/release-shared/gzlib.o: In function `gzseek64':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/gzlib.c:279: multiple definition of `gzseek64'
+  .obj/release-shared/gzlib.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/gzlib.c:279: first defined here
+  .obj/release-shared/gzlib.o: In function `gzseek':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/gzlib.c:355: multiple definition of `gzseek'
+  .obj/release-shared/gzlib.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/gzlib.c:355: first defined here
+  .obj/release-shared/gzlib.o: In function `gzdopen':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/gzlib.c:215: multiple definition of `gzdopen'
+  .obj/release-shared/gzlib.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/gzlib.c:215: first defined here
+  .obj/release-shared/gzlib.o: In function `gzopen64':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/gzlib.c:207: multiple definition of `gzopen64'
+  .obj/release-shared/gzlib.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/gzlib.c:207: first defined here
+  .obj/release-shared/gzlib.o: In function `gzopen':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/gzlib.c:199: multiple definition of `gzopen'
+  .obj/release-shared/gzlib.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/gzlib.c:199: first defined here
+  .obj/release-shared/gzread.o: In function `gzread':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/gzread.c:366: multiple definition of `gzread'
+  .obj/release-shared/gzread.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/gzread.c:366: first defined here
+  .obj/release-shared/gzread.o: In function `gzgetc':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/gzread.c:455: multiple definition of `gzgetc'
+  .obj/release-shared/gzread.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/gzread.c:455: first defined here
+  .obj/release-shared/gzread.o: In function `gzungetc':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/gzread.c:485: multiple definition of `gzungetc'
+  .obj/release-shared/gzread.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/gzread.c:485: first defined here
+  .obj/release-shared/gzread.o: In function `gzgets':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/gzread.c:543: multiple definition of `gzgets'
+  .obj/release-shared/gzread.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/gzread.c:543: first defined here
+  .obj/release-shared/gzread.o: In function `gzdirect':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/gzread.c:605: multiple definition of `gzdirect'
+  .obj/release-shared/gzread.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/gzread.c:605: first defined here
+  .obj/release-shared/gzread.o: In function `gzclose_r':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/gzread.c:629: multiple definition of `gzclose_r'
+  .obj/release-shared/gzread.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/gzread.c:629: first defined here
+  .obj/release-shared/gzwrite.o: In function `gzwrite':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/gzwrite.c:147: multiple definition of `gzwrite'
+  .obj/release-shared/gzwrite.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/gzwrite.c:147: first defined here
+  .obj/release-shared/gzwrite.o: In function `gzputc':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/gzwrite.c:224: multiple definition of `gzputc'
+  .obj/release-shared/gzwrite.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/gzwrite.c:224: first defined here
+  .obj/release-shared/gzwrite.o: In function `gzputs':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/gzwrite.c:267: multiple definition of `gzputs'
+  .obj/release-shared/gzwrite.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/gzwrite.c:267: first defined here
+  .obj/release-shared/gzwrite.o: In function `gzprintf':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/gzwrite.c:282: multiple definition of `gzprintf'
+  .obj/release-shared/gzwrite.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/gzwrite.c:282: first defined here
+  .obj/release-shared/gzwrite.o: In function `gzflush':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/gzwrite.c:429: multiple definition of `gzflush'
+  .obj/release-shared/gzwrite.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/gzwrite.c:429: first defined here
+  .obj/release-shared/gzwrite.o: In function `gzsetparams':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/gzwrite.c:462: multiple definition of `gzsetparams'
+  .obj/release-shared/gzwrite.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/gzwrite.c:462: first defined here
+  .obj/release-shared/gzwrite.o: In function `gzclose_w':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/gzwrite.c:502: multiple definition of `gzclose_w'
+  .obj/release-shared/gzwrite.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/gzwrite.c:502: first defined here
+  .obj/release-shared/infback.o: In function `inflateBackInit_':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/infback.c:34: multiple definition of `inflateBackInit_'
+  .obj/release-shared/infback.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/infback.c:34: first defined here
+  .obj/release-shared/infback.o: In function `inflateBack':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/infback.c:247: multiple definition of `inflateBack'
+  .obj/release-shared/infback.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/infback.c:247: first defined here
+  .obj/release-shared/infback.o: In function `inflateBackEnd':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/infback.c:625: multiple definition of `inflateBackEnd'
+  .obj/release-shared/infback.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/infback.c:625: first defined here
+  .obj/release-shared/inffast.o: In function `inflate_fast':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/inffast.c:70: multiple definition of `inflate_fast'
+  .obj/release-shared/inffast.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/inffast.c:70: first defined here
+  .obj/release-shared/inflate.o: In function `inflateReset':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/inflate.c:105: multiple definition of `inflateReset'
+  .obj/release-shared/inflate.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/inflate.c:105: first defined here
+  .obj/release-shared/inflate.o: In function `inflateReset2':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/inflate.c:133: multiple definition of `inflateReset2'
+  .obj/release-shared/inflate.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/inflate.c:133: first defined here
+  .obj/release-shared/inflate.o: In function `inflateInit2_':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/inflate.c:173: multiple definition of `inflateInit2_'
+  .obj/release-shared/inflate.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/inflate.c:173: first defined here
+  .obj/release-shared/inflate.o: In function `inflateInit_':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/inflate.c:205: multiple definition of `inflateInit_'
+  .obj/release-shared/inflate.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/inflate.c:205: first defined here
+  .obj/release-shared/inflate.o: In function `inflatePrime':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/inflate.c:213: multiple definition of `inflatePrime'
+  .obj/release-shared/inflate.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/inflate.c:213: first defined here
+  .obj/release-shared/inflate.o: In function `inflate':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/inflate.c:592: multiple definition of `inflate'
+  .obj/release-shared/inflate.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/inflate.c:592: first defined here
+  .obj/release-shared/inflate.o: In function `inflateEnd':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/inflate.c:1240: multiple definition of `inflateEnd'
+  .obj/release-shared/inflate.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/inflate.c:1240: first defined here
+  .obj/release-shared/inflate.o: In function `inflateSetDictionary':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/inflate.c:1256: multiple definition of `inflateSetDictionary'
+  .obj/release-shared/inflate.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/inflate.c:1256: first defined here
+  .obj/release-shared/inflate.o: In function `inflateGetHeader':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/inflate.c:1301: multiple definition of `inflateGetHeader'
+  .obj/release-shared/inflate.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/inflate.c:1301: first defined here
+  .obj/release-shared/inflate.o: In function `inflateSync':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/inflate.c:1347: multiple definition of `inflateSync'
+  .obj/release-shared/inflate.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/inflate.c:1347: first defined here
+  .obj/release-shared/inflate.o: In function `inflateSyncPoint':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/inflate.c:1401: multiple definition of `inflateSyncPoint'
+  .obj/release-shared/inflate.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/inflate.c:1401: first defined here
+  .obj/release-shared/inflate.o: In function `inflateCopy':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/inflate.c:1416: multiple definition of `inflateCopy'
+  .obj/release-shared/inflate.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/inflate.c:1416: first defined here
+  .obj/release-shared/inflate.o: In function `inflateUndermine':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/inflate.c:1459: multiple definition of `inflateUndermine'
+  .obj/release-shared/inflate.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/inflate.c:1459: first defined here
+  .obj/release-shared/inflate.o: In function `inflateMark':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/inflate.c:1472: multiple definition of `inflateMark'
+  .obj/release-shared/inflate.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/inflate.c:1472: first defined here
+  .obj/release-shared/inftrees.o: In function `inflate_table':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/inftrees.c:39: multiple definition of `inflate_table'
+  .obj/release-shared/inftrees.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/inftrees.c:39: first defined here
+  .obj/release-shared/inftrees.o:(.rodata+0x100): multiple definition of `inflate_copyright'
+  .obj/release-shared/inftrees.o:(.rodata+0x100): first defined here
+  .obj/release-shared/trees.o: In function `_tr_init':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/trees.c:400: multiple definition of `_tr_init'
+  .obj/release-shared/trees.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/trees.c:400: first defined here
+  .obj/release-shared/trees.o: In function `_tr_stored_block':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/trees.c:876: multiple definition of `_tr_stored_block'
+  .obj/release-shared/trees.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/trees.c:876: first defined here
+  .obj/release-shared/trees.o: In function `_tr_align':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/trees.c:898: multiple definition of `_tr_align'
+  .obj/release-shared/trees.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/trees.c:898: first defined here
+  .obj/release-shared/trees.o: In function `_tr_flush_block':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/trees.c:930: multiple definition of `_tr_flush_block'
+  .obj/release-shared/trees.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/trees.c:930: first defined here
+  .obj/release-shared/trees.o: In function `_tr_tally':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/trees.c:1030: multiple definition of `_tr_tally'
+  .obj/release-shared/trees.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/trees.c:1030: first defined here
+  .obj/release-shared/trees.o:(.rodata+0x0): multiple definition of `_length_code'
+  .obj/release-shared/trees.o:(.rodata+0x0): first defined here
+  .obj/release-shared/trees.o:(.rodata+0x1e8): multiple definition of `_dist_code'
+  .obj/release-shared/trees.o:(.rodata+0x1e8): first defined here
+  .obj/release-shared/uncompr.o: In function `uncompress':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/uncompr.c:29: multiple definition of `uncompress'
+  .obj/release-shared/uncompr.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/uncompr.c:29: first defined here
+  .obj/release-shared/zutil.o: In function `zlibVersion':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/zutil.c:29: multiple definition of `zlibVersion'
+  .obj/release-shared/zutil.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/zutil.c:29: first defined here
+  .obj/release-shared/zutil.o: In function `zlibCompileFlags':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/zutil.c:113: multiple definition of `zlibCompileFlags'
+  .obj/release-shared/zutil.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/zutil.c:113: first defined here
+  .obj/release-shared/zutil.o: In function `zError':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/zutil.c:136: multiple definition of `zError'
+  .obj/release-shared/zutil.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/zutil.c:136: first defined here
+  .obj/release-shared/zutil.o: In function `zcalloc':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/zutil.c:298: multiple definition of `zcalloc'
+  .obj/release-shared/zutil.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/zutil.c:298: first defined here
+  .obj/release-shared/zutil.o: In function `zcfree':
+  /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/zutil.c:306: multiple definition of `zcfree'
+  .obj/release-shared/zutil.o:/build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/zutil.c:306: first defined here
+  .obj/release-shared/zutil.o:(.data.rel.ro.local+0x0): multiple definition of `z_errmsg'
+  .obj/release-shared/zutil.o:(.data.rel.ro.local+0x0): first defined here
+  make[2]: *** [../../lib/libQtGui.so.5.0.0] Error 1
+  make[1]: *** [sub-gui-make_default-ordered] Error 2
+  make: *** [module-qtbase] Error 2
