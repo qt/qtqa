@@ -44,6 +44,17 @@ if ($ENV{ QTQA_APP_TESTRUNNER_ATTEMPT } == 1) {
 print qq{Second attempt; causing much vexation by passing!\n};
 END_SCRIPT
 
+# perl to simulate a test which eventually fails, then eventually succeeds.
+Readonly my $PERL_VANISHING_FAILURE_TIMEOUT_WARNING => <<'END_SCRIPT';
+sleep 2;
+$|++;
+if ($ENV{ QTQA_APP_TESTRUNNER_ATTEMPT } == 1) {
+    print qq{First attempt; failing...\n};
+    exit 13;
+}
+print qq{Second attempt; causing much vexation by passing!\n};
+END_SCRIPT
+
 # stdout from the above
 Readonly my $OUTPUT_VANISHING_FAILURE => <<'END_MESSAGE';
 First attempt; failing...
@@ -368,6 +379,17 @@ sub test_testrunner_flaky
         expected_success => 1,
         expected_stdout  => $OUTPUT_VANISHING_FAILURE,
         expected_stderr  => $ERROR_VANISHING_FAILURE_MODE_IGNORE,
+    });
+
+
+    # test which eventually fails once, then eventually passes
+    # this also tests timeout warning by setting a smalltimeout value
+    test_run({
+        testname         => 'vanishing failure; with timeoutwarning test',
+        args             => [ qw(--plugin flaky --timeout 5 -- perl -e), $PERL_VANISHING_FAILURE_TIMEOUT_WARNING ],
+        expected_success => 0,
+        expected_stdout  => $OUTPUT_VANISHING_FAILURE,
+        expected_stderr  => $ERROR_VANISHING_FAILURE_MODE_WORST,
     });
 
     # test which fails once, then again in a different way

@@ -326,7 +326,7 @@ use File::Spec::Functions;
 use File::chdir;
 use IO::File;
 use IO::Handle;
-use List::Util qw( first );
+use List::Util qw( first sum );
 use Pod::Usage qw( pod2usage );
 use Readonly;
 use Timer::Simple;
@@ -850,7 +850,7 @@ sub proc_print_exit_info
 
     # Print out a warning message if the process took longer than a certain percentage
     # of the timeout amount.
-    my $test_duration = int( $self->{ timer }->elapsed( ) );
+    my $test_duration = int( $self->{ timer }[-1]->elapsed( ) );
     my $warning_threshold = $self->{ timeout } * $TIMEOUT_DURATION_WARNING;
     if ($test_duration > $warning_threshold && $test_duration < $self->{ timeout }) {
         $msg .= "warning: test duration ($test_duration seconds) is dangerously close to maximum permitted time ($self->{ timeout } seconds)\n";
@@ -1205,13 +1205,14 @@ sub do_subprocess
 
     $self->setup_logging( );  # this is allowed to modify the command
 
-    $self->{ timer } = Timer::Simple->new( );
-
     $self->print_test_begin_info( );
 
     my $keep_running = 1;
     my $attempt = 1;
     my $force_failure_exitcode;
+
+    # creates an array to store the timer details for each attempt
+    $self->{ timer } = [];
 
     while ($keep_running) {
 
@@ -1219,6 +1220,8 @@ sub do_subprocess
         # We clear this at each run so that we only consider forced failures
         # during the _last_ run.
         $force_failure_exitcode = 0;
+
+        push @{$self->{ timer }}, Timer::Simple->new( );
 
         $self->plugins_about_to_run( );
 
@@ -1243,10 +1246,9 @@ sub do_subprocess
 
         # We may retry the test any number of times, if some plugin asks us to.
         $keep_running = $result->{ retry };
+        $self->{ timer }[-1]->stop( );
         ++$attempt;
     }
-
-    $self->{ timer }->stop( );
 
     $self->{ force_failure_exitcode } ||= $force_failure_exitcode;
 
@@ -1296,10 +1298,11 @@ sub print_test_end_info
     my $proc = $self->proc( );
     my $status = $proc->status( );
 
+    my $seconds = sum( map { $_->elapsed( ) } @{$self->{ timer }});
+
     # If it was at least two seconds, only report the integer part.
     # For very fast tests, we report the fractional part as well - mostly
     # because "0 seconds" looks weird.
-    my $seconds = $self->{ timer }->elapsed( );
     if ($seconds > 1) {
         $seconds = int($seconds);
     }
