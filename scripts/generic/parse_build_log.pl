@@ -1416,6 +1416,12 @@ my %RE = (
     autotest_fail => qr{
         \A
         QtQA::App::TestScheduler:\ .{1,200}\ failed
+
+        # "run concurrently with" appears on parallel tests only
+        (?:
+            ;\ run\ concurrently\ with\ .*
+        )?
+
         \z
     }xms,
 
