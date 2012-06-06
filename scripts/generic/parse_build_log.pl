@@ -1361,8 +1361,14 @@ my %RE = (
         (?:
             # new style, testscheduler
             QtQA::App::TestRunner:\ begin\ \[
-            [^\]]{1,100}
-            (?:/|\\)
+
+            # consume all up to the last \ or /, if any, so that 'name' contains
+            # only the basename.
+            (?:
+                [^\]]{1,100}
+                (?:/|\\)
+            )?
+
             (?<name>
                 [^\]]{1,100}
             )

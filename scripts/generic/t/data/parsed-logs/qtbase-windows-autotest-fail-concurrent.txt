@@ -1,11 +1,7 @@
 [ '--summarize', "$DATADIR/raw-logs/qtbase-windows-autotest-fail-concurrent.txt" ]
-Autotest `tst_qgraphicseffectsource' failed for win32-msvc2010
-developer-build qtnamespace Windows 7 :(
+Autotest `tst_qfile' failed for win32-msvc2010 developer-build
+qtnamespace Windows 7 :(
 
-  Testing tst_QGraphicsEffectSource
-  Totals: 17 passed, 0 failed, 0 skipped
-  QtQA::App::TestRunner: end [release\tst_qgraphicseffectsource.exe] [-silent] [-o] [C:\test\recipes\187517561\base\_artifacts\test-logs\tst_qgraphicseffectsource.exe-testresults-00.xml,xml] [-o] [-,txt], 0.719174 seconds, exit code 0
-  QtQA::App::TestRunner: begin [tst_qfile.exe] [-silent] [-o] [C:\test\recipes\187517561\base\_artifacts\test-logs\tst_qfile.exe-testresults-00.xml,xml] [-o] [-,txt]
   Testing tst_QFile
   FAIL!  : tst_QFile::writeLargeDataBlock(unc file) Compared values are not the same
      Actual   (file.write(originalData)): -1
