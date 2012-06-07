@@ -298,11 +298,6 @@ for certain uses; for example, if your test is expected to run for one day
 and print 100MB of text to stdout, testrunner will use (at least) 100MB of
 memory, which is possibly unacceptable.
 
-When using --capture-logs / --tee-logs, it is possible for tests to clobber
-each other's logs if (1) there exist several tests with the same basename,
-and (2) tests are being run in parallel.  This is considered a low priority,
-as tests are already known to be generally unsafe to run in parallel.
-
 Currently, it is not advisable to combine the --capture-logs / --tee-logs
 options with tests run in XML mode, as testrunner may append messages to the
 log which are not valid XML.
