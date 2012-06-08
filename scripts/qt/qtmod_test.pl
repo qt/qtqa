@@ -487,7 +487,7 @@ sub read_and_store_configuration
         'qt.tests.testscheduler'  => 0                                           ,
         'qt.tests.testscheduler.args' => q{}                                     ,
         'qt.tests.insignificant'  => 0                                           ,
-        'qt.tests.timeout'        => 60*15                                       ,
+        'qt.tests.timeout'        => 450                                         ,
         'qt.tests.capture_logs'   => q{}                                         ,
         'qt.tests.tee_logs'       => q{}                                         ,
         'qt.tests.args'           => \&default_qt_tests_args                     ,
