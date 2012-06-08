@@ -1218,7 +1218,8 @@ sub do_subprocess
 
         push @{$self->{ timer }}, Timer::Simple->new( );
 
-        $self->plugins_about_to_run( );
+        my @command = $self->command( );
+        $self->plugins_about_to_run( \@command );
 
         {
             # Put the attempt number into the environment for these reasons:
@@ -1230,7 +1231,7 @@ sub do_subprocess
             #
             local $ENV{ QTQA_APP_TESTRUNNER_ATTEMPT } = $attempt;
 
-            $proc->run( [ $self->command( ) ] );
+            $proc->run( \@command );
         }
 
         $self->proc_print_exit_info( );
@@ -1426,8 +1427,10 @@ sub set_command
 #     Plugins may use argv to implement additional options.
 #     Should return a plugin object.
 #
-#   about_to_run( )
+#   about_to_run( \@argv )
 #     Called prior to running the process.
+#     `argv' is a reference to the command and arguments about to be run; the plugin
+#     is permitted to rewrite these.
 #     Should return nothing.
 #
 #   run_completed( )

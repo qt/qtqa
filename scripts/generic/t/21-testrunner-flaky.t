@@ -275,6 +275,27 @@ Readonly my $LOG_DIFFERING_FAILURE_MODE_IGNORE => $LOG_DIFFERING_FAILURE . <<"EN
 QtQA::App::TestRunner: this flaky test is being ignored
 END_MESSAGE
 
+# perl to check if -silent argument is passed (and fail)
+Readonly my $PERL_SILENT_CHECK => <<'END_SCRIPT';
+if (grep { $_ eq '-silent' } @ARGV) {
+    print qq{-silent argument is given; }.scalar(@ARGV).qq{ args\n};
+} else {
+    print qq{-silent argument is not given; }.scalar(@ARGV).qq{ args\n};
+}
+exit 16;
+END_SCRIPT
+
+# expected output from the above, when run with -silent -foo
+Readonly my $OUTPUT_SILENT_CHECK => <<'END_MESSAGE';
+-silent argument is given; 2 args
+-silent argument is not given; 1 args
+END_MESSAGE
+
+# expected stderr from the above
+Readonly my $ERROR_SILENT_CHECK => <<'END_MESSAGE';
+QtQA::App::TestRunner: test failed, running again to see if it is flaky...
+QtQA::App::TestRunner: test failure could be reproduced twice consecutively
+END_MESSAGE
 
 sub test_run
 {
@@ -420,6 +441,15 @@ sub test_testrunner_flaky
         expected_success => 1,
         expected_stdout  => $OUTPUT_DIFFERING_FAILURE,
         expected_stderr  => $ERROR_DIFFERING_FAILURE_MODE_IGNORE,
+    });
+
+    # test -silent argument is omitted on second run
+    test_run({
+        testname         => 'silent removed',
+        args             => [ qw(--plugin flaky -- perl -e), $PERL_SILENT_CHECK, '--', '-silent', '-foo' ],
+        expected_success => 0,
+        expected_stdout  => $OUTPUT_SILENT_CHECK,
+        expected_stderr  => $ERROR_SILENT_CHECK,
     });
 
     # test which hangs; should not be retried at all (in all modes)

@@ -132,6 +132,19 @@ sub run_completed
     return $self->handle_flaky_test( $self->{ first_attempt_status }, $status );
 }
 
+sub about_to_run
+{
+    my ($self, $args_ref) = @_;
+
+    # on attempt other than the first, omit '-silent' argument, so we get all
+    # details about the failure.
+    if ($self->{ attempt } > 1) {
+        @{ $args_ref } = grep { $_ ne '-silent' } @{ $args_ref };
+    }
+
+    return;
+}
+
 # Once a test has been determined as definitely being flaky,
 # this function will do something based on the current flaky mode.
 sub handle_flaky_test
@@ -268,6 +281,9 @@ QtQA::App::TestRunner::Plugin::flaky - try to handle unstable autotests
 This plugin provides a simple mechanism to help determine if an autotest failure
 is stable.  When active, any failing autotest will be re-run at least once to check
 if the failure can be reproduced.
+
+If the failing autotest was initially run with the '-silent' argument, this argument
+will be omitted on the second run.
 
 An autotest which fails twice in a row, but with a different exit status each time,
 is also considered unstable (example: a test which fails "normally" once, but
