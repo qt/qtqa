@@ -1004,15 +1004,6 @@ sub run_compile
         my @module_targets = map { "module-$_$target_suffix" } keys %dependencies;
         push @commands, sub { $self->exe( $make_bin, @make_args, @module_targets ) };
 
-        # Then we qmake, make the module we're actually interested in
-        # Figure out the interesting .pro file (must be only one)
-        my @pro_files = glob( "$qt_gitmodule_dir/*.pro" );
-        if (@pro_files > 1) {
-            $self->fatal_error(
-                "There are several .pro files (@pro_files), I don't know which one to use!"
-            );
-        }
-
         if (! -e $qt_gitmodule_build_dir) {
             mkpath( $qt_gitmodule_build_dir );
             # Note, we don't have to worry about emptying the build dir,
@@ -1030,7 +1021,7 @@ sub run_compile
         }
         push @commands, sub { $self->exe(
             $self->{ shadow_build_with_install_enabled } ? $qmake_install_bin : $qmake_bin,
-            $pro_files[0],
+            $qt_gitmodule_dir,
             @qmake_args
         ) };
 
