@@ -145,6 +145,7 @@ END_SCRIPT
 # stdout from the above
 Readonly my $OUTPUT_HANGING_FAILURE => <<'END_MESSAGE';
 About to hang for a few seconds...
+About to hang for a few seconds...
 END_MESSAGE
 
 
@@ -152,6 +153,10 @@ END_MESSAGE
 Readonly my $ERROR_HANGING_FAILURE => qr|
     \QQtQA::App::TestRunner: Timed out after \E \d+ \Q seconds\E \n
     $RE->{ exited_with_any_signal }
+    \QQtQA::App::TestRunner: test failed, running again to see if it is flaky...\E \n
+    \QQtQA::App::TestRunner: Timed out after \E \d+ \Q seconds\E \n
+    $RE->{ exited_with_any_signal }
+    \QQtQA::App::TestRunner: test failure could be reproduced twice consecutively\E \n
 |xms;
 
 # error from the above (when using "flaky" and "core" plugins, in that order)
@@ -452,21 +457,14 @@ sub test_testrunner_flaky
         expected_stderr  => $ERROR_SILENT_CHECK,
     });
 
-    # test which hangs; should not be retried at all (in all modes)
-    foreach my $mode_args (
-        [],
-        ['--flaky-mode', 'worst'],
-        ['--flaky-mode', 'best'],
-        ['--flaky-mode', 'ignore'],
-    ) {
-        test_run({
-            testname         => "hanging failure (@{ $mode_args })",
-            args             => [ qw(--timeout 2 --plugin flaky), @{ $mode_args }, qw(-- perl -e), $PERL_HANGING_FAILURE ],
-            expected_success => 0,
-            expected_stdout  => $OUTPUT_HANGING_FAILURE,
-            expected_stderr  => $ERROR_HANGING_FAILURE,
-        });
-    }
+    # test which hangs should be retried as usual
+    test_run({
+        testname         => "hanging failure",
+        args             => [ qw(--timeout 2 --plugin flaky -- perl -e), $PERL_HANGING_FAILURE ],
+        expected_success => 0,
+        expected_stdout  => $OUTPUT_HANGING_FAILURE,
+        expected_stderr  => $ERROR_HANGING_FAILURE,
+    });
 
     my $tempdir = tempdir( basename($0).'.XXXXXX', TMPDIR => 1, CLEANUP => 1 );
 
