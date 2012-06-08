@@ -956,14 +956,22 @@ sub run_compile
         if ($qt_minimal_deps) {
             # minimal deps mode?  Then we turned off some build parts in configure, and must
             # now explicitly enable them for this module only.
-            #
-            # the Makefile is generated with a QMAKE variable, allowing qmake command to be overriden;
-            # we use this by e.g. passing to make:
-            #
-            #   make QMAKE="path/to/qmake QT_BUILD_PARTS+=tests QT_BUILD_PARTS+=examples"
-            #
-            my $qmake_cmd = canonpath($qmake_bin).join(' QT_BUILD_PARTS+=', q{}, @OPTIONAL_BUILD_PARTS);
-            push @commands, sub { $self->exe( $make_bin, "module-${qt_gitmodule}-qmake_all", "QMAKE=$qmake_cmd" ) };
+
+            if (! -e $qt_gitmodule_build_dir) {
+                mkpath( $qt_gitmodule_build_dir );
+                # Note, we don't have to worry about emptying the build dir,
+                # because it's always under the top-level build dir, and we already
+                # cleaned that if it existed.
+            }
+
+            push @commands, sub {
+                local $CWD = $qt_gitmodule_build_dir;
+                $self->exe(
+                    $qmake_bin,
+                    $qt_gitmodule_dir,
+                    map { "QT_BUILD_PARTS+=$_" } @OPTIONAL_BUILD_PARTS
+                );
+            };
         }
 
         # Building a module hosted in qt5; `configure' is expected to have generated a
