@@ -142,8 +142,9 @@ my %CPAN_MODULE_META = (
     },
 );
 
-# Returns a list of all CPAN modules needed (including those which
-# are already installed).
+# Returns a hash of all CPAN modules needed (including those which
+# are already installed), with the minimum required version for each
+# (or 0 for no minimum required version).
 #
 # The returned values are suitable for use both as module names within
 # a perl script (e.g. use Some::Module), and as module names for use with
@@ -210,7 +211,12 @@ sub all_required_cpan_modules
         Win32::Process::Info
     ) if $WINDOWS;
 
-    return @out;
+    my %out = map { $_ => 0 } @out;
+
+    # Avoid https://rt.cpan.org/Public/Bug/Display.html?id=53064
+    $out{ 'File::chdir' } = '0.1005';
+
+    return %out;
 }
 
 # Returns the subset of modules from `all_required_cpan_modules'
@@ -228,7 +234,7 @@ sub missing_required_cpan_modules
 {
     my ($self, $arg_ref) = @_;
 
-    my @all = $self->all_required_cpan_modules;
+    my %all = $self->all_required_cpan_modules;
 
     my @need_install = ();
 
@@ -245,9 +251,16 @@ sub missing_required_cpan_modules
     #    - attempt to load it again
     #
 
-    foreach my $module (@all) {
+    while (my ($module, $version) = each %all) {
         print "$module - ";
-        my $cmd = qq{perl -e "require $module; 1"};
+
+        my $snippet = "require $module";
+        if ($version) {
+            $snippet .= "; $module->VERSION( $version )";
+        }
+        $snippet .= '; 1';
+
+        my $cmd = qq{perl -e "$snippet"};
 
         if (!$self->run_module_test( $cmd, $arg_ref )) {
             push @need_install, $module;
