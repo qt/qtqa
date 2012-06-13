@@ -103,6 +103,11 @@ the testrunner will exit with a non-zero exit code to indicate failure.
 
 Change to the specified directory before running the test.
 
+=item B<--label> <label>
+
+Use the given label as the human-readable name of this test in certain
+output messages. May be omitted.
+
 =item B<-v>
 
 =item B<--verbose>
@@ -113,14 +118,16 @@ test completes.
 For example:
 
   $ testrunner --verbose -- ./tst_mytest -silent
-  QtQA::App::TestRunner: begin [./tst_mytest] [-silent]
+  QtQA::App::TestRunner: begin mytest: [./tst_mytest] [-silent]
   Testing tst_MyTest
   QFATAL : tst_MyTest::buggyTest() Cannot quux the fnord
   QtQA::App::TestRunner: Process exited due to signal 6; dumped core
-  QtQA::App::TestRunner: end [./tst_mytest] [-silent], signal 6
+  QtQA::App::TestRunner: end mytest: [./tst_mytest] [-silent], signal 6
 
-The lines are guaranteed to match C</^QtQA::App::TestRunner: begin/> and
-C</^QtQA::App::TestRunner: end/>, but the format is otherwise undefined.
+The lines are guaranteed to match C</^QtQA::App::TestRunner: begin (?<label>[^:]+):/>
+and C</^QtQA::App::TestRunner: end (?<label>[^:]+):/>, where 'label' is the label set
+by the --label command-line option with any ':' characters replaced with '_', but
+the format is otherwise undefined.
 
 This is primarily used to unambiguously identify which output belongs to
 which test, from a log containing many consecutive test runs.
@@ -400,6 +407,7 @@ sub run
         'sync-output'       =>  \$self->{ sync_output },
         'C|chdir=s'         =>  \$CWD,
         'v|verbose'         =>  \$self->{ verbose },
+        'label=s'           =>  \$self->{ label },
     ) || pod2usage(2);
 
     # tee-logs implies that we both capture the logs, and print the output like `tee'
@@ -426,6 +434,21 @@ sub run
     $self->exit_appropriately( );
 
     return;
+}
+
+# Returns this test's label (human-readable name)
+sub label
+{
+    my ($self) = @_;
+
+    # If not explicitly set from command-line, calculate on first
+    # use as the basename of the test command.
+    if (!$self->{ label }) {
+        my $basename = basename( ($self->command())[0] );
+        $self->{ label } = $basename;
+    }
+
+    return $self->{ label };
 }
 
 # When there is an error relating to logging, print a message and exit.
@@ -1275,9 +1298,12 @@ sub print_test_begin_info
 
     return unless ($self->{ verbose });
 
+    my $label = $self->label( );
+    $label =~ s{:}{_}g;
+
     my @command = $self->pretty_printed_command( );
 
-    $self->print_info( "begin @command\n" );
+    $self->print_info( "begin $label: @command\n" );
 
     return;
 }
@@ -1289,7 +1315,8 @@ sub print_test_end_info
 
     return unless ($self->{ verbose });
 
-    my @command = $self->pretty_printed_command( );
+    my $label = $self->label( );
+    $label =~ s{:}{_}g;
 
     my $proc = $self->proc( );
     my $status = $proc->status( );
@@ -1303,7 +1330,7 @@ sub print_test_end_info
         $seconds = int($seconds);
     }
 
-    my $message = "end @command, $seconds seconds";
+    my $message = "end $label: $seconds seconds";
 
     if ($status == -1) {
         $message .= ", status -1 (unusual error)";

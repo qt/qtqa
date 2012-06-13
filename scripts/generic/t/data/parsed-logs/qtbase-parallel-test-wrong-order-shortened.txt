@@ -1,0 +1,46 @@
+[ '--summarize', "$DATADIR/raw-logs/qtbase-parallel-test-wrong-order-shortened.txt" ]
+Autotest `tst_qchar' failed for linux-g++-32 Ubuntu 10.04 x86 :(
+
+  Testing tst_QChar
+  FAIL!  : tst_QChar::lineBreakClass() 'QUnicodeTables::lineBreakClass(0x3041u) == QUnicodeTables::LineBreak_ID' returned FALSE. ()
+     Loc: [tst_qchar.cpp(711)]
+  Totals: 19423 passed, 1 failed, 0 skipped
+  QtQA::App::TestRunner: test failed, running again to see if it is flaky...
+  ********* Start testing of tst_QChar *********
+  Config: Using QTest library 5.0.0, Qt 5.0.0
+  PASS   : tst_QChar::initTestCase()
+  PASS   : tst_QChar::toUpper()
+  PASS   : tst_QChar::toLower()
+  PASS   : tst_QChar::toTitle()
+  PASS   : tst_QChar::toCaseFolded()
+  PASS   : tst_QChar::isDigit(0x0)
+  PASS   : tst_QChar::isDigit(0x1)
+  PASS   : tst_QChar::isDigit(0x2)
+  PASS   : tst_QChar::isDigit(0x3)
+  PASS   : tst_QChar::isDigit(0x4)
+  PASS   : tst_QChar::isDigit(0x5)
+  PASS   : tst_QChar::isDigit(0x6)
+  PASS   : tst_QChar::isDigit(0x7)
+  PASS   : tst_QChar::isDigit(0x8)
+  PASS   : tst_QChar::isDigit(0x9)
+  PASS   : tst_QChar::isDigit(0xa)
+  PASS   : tst_QChar::isDigit(0xb)
+  PASS   : tst_QChar::isDigit(0xc)
+  PASS   : tst_QChar::isDigit(0xd)
+  PASS   : tst_QChar::isDigit(0xe)
+  PASS   : tst_QChar::isDigit(0xf)
+  PASS   : tst_QChar::isDigit(0x10)
+  PASS   : tst_QChar::isDigit(0x11)
+  PASS   : tst_QChar::isDigit(0x12)
+  PASS   : tst_QChar::isDigit(0x13)
+  (... snip)
+  PASS   : tst_QChar::normalization(line #18429 (part 3)
+  PASS   : tst_QChar::normalization_manual()
+  PASS   : tst_QChar::normalizationCorrections()
+  PASS   : tst_QChar::unicodeVersion()
+  PASS   : tst_QChar::cleanupTestCase()
+  Totals: 19423 passed, 1 failed, 0 skipped
+  ********* Finished testing of tst_QChar *********
+  QtQA::App::TestRunner: test failure could be reproduced twice consecutively
+  QtQA::App::TestRunner: end tst_qchar: 15 seconds, exit code 1
+

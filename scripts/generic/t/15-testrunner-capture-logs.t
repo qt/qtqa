@@ -93,13 +93,13 @@ Readonly my $IS_SUPERUSER
 
 # Pattern matching --verbose 'begin' line, without trailing \n.
 Readonly my $TESTRUNNER_VERBOSE_BEGIN
-    => qr{\QQtQA::App::TestRunner: begin [perl]\E[^\n]*};
+    => qr{\QQtQA::App::TestRunner: begin \E[^:]+:\Q [perl]\E[^\n]*};
 
 # Pattern matching --verbose 'end' line, without trailing \n.
 # Ends with [^\n]*, so it can match or not match the exit status portion,
 # as appropriate.
 Readonly my $TESTRUNNER_VERBOSE_END
-    => qr{\QQtQA::App::TestRunner: end [perl]\E[^\n]*};
+    => qr{\QQtQA::App::TestRunner: end \E[^:]+\Q: \E[^\n]*};
 
 # Returns expected error text when a nonexistent $cmd is run
 sub error_nonexistent_command

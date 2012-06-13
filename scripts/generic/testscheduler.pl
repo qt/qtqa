@@ -688,6 +688,8 @@ sub testrunner_args_for_test
         }
     }
 
+    push @out, ('--label', $label);
+
     return @out;
 }
 

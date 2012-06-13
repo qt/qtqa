@@ -54,14 +54,16 @@ Readonly my $TESTSCRIPT_PRINT_CWD
     => q{use File::chdir; use File::Spec::Functions; say canonpath $CWD};
 
 # Pattern matching --verbose 'begin' line, without trailing \n.
+# 'label' is captured.
 Readonly my $TESTRUNNER_VERBOSE_BEGIN
-    => qr{\QQtQA::App::TestRunner: begin [perl]\E[^\n]*};
+    => qr{\QQtQA::App::TestRunner: begin \E(?<label>[^:]+)\Q: [perl]\E[^\n]*};
 
 # Pattern matching --verbose 'end' line, without trailing \n.
 # Ends with [^\n]*, so it can match or not match the exit status portion,
 # as appropriate.
+# 'label' is captured.
 Readonly my $TESTRUNNER_VERBOSE_END
-    => qr{\QQtQA::App::TestRunner: end [perl]\E[^\n]*};
+    => qr{\QQtQA::App::TestRunner: end \E(?<label>[^:]+)\Q: \E[^\n]*};
 
 # expected STDERR when a process segfaults;
 # note that we have no way to control if the system will create core dumps or not,
@@ -175,7 +177,9 @@ Readonly my %TESTSCRIPT_ARGUMENTS => (
     ],
 );
 
-# Do a single test of QtQA::App::TestRunner->run( )
+# Do a single test of QtQA::App::TestRunner->run( ).
+# Returns a hash of the actual output, error and status, in case additional
+# testing is desired.
 sub test_run
 {
     my ($params_ref) = @_;
@@ -201,7 +205,11 @@ sub test_run
     is_or_like( $output, $expected_stdout, "$testname output looks correct" );
     is_or_like( $error,  $expected_stderr, "$testname error looks correct" );
 
-    return;
+    return (
+        output => $output,
+        error => $error,
+        status => $status,
+    );
 }
 
 sub test_success
@@ -261,29 +269,43 @@ sub test_verbose
         \z
     }xms;
 
-    test_run({
+    my %result;
+
+    %result = test_run({
         args                =>  [ '--verbose', '--', 'perl', '-e', $TESTSCRIPT_SUCCESS, @args ],
         expected_stdout     =>  $stdout,
         expected_stderr     =>  $stderr_success,
         expected_success    =>  1,
         testname            =>  "verbose success",
     });
+    ok( $result{ error } =~ $TESTRUNNER_VERBOSE_BEGIN )
+        && is( $+{ label }, 'perl', 'label defaults to command name (begin)' );
+    ok( $result{ error } =~ $TESTRUNNER_VERBOSE_END )
+        && is( $+{ label }, 'perl', 'label defaults to command name (end)' );
 
-    test_run({
-        args                =>  [ '--verbose', '--', 'perl', '-e', $TESTSCRIPT_FAIL, @args ],
+    %result = test_run({
+        args                =>  [ '--verbose', '--label=failure test', '--', 'perl', '-e', $TESTSCRIPT_FAIL, @args ],
         expected_stdout     =>  $stdout,
         expected_stderr     =>  $stderr_fail,
         expected_success    =>  0,
         testname            =>  "verbose fail",
     });
+    ok( $result{ error } =~ $TESTRUNNER_VERBOSE_BEGIN )
+        && is( $+{ label }, 'failure test', 'explicitly setting label works as expected (begin)' );
+    ok( $result{ error } =~ $TESTRUNNER_VERBOSE_END )
+        && is( $+{ label }, 'failure test', 'explicitly setting label works as expected (end)' );
 
-    test_run({
-        args                =>  [ '--verbose', '--timeout', $TIMEOUT, '--', 'perl', '-e', $TESTSCRIPT_HANG, @args ],
+    %result = test_run({
+        args                =>  [ '--verbose', '--label=mytestcase::mytestfunc', '--timeout', $TIMEOUT, '--', 'perl', '-e', $TESTSCRIPT_HANG, @args ],
         expected_stdout     =>  undef,  # output is undefined when killed from timeout
         expected_stderr     =>  $stderr_hang,
         expected_success    =>  0,
         testname            =>  "verbose hanging",
     });
+    ok( $result{ error } =~ $TESTRUNNER_VERBOSE_BEGIN )
+        && is( $+{ label }, 'mytestcase__mytestfunc', ': is stripped from label (begin)' );
+    ok( $result{ error } =~ $TESTRUNNER_VERBOSE_END )
+        && is( $+{ label }, 'mytestcase__mytestfunc', ': is stripped from label (end)' );
 
     test_run({
         args                =>  [ '--verbose', '--timeout', $TIMEOUT_WARNING, '--', 'perl', '-e', $TESTSCRIPT_TIMEOUT_WARNING, @args ],
