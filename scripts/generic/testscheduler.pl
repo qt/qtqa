@@ -491,6 +491,7 @@ sub execute_tests_from_testplan
     #   _status         =>  exit status of test
     #   _parallel_count =>  amount of tests still running at the time this test completed
     #   _parallel_tests =>  list of all tests which have run concurrently with this one
+    #                       (approximately in the order they were run)
     #   _timer          =>  Timer::Simple object for this test's runtime
     #
     $self->{ test_results } = [];
@@ -798,7 +799,18 @@ sub print_test_fail_info
     if (my @other_tests = @{ $test->{ _parallel_tests } || []}) {
         local $LIST_SEPARATOR = ', ';
         my @labels = map { $_->{ label } } @other_tests;
-        @labels = sort @labels;
+
+        # We might have run in parallel with _many_ other tests.
+        # This can make the output unacceptably large.  Limit it a bit.
+        my $MAX_LABELS = 8;
+        if (@labels > $MAX_LABELS) {
+            # Replace the inner $omit_count tests with a "tests omitted" bit of text,
+            # because the first and last run tests are the most valuable information.
+            # Note: the +1 here is because the "omitted" text itself takes up 1 label.
+            my $omit_count = (@labels - $MAX_LABELS) + 1;
+            splice( @labels, $MAX_LABELS/2, $omit_count, inflect( "[NO(other test,$omit_count)]" ) );
+        }
+
         $msg .= "; run concurrently with @labels";
     }
 

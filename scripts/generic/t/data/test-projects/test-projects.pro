@@ -5,3 +5,6 @@ TEMPLATE=subdirs
 SUBDIRS=\
     tests \
     not_tests \
+    parallel_tests
+
+parallel_tests.CONFIG += no_check_target

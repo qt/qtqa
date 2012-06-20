@@ -351,6 +351,29 @@ sub test_single_pass_no_summary
     return;
 }
 
+# test that the "run concurrently with" message is correctly truncated if too long
+sub test_concurrently_limit
+{
+    my ($testplan, $unlink) = make_testplan_from_directory( catfile( $TESTDATA_DIR, 'parallel_tests' ) );
+
+    my $status;
+    my $output = capture_merged {
+        $status = system(
+            $EXECUTABLE_NAME,
+            $TESTSCHEDULER,
+            '--plan',
+            "$testplan",
+            '-j4',
+        );
+    };
+    isnt( $status, 0, 'testscheduler fails if some tests fail' );
+    like( $output, qr|
+\QQtQA::App::TestScheduler: fail1 failed; run concurrently with pass0, pass1, pass2, pass3, [3 other tests], pass7, pass8, pass9\E
+|xms, 'testscheduler run concurrently message is correctly truncated' );
+
+    return;
+}
+
 sub run
 {
     # qmake the testdata before doing anything else.
@@ -371,6 +394,7 @@ sub run
     test_single_pass_no_summary;
     test_mixed;
     test_mixed_parallel_stress;
+    test_concurrently_limit;
     done_testing;
 
     return;
