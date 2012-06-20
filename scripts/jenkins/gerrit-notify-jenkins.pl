@@ -136,9 +136,14 @@ use Coro::AnyEvent;
 use Coro;
 use Data::Dumper;
 use English qw( -no_match_vars );
+use File::Spec::Functions;
+use FindBin;
 use Getopt::Long qw( GetOptionsFromArray );
 use Pod::Usage;
 use URI;
+
+use lib catfile( $FindBin::Bin, qw(.. lib perl5) );
+use QtQA::Gerrit;
 
 # Given a gerrit $project (e.g. 'qt/qtbase'), returns a list of all git URLs commonly
 # used to refer to that project (e.g. ssh with port number, ssh without port number,
@@ -287,100 +292,19 @@ sub do_stream_events
 {
     my ($self) = @_;
 
-    my $gerrit = URI->new( $self->{ gerrit_url } );
-    if ($gerrit->scheme() ne 'ssh') {
-        die "error: gerrit URL $gerrit is not supported; only ssh URLs are supported\n";
-    }
-
-    my @ssh = (
-        'ssh',
-        '-oBatchMode=yes',          # never do interactive prompts
-        '-oServerAliveInterval=30', # try to avoid the server silently dropping connection
-        ($gerrit->port() ? ('-p', $gerrit->port()) : ()),
-        ($gerrit->user() ? ($gerrit->user() . '@') : q{}) . $gerrit->host(),
-        'gerrit',
-        'stream-events',
+    my $watcher = QtQA::Gerrit::stream_events(
+        url => $self->{ gerrit_url },
+        on_event => sub {
+            my (undef, $data) = @_;
+            $self->handle_event( $data );
+        },
     );
-
-    my $coro = $Coro::current;
-
-    # If we do get disconnected from gerrit, then we'll sleep between reconnect attempts,
-    # starting from $INIT_SLEEP seconds and doubling up to a max of $MAX_SLEEP seconds.
-    # Any time we successfully connect, the interval is reset back to $INIT_SLEEP.
-    my $INIT_SLEEP = 2;
-    my $MAX_SLEEP = 60*10;
-    my $sleep = $INIT_SLEEP;
 
     # In normal usage, this is the only output.
     # This is just to give some confidence to the user that we're doing anything at all...
     print "Entering main loop.\n";
 
-    while (1) {
-        my ($r, $w) = portable_pipe();
-        my $r_h = AnyEvent::Handle->new(
-            fh => $r,
-        );
-
-        # turn any error on the pipe into an exception from this coro
-        $r_h->on_error(
-            sub {
-                my (undef, undef, $error) = @_;
-                $coro->throw( $error );
-            }
-        );
-
-        {
-            local $LIST_SEPARATOR = '] [';
-            AE::log(note => "Running: [@ssh]\n");
-        }
-
-        # run stream-events with stdout connected to pipe ...
-        my $cv = run_cmd(
-            \@ssh,
-            '>' => $w,
-        );
-
-        my %read_req;
-        %read_req = (
-            # read one json item at a time
-            json => sub {
-                my ($h, $data) = @_;
-
-                # every successful read resets sleep period
-                $sleep = $INIT_SLEEP;
-
-                $self->handle_event( $data );
-                $h->push_read( %read_req );
-            }
-        );
-        $r_h->push_read( %read_req );
-
-        my $status = 0;
-        eval {
-            # if all goes well, this command never exits.
-            $status = $cv->recv();
-        };
-
-        # only two reasons to get here:
-        #  - broken pipe (e.g. ssh closed stdout)
-        #  - command exited (which is unexpected, even if the exit code is 0)
-        #
-        my $msg;
-        if (my $error = $EVAL_ERROR) {
-            $msg = $error;
-        } else {
-            $msg = "ssh exited with status $status";
-        }
-
-        AE::log(warn => "$msg\nTrying again in $sleep seconds.\n");
-        Coro::AnyEvent::sleep( $sleep );
-
-        $sleep *= 2;
-        if ($sleep > $MAX_SLEEP) {
-            $sleep = $MAX_SLEEP;
-        }
-
-    }
+    AE::cv()->recv();
 
     AE::log(error => 'internal error: main loop unexpectedly finished');
     return;

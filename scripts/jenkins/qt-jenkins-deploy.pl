@@ -381,20 +381,13 @@ use Text::Diff;
 use URI;
 use XML::Simple;
 
+use lib catfile( $FindBin::Bin, qw(.. lib perl5) );
+use QtQA::WWW::Util qw(:all);
+
 # User-Agent used for HTTP requests/responses
 Readonly my $USERAGENT => __PACKAGE__;
 
 #============================== static ========================================
-
-# bhttp_request - blocking http_request.
-# Same as AnyEvent::HTTP::http_request, but returns the result
-# instead of invoking a callback.
-sub bhttp_request
-{
-    my ($method, $url, @args) = @_;
-    http_request( $method, $url, @args, Coro::rouse_cb() );
-    return Coro::rouse_wait();
-}
 
 # Returns 1 iff xml1, xml2 are identical after parsing
 # (i.e. if they are _semantically_ identical - comments, whitespace ignored).
@@ -622,13 +615,11 @@ END_JSON
 
     $json =~ s{(?:^|\n) *}{}msg;
 
-    my $uri = URI->new();
-    $uri->query_form(
+    return www_form_urlencoded(
         name => $name,
         type => 'hudson.slaves.DumbSlave',
         json => $json,
     );
-    return $uri->query();
 }
 
 # Issue an HTTP POST.
@@ -652,7 +643,7 @@ sub post
         return;
     }
 
-    my (undef, $response_headers) = bhttp_request(
+    my (undef, $response_headers) = blocking_http_request(
         POST => $url,
         body => $data,
         headers => $headers,
@@ -684,7 +675,7 @@ sub ensure_jenkins_object
 
     my $request_headers = $self->http_headers( );
 
-    my ($data, $headers) = bhttp_request( GET => $update_url, headers => $request_headers );
+    my ($data, $headers) = blocking_http_request( GET => $update_url, headers => $request_headers );
 
     my $status = $headers->{ Status };
 
@@ -710,7 +701,7 @@ sub ensure_jenkins_object
         # update it
         print "$type $name: created a dummy object for updating\n";
 
-        ($data, $headers) = bhttp_request( GET => $update_url, headers => $request_headers );
+        ($data, $headers) = blocking_http_request( GET => $update_url, headers => $request_headers );
         $status = $headers->{ Status };
     }
 

@@ -210,12 +210,19 @@ sub all_required_cpan_modules
         parent
     );
 
-    # available everywhere but Windows
-    # (actually, some of these modules are possible to install on Windows but
-    # don't make sense or are too buggy to be safely used)
+    # available everywhere but Windows, or not needed on Windows
     push @out, qw(
+        AnyEvent::HTTPD
+        AnyEvent::Watchdog
         BSD::Resource
+        Data::Alias
+        Encode::Locale
+        IO::Compress::Gzip
+        IO::Interactive
+        Log::Dispatch
+        Mail::Sender
         Proc::Reliable
+        Tie::Persistent
         Tie::Sysctl
     ) unless $WINDOWS;
 

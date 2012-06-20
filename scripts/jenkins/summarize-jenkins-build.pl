@@ -262,6 +262,8 @@ sub parse_log_from_url
         }
     }
 
+    $stdout = decode_utf8( $stdout );
+
     return YAML::Load( $stdout );
 }
 
