@@ -118,7 +118,7 @@ use File::Basename;
 use File::Fetch;
 use File::Slurp qw();
 use Getopt::Long qw(GetOptionsFromArray);
-use IO::Uncompress::AnyInflate qw(anyinflate);
+use IO::Uncompress::AnyInflate qw(anyinflate $AnyInflateError);
 use Lingua::EN::Inflect qw(inflect PL WORDLIST);
 use Lingua::EN::Numbers qw(num2en);
 use List::MoreUtils qw(any apply);
@@ -1770,15 +1770,11 @@ sub read_file
     my $uncompressed;
 
     # Allow compressed or uncompressed logs.
-    # `anyinflate' autodetects compression, if there is any; and it returns false
-    # if there is no (supported) compression.
-    if (anyinflate( \$text => \$uncompressed )) {
-        if ($self->{ debug }) {
-            print STDERR "input was compressed - automatically decompressed it.\n";
-        }
-    }
-    else {
-        $uncompressed = $text;
+    # anyinflate autodetects compression if it is supported and writes uncompressed
+    # content to $uncompressed. If not compressed or compression not detected
+    # $uncompressed includes original content when scalar reference is used
+    if (! anyinflate( \$text => \$uncompressed )) {
+        die "Failed to process: $file\nerror: $AnyInflateError\n";
     }
 
     @lines = split( qr{\n}, $uncompressed );
