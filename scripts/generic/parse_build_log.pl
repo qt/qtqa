@@ -132,12 +132,6 @@ use YAML qw();
 Readonly my $CI_CONTACT
     => q{some CI administrator};
 
-# The max amount of characters permitted in a line;
-# any more than this and we will not attempt to scan the line at all.
-# It could trigger bad performance in some regexes, and it anyway is
-# not user-friendly to present such long lines to the reader.
-Readonly my $MAX_LINE_LENGTH => 3500;
-
 # The max amount of lines we're willing to buffer before giving up,
 # when attempting to identify a related chunk of output (e.g. a single
 # autotest log).
@@ -1785,6 +1779,28 @@ sub read_file
     return @lines;
 }
 
+# Truncates lines exceeding $MAX_LINE_LENGTH to $MAX_LINE_LENGTH
+sub ensure_line_length
+{
+    my ($self, $line) = @_;
+
+    # The max amount of characters permitted in a line;
+    # any more than this and we will truncate the line.
+    # Longer lines could trigger bad performance in some regexes, and it is
+    # not user-friendly to present such long lines to the reader.
+    Readonly my $MAX_LINE_LENGTH => 3500;
+
+    my $length = length($$line);
+    if ($length > $MAX_LINE_LENGTH) {
+        my $truncated = " (truncated)";
+        $$line = substr($$line, 0, $MAX_LINE_LENGTH - length($truncated) ) . $truncated;
+        if ($self->{ debug }) {
+            print STDERR "line too long ($length characters), truncated to " . length($$line) . " characters\n";
+        }
+    }
+    return;
+}
+
 # Create a handler for identifying "chunks" of text.
 # A chunk may be, for example, the autoput from a single autotest.
 #
@@ -1833,7 +1849,7 @@ sub _handle_chunk_line
     my $length = length($line);
 
     # are we done?
-    if ($length <= $MAX_LINE_LENGTH && $line =~ $chunk->{ begin_re }) {
+    if ($line =~ $chunk->{ begin_re }) {
         if ($chunk->{ begin_sub }->( $chunk, $line, $out )) {
             return 1;
         }
@@ -1976,10 +1992,7 @@ sub identify_failures
     # the build to terminate.
     foreach my $line (reverse @{$args{ lines }}) {
 
-        my $length = length($line);
-
-        # ignore too long lines
-        next if ($length > $MAX_LINE_LENGTH);
+        $self->ensure_line_length(\$line);
 
         if ($chunk_handler) {
             if ($chunk_handler->( $line, $out )) {
@@ -2266,6 +2279,7 @@ sub extract_and_output
         }
 
         my $line = shift @lines;
+        $self->ensure_line_length(\$line);
 
         next if ($line =~ $RE{ insignificant } || $line =~ $RE{ hidden });
 
