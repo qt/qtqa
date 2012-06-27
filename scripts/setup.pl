@@ -169,6 +169,7 @@ sub all_required_cpan_modules
         IO::CaptureOutput
         IO::Uncompress::AnyInflate
         Inline::C
+        JSON
         Lingua::EN::Inflect
         Lingua::EN::Numbers
         List::Compare
@@ -178,6 +179,7 @@ sub all_required_cpan_modules
         QMake::Project
         Readonly
         ReleaseAction
+        Sub::Override
         Test::Exception
         Test::Exit
         Test::More
