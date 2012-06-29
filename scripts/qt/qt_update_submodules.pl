@@ -73,6 +73,9 @@ Readonly my @PROPERTIES => (
                                 . q{is set)},
 
     q{qt.git.ref}              => q{the ref to push to (only used if qt.git.push is set)},
+
+    q{qt.init-repository.args} => q{additional arguments for init-repository; e.g., use }
+                                . q{-module-subset argument to only update a subset of modules},
 );
 
 # Map from submodule to the ref which should be tracked.
@@ -112,6 +115,7 @@ sub read_and_store_configuration
         'qt.git.push.dry-run'     => 0,
         'qt.git.url'              => 'ssh://qt_submodule_update_bot@codereview.qt-project.org:29418/qt/qt5',
         'qt.git.ref'              => 'refs/for/master',
+        'qt.init-repository.args' => q{},
     );
 
     return;
@@ -138,6 +142,7 @@ sub run_init_repository
 
     my $base_dir = $self->{ 'base.dir' };
     my $location = $self->{ 'location' };
+    my $args = $self->{ 'qt.init-repository.args' };
 
     chdir $base_dir;
 
@@ -148,6 +153,8 @@ sub run_init_repository
     elsif (defined( $location )) {
         push @init_repository_arguments, '-nokia-developer';
     }
+
+    push @init_repository_arguments, (split /\s+/, $args);
 
     $self->exe( 'perl', './init-repository', @init_repository_arguments );
 
