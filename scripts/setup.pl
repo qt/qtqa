@@ -156,6 +156,7 @@ sub all_required_cpan_modules
     my @out = qw(
         AnyEvent
         AnyEvent::HTTP
+        AnyEvent::Util
         Capture::Tiny
         Class::Factory::Util
         Env::Path
