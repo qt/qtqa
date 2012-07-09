@@ -61,6 +61,7 @@ use FindBin;
 use Readonly;
 use Sub::Override;
 use Test::More;
+use Test::Warn;
 
 Readonly my $SCRIPT => catfile( $FindBin::Bin, '..', 'summarize-jenkins-build.pl' );
 Readonly my $PACKAGE => 'QtQA::App::SummarizeJenkinsBuild';
@@ -71,6 +72,9 @@ Readonly my $PACKAGE => 'QtQA::App::SummarizeJenkinsBuild';
 #   name => the human-readable name for this test
 #   object => QtQA::App::SummarizeJenkinsBuild object
 #   url => url to summarize
+#   error_url => arrayref of URLs which, if fetched by parse_build_log.pl, should
+#                generate an error. All other URLs succeed with dummy text.
+#   warnings_like => arrayref of expected warning patterns
 #   fake_json => ref to a hash containing (key,value) pairs, where keys are
 #       URLs and values are the fake JSON text to return for a URL
 #   expected_output => expected output of the summarize_jenkins_build function
@@ -81,6 +85,9 @@ sub do_test
 
     my $o = $args{ object };
     my $name = $args{ name };
+    my @error_url = @{ $args{ error_url } || [] };
+    my $warnings_like = $args{ warnings_like } || [];
+    my $warnings_count = @{ $warnings_like };
 
     my @mock_subs;
     if (my $fake_json = $args{ fake_json }) {
@@ -100,12 +107,22 @@ sub do_test
         "${PACKAGE}::run_parse_build_log",
         sub {
             my ($url) = @_;
+
+            if (grep { $_ eq $url } @error_url) {
+                print STDERR "(parse_build_log.pl error for $url)\n";
+                return 1;
+            }
+
             print "(parse_build_log.pl output for $url)\n";
             return 0;
         },
     );
 
-    my $output = $o->summarize_jenkins_build( $args{ url } );
+    my $output;
+    warnings_like {
+        $output = $o->summarize_jenkins_build( $args{ url }, $args{ log_url } );
+    } $warnings_like, "$name: $warnings_count warning(s) as expected";
+
     is( $output, $args{ expected_output }, "$name: summarize_jenkins_build output as expected" );
 
     return;
@@ -152,6 +169,19 @@ sub run_object_tests
     );
 
     do_test(
+        name => 'failure with rebased master log',
+        object => $o,
+        url => $url,
+        log_url => 'http://testresults.example.com/ci',
+        fake_json => {
+            $url => '{"number":3,"result":"FAILURE","fullDisplayName":"bar build 3","url":"http://example.com/jenkins/job/Some_Job/123"}',
+        },
+        expected_output =>
+            "(parse_build_log.pl output for http://testresults.example.com/ci/Some_Job/build_00123/log.txt.gz)\n"
+           ."  Build log: http://testresults.example.com/ci/Some_Job/build_00123/log.txt.gz",
+    );
+
+    do_test(
         name => 'failure with master and configuration logs',
         object => $o,
         url => $url,
@@ -178,6 +208,81 @@ END
            ."(parse_build_log.pl output for cfg3-url/consoleText)\n"
            ."  Build log: cfg3-url/consoleText"
     );
+
+    do_test(
+        name => 'failure with rebased master and configuration logs',
+        object => $o,
+        url => $url,
+        log_url => 'http://testresults.example.com/ci',
+        fake_json => {
+            $url => <<'END'
+{
+    "number":4,
+    "result":"FAILURE",
+    "fullDisplayName":"bar build 4",
+    "url":"master-url",
+    "runs":[
+        {"number":4,"result":"FAILURE","fullDisplayName":"cfg1","url":"http://example.com/jenkins/job/bar/key1=val1,cfg=cfg1/4/"},
+        {"number":4,"result":"SUCCESS","fullDisplayName":"cfg2","url":"cfg2-url"},
+        {"number":4,"result":"FAILURE","fullDisplayName":"cfg3","url":"http://example.com/jenkins/job/bar/./cfg=cfg3/4"},
+        {"number":5,"result":"FAILURE","fullDisplayName":"not-this","url":"not-this-url"}
+    ]
+}
+END
+        },
+        expected_output =>
+            # note multi-axis config name is left as-is...
+            "(parse_build_log.pl output for http://testresults.example.com/ci/bar/build_00004/key1=val1,cfg=cfg1/log.txt.gz)\n"
+           ."  Build log: http://testresults.example.com/ci/bar/build_00004/key1=val1,cfg=cfg1/log.txt.gz"
+           ."\n\n--\n\n"
+            # ... while a config with a single axis is collapsed, useless cfg= prefix removed
+           ."(parse_build_log.pl output for http://testresults.example.com/ci/bar/build_00004/cfg3/log.txt.gz)\n"
+           ."  Build log: http://testresults.example.com/ci/bar/build_00004/cfg3/log.txt.gz"
+    );
+
+    {
+        # try --force-jenkins-host and --force-jenkins-port
+        local $o->{ force_jenkins_host } = 'forced-host';
+        local $o->{ force_jenkins_port } = 999;
+        do_test(
+            name => 'failure with rebased master and configuration logs, log force and fallback',
+            object => $o,
+            url => $url,
+            log_url => 'http://testresults.example.com/ci',
+            warnings_like => [
+                qr{
+                    \Qhttp://testresults.example.com/ci/bar/build_00004/key1=val1,cfg=cfg1/log.txt.gz\E
+                    .*
+                    \Qparse_build_log exited with status 1\E
+                }xms
+            ],
+            error_url => [ 'http://testresults.example.com/ci/bar/build_00004/key1=val1,cfg=cfg1/log.txt.gz' ],
+            fake_json => {
+                'http://forced-host:999/jenkins/123' => <<'END'
+{
+    "number":4,
+    "result":"FAILURE",
+    "fullDisplayName":"bar build 4",
+    "url":"master-url",
+    "runs":[
+        {"number":4,"result":"FAILURE","fullDisplayName":"cfg1","url":"http://example.com/jenkins/job/bar/key1=val1,cfg=cfg1/4/"},
+        {"number":4,"result":"SUCCESS","fullDisplayName":"cfg2","url":"cfg2-url"},
+        {"number":4,"result":"FAILURE","fullDisplayName":"cfg3","url":"http://example.com/jenkins/job/bar/cfg=cfg3/4"},
+        {"number":5,"result":"FAILURE","fullDisplayName":"not-this","url":"not-this-url"}
+    ]
+}
+END
+            },
+            expected_output =>
+                # we simulated an error on the testresults host here, so parse_build_log was run directly on jenkins,
+                # but the link passed to gerrit is still the testresults link.
+                "(parse_build_log.pl output for http://forced-host:999/jenkins/job/bar/key1=val1,cfg=cfg1/4/consoleText)\n"
+               ."  Build log: http://testresults.example.com/ci/bar/build_00004/key1=val1,cfg=cfg1/log.txt.gz"
+               ."\n\n--\n\n"
+               ."(parse_build_log.pl output for http://testresults.example.com/ci/bar/build_00004/cfg3/log.txt.gz)\n"
+               ."  Build log: http://testresults.example.com/ci/bar/build_00004/cfg3/log.txt.gz"
+        );
+    }
 
     do_test(
         name => 'aborted ignores failure logs',

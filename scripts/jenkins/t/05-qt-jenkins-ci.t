@@ -68,7 +68,7 @@ Readonly my $SUMMARIZE_JENKINS_BUILD => realpath( catfile( $FindBin::Bin, '..', 
 
 # Mock the fetching of data from Jenkins and the running of external commands.
 # Returns an object. When that object is destroyed, the mocking is undone.
-sub do_mocks
+sub do_mocks  ## no critic(RequireArgUnpacking) - mocked http_get is incompatible with this policy
 {
     my (%args) = @_;
 
@@ -118,8 +118,29 @@ sub do_mocks
         return $cv;
     });
 
+    my $http_get_override = Sub::Override->new( "${PACKAGE}::http_get", sub($@) {
+        my $url = shift @_;
+        my $done_cb = pop @_;
+        my %http_args = @_;
+
+        if (ok( exists( $args{ url_to_content }{ $url } ), "fetched $url as expected (http_get)" )) {
+            my $content = $args{ url_to_content }{ $url };
+            my $headers = { Status => 200 };
+            if ($http_args{ on_body }) {
+                $http_args{ on_body }->( $content, $headers );
+                undef $content;
+            }
+            $done_cb->( $content, $headers );
+        } else {
+            $done_cb->( undef, { Status => 400, Reason => "(mock) not expected to fetch $url" } );
+        }
+
+        return;
+    });
+
     return {
         fetch_mock => $fetch_override,
+        http_get_mock => $http_get_override,
         cmd_mock => $cmd_override,
     };
 }
@@ -263,6 +284,34 @@ sub test_complete_build
 }
 END_JSON
 
+        my $log_cmd_for_cfg = sub {
+            my ($config_name) = @_;
+
+            # Empty config name means the master, which has no nested directory
+            # (and so no /)
+            if ($config_name) {
+                $config_name = "/$config_name";
+            } else {
+                $config_name = q{};
+            }
+
+            return
+                    '[ssh] [-oBatchMode=yes] [-p] [555] [logs.example.com] '
+                .qq{[mkdir -p "/var/www/ci/Some_Job/build_00005$config_name" && }
+                .qq{cd "/var/www/ci/Some_Job/build_00005$config_name" && }
+                .  'gzip > .incoming.log.txt.gz && mv .incoming.log.txt.gz log.txt.gz]';
+        };
+
+        # command to setup 'latest', 'latest-success' links (successful build only)
+        my $ln_latest_and_latest_success_cmd =
+                '[ssh] [-oBatchMode=yes] [-p] [555] [logs.example.com] '
+               .'[cd "/var/www/ci/Some_Job" && ln -sf "build_00005" latest && ln -sf "build_00005" latest-success]';
+
+        # command to setup 'latest' link (unsuccessful build only - no 'latest-success')
+        my $ln_latest_cmd =
+                '[ssh] [-oBatchMode=yes] [-p] [555] [logs.example.com] '
+               .'[cd "/var/www/ci/Some_Job" && ln -sf "build_00005" latest]';
+
         my $mock = do_mocks(
             url_to_content => {
 
@@ -274,12 +323,18 @@ END_JSON
 
                 "$url_base/5/api/json?tree=result"
                 =>
-                '{"result":"SUCCESS"}',
+                '{"result":"SUCCESS"}'
 
+                ,
+
+                "$url_base/5/config_X/consoleText" => 'fake log X',
+                "$url_base/5/config_Y/consoleText" => 'fake log Y',
+                "$url_base/5/config_Z/consoleText" => 'fake log Z',
+                "$url_base/5/consoleText" => 'fake log master',
             },
 
             cmd => {
-                "[$SUMMARIZE_JENKINS_BUILD] [--url] [http://jenkins.example.com/job/Some_Job/5]"
+                "[$SUMMARIZE_JENKINS_BUILD] [--url] [http://jenkins.example.com/job/Some_Job/5] [--log-url] [http://logs.example.com:8080/ci]"
                 =>
                 { exitcode => 0, '>' => '(fake summary)' }
 
@@ -290,6 +345,28 @@ END_JSON
                .'[--project] [other/project] [--result] [pass] [--message] [-]'
                 =>
                 { exitcode => 0, '<' => '(fake summary)' }
+
+                ,
+
+                $log_cmd_for_cfg->( 'config_X' )
+                =>
+                { exitcode => 0 },
+
+                $log_cmd_for_cfg->( 'config_Y' )
+                =>
+                { exitcode => 0 },
+
+                $log_cmd_for_cfg->( 'config_Z' )
+                =>
+                { exitcode => 0 },
+
+                $log_cmd_for_cfg->( )
+                =>
+                { exitcode => 0 },
+
+                $ln_latest_and_latest_success_cmd
+                =>
+                { exitcode => 0 },
             }
 
         );
@@ -303,6 +380,8 @@ END_JSON
             my $obj = $PACKAGE->new();
             $obj->run(
                 'complete_build',
+                '--log-upload-url', 'ssh://logs.example.com:555/var/www/ci',
+                '--log-download-url', 'http://logs.example.com:8080/ci'
             );
         }
 
@@ -319,12 +398,18 @@ END_JSON
 
                 "$url_base/5/api/json?tree=result"
                 =>
-                '{"result":"FAILURE"}',
+                '{"result":"FAILURE"}'
 
+                ,
+
+                "$url_base/5/config_X/consoleText" => 'fake log X',
+                "$url_base/5/config_Y/consoleText" => 'fake log Y',
+                "$url_base/5/config_Z/consoleText" => 'fake log Z',
+                "$url_base/5/consoleText" => 'fake log master',
             },
 
             cmd => {
-                "[$SUMMARIZE_JENKINS_BUILD] [--url] [http://jenkins.example.com/job/Some_Job/5]"
+                "[$SUMMARIZE_JENKINS_BUILD] [--url] [http://jenkins.example.com/job/Some_Job/5] [--log-url] [http://logs.example.com:8080/ci]"
                 =>
                 { exitcode => 0, '>' => '(fake summary)' }
 
@@ -335,6 +420,28 @@ END_JSON
                .'[--project] [other/project] [--result] [fail] [--message] [-]'
                 =>
                 { exitcode => 0, '<' => '(fake summary)' }
+
+                ,
+
+                $log_cmd_for_cfg->( 'config_X' )
+                =>
+                { exitcode => 0 },
+
+                $log_cmd_for_cfg->( 'config_Y' )
+                =>
+                { exitcode => 0 },
+
+                $log_cmd_for_cfg->( 'config_Z' )
+                =>
+                { exitcode => 0 },
+
+                $log_cmd_for_cfg->( )
+                =>
+                { exitcode => 0 },
+
+                $ln_latest_cmd
+                =>
+                { exitcode => 0 },
             }
 
         );
@@ -343,11 +450,49 @@ END_JSON
             my $obj = $PACKAGE->new();
             $obj->run(
                 'complete_build',
+                '--log-upload-url', 'ssh://logs.example.com:555/var/www/ci',
+                '--log-download-url', 'http://logs.example.com:8080/ci'
             );
         }
     }
 
     # TODO: insert testing of error or unusual cases here
+
+    return;
+}
+
+# basic checks of the run_timed_cmd utility function
+sub test_run_timed_cmd
+{
+    my $run_timed_cmd = $PACKAGE->can('run_timed_cmd');
+
+    ok( $run_timed_cmd, 'run_timed_cmd defined' );
+
+    {
+        my $cv = $run_timed_cmd->( [ 'perl', '-e', '1' ] );
+        is( $cv->recv(), 0, 'run_timed_cmd simple success OK' );
+    }
+
+    {
+        my $cv = $run_timed_cmd->( [ 'perl', '-e', 'exit 3' ] );
+        is( $cv->recv(), (3 << 8), 'run_timed_cmd simple failure OK' );
+    }
+
+    {
+        my $cv = $run_timed_cmd->( [ 'perl', '-e', 'sleep 4' ], timeout => 1 );
+        is( $cv->recv(), -1, 'run_timed_cmd times out' );
+    }
+
+    {
+        # make sure it works when we ask for pid.
+        my $pid;
+        my $cv = $run_timed_cmd->( [ 'perl', '-e', 'sleep 4' ], timeout => 2, '$$' => \$pid );
+        ok( $pid, 'pid is set' );
+        is( kill( 15, $pid ), 1, 'kill OK' ) || diag $!;
+
+        my $status = $cv->recv();
+        is( ($status & 127), 15, 'run_timed_cmd killed OK' );
+    }
 
     return;
 }
@@ -365,6 +510,7 @@ sub run
 
     test_new_build();
     test_complete_build();
+    test_run_timed_cmd();
     done_testing();
 
     return;

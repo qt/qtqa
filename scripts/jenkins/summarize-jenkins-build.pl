@@ -77,6 +77,37 @@ URL of the Jenkins build.
 For a multi-configuration build, the URL of the top-level build should be used.
 The script will parse the logs from each configuration.
 
+=item --log-base-url B<base>
+
+Base URL of the build logs.
+
+Optional; if set, build logs will be fetched from URLs under this path, instead
+of directly from Jenkins. This may be used to support a setup where Jenkins
+build logs are volatile, subject to removal without notice, and the logs are
+primarily accessed from another server.
+
+The URLs constructed using B<base> are currently not customizable, and always
+use the following pattern:
+
+  <base>/<project_name>/build_<five_digit_build_number>/<configuration>/log.txt.gz
+
+If build logs cannot be fetched from this URL for any reason, the logs are parsed
+directly from Jenkins. However, any user-visible links will still refer to the
+URL passed in this option.
+
+Note that the build status is still fetched directly from Jenkins.
+
+=item --force-jenkins-host <HOSTNAME>
+
+=item --force-jenkins-port <PORTNUMBER>
+
+When fetching any data from Jenkins, disregard the host and port portion
+of Jenkins URLs and use these instead.
+
+This is useful for network setups (e.g. port forwarding) where the Jenkins
+host cannot access itself using the outward-facing hostname, or simply to
+avoid unnecessary round-trips through a reverse proxy setup.
+
 =item --debug
 
 Print an internal representation of the build to standard error, for debugging
@@ -95,6 +126,7 @@ use Getopt::Long qw(GetOptionsFromArray);
 use JSON;
 use Pod::Usage;
 use Readonly;
+use URI;
 
 # Jenkins status constants
 Readonly my $SUCCESS => 'SUCCESS';
@@ -141,55 +173,135 @@ sub run_parse_build_log
     return system( $PARSE_BUILD_LOG, '--summarize', $url );
 }
 
-# Returns the output of "parse_build_log.pl --summarize $url",
-# or warns and returns nothing on error.
+# Returns the output of parse_build_log.pl on the first
+# working of the given @url, or warns and returns nothing
+# if all URLs are not usable.
 sub get_build_summary_from_log_url
 {
-    my ($url) = @_;
+    my (@url) = @_;
 
-    return unless $url;
+    return unless @url;
 
-    my $status;
-    my ($stdout, $stderr) = capture {
-        $status = run_parse_build_log( $url );
-    };
+    my $stdout;
 
-    chomp $stdout;
+    while (!$stdout && @url) {
+        my $url = shift @url;
+        my $stderr;
+        my $status;
+        ($stdout, $stderr) = capture {
+            $status = run_parse_build_log( $url );
+        };
 
-    if ($status != 0) {
-        warn "parse_build_log exited with status $status"
-            .($stderr ? ":\n$stderr" : q{})
-            ."\n";
+        chomp $stdout;
 
-        # Output is not trusted if script didn't succeed
-        undef $stdout;
+        if ($status != 0) {
+            warn "for $url, parse_build_log exited with status $status"
+                .($stderr ? ":\n$stderr" : q{})
+                ."\n";
+
+            # Output is not trusted if script didn't succeed
+            undef $stdout;
+        }
     }
 
     return $stdout;
 }
 
-# Given a Jenkins build object, returns a "permanent" link
-# to the build log (which may itself not be in jenkins).
-sub get_permanent_url_for_build_log
+# Given a Jenkins build object, returns one or more links
+# to the build logs, in order of preference.
+sub get_url_for_build_log
 {
-    my ($cfg) = @_;
+    my ($self, $cfg, $log_base_url) = @_;
 
-    # FIXME: support testresults.qt-project.org logs
     my $url = $cfg->{ url };
     return unless $url;
 
+    my @out;
+
+    if ($log_base_url) {
+        if ($url =~
+            m{
+                \A
+                .+
+                /job/
+                (?<job>
+                    [^/]+   # job name
+
+                )
+                /
+                (?:
+                    # jenkins sometimes introduces a useless './' into the URLs
+                    \./
+                )*
+                (?:
+                    # configuration part is optional;
+                    # it is not present if the failure was on the master, for instance.
+                    (?<cfg>
+                        [^/]+
+                    )
+                    /
+                )?
+                (?<build>
+                    [0-9]+
+                )
+                /?
+                \z
+            }xms
+        ) {
+            my ($job_name, $cfg_name, $build_number) = @+{ 'job', 'cfg', 'build' };
+            if ($cfg_name) {
+                # If $cfg_name only has one axis (the normal case), just use it directly,
+                # to avoid useless 'cfg=' in URLs.
+                $cfg_name =~ s{\A [^=]+ = ([^=]+) \z}{$1}xms;
+                $cfg_name =~ s{ }{_}g;
+            }
+            push @out, sprintf( '%s/%s/build_%05d%s/log.txt.gz', $log_base_url, $job_name, $build_number, $cfg_name ? "/$cfg_name" : q{});
+        } else {
+            warn "URL '$url' not of expected format, cannot rebase to $log_base_url\n";
+        }
+    }
+
+    # Use direct Jenkins logs
     if ($url !~ m{/\z}) {
         $url .= '/';
     }
 
-    return $url . 'consoleText';
+    push @out, $self->maybe_rewrite_url( $url . 'consoleText' );
+    return @out;
+}
+
+# Returns a version of $url possibly with the host and port replaced, according
+# to the --force-jenkins-host and --force-jenkins-port command-line arguments.
+sub maybe_rewrite_url
+{
+    my ($self, $url) = @_;
+
+    if (!$self->{ force_jenkins_host } && !$self->{ force_jenkins_port }) {
+        return $url;
+    }
+
+    my $parsed = URI->new( $url );
+    if ($self->{ force_jenkins_host }) {
+        $parsed->host( $self->{ force_jenkins_host } );
+    }
+    if ($self->{ force_jenkins_port }) {
+        $parsed->port( $self->{ force_jenkins_port } );
+    }
+
+    return $parsed->as_string();
 }
 
 # Given a jenkins build $url, returns a human-readable summary of
 # the build result.
+#
+# If $log_base_url is set, log URLs are derived under that base
+# URL using a predefined pattern, with Jenkins logs used as a fallback.
+# Otherwise, the logs are used directly from Jenkins.
 sub summarize_jenkins_build
 {
-    my ($self, $url) = @_;
+    my ($self, $url, $log_base_url) = @_;
+
+    $url = $self->maybe_rewrite_url( $url );
 
     my $build = get_build_data_from_url( $url );
 
@@ -230,11 +342,11 @@ sub summarize_jenkins_build
     my @summaries;
 
     foreach my $cfg (@configurations) {
-        my $log_url = get_permanent_url_for_build_log( $cfg );
+        my (@log_url) = $self->get_url_for_build_log( $cfg, $log_base_url );
 
         my $this_out;
 
-        if (my $summary = get_build_summary_from_log_url( $log_url )) {
+        if (my $summary = get_build_summary_from_log_url( @log_url )) {
             # If we can get a sensible summary, just do that.
             # The summary should already mention the tested configuration.
             $this_out = $summary;
@@ -244,11 +356,11 @@ sub summarize_jenkins_build
             $this_out = "$cfg->{ fullDisplayName }: $cfg->{ result }";
         }
 
-        if ($log_url) {
+        if (@log_url) {
             if ($this_out !~ m{\n\z}ms) {
                 $this_out .= "\n";
             }
-            $this_out .= "  Build log: $log_url";
+            $this_out .= "  Build log: $log_url[0]";
         }
 
         push @summaries, $this_out;
@@ -268,17 +380,21 @@ sub run
     my ($self, @args) = @_;
 
     my $url;
+    my $log_base_url;
 
     GetOptionsFromArray(
         \@args,
         'url=s' => \$url,
+        'log-base-url=s' => \$log_base_url,
+        'force-jenkins-host=s' => \$self->{ force_jenkins_host },
+        'force-jenkins-port=i' => \$self->{ force_jenkins_port },
         'h|help' => sub { pod2usage( 2 ) },
         'debug' => \$self->{ debug },
     );
 
     $url || die 'Missing mandatory --url option';
 
-    print $self->summarize_jenkins_build( $url ) . "\n";
+    print $self->summarize_jenkins_build( $url, $log_base_url ) . "\n";
 
     return;
 }

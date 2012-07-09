@@ -88,6 +88,43 @@ The Jenkins build status determines the gerrit build status (pass or fail).
 
 A summary of the build, and links to build logs, will be pasted as gerrit comment(s).
 
+Options:
+
+=over
+
+=item --log-upload-url <url>
+
+=item --log-download-url <url>
+
+Upload and download URLs for build log synchronization.
+
+If these options are specified, the raw build logs from Jenkins are uploaded to the given
+upload URL, and any links to build logs used in gerrit comments will refer to the given
+download URL.
+
+Currently, the upload URL must be an ssh URL, and the download URL must be an http URL.
+
+For working uploads, the host running this script must have passwordless ssh access to
+the remote host. wget must be installed on the remote host.
+
+The given URLs should refer to a directory under which this script will create a new
+directory for each project and build.  For example:
+
+  --log-upload-url ssh://testresults.qt-project.org/var/www/ci
+  --log-download-url http://testresults.qt-project.org/ci
+
+... would upload logs to /var/www/ci/<project>/build_<build_number>/<cfg>/log.txt.gz
+on the named host, and post HTTP links of the same structure in the gerrit comments.
+
+The purpose of these options is to facilitate a setup where Jenkins builds are considered
+volatile and may be cleaned up regularly, but compressed build/test logs are kept
+"permanently" on some other simple web host.
+
+If these options are omitted, no log uploads occur, and gerrit comments will refer
+directly to Jenkins logs.
+
+=back
+
 =back
 
 =head2 GLOBAL OPTIONS
@@ -339,9 +376,12 @@ package QtQA::App::JenkinsCI;
 use strict;
 use warnings;
 
+use AnyEvent::HTTP;
 use AnyEvent::Util;
 use AnyEvent;
 use Carp qw( confess );
+use Coro;
+use Coro::AnyEvent;
 use Data::Dumper;
 use English qw( -no_match_vars );
 use File::Basename;
@@ -413,25 +453,32 @@ sub fetch_json_data
 #     within a certain amount of time (overridable by 'timeout' option,
 #     in seconds). When this occurs, the exit status is -1
 #
-#   - the $$ option may not be passed into this function, since it
-#     is already used internally.
-#
 sub run_timed_cmd
 {
     my ($cmd, %options) = @_;
 
     my $timeout = delete $options{ timeout } || 60*15;
 
+    # We need to know the pid, but note the caller might have asked for it too.
     my $pid;
+    my $pid_ref = delete( $options{ '$$' } ) || \$pid;
 
     # command may exit normally or via timeout
-    my $cv = run_cmd( $cmd, %options, '$$' => \$pid );
-    my $timer = AnyEvent->timer( after => $timeout, cb => sub {
-        local $LIST_SEPARATOR = '] [';
-        warn "command [@{ $cmd }] timed out after $timeout seconds\n";
+    my $cv = run_cmd( $cmd, %options, '$$' => $pid_ref );
+    my $timer;
+    $timer = AnyEvent->timer( after => $timeout, cb => sub {
+        if (!$cv->ready()) {
+            # timer expired and process is not yet finished
+            local $LIST_SEPARATOR = '] [';
+            warn "command [@{ $cmd }] timed out after $timeout seconds\n";
 
-        kill( 15, $pid );
-        $cv->send( -1 );
+            kill( 15, $$pid_ref );
+            $cv->send( -1 );
+        }
+
+        # doing explicit undef of $timer here ensures that the timer
+        # object is kept alive until it fires
+        undef $timer;
     });
 
     return $cv;
@@ -515,6 +562,105 @@ sub safe_qx
     }
 
     return $stdout;
+}
+
+# Upload a single log from an HTTP URL via ssh.
+# Expected to be run from within a coro.
+#
+# Arguments:
+#
+#   ssh_command => arrayref, the ssh command to run. Should read log data from stdin.
+#   url => the log url
+#
+# The upload will be retried a few times if either the ssh or http connections
+# experience an error.
+sub upload_http_log_by_ssh
+{
+    my (%args) = @_;
+
+    my @cmd = @{ $args{ ssh_command } };
+    my $url = $args{ url };
+
+    my $retry = 8;
+    my $sleep = 1;
+
+    while ($retry) {
+        my ($r, $w);
+        pipe( $r, $w) || die "pipe: $!";
+
+        my $ssh_pid;
+        my $ssh_cv = run_timed_cmd(
+            \@cmd,
+            '<' => $r,
+            '$$' => \$ssh_pid,
+        );
+
+        # cv receives nothing on success, error type and details on ssh or http error.
+        my $cv = AnyEvent->condvar();
+        $ssh_cv->cb( sub {
+            my $status = $ssh_cv->recv();
+            $cv->send( ($status == 0) ? () : ('ssh', $status) );
+        });
+
+        # check http headers and fail if anything other than '200 OK'
+        my $check_headers = sub {
+            my $h = shift;
+            if ($h->{ Status } != 200) {
+                my $status = $h->{ OrigStatus } || $h->{ Status };
+                my $reason = $h->{ OrigReason } || $h->{ Reason };
+                $cv->send( 'http', "fetching $url: $status $reason" );
+                return 0;
+            }
+            return 1;
+        };
+
+        my $req = http_get(
+            $url,
+            on_body => sub {
+                my ($data, $headers) = @_;
+                return unless $check_headers->( $headers );
+                # all HTTP data is piped to ssh STDIN
+                print $w $data;
+                return 1;
+            },
+            sub {
+                my (undef, $headers) = @_;
+                return unless $check_headers->( $headers );
+                close( $w ) || $cv->send( 'ssh', $! );
+            },
+        );
+
+        my (@error) = $cv->recv();
+        if (!@error) {
+            # all done
+            return;
+        }
+
+        # something bad happened
+        my $type = shift @error;
+        my $error_str = "$type error: @error";
+
+        # if we stopped due to an http error, make sure to kill the ssh
+        if ($type eq 'http') {
+            kill( 15, $ssh_pid ) if $ssh_pid;
+        }
+
+        # we will retry on _any_ http error, or on ssh exit code 255 (network error)
+        if ($type eq 'http' || ($type eq 'ssh' && ($error[0] >> 8) == 255)) {
+            warn "$error_str\n  Trying again in $sleep seconds\n";
+            --$retry;
+            Coro::AnyEvent::sleep( $sleep );
+            $sleep *= 2;
+            next;
+        }
+
+        # any other kind of error is considered fatal
+        die "$error_str\n";
+    }
+
+    # if we get here, we never succeeded.
+    local $LIST_SEPARATOR = '] [';
+    die "HTTP fetch $url to ssh command [@cmd] repeatedly failed, giving up.\n";
 }
 
 # ======================= instance ============================================
@@ -819,6 +965,16 @@ sub jenkins_build_summary
     if (!$self->{ cfg }{ jenkins_build_summary }) {
         my @cmd = ($SUMMARIZE_JENKINS_BUILD, '--url', $self->jenkins_build_url( ));
 
+        if (my $arg = $self->{ log_download_url }) {
+            push @cmd, '--log-url', $arg;
+        }
+        if (my $arg = $self->{ force_jenkins_host }) {
+            push @cmd, '--force-jenkins-host', $arg;
+        }
+        if (my $arg = $self->{ force_jenkins_port }) {
+            push @cmd, '--force-jenkins-port', $arg;
+        }
+
         my $summary;
         my $status = run_timed_cmd(
             \@cmd,
@@ -911,6 +1067,102 @@ sub do_staging_approve
     return;
 }
 
+# Upload all logs to $url base, or die on error.
+sub upload_logs
+{
+    my ($self, $url) = @_;
+
+    my $result = $self->jenkins_build_result( );
+
+    my $parsed_url = URI->new( $url );
+    if ($parsed_url->scheme() ne 'ssh') {
+        confess "unsupported URL, only ssh URLs are supported: $url";
+    }
+
+    # Figure out the list of target and source URLs
+    my $build_number = $self->jenkins_build_number( );
+    my $project_name = $self->jenkins_job_name( );
+    my $build_url = $self->jenkins_build_url( );
+
+    my $dest_project_name = $project_name;
+    $dest_project_name =~ s{ }{_}g;
+
+    my $dest_project_path = catfile( $parsed_url->path(), $dest_project_name );
+    my $dest_build_number = sprintf( 'build_%05d', $build_number );
+    my $dest_build_path = catfile( $dest_project_path, $dest_build_number );
+
+    my %to_upload;
+
+    foreach my $config ($self->jenkins_configurations( )) {
+        # If $config only has one axis (the normal case), just use it directly,
+        # to avoid useless 'cfg=' in URLs.
+        my $dest_config = $config;
+        $dest_config =~ s{\A [^=]+ = ([^=]+) \z}{$1}xms;
+        $dest_config =~ s{ }{_}g;
+
+        my $src_url = "$build_url/$config/consoleText";
+        my $dest_path = catfile( $dest_build_path, $dest_config, 'log.txt.gz' );
+
+        $to_upload{ $src_url } = $dest_path;
+    }
+
+    # And also sync the master log ...
+    $to_upload{ "$build_url/consoleText" } = catfile( $dest_build_path, 'log.txt.gz' );
+
+    my @ssh_base = (
+        'ssh',
+        '-oBatchMode=yes',
+        '-p', $parsed_url->port( ),
+        ($parsed_url->user( )
+            ? ($parsed_url->user( ) . '@' . $parsed_url->host( ))
+            : $parsed_url->host( )
+        )
+    );
+
+    my @coro;
+    while (my ($src, $dest) = each %to_upload) {
+        my $dir = dirname( $dest );
+        my @command = (
+            @ssh_base,
+            qq{mkdir -p "$dir" && cd "$dir" && }
+           .qq{gzip > .incoming.log.txt.gz && }
+           .qq{mv .incoming.log.txt.gz log.txt.gz}
+        );
+        push @coro, async {
+            my $host = $parsed_url->host();
+            my $thing = "Upload $src -> $dest (on $host)";
+            eval {
+                upload_http_log_by_ssh(
+                    ssh_command => \@command,
+                    url => $src,
+                );
+            };
+            if (my $error = $EVAL_ERROR) {
+                die "$thing: $error";
+            }
+            print "$thing: OK!\n";
+        };
+    }
+
+    map { $_->join() } @coro;
+
+    # Create the 'latest' and possibly 'latest-success' links
+    my $cmd = qq{cd "$dest_project_path" && ln -sf "$dest_build_number" latest};
+    if ($result eq 'SUCCESS') {
+        $cmd .= qq{ && ln -sf "$dest_build_number" latest-success};
+    }
+
+    do_robust_cmd(
+        cmd => [
+            @ssh_base,
+            $cmd,
+        ],
+        retry_exitcodes => [255],
+    );
+
+    return;
+}
+
 # Entry point of 'new_build'
 sub command_new_build
 {
@@ -935,7 +1187,19 @@ sub command_new_build
 # Entry point of 'complete_build'
 sub command_complete_build
 {
-    my ($self) = @_;
+    my ($self, @args) = @_;
+
+    my $log_upload_url;
+
+    GetOptionsFromArray(
+        \@args,
+        'log-upload-url=s' => \$log_upload_url,
+        'log-download-url=s' => \$self->{ log_download_url },
+    );
+
+    if ($log_upload_url) {
+        $self->upload_logs( $log_upload_url );
+    }
 
     $self->do_staging_approve();
 

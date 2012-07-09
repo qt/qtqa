@@ -159,6 +159,7 @@ sub all_required_cpan_modules
         AnyEvent::Util
         Capture::Tiny
         Class::Factory::Util
+        Coro::AnyEvent
         Env::Path
         File::chdir
         File::Copy::Recursive
