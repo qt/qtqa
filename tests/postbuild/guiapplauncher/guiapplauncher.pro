@@ -9,7 +9,7 @@ DEFINES += SRCDIR=\\\"$$PWD/\\\"
 TARGET = tst_guiapplauncher
 CONFIG += console
 CONFIG -= app_bundle
-CONFIG += qtestlib
+QT += testlib
 TEMPLATE = app
 SOURCES += tst_guiapplauncher.cpp \
     windowmanager.cpp
