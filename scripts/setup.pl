@@ -159,7 +159,9 @@ sub all_required_cpan_modules
         AnyEvent::Util
         Capture::Tiny
         Class::Factory::Util
+        Config::Tiny
         Coro::AnyEvent
+        Data::Compare
         Env::Path
         File::chdir
         File::Copy::Recursive
@@ -168,7 +170,9 @@ sub all_required_cpan_modules
         File::HomeDir
         File::Slurp
         File::Which
+        HTTP::Headers
         IO::CaptureOutput
+        IO::Prompt
         IO::Uncompress::AnyInflate
         Inline::C
         JSON
@@ -182,6 +186,7 @@ sub all_required_cpan_modules
         Readonly
         ReleaseAction
         Sub::Override
+        Template
         Test::Exception
         Test::Exit
         Test::More
@@ -195,6 +200,7 @@ sub all_required_cpan_modules
         Tie::IxHash
         Timer::Simple
         Win32::Status
+        XML::Simple
         YAML
         YAML::Node
         autodie
