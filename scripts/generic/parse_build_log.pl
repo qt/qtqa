@@ -113,9 +113,9 @@ This script is entirely based on heuristics.  It may make mistakes.
 
 =cut
 
+use AnyEvent::HTTP;
 use Data::Dumper;
 use File::Basename;
-use File::Fetch;
 use File::Slurp qw();
 use Getopt::Long qw(GetOptionsFromArray);
 use IO::Uncompress::AnyInflate qw(anyinflate $AnyInflateError);
@@ -1699,42 +1699,40 @@ sub read_file_from_url
 {
     my ($self, $url) = @_;
 
-    # Work around a silly File::Fetch behavior.
-    # File::Fetch breaks if the URL ends with a `/'.
-    # It croaks with: No 'file' specified
-    # ...because it requires the URL to have a "file" component for
-    # some reason.
-    #
-    # Note that we can't 100% guarantee that silently removing this
-    # doesn't change the result :(
-    $url =~ s{/$}{};
-
     my $text;
 
     # Be robust against temporary network disruptions, etc.
-    my $i = 0;
+    my $i = 1;
     while (1) {
-        # undef $text in case File::Fetch partially filled it, then died
-        undef $text;
-        eval {
-            my $ff = File::Fetch->new( uri => $url );
+        my $cv = AE::cv();
+        my $req = http_request( GET => $url, timeout => 60, sub { $cv->send( @_ ) } );
 
-            local $File::Fetch::WARN = 0;   # do not warn about insignificant things
+        my ($data, $headers) = $cv->recv();
 
-            $ff->fetch( to => \$text ) || die "fetch $url: ".$ff->error( );
-        };
-        last unless $@;
-
-        # If we get here, we failed.
-
-        if (++$i >= 8) {
-            # Give up ...
-            die $@;
+        my $status = $headers->{ Status };
+        if ($headers->{ Status } == 200) {
+            $text = $data;
+            last;
         }
 
+        my $reason = $headers->{ Reason };
+        my $error = "fetch $url [attempt $i]: $status $reason";
+
+        # Do not retry on timeout error; on others, we do
+        if ($reason =~ m{timed out}) {
+            die "$error\n";
+        }
+
+        if ($i >= 6) {
+            # Give up ...
+            die "fetch $url repeatedly failed in $i attempts.\n  Last error: $error\n";
+        }
+
+        ++$i;
+
         # Try again soon
-        my $delay = 2**$i;
-        warn "$@\nTrying again in $delay seconds...\n";
+        my $delay = 2**($i-1);
+        warn "$error\n  Trying again in $delay seconds...\n";
         sleep $delay;
     }
 

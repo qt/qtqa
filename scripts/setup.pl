@@ -155,6 +155,7 @@ sub all_required_cpan_modules
     # available on all platforms...
     my @out = qw(
         AnyEvent
+        AnyEvent::HTTP
         Capture::Tiny
         Class::Factory::Util
         Env::Path
