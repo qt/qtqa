@@ -399,11 +399,27 @@ END_JSON
 
                 ,
 
+                '[ssh] [-oBatchMode=yes] [-p] [29418] [codereview.example.com] [gerrit] [staging-ls] [--branch] [refs/builds/jenkins-Some_Job-5] '
+               .'[--destination] [branch] [--project] [other/project]'
+                =>
+                {
+                    exitcode => 0,
+                    '>' => ("1234567890" x 4)." 123,3 implemented this\n"
+                          .("0987654321" x 4)." 321,1 implemented that\n"
+                }
+
+                ,
+
                 '[ssh] [-oBatchMode=yes] [-p] [29418] [codereview.example.com] [gerrit] '
                .'[staging-approve] [--branch] [branch] [--build-id] [jenkins-Some_Job-5] '
                .'[--project] [other/project] [--result] [pass] [--message] [-]'
                 =>
-                { exitcode => 0, '<' => '(fake summary)' }
+                {
+                    exitcode => 0,
+                    '<' => "(fake summary)\n\n  Tested changes:\n"
+                          ."    https://codereview.example.com/123 [patch set 3] - implemented this\n"
+                          ."    https://codereview.example.com/321 [patch set 1] - implemented that"
+                }
 
                 ,
 
@@ -474,11 +490,27 @@ END_JSON
 
                 ,
 
+                '[ssh] [-oBatchMode=yes] [-p] [29418] [codereview.example.com] [gerrit] [staging-ls] [--branch] [refs/builds/jenkins-Some_Job-5] '
+               .'[--destination] [branch] [--project] [other/project]'
+                =>
+                {
+                    exitcode => 0,
+                    '>' => ("1234567890" x 4)." 123,3 implemented this\n"
+                          .("0987654321" x 4)." something weird here\n"
+                }
+
+                ,
+
                 '[ssh] [-oBatchMode=yes] [-p] [29418] [codereview.example.com] [gerrit] '
                .'[staging-approve] [--branch] [branch] [--build-id] [jenkins-Some_Job-5] '
                .'[--project] [other/project] [--result] [fail] [--message] [-]'
                 =>
-                { exitcode => 0, '<' => '(fake summary)' }
+                {
+                    exitcode => 0,
+                    '<' => "(fake summary)\n\n  Tested changes:\n"
+                          ."    https://codereview.example.com/123 [patch set 3] - implemented this\n"
+                          ."    (unknown change - 0987654321098765432109876543210987654321 something weird here)"
+                }
 
                 ,
 
@@ -535,6 +567,19 @@ END_JSON
                 "[$SUMMARIZE_JENKINS_BUILD] [--url] [http://jenkins.example.com/job/Some_Job/5]"
                 =>
                 { exitcode => 0, '>' => '(fake summary)' }
+
+                ,
+
+
+                '[ssh] [-oBatchMode=yes] [-p] [29418] [codereview.example.com] [gerrit] [staging-ls] [--branch] [refs/staging/branch] '
+               .'[--destination] [branch] [--project] [other/project]'
+                =>
+                {
+                    exitcode => 0,
+                    '>' => ("aabbccddee" x 4)." 1,30 implemented this\n"
+                          .("ff00112233" x 4)." 2,5 implemented that\n"
+                }
+
             }
         );
 
