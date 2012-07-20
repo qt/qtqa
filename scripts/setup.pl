@@ -194,6 +194,7 @@ sub all_required_cpan_modules
         YAML
         YAML::Node
         autodie
+        parent
     );
 
     # available everywhere but Windows

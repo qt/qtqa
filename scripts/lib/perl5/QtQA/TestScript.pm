@@ -58,11 +58,11 @@ use List::MoreUtils qw(zip);
 use Params::Validate qw(validate);
 use Pod::Simple::Text;
 use Pod::Usage qw(pod2usage);
-use ReleaseAction qw(on_release);
 use YAML qw();
 use YAML::Node;
 
 use QtQA::Proc::Reliable;
+use QtQA::ThreadSafeReleaseAction qw(on_release);
 
 #======================== private variables ===================================
 
