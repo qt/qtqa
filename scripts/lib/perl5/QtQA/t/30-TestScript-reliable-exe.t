@@ -87,6 +87,9 @@ sub run_one_test
         );
     };
 
+    # exe() should have set $? to the expected value
+    is( $?, $expected_status, "$testname \$? set as expected" );
+
     # Immediately prior to stdout should always be the command;
     # Prior to that may be either CWD or PATH lines.
     my $prefix = quotemeta( '+ '.join(' ', @{$command}) );

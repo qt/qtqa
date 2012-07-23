@@ -269,6 +269,16 @@ sub _handle_exe_status
 {
     my ($self, $status, @command) = @_;
 
+    # $status could be a Math::BigInt (on Windows) but we can't assign that to $?;
+    # make it to a plain scalar. Note that this destroys information when the
+    # exit code has >24 bits of information, but this is consistent with the way
+    # system() itself works on Windows.
+    my $status_num = (ref($status) && $status->can('numify'))
+        ? $status->numify()
+        : $status
+    ;
+    $? = $status_num; ## no critic (RequireLocalized) - the point is to export it to caller
+
     if ($status != 0) {
         $self->_croak( "@command exited with status $status" );
     }
@@ -1005,7 +1015,7 @@ invoking the script with:
 =item B<exe>( OPTIONS, LIST )
 
 Run an external program, and die if it fails.  LIST is interpreted the same way as
-in the builtin L<system> function.
+in the builtin L<system> function.  The exit status is stored in $?.
 
 This method is similar to the builtin L<system> function, with the following
 additional features:
@@ -1054,7 +1064,7 @@ Please see the L<RELIABLE COMMANDS> section for further discussion.
 =item B<exe_qx>( LIST )
 
 Run an external program, die if it fails, and return the standard output
-(and maybe standard error).
+(and maybe standard error).  The exit status is stored in $?.
 
 When called in array context, a list containing (stdout, stderr) will be
 returned.  In scalar context, a scalar containing merged stdout and stderr

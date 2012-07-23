@@ -229,7 +229,9 @@ sub test_exe
     my $script = QtQA::TestScript->new;
 
     # Any non-zero exit code should make the script die
+    local $? = 0;
     dies_ok( sub { $script->exe('/bin/false') }, 'non-zero exit code implies death' );
+    isnt( $?, 0, 'non-zero exit code is passed through $?' );
 
     my $stdout;
     my $stderr;
@@ -245,8 +247,10 @@ sub test_exe
     # We invoke a subprocess which uses Data::Dumper to print out all
     # arguments.  This is a simple way to check unambiguously what args
     # were received.
+    local $? = 1;
     lives_ok( sub { capture { $script->exe(@good_cmd) } \$stdout, \$stderr },
         'successful command lives');
+    is( $?, 0, 'zero exit code is passed through $?' );
 
     TODO: {
         local $TODO = 'fix or document argument passing on Windows' if $WINDOWS;
@@ -268,6 +272,16 @@ sub test_exe
     }
     is( $stderr, q{},           'no unexpected warnings or stderr' );
 
+    # verify that an exit status is passed into $? correctly
+    my @exit12_cmd = (
+        'perl',
+        '-e',
+        'exit(12)',
+    );
+    local $? = 0;
+    dies_ok( sub { $script->exe(@exit12_cmd) }, 'exit(12) implies death' );
+    is( $?, (12 << 8), 'correct exit code is passed through $?' );
+
     return;
 }
 
@@ -277,7 +291,9 @@ sub test_exe_qx
     my $script = QtQA::TestScript->new;
 
     # Any non-zero exit code should make the script die
+    local $? = 0;
     dies_ok( sub { $script->exe_qx('/bin/false') }, 'non-zero exit code implies death' );
+    isnt( $?, 0, 'non-zero exit code is passed through $?' );
 
     # Note that there are two sets of output: the output from the child process
     # (which we expect to be returned), and the output from this process
@@ -303,6 +319,7 @@ sub test_exe_qx
         @TEST_EXE_ARGS1,
     );
 
+    local $? = 1;
     lives_ok(
         sub {
             capture { ($stdout, $stderr) = $script->exe_qx(@good_cmd) } \$log_stdout, \$log_stderr;
@@ -310,6 +327,7 @@ sub test_exe_qx
         },
         'successful command lives'
     );
+    is( $?, 0, 'zero exit code is passed through $?' );
 
     TODO: {
         local $TODO = 'fix or document argument passing on Windows' if $WINDOWS;
@@ -404,6 +422,16 @@ EOF
         is( $log_stdout, $expected_log_stdout, 'log output OK (verbose2)' );
         is( $log_stdout_merged, $expected_log_stdout_merged, 'log output OK (verbose2, merged)' );
     }
+
+    # verify that an exit status is passed into $? correctly
+    my @exit12_cmd = (
+        'perl',
+        '-e',
+        'exit(12)',
+    );
+    local $? = 0;
+    dies_ok( sub { $script->exe_qx(@exit12_cmd) }, 'exit(12) implies death' );
+    is( $?, (12 << 8), 'correct exit code is passed through $?' );
 
     return;
 }
