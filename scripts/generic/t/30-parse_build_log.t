@@ -50,9 +50,12 @@ use utf8;
 
 =head1 SYNOPSIS
 
-  perl ./30-parse_build_log.t
+  perl ./30-parse_build_log.t [pattern1 [pattern2 ...]]
 
 Runs parse_build_log over all the testdata under the `data' directory.
+
+If any patterns are given, only logs with filenames matching those patterns
+(regular expressions) will be tested.
 
   perl ./30-parse_build_log.t --update
 
@@ -68,6 +71,7 @@ use File::Basename;
 use File::Slurp;
 use File::Spec::Functions;
 use FindBin;
+use List::MoreUtils qw( none );
 use Readonly;
 use Test::More;
 use Text::Diff;
@@ -163,6 +167,7 @@ sub run
         # README.txt is not testdata; treat all other files as testdata
         next if ( basename( $file ) eq 'README.txt' );
         next if ( ! -f $file );
+        next if (@args && none { $file =~ qr{$_} } @args);
 
         test_from_file( $file, $update );
     }
