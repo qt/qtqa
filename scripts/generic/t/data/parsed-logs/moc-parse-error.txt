@@ -1,0 +1,11 @@
+[ '--summarize', "$DATADIR/raw-logs/moc-parse-error.txt" ]
+moc failed to process qfeedback.h :(
+
+  moc qfeedback.h
+  qfeedback.h:59: Parse error at "FILE"
+  make[5]: *** [.moc/debug-shared/moc_qfeedback.cpp] Error 1
+  make[4]: *** [sub-mmk-make_default] Error 2
+  make[3]: *** [sub-feedback-make_default] Error 2
+  make[2]: *** [sub-plugins-make_default-ordered] Error 2
+  make[1]: *** [module-qtfeedback-src-make_default-ordered] Error 2
+  make: *** [module-qtfeedback] Error 2

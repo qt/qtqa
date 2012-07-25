@@ -1224,15 +1224,17 @@ my %RE = (
         )
     }xms,
 
-    # qmake failed to parse a .pro file.
+    # Some build tool failed to process some file (e.g. qmake failed to parse a .pro file)
     #
     # Examples:
     #
     # /home/qt/.pulse2-agent/data/recipes/133472730/base/qt/qtmultimediakit/src/imports/multimedia/multimedia.pro:28: Parse Error ('qdeclarativecamera_p.h qdeclarativecameracapture_p.h qdeclarativecamerarecorder_p.h qdeclarativecameraexposure_p.h qdeclarativecameraflash_p.h qdeclarativecamerafocus_p.h qdeclarativecameraimageprocessing_p.h qdeclarativecamerapreviewprovider_p.h')
     # Error processing project file: /home/qt/.pulse2-agent/data/recipes/133472730/base/qt/qtmultimediakit/src/imports/multimedia/multimedia.pro
+    # qfeedback.h:59: Parse error at "FILE"
     #
     # Captures:
-    #   file    -   the file in which the error was encountered
+    #   file            - the file in which the error was encountered
+    #   tool_<toolname> - defined iff the message relates to tool 'toolname'
     #
     # Caveats:
     #   This pattern assumes files containing qmake script are always named
@@ -1240,7 +1242,7 @@ my %RE = (
     #   not enforced anywhere.  The pattern will miss things if people start
     #   to violate this convention.
     #
-    qmake_fail => qr{
+    tool_fail => qr{
         (?:
             \A
 
@@ -1254,6 +1256,7 @@ my %RE = (
             \QParse Error\E
             .*
             \z
+            (?<tool_qmake>)
         )
 
         |
@@ -1271,6 +1274,27 @@ my %RE = (
             )
             \.?
             \z
+            (?<tool_qmake>)
+        )
+
+        |
+
+        (?:
+            # qfeedback.h:59: Parse error at "FILE"
+            \A
+            (?<file>
+                [^:]{1,100}
+            )
+            :
+            \d{1,5}
+            :
+            [ ]
+            (?:
+                \QParse error at \E.+
+                # add more as discovered
+            )
+            \z
+            (?<tool_moc>)
         )
 
         # add more as discovered
@@ -2113,14 +2137,22 @@ sub identify_failures
             $out->{ linked_libs }{ $lib } = $line;
         }
 
-        # qmake failed?
+        # some build tool failed?
         #
-        elsif ($save_failures && $line =~ $RE{ qmake_fail }) {
-            $out->{ qmake_fail } = $line;
-            $out->{ qmake_fail_sources }{ $+{ file } } = $line;
+        elsif ($save_failures && $line =~ $RE{ tool_fail }) {
+            # tool should be matched as 'tool_<toolname>' named capture
+            my ($tool) = map { /^tool_(.+)/ ? $1 : () } keys %+;
+
+            $tool //= '(unknown tool)';
+
+            $out->{ tool_fail }{ $tool } = $line;
+
+            if (my $file = $+{ file }) {
+                $out->{ tool_fail_sources }{ $tool }{ $file } = $line;
+            }
 
             if ($out->{ qtmodule }) {
-                $out->{ qmake_fail_qtmodule } = $out->{ qtmodule };
+                $out->{ tool_fail_qtmodule }{ $tool } = $out->{ qtmodule };
             }
 
             $out->{ significant_lines }{ $line } = 1;
@@ -2310,6 +2342,20 @@ sub extract_and_output
                 next;
             }
 
+            # Some other generic build tool failed?
+            if ($fail->{ tool_fail } && $line =~ $RE{ tool_fail }) {
+                my @continuation_patterns;
+
+                # If we could identify the file at fault, we look for messages relating
+                # to this specific file.
+                if (my $file = $+{ file }) {
+                    push @continuation_patterns, qr{(?:\b|\A) \Q$file\E (?:\b|\z)}xms;
+                }
+
+                $line_is_significant->( $line, @continuation_patterns );
+                next;
+            }
+
             # Any failure for which we might benefit by scanning for generic
             # strerror-like messages?
             if ( $fail->{ make_fail } && $line =~ $RE{ make_fail }
@@ -2466,33 +2512,34 @@ sub output_summary
         }
     }
 
-    if ($fail->{ qmake_fail }) {
-        my $qmake_fail_qtmodule = $fail->{ qmake_fail_qtmodule };
-        my @qmake_fail_sources = keys %{ $fail->{ qmake_fail_sources } // {} };
+    foreach my $tool (keys %{ $fail->{ tool_fail } // {} }) {
+        my $qtmodule = $fail->{ tool_fail_qtmodule }{ $tool };
+        my @sources = keys %{ $fail->{ tool_fail_sources }{ $tool } // {} };
 
         # niceify the names, make them relative to the top-level directory.
         my $pulse_base_dir = $fail->{ pulse_property }{ BASE_DIR };
         if ($pulse_base_dir) {
-            @qmake_fail_sources = map {
+            @sources = map {
                 my $file = $_;
                 $file =~ s{^ \Q$pulse_base_dir\E [\\/]* }{}xms;
                 $file
-            } @qmake_fail_sources;
+            } @sources;
         }
 
-        my $pl = (scalar(@qmake_fail_sources) != 1);
+        my $some_files =
+            (@sources == 0) ? 'some file(s)'
+          : (@sources == 1) ? $sources[0]
+          :                   'some files'
+        ;
 
-        my $some_files = $pl ? 'some files'
-                       :       $qmake_fail_sources[0];
+        $summary = "$tool failed to process $some_files :(";
 
-        $summary = "qmake failed to process $some_files :(";
-
-        if ($qmake_fail_qtmodule) {
+        if ($qtmodule) {
             my $tested_qtmodule = $fail->{ pulse_property }{ QT_GITMODULE };
-            if ($tested_qtmodule && $qmake_fail_qtmodule ne $tested_qtmodule) {
+            if ($tested_qtmodule && $qtmodule ne $tested_qtmodule) {
                 $summary .= "\n\nWe were trying to test $tested_qtmodule.  "
-                           ."The qmake error(s) occurred in one of the dependencies, "
-                           ."$qmake_fail_qtmodule.";
+                           ."The $tool error(s) occurred in one of the dependencies, "
+                           ."$qtmodule.";
             }
         }
     }
