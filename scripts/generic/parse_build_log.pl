@@ -1297,6 +1297,25 @@ my %RE = (
             (?<tool_moc>)
         )
 
+        |
+
+        (?:
+            # MSVC RC (Resource Compiler)
+            # qtquick2plugin_resource.rc(9) : error RC2127 : version WORDs separated by commas expected
+            \A
+            (?<file>
+                [^(]{1,100}
+            )
+            \(
+            \d{1,5}
+            \)
+            [ ]?
+            :
+            [ ]
+            error[ ]RC\d
+            (?<tool_rc>)
+        )
+
         # add more as discovered
     }xms,
 
