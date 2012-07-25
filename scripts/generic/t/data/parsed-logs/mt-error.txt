@@ -1,0 +1,5 @@
+[ '--summarize', "$DATADIR/raw-logs/mt-error.txt" ]
+mt failed to process tmp\obj\release_shared-onespace\one :(
+
+  mt.exe -nologo -manifest tmp\obj\release_shared-onespace\one space.intermediate.manifest -outputresource:"one space.exe";1
+  tmp\obj\release_shared-onespace\one : general error c1010070: Failed to load and parse the manifest. The system cannot find the file specified.

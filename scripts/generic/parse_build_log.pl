@@ -1319,6 +1319,31 @@ my %RE = (
         |
 
         (?:
+            # MSVC MT (Manifest Tool)
+            # mt.exe : general error c101008d: Failed to write the updated manifest to the resource of file
+            # somefile : general error c1010070: Failed to load and parse the manifest. The system cannot find the file specified.
+            \A
+            (?:
+                # error message seems to start with 'mt.exe' for a generic error,
+                # filename for an error specifically relating to some file
+                mt\.exe
+                |
+                (?<file>
+                    .{1,200}?
+                )
+            )
+
+            # since mt.exe does not appear in the error message in all cases, there's a risk of false
+            # positives if we just match for 'general error'; luckily, most (all?) mt error codes
+            # seem to start with 'c101'
+            \Q : general error c101\E
+
+            (?<tool_mt>)
+        )
+
+        |
+
+        (?:
             # objcopy: 'libQtCore.so.5.0.0': No such file
             \A
             objcopy:\ '
