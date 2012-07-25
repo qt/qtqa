@@ -1,0 +1,9 @@
+[ '--summarize', "$DATADIR/raw-logs/qttools-qmake-no-module.txt" ]
+qmake failed to process some file(s) :(
+
+  Project ERROR: No module matching library 'QtDesignerComponents' found.
+  make[4]: *** [sub-designer-qmake_all] Error 2
+  make[3]: *** [sub-src-qmake_all] Error 2
+  make[2]: *** [sub-designer-qmake_all] Error 2
+  make[1]: *** [module-qttools-src-qmake_all] Error 2
+  make: *** [module-qttools-qmake_all] Error 2

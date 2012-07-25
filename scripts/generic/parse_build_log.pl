@@ -2001,6 +2001,56 @@ sub yaml_chunk_handler
     return $self->chunk_handler( 'yaml', %chunk );
 }
 
+# Create a handler for an embedded qmake chunk.
+# Actually, only looks for a "Project ERROR: " line.
+# Ideally this would not be necessary, but unfortunately the exit code from
+# qmake is ignored at some part(s) of the build process, so we can only safely
+# consider qmake errors in certain contexts.
+sub qmake_chunk_handler
+{
+    my ($self, %chunk) = @_;
+
+    $chunk{ begin_re } = qr{\A\QProject ERROR: \E};
+
+    # Any nested 'make' failures should be marked as significant,
+    # so that if qmake fails N levels down, we see the make messages
+    # from levels 1..N as normal
+    $chunk{ read_sub } = sub {
+        my (undef, $line, $out) = @_;
+        if ($line =~ $RE{ make_fail }) {
+            $out->{ significant_lines }{ $line } = 1;
+        }
+    };
+
+    $chunk{ begin_sub } = sub {
+        my (undef, $line, $out) = @_;
+        add_tool_fail( $out, 'qmake', $line );
+    };
+
+    return $self->chunk_handler( 'qmake', %chunk );
+}
+
+# Add a $tool failure identified from $line into $out, a hashref
+# being constructed during identify_failures.
+sub add_tool_fail
+{
+    my ($out, $tool, $line) = @_;
+
+    $out->{ tool_fail }{ $tool } = $line;
+
+    if (my $file = $+{ file }) {
+        $out->{ tool_fail_sources }{ $tool }{ $file } = $line;
+    }
+
+    if ($out->{ qtmodule }) {
+        $out->{ tool_fail_qtmodule }{ $tool } = $out->{ qtmodule };
+    }
+
+    $out->{ significant_lines }{ $line } = 1;
+
+    return;
+}
+
 sub identify_failures
 {
     my ($self, %args) = @_;
@@ -2062,6 +2112,15 @@ sub identify_failures
 
                 # start reading the details of the failure.
                 $chunk_handler = $self->autotest_chunk_handler( found_test => 1 );
+            }
+
+            # try to find qmake error message(s).
+            #
+            # Be careful with the matching of $target here; if too permissive, it
+            # could match targets for things other than _running_ qmake (e.g.
+            # a target for compiling qmake itself, or tst_qmake autotest, etc.)
+            if ($target && $target =~ m{-qmake_all\Z}) {
+                $chunk_handler = $self->qmake_chunk_handler( );
             }
 
             $out->{ significant_lines }{ $line } = 1;
@@ -2142,20 +2201,9 @@ sub identify_failures
         elsif ($save_failures && $line =~ $RE{ tool_fail }) {
             # tool should be matched as 'tool_<toolname>' named capture
             my ($tool) = map { /^tool_(.+)/ ? $1 : () } keys %+;
-
             $tool //= '(unknown tool)';
 
-            $out->{ tool_fail }{ $tool } = $line;
-
-            if (my $file = $+{ file }) {
-                $out->{ tool_fail_sources }{ $tool }{ $file } = $line;
-            }
-
-            if ($out->{ qtmodule }) {
-                $out->{ tool_fail_qtmodule }{ $tool } = $out->{ qtmodule };
-            }
-
-            $out->{ significant_lines }{ $line } = 1;
+            add_tool_fail( $out, $tool, $line );
         }
 
         # Pulse config problem?
@@ -2363,11 +2411,20 @@ sub extract_and_output
             ) {
                 my @patterns = ($RE{ strerror });
 
-                # if we have a make target, and it looks like it might be referring to
-                # a filename, then also find lines referring to that name
                 if (my $target = $+{ target }) {
+                    # if we have a make target, and it looks like it might be referring to
+                    # a filename, then also find lines referring to that name
                     if ($target =~ m{/|\\}) {
                         push @patterns, qr{\Q$target\E};
+                    }
+
+                    # if it looks like it relates to qmake, extract any 'Project ERROR:' lines.
+                    # FIXME: ideally, we could extract _all_ 'Project ERROR:' lines and not just
+                    # those close to 'make' errors. Unfortunately, some of these lines are _expected_
+                    # to be generated from the build process, which ignores the exit code of qmake
+                    # at certain build steps.
+                    if ($target =~ m{qmake}) {
+                        push @patterns, qr{\QProject ERROR: \E};
                     }
                 }
 
