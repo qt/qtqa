@@ -1316,6 +1316,19 @@ my %RE = (
             (?<tool_rc>)
         )
 
+        |
+
+        (?:
+            # objcopy: 'libQtCore.so.5.0.0': No such file
+            \A
+            objcopy:\ '
+            (?<file>
+                [^']{1,100}
+            )
+            ':
+            (?<tool_objcopy>)
+        )
+
         # add more as discovered
     }xms,
 
