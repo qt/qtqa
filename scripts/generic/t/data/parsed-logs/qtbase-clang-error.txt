@@ -1,0 +1,12 @@
+[ '--summarize', "$DATADIR/raw-logs/qtbase-clang-error.txt" ]
+`make' failed :(
+
+  rm -f QtTest QtTest.framework/QtTest ../../lib/QtTest.framework/QtTest
+  linking ../../lib/QtTest.framework/QtTest
+  clang: error: no such file or directory: 'Security'
+  clang: error: no such file or directory: 'ApplicationServices'
+  clang: error: no such file or directory: 'QtCore'
+  make[3]: *** [../../lib/QtTest.framework/QtTest] Error 1
+  make[2]: *** [sub-testlib-make_first] Error 2
+  make[1]: *** [sub-src-make_first] Error 2
+  make: *** [module-qtbase] Error 2

@@ -144,7 +144,10 @@ Readonly my $MAX_CHUNK_LINES => 5000;
 #
 # The strings should be collected from a few different platforms, as there
 # are some platform-specific messages and some slight variations (e.g.
-# "cannot" vs "can't")
+# "cannot" vs "can't").
+#
+# Note that these are matched case-insensitive, as certain tools seem to use
+# messages from this list with slight differences in case.
 #
 Readonly my @POSIX_ERROR_STRINGS
     => split /\n/, <<'END_ERROR_STRINGS';
@@ -1519,7 +1522,7 @@ my %RE = (
     strerror => (sub {
         my @re = map { "\Q$_\E" } @POSIX_ERROR_STRINGS;
         my $re = join('|', @re);
-        return qr{\b(?:$re)\b};
+        return qr{\b(?:$re)\b}i;
     })->(),
 
     # Pattern for lines to be considered insignificant; these lines are both not considered
@@ -2312,7 +2315,17 @@ sub extract_and_output
             if ( $fail->{ make_fail } && $line =~ $RE{ make_fail }
               || $fail->{ glitch} && $line =~ $RE{ glitch }
             ) {
-                $line_is_significant->( $line, $RE{ strerror } );
+                my @patterns = ($RE{ strerror });
+
+                # if we have a make target, and it looks like it might be referring to
+                # a filename, then also find lines referring to that name
+                if (my $target = $+{ target }) {
+                    if ($target =~ m{/|\\}) {
+                        push @patterns, qr{\Q$target\E};
+                    }
+                }
+
+                $line_is_significant->( $line, @patterns );
                 next;
             }
 
