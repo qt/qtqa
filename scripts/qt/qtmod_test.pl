@@ -1130,14 +1130,16 @@ sub get_testrunner_command
 {
     my ($self) = @_;
 
-    my $testrunner = catfile( $FindBin::Bin, '..', '..', 'bin', 'testrunner' );
+    my $testrunner = catfile( $FindBin::Bin, '..', 'generic', 'testrunner.pl' );
     $testrunner    = canonpath abs_path( $testrunner );
 
     # sanity check
     $self->fatal_error( "internal error: $testrunner does not exist" ) if (! -e $testrunner);
 
     my @testrunner_with_args = (
-        $testrunner,
+        $EXECUTABLE_NAME,               # perl
+        $testrunner,                    # testrunner.pl
+        '--',                           # separate perl args from testrunner args
         $self->get_testrunner_args( ),
     );
 
@@ -1461,7 +1463,7 @@ sub run_coverage
     my $qt_gitmodule             = $self->{ 'qt.gitmodule' };
     my $qt_gitmodule_dir         = $self->{ 'qt.gitmodule.dir' };
 
-    my $coveragerunner = catfile( $FindBin::Bin, '..', '..', 'bin', "coveragerunner_$qt_coverage_tool" );
+    my $coveragerunner = catfile( $FindBin::Bin, '..', 'generic', "coveragerunner_$qt_coverage_tool.pl" );
     $coveragerunner    = canonpath abs_path( $coveragerunner );
 
     # sanity check
@@ -1476,7 +1478,12 @@ sub run_coverage
         $qt_coverage_tests_output
     );
 
-    $self->exe($coveragerunner, @coverage_runner_args);
+    $self->exe(
+        $EXECUTABLE_NAME,       # perl
+        $coveragerunner,        # coveragerunner_<foo>.pl
+        '--',                   # separate perl args from other args
+        @coverage_runner_args
+    );
 
     return;
 }
