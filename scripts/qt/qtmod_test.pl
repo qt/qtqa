@@ -936,20 +936,11 @@ sub run_compile
 
     chdir( $qt_build_dir );
 
-    # is this shadow build with installation enabled?
-    if ($qt_make_install && $qt_dir ne $qt_build_dir) {
-        $self->{ shadow_build_with_install_enabled } = 1;
-    }
-
     my @make_args = split(/ /, $make_args);
     my @commands;
 
     if (($self->{'qt.gitmodule'} eq 'qt5') or ($self->{'qt.gitmodule'} eq 'qt')) {
         # Building qt5 or qt4; just do a `make' of all default targets in the top-level makefile.
-        if ($self->{ shadow_build_with_install_enabled }) {
-            # shadow build and installing? need to build & install together
-            push @make_args, 'install';
-        }
         push @commands, sub { $self->exe( $make_bin, @make_args ) };
     }
     elsif ($module_in_qt5) {
@@ -980,20 +971,6 @@ sub run_compile
         # and all deps, as parallel as possible.
         my $make_target = "module-$qt_gitmodule";
 
-        if ($self->{ shadow_build_with_install_enabled }) {
-            # shadow build and installing?
-            # Then we first install, then do another make to catch anything not
-            # covered by install (e.g. subdirs with no_default_install).
-            # Note that we have to do it in this unintuitive order because we need to ensure
-            # that e.g. qtbase is installed before we attempt to compile the modules which
-            # depend on qtbase.
-            my $make_install_target = "$make_target-install_subtargets";
-            push @commands, sub {
-                $self->exe( $make_bin, @make_args, $make_install_target );
-                $self->{ installed } = 1;
-            };
-        }
-
         push @commands, sub { $self->exe( $make_bin, @make_args, $make_target ) };
     }
     else {
@@ -1003,13 +980,8 @@ sub run_compile
         # The Makefile generated in qt5 doesn't know anything about this module.
 
         # First, we build all deps:
-        my $target_suffix = '';
-        if ($self->{ shadow_build_with_install_enabled }) {
-            # In this configuration, we don't just need to build, but also install
-            $target_suffix = '-install_subtargets';
-        }
         my %dependencies = $self->read_dependencies( "$qt_gitmodule_dir/sync.profile" );
-        my @module_targets = map { "module-$_$target_suffix" } keys %dependencies;
+        my @module_targets = map { "module-$_" } keys %dependencies;
         push @commands, sub { $self->exe( $make_bin, @make_args, @module_targets ) };
 
         if (! -e $qt_gitmodule_build_dir) {
@@ -1028,20 +1000,12 @@ sub run_compile
             push @qmake_args, map { "QT_BUILD_PARTS+=$_" } @OPTIONAL_BUILD_PARTS;
         }
         push @commands, sub { $self->exe(
-            $self->{ shadow_build_with_install_enabled } ? $qmake_install_bin : $qmake_bin,
+            $qmake_bin,
             $qt_gitmodule_dir,
             @qmake_args
         ) };
 
-        if ($self->{ shadow_build_with_install_enabled }) {
-            push @commands, sub {
-                $self->exe( $make_bin, @make_args, 'install' );
-                $self->{ installed } = 1;
-            };
-        }
-        else {
-            push @commands, sub { $self->exe( $make_bin, @make_args ) };
-        }
+        push @commands, sub { $self->exe( $make_bin, @make_args ) };
     }
 
     foreach my $command (@commands) {
@@ -1063,12 +1027,6 @@ sub run_install
     my $qt_gitmodule    = $self->{ 'qt.gitmodule' };
     my $qt_gitmodule_dir= $self->{ 'qt.gitmodule.dir' };
     my $qt_make_install = $self->{ 'qt.make_install' };
-
-    # if shadow_build_with_install_enabled true, no need to install anymore.
-    if ($self->{ shadow_build_with_install_enabled }) {
-        warn __PACKAGE__ . ": installation was included in the build process.\n";
-        return;
-    }
 
     return if (!$qt_make_install);
 
