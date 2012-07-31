@@ -239,6 +239,7 @@ END_JSON
         my $expected_content = <<'END_CONTENT';
 qt_ci_gerrit_branch=somebranch
 qt_ci_gerrit_build_id=jenkins-Some_Job-137
+qt_ci_gerrit_build_ref=refs/builds/jenkins-Some_Job-137
 qt_ci_gerrit_git_url=ssh://integrator@gerrit.example.com:1234/test/project
 qt_ci_gerrit_host=gerrit.example.com
 qt_ci_gerrit_port=1234
@@ -254,6 +255,64 @@ END_CONTENT
             ok( -e $full_filename, "$filename created" );
             my $content = read_file( $full_filename ) || die;
             is( $content, $expected_content, "$filename content as expected" );
+        }
+    }
+
+
+    {
+        # test pretend mode.
+        # Creating an empty 'cmd' mock means that any unexpected commands will
+        # result in a failure.
+        my $url_base = 'quux/baz';
+        my $tempdir = tempdir( 'qt-jenkins-ci-test.XXXXXX', TMPDIR => 1, CLEANUP => 1 );
+
+        my $mock = do_mocks(
+            url_to_content => {
+
+                "$url_base/api/json?tree=activeConfigurations[name],scm[userRemoteConfigs[url,refspec]]"
+                =>
+                <<'END_JSON'
+{
+    "scm": {
+        "userRemoteConfigs": [
+            {
+                "url":"ssh://integrator@gerrit.example.com:1234/test/project",
+                "refspec":"+refs/staging/somebranch:refs/remotes/origin/somebranch-staging"
+            }
+        ]
+    },
+    "activeConfigurations": [
+        {"name":"config_1"},
+        {"name":"config_2"}
+    ]
+}
+END_JSON
+
+            },
+        );
+
+        local $ENV{ JOB_URL } = 'quux/baz';
+        local $ENV{ JOB_NAME } = 'Some_Job';
+        local $ENV{ BUILD_NUMBER } = 137;
+
+        my $obj = $PACKAGE->new();
+        $obj->run(
+            'new_build',
+            '--properties-dir', $tempdir,
+            '--pretend',
+        );
+
+        # build_ref should be the staging branch.
+        foreach my $cfg (qw(config_1 config_2)) {
+            my $filename = "qt-ci-jenkins-$ENV{JOB_NAME}-${cfg}-$ENV{BUILD_NUMBER}.properties";
+            my $full_filename = catfile( $tempdir, $filename );
+            ok( -e $full_filename, "[pretend] $filename created" );
+            my $content = read_file( $full_filename ) || die;
+            like(
+                $content,
+                qr{\nqt_ci_gerrit_build_ref=refs/staging/somebranch\n},
+                "[pretend] $filename content as expected"
+            );
         }
     }
 
@@ -452,6 +511,38 @@ END_JSON
                 'complete_build',
                 '--log-upload-url', 'ssh://logs.example.com:555/var/www/ci',
                 '--log-download-url', 'http://logs.example.com:8080/ci'
+            );
+        }
+
+        # again, in pretend mode; no ssh cmd should be run
+        undef $mock;
+        $mock = do_mocks(
+            url_to_content => {
+
+                "$url_base/api/json?tree=activeConfigurations[name],scm[userRemoteConfigs[url,refspec]]"
+                =>
+                $job_json
+
+                ,
+
+                "$url_base/5/api/json?tree=result"
+                =>
+                '{"result":"FAILURE"}',
+
+            },
+
+            cmd => {
+                "[$SUMMARIZE_JENKINS_BUILD] [--url] [http://jenkins.example.com/job/Some_Job/5]"
+                =>
+                { exitcode => 0, '>' => '(fake summary)' }
+            }
+        );
+
+        {
+            my $obj = $PACKAGE->new();
+            $obj->run(
+                'complete_build',
+                '--pretend',
             );
         }
     }

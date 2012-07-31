@@ -158,6 +158,16 @@ This is useful for network setups (e.g. port forwarding) where the Jenkins
 host cannot access itself using the outward-facing hostname, or simply to
 avoid unnecessary round-trips through a reverse proxy setup.
 
+=item --pretend
+
+Pretend mode; do not create or approve/fail gerrit build refs. Instead,
+test the content of the staging branch, and print the success or failure
+summary which would be reported to gerrit.
+
+Note that there is no guarantee that all test slaves will test the same SHA1
+from the staging branch, since the staging branch may be rewritten at any
+time.
+
 =back
 
 =head2 PROPERTIES
@@ -194,6 +204,14 @@ Default: discovered from Jenkins SCM configuration
 The build ID used in Gerrit.  Short name only (i.e. not including 'refs/builds/' prefix).
 
 Default: derived from Jenkins job name and build number, e.g. "jenkins-${JOB_NAME}-${BUILD_NUMBER}"
+
+=item gerrit_build_ref
+
+The build ref used in Gerrit.
+
+Default: derived from gerrit_build_id (e.g. "refs/builds/jenkins-${JOB_NAME}-${BUILD_NUMBER}"),
+except in pretend mode, where a build ref is not created and the staging branch is used as the
+build ref (e.g. "refs/staging/master").
 
 =item gerrit_project
 
@@ -663,6 +681,18 @@ sub upload_http_log_by_ssh
     die "HTTP fetch $url to ssh command [@cmd] repeatedly failed, giving up.\n";
 }
 
+# Print a $message which will be formatted / highlighted as relating to 'pretend mode'
+sub pretend
+{
+    my ($message) = @_;
+
+    print "======================== Pretend mode ==================================\n"
+         ."$message\n"
+         ."========================================================================\n\n";
+
+    return;
+}
+
 # ======================= instance ============================================
 
 # Remove any old qt-ci-.*.properties file from $dir.
@@ -903,7 +933,17 @@ sub gerrit_build_ref
 {
     my ($self) = @_;
 
-    return 'refs/builds/' . $self->gerrit_build_id( );
+    if (!$self->{ cfg }{ gerrit_build_ref }) {
+        # in pretend mode, we don't create any build ref, but rather test directly
+        # from staging branch
+        if ($self->{ pretend }) {
+            $self->{ cfg }{ gerrit_build_ref } = 'refs/staging/' . $self->gerrit_branch( );
+        } else {
+            $self->{ cfg }{ gerrit_build_ref } = 'refs/builds/' . $self->gerrit_build_id( );
+        }
+    }
+
+    return $self->{ cfg }{ gerrit_build_ref };
 }
 
 sub gerrit_git_url
@@ -1001,23 +1041,30 @@ sub do_staging_new_build
 {
     my ($self) = @_;
 
+    my @cmd = (
+        'ssh',
+        '-oBatchMode=yes',
+        '-p',
+        $self->gerrit_port( ),
+        $self->gerrit_user_at_host( ),
+        'gerrit',
+        'staging-new-build',
+        '--build-id',
+        $self->gerrit_build_id( ),
+        '--project',
+        $self->gerrit_project( ),
+        '--staging-branch',
+        $self->gerrit_branch( ),
+    );
+
+    if ($self->{ pretend }) {
+        pretend( "Would create new build: @cmd" );
+        return;
+    }
+
     do_robust_cmd(
         retry_exitcodes => [255], # ssh gives 255 on possibly temporary network error,
-        cmd => [
-            'ssh',
-            '-oBatchMode=yes',
-            '-p',
-            $self->gerrit_port( ),
-            $self->gerrit_user_at_host( ),
-            'gerrit',
-            'staging-new-build',
-            '--build-id',
-            $self->gerrit_build_id( ),
-            '--project',
-            $self->gerrit_project( ),
-            '--staging-branch',
-            $self->gerrit_branch( ),
-        ],
+        cmd => \@cmd,
     );
 
     # Now verify the build ref really exists.
@@ -1040,28 +1087,36 @@ sub do_staging_approve
 {
     my ($self) = @_;
 
+    my @cmd = (
+        'ssh',
+        '-oBatchMode=yes',
+        '-p',
+        $self->gerrit_port( ),
+        $self->gerrit_user_at_host( ),
+        'gerrit',
+        'staging-approve',
+        '--branch',
+        $self->gerrit_branch( ),
+        '--build-id',
+        $self->gerrit_build_id( ),
+        '--project',
+        $self->gerrit_project( ),
+        '--result',
+        (($self->jenkins_build_result( ) eq 'SUCCESS') ? 'pass' : 'fail'),
+        '--message',
+        '-'
+    );
+    my $stdin = $self->jenkins_build_summary();
+
+    if ($self->{ pretend }) {
+        pretend( "Would report build result: @cmd\n\n$stdin" );
+        return;
+    }
+
     do_robust_cmd(
-        stdin => $self->jenkins_build_summary(),
+        stdin => $stdin,
         retry_exitcodes => [255],
-        cmd => [
-            'ssh',
-            '-oBatchMode=yes',
-            '-p',
-            $self->gerrit_port( ),
-            $self->gerrit_user_at_host( ),
-            'gerrit',
-            'staging-approve',
-            '--branch',
-            $self->gerrit_branch( ),
-            '--build-id',
-            $self->gerrit_build_id( ),
-            '--project',
-            $self->gerrit_project( ),
-            '--result',
-            (($self->jenkins_build_result( ) eq 'SUCCESS') ? 'pass' : 'fail'),
-            '--message',
-            '-'
-        ],
+        cmd => \@cmd,
     );
 
     return;
@@ -1237,6 +1292,7 @@ sub run
         'set=s%{,}' => \%set,
         'force-jenkins-host=s' => \$self->{ force_jenkins_host },
         'force-jenkins-port=i' => \$self->{ force_jenkins_port },
+        'pretend' => \$self->{ pretend },
     ) || die;
 
     my $command = shift @args;
