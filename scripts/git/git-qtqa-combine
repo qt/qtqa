@@ -877,7 +877,7 @@ sub update_index
         do_with_progress "Adding ".stringy_repo( $in )." to index", sub {
             my $files = $in->{ files } || q{};
             my $ref = $in->{ local_ref };
-            system_or_die( qq(git ls-files --with-tree=$ref -- $files > $list) );
+            system_or_die( qq(git ls-files --with-tree=$ref --modified -- $files > $list) );
 
             if (filesize( $list ) == 0) {
                 croak "'$files' does not match any files for ".stringy_repo( $in );
