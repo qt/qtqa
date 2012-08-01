@@ -1097,7 +1097,6 @@ sub get_testrunner_command
     my @testrunner_with_args = (
         $EXECUTABLE_NAME,               # perl
         $testrunner,                    # testrunner.pl
-        '--',                           # separate perl args from testrunner args
         $self->get_testrunner_args( ),
     );
 
@@ -1439,7 +1438,6 @@ sub run_coverage
     $self->exe(
         $EXECUTABLE_NAME,       # perl
         $coveragerunner,        # coveragerunner_<foo>.pl
-        '--',                   # separate perl args from other args
         @coverage_runner_args
     );
 
