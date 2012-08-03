@@ -227,11 +227,6 @@ void tst_Headers::macros()
         || header.endsWith("qwindowdefs_win.h"))
         return;
 
-    int qtmodule = content.indexOf(QRegExp("^QT_MODULE\\(.*\\)$"));
-    QVERIFY(qtmodule != -1);
-    QVERIFY(qtmodule > beginHeader);
-    QVERIFY(qtmodule < endHeader);
-
     int beginNamespace = content.indexOf("QT_BEGIN_NAMESPACE");
     int endNamespace = content.lastIndexOf("QT_END_NAMESPACE");
     QVERIFY(beginNamespace != -1);
