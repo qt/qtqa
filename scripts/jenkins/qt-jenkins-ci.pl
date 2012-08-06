@@ -995,7 +995,7 @@ sub jenkins_build_summary
         my @cmd = ($SUMMARIZE_JENKINS_BUILD, '--url', $self->jenkins_build_url( ));
 
         if (my $arg = $self->{ log_download_url }) {
-            push @cmd, '--log-url', $arg;
+            push @cmd, '--log-base-url', $arg;
         }
         if (my $arg = $self->{ force_jenkins_host }) {
             push @cmd, '--force-jenkins-host', $arg;

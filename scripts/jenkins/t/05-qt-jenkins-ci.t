@@ -393,7 +393,7 @@ END_JSON
             },
 
             cmd => {
-                "[$SUMMARIZE_JENKINS_BUILD] [--url] [http://jenkins.example.com/job/Some_Job/5] [--log-url] [http://logs.example.com:8080/ci]"
+                "[$SUMMARIZE_JENKINS_BUILD] [--url] [http://jenkins.example.com/job/Some_Job/5] [--log-base-url] [http://logs.example.com:8080/ci]"
                 =>
                 { exitcode => 0, '>' => '(fake summary)' }
 
@@ -484,7 +484,7 @@ END_JSON
             },
 
             cmd => {
-                "[$SUMMARIZE_JENKINS_BUILD] [--url] [http://jenkins.example.com/job/Some_Job/5] [--log-url] [http://logs.example.com:8080/ci]"
+                "[$SUMMARIZE_JENKINS_BUILD] [--url] [http://jenkins.example.com/job/Some_Job/5] [--log-base-url] [http://logs.example.com:8080/ci]"
                 =>
                 { exitcode => 0, '>' => '(fake summary)' }
 
