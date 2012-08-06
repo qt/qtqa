@@ -396,6 +396,7 @@ use strict;
 use warnings;
 
 use AnyEvent::HTTP;
+use AnyEvent::Handle;
 use AnyEvent::Util;
 use AnyEvent;
 use Carp qw( confess );
@@ -592,8 +593,23 @@ sub upload_http_log_by_ssh
     my $sleep = 1;
 
     while ($retry) {
+        # cv receives nothing on success, error type and details on ssh or http error.
+        my $cv = AnyEvent->condvar();
+
         my ($r, $w);
         pipe( $r, $w) || die "pipe: $!";
+
+        my $ae_w = AnyEvent::Handle->new(
+            fh => $w,
+            on_error => sub {
+                my ($h, $fatal, $msg) = @_;
+                if ($fatal) {
+                    $cv->send( 'ssh', "fatal error on pipe: $msg" );
+                } else {
+                    warn "warning: on ssh pipe: $msg\n";
+                }
+            }
+        );
 
         my $ssh_pid;
         my $ssh_cv = run_timed_cmd(
@@ -602,8 +618,6 @@ sub upload_http_log_by_ssh
             '$$' => \$ssh_pid,
         );
 
-        # cv receives nothing on success, error type and details on ssh or http error.
-        my $cv = AnyEvent->condvar();
         $ssh_cv->cb( sub {
             my $status = $ssh_cv->recv();
             $cv->send( ($status == 0) ? () : ('ssh', $status) );
@@ -627,13 +641,13 @@ sub upload_http_log_by_ssh
                 my ($data, $headers) = @_;
                 return unless $check_headers->( $headers );
                 # all HTTP data is piped to ssh STDIN
-                print $w $data;
+                $ae_w->push_write( $data );
                 return 1;
             },
             sub {
                 my (undef, $headers) = @_;
                 return unless $check_headers->( $headers );
-                close( $w ) || $cv->send( 'ssh', $! );
+                $ae_w->push_shutdown();
             },
         );
 
