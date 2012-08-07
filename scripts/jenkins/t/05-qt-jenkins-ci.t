@@ -364,12 +364,12 @@ END_JSON
         # command to setup 'latest', 'latest-success' links (successful build only)
         my $ln_latest_and_latest_success_cmd =
                 '[ssh] [-oBatchMode=yes] [-p] [555] [logs.example.com] '
-               .'[cd "/var/www/ci/Some_Job" && ln -sf "build_00005" latest && ln -sf "build_00005" latest-success]';
+               .'[cd "/var/www/ci/Some_Job" && ln -snf "build_00005" latest && ln -snf "build_00005" latest-success]';
 
         # command to setup 'latest' link (unsuccessful build only - no 'latest-success')
         my $ln_latest_cmd =
                 '[ssh] [-oBatchMode=yes] [-p] [555] [logs.example.com] '
-               .'[cd "/var/www/ci/Some_Job" && ln -sf "build_00005" latest]';
+               .'[cd "/var/www/ci/Some_Job" && ln -snf "build_00005" latest]';
 
         my $mock = do_mocks(
             url_to_content => {

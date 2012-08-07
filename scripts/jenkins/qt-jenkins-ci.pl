@@ -1273,9 +1273,9 @@ sub upload_logs
     map { $_->join() } @coro;
 
     # Create the 'latest' and possibly 'latest-success' links
-    my $cmd = qq{cd "$dest_project_path" && ln -sf "$dest_build_number" latest};
+    my $cmd = qq{cd "$dest_project_path" && ln -snf "$dest_build_number" latest};
     if ($result eq 'SUCCESS') {
-        $cmd .= qq{ && ln -sf "$dest_build_number" latest-success};
+        $cmd .= qq{ && ln -snf "$dest_build_number" latest-success};
     }
 
     do_robust_cmd(
