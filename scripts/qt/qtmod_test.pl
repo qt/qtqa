@@ -726,17 +726,10 @@ sub set_module_refs
 
         # FIXME how do we guarantee we have this SHA1?
         # If it's not reachable from a branch obtained from a default `clone', it could be missing.
-        if ( $ref =~ /^[0-9a-f]{40}$/) { # Is a SHA1, else is a ref and may need to be fetched
-            $self->exe( 'git', 'reset', '--hard', $ref );
+        if ( $ref !~ /^[0-9a-f]{40}$/) { # Not a SHA1, fetch origin to ensure using correct SHA-1
+            $self->exe( 'git', 'fetch', '--verbose', 'origin', "+$ref:$ref" );
         }
-        else {
-            # Only "git fetch" if we do not already have the desired ref
-            qx(git rev-parse --verify --quiet $ref);
-            if ($?) {
-                $self->exe( 'git', 'fetch', '--verbose', 'origin', "+$ref:$ref" );
-            }
-            $self->exe( 'git', 'reset', '--hard', $ref );
-        }
+        $self->exe( 'git', 'reset', '--hard', $ref );
 
         # init-repository is expected to initialize any nested gitmodules where
         # necessary; however, since we are changing the tracked SHA1 here, we
