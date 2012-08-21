@@ -727,7 +727,7 @@ sub set_module_refs
         # FIXME how do we guarantee we have this SHA1?
         # If it's not reachable from a branch obtained from a default `clone', it could be missing.
         if ( $ref !~ /^[0-9a-f]{40}$/) { # Not a SHA1, fetch origin to ensure using correct SHA-1
-            $self->exe( 'git', 'fetch', '--verbose', 'origin', "+$ref:$ref" );
+            $self->exe( 'git', 'fetch', '--verbose', '--update-head-ok', 'origin', "+$ref:$ref" );
         }
         $self->exe( 'git', 'reset', '--hard', $ref );
 
