@@ -198,6 +198,7 @@ sub all_required_cpan_modules
         Text::Trim
         Text::Wrap
         Tie::IxHash
+        Time::Piece
         Timer::Simple
         Win32::Status
         XML::Simple

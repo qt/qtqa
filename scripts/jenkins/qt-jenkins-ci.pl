@@ -125,6 +125,57 @@ directly to Jenkins logs.
 
 =back
 
+=item check_nodes
+
+Check state of Jenkins nodes.
+
+Any nodes which appear to be offline due to temporary network issues will be reconnected.
+
+This command should be run at the beginning of each build on the master (an hourly or other
+periodic setup would also be fine). It will detect and reconnect problematic nodes. Currently,
+this command is able to recover nodes stuck in an 'automated reboot pending' state which may
+occur if a node's network connection is disrupted before the node could be automatically
+rebooted.
+
+This command makes use of the jenkins CLI interface to set nodes online.  In some setups,
+this will require that the current user has an ssh key associated with the jenkins server,
+with appropriate user permissions.
+
+Options:
+
+=over
+
+=item --auto-offline-pattern <some-strptime-pattern>
+
+Specifies a pattern matching the message with timestamp denoting that a node has been
+set offline by a CI-related automated process (e.g. automated reboot at end of test run).
+
+The pattern should be a strptime-compatible format string. The offline messages should
+contain the time at which the node was set offline, matching this pattern.
+
+For example, a node set offline with the message:
+
+  automated reboot at end of test at 12:30 13/10/12 UTC
+
+...might have a corresponding pattern of:
+
+  automated reboot at end of test at %H:%M %d/%m/%y UTC
+
+A reasonable default is set.
+
+=item --auto-offline-time <seconds>
+
+Sets the amount of seconds a node is expected to remain offline (for example, the maximum
+amount of expected time for a reboot).
+
+If a node appears to have been automatically set offline and remained offline for more than
+this amount of seconds, it is assumed a problem occurred on the node and this script should
+attempt to bring the node back online.
+
+Defaults to 10 minutes.
+
+=back
+
 =back
 
 =head2 GLOBAL OPTIONS
@@ -407,11 +458,13 @@ use English qw( -no_match_vars );
 use File::Basename;
 use File::Slurp qw( write_file );
 use File::Spec::Functions;
+use File::Temp;
 use FindBin;
 use Getopt::Long qw( GetOptionsFromArray :config pass_through );
 use JSON;
 use Pod::Usage;
 use Readonly;
+use Time::Piece;
 use URI;
 
 # Time to live for property files, in seconds
@@ -1044,6 +1097,14 @@ sub jenkins_build_summary
     return $self->{ cfg }{ jenkins_build_summary };
 }
 
+sub jenkins_url
+{
+    my ($self) = @_;
+
+    return $self->{ cfg }{ jenkins_url }
+        //= $self->maybe_rewrite_url( env_or_die( 'JENKINS_URL', 'jenkins_url' ) );
+}
+
 sub tested_changes_summary
 {
     my ($self) = @_;
@@ -1285,6 +1346,92 @@ sub upload_logs
         ],
         retry_exitcodes => [255],
     );
+
+    return;
+}
+
+# Entry point of 'check_nodes'
+sub command_check_nodes
+{
+    my ($self, @args) = @_;
+
+    my $auto_offline_pattern = 'automated reboot at end of test at %H:%M %d/%m/%y UTC';
+    my $auto_offline_time = 60*10;
+
+    GetOptionsFromArray(
+        \@args,
+        'auto-offline-pattern=s' => \$auto_offline_pattern,
+        'auto-offline-time=i' => \$auto_offline_time,
+    ) || die;
+
+    local $OUTPUT_AUTOFLUSH = 1;
+    print "Checking nodes...\n";
+
+    my $computers = fetch_json_data(
+        $self->jenkins_url() . '/computer/api/json?depth=2&tree=computer[displayName,offlineCause[description,message]]'
+    );
+
+    my @set_online = ();
+    my $count = 0;
+
+    foreach my $computer (@{ $computers->{ computer } || [] }) {
+        ++$count;
+        my $name = $computer->{ displayName };
+        my $cause = $computer->{ offlineCause };
+        next unless $cause;
+
+        # the reason is unclear, but the offline message might go into a 'description' or
+        # a 'message' field, depending on the mechanism used to set it offline.
+        my $offline_message = $cause->{ description } || $cause->{ message };
+        $offline_message || next;
+        print "  $name is offline: $offline_message\n";
+
+        my $time;
+        eval {
+            $time = Time::Piece->strptime( $offline_message, $auto_offline_pattern );
+        };
+        if (!$time) {
+        warn $EVAL_ERROR;
+            next;
+        }
+
+        my $delta = gmtime() - $time;
+        print "    - offline for $delta seconds\n";
+
+        if ($delta > $auto_offline_time) {
+            print "    - needs to be brought back online!\n";
+            push @set_online, $name;
+        }
+    }
+
+    print "$count nodes seen, action needed on " . scalar(@set_online) . "\n";
+
+    if (!@set_online) {
+        print "Nothing to be done.\n";
+        return;
+    }
+
+    my $jar_file = File::Temp->new( TEMPLATE => 'jenkins-cli.XXXXXX', TMPDIR => 1, UNLINK => 1 );
+    my $jar_url = $self->jenkins_url() . '/jnlpJars/jenkins-cli.jar';
+    my $jar_content = fetch_to_scalar( $jar_url );
+    $jar_file->printflush( $jar_content );
+
+    # run 'java ... online-node $node' for each node
+    my @online_node_cmd = ('java', '-jar', $jar_file->filename(), '-s', $self->jenkins_url(), 'online-node');
+    my $errors = 0;
+    foreach my $node (@set_online) {
+        print "Setting $node online...\n";
+        if (run_timed_cmd( [ @online_node_cmd, $node ] )->recv()) {
+            warn "$node may not have been set online.\n";
+            ++$errors;
+        }
+    }
+
+    if ($errors) {
+        die "Some nodes may not have been brought online.\n";
+    }
+
+    print "All done!\n";
 
     return;
 }
