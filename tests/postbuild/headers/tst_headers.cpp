@@ -197,6 +197,7 @@ void tst_Headers::macros()
 
     if (header.endsWith("_p.h") || header.endsWith("_pch.h")
         || header.contains("global/qconfig-") || header.endsWith("/qconfig.h")
+        || header.contains("/doc/snippets/")
         || header.contains("/src/tools/") || header.contains("/src/plugins/")
         || header.contains("/src/imports/")
         || header.contains("/src/uitools/")
