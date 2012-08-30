@@ -719,8 +719,8 @@ sub upload_http_log_by_ssh
             kill( 15, $ssh_pid ) if $ssh_pid;
         }
 
-        # we will retry on _any_ http error, or on ssh exit code 255 (network error)
-        if ($type eq 'http' || ($type eq 'ssh' && ($error[0] >> 8) == 255)) {
+        # we will retry on _any_ http error, or on ssh exit code 255 (network error) or status -1 (timeout)
+        if ($type eq 'http' || ($type eq 'ssh' && ($error[0] == -1 || ($error[0] >> 8) == 255))) {
             warn "$error_str\n  Trying again in $sleep seconds\n";
             --$retry;
             Coro::AnyEvent::sleep( $sleep );
