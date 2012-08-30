@@ -700,7 +700,13 @@ sub upload_http_log_by_ssh
             sub {
                 my (undef, $headers) = @_;
                 return unless $check_headers->( $headers );
-                $ae_w->push_shutdown();
+                # close write end of pipe to let ssh know there's no more data
+                $ae_w->on_drain(
+                    sub {
+                        my ($handle) = @_;
+                        close( $handle->{ fh } ) || warn "closing internal pipe for $url: $!";
+                    }
+                );
             },
         );
 
