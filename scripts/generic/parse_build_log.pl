@@ -93,6 +93,28 @@ Print this message.
 If given, as well as printing out the interesting lines from the log, the script
 will attempt to print out a human-readable summary of the error(s).
 
+This option has no effect when --yaml is given.
+
+=item B<--yaml>
+
+Use YAML instead of plain text output.
+
+The output will consist of a single YAML document with zero or more of the
+following key/value pairs:
+
+=over
+
+=item summary
+
+The human-readable summary of the failure reason (if known).
+Usually one or two sentences.
+
+=item detail
+
+The extracted text from the build log relating to the failure.
+
+=back
+
 =item B<--limit> LINES
 
 Limit the amount of extracted lines to the given value.
@@ -1721,11 +1743,12 @@ sub run
         print STDERR Data::Dumper->Dump([ $fail ], [ 'fail' ]);
     }
 
-    # The second pass extracts and prints the messages which relate to the failure reason.
-    $self->extract_and_output(
+    # The second pass extracts the messages which relate to the failure reason.
+    my $output = $self->extract(
         lines   =>  \@log_lines,
         fail    =>  $fail,
     );
+    $self->output( $output );
 
     return;
 }
@@ -1742,8 +1765,12 @@ sub set_options_from_args
         'help'          =>  sub { pod2usage(0) },
         'debug'         =>  \$self->{ debug },
         'summarize'     =>  \$self->{ summarize },
+        'yaml'          =>  \$self->{ yaml },
         'limit=i'       =>  \$self->{ limit_lines },
     ) || pod2usage(1);
+
+    # summary is always generated in YAML mode
+    $self->{ summarize } ||= $self->{ yaml };
 
     # Should be exactly one argument left - the filename.
     if (@args > 1) {
@@ -2303,12 +2330,13 @@ sub extract_autotest_fail
     my ($self, %args) = @_;
 
     my $fail = $args{ fail };
-    my $indent = $args{ indent };
     my $lines_ref = $args{ lines_ref };
 
     foreach my $autotest (@{ $fail->{ autotest_fail } || []} ) {
         my @lines = split( /\n/, $autotest->{ details } );
-        push @{$lines_ref}, map( { "$indent$_\n" } @lines ), "\n";
+        push @{$lines_ref}, @lines;
+        # each failure gets one trailing blank line to separate it from others
+        push @{$lines_ref}, q{};
     }
 
     return;
@@ -2319,24 +2347,30 @@ sub extract_yaml_fail
     my ($self, %args) = @_;
 
     my $fail = $args{ fail };
-    my $indent = $args{ indent };
     my $lines_ref = $args{ lines_ref };
 
     foreach my $error (@{ $fail->{ yaml_fail } || []} ) {
         my @lines = split( /\n/, $error->{ error } );
-        push @{$lines_ref}, map( { "$indent$_\n" } @lines ), "\n";
+        push @{$lines_ref}, @lines;
+        # each failure gets one trailing blank line to separate it from others
+        push @{$lines_ref}, q{};
     }
 
     return;
 }
 
-sub extract_and_output
+sub extract
 {
     my ($self, %args) = @_;
 
     my $fail  = $args{ fail };
     my @lines = @{$args{ lines }};
-    my @lines_to_print;
+
+    # human-readable summary of failure
+    my $summary;
+
+    # lines providing detail about the failure
+    my @detail;
 
     if (!$fail || ref($fail) ne 'HASH' || !%{$fail}) {
         # No idea about the failure ...
@@ -2360,32 +2394,28 @@ sub extract_and_output
     my @recent = ();
     Readonly my $RECENT_MAX => 60;
 
-    my $indent = q{};
     my @continuation_patterns = ();
 
     if ($self->{ summarize }) {
-        $self->output_summary( $fail );
-        $indent = "  ";
+        $summary = $self->extract_summary( $fail );
     }
 
     # YAML failures (explicit failure messages from the test script(s)) come first.
     $self->extract_yaml_fail(
         fail => $fail,
-        indent => $indent,
-        lines_ref => \@lines_to_print,
+        lines_ref => \@detail,
     );
 
     # Output any autotest failures next.
     $self->extract_autotest_fail(
         fail => $fail,
-        indent => $indent,
-        lines_ref => \@lines_to_print,
+        lines_ref => \@detail,
     );
 
-    # Mark a line as significant and print it.
+    # Mark a line as significant.
     #
     # Parameters:
-    #  $line           -   the line to consider significant (and print)
+    #  $line           -   the line to consider significant
     #  @continuations  -   zero or more regular expressions which, if matched,
     #                      will be considered a continuation of this significant
     #                      message (e.g. for compile failures spanning multiple
@@ -2400,11 +2430,11 @@ sub extract_and_output
         foreach my $recent_line (@recent) {
             if ( any { $recent_line =~ $_ } @continuation_patterns ) {
                 next if ($recent_line =~ $RE{ insignificant });
-                push @lines_to_print, "$indent$recent_line\n";
+                push @detail, $recent_line;
             }
         }
 
-        push @lines_to_print, "$indent$line\n";
+        push @detail, $line;
         @recent = ();
     };
 
@@ -2508,12 +2538,14 @@ sub extract_and_output
         push @recent, $line;
     }
 
-    # OK, we've figured out what we want to print.
-    # Cut it down to size (possibly) before printing.
-    $self->apply_limit_lines( indent => $indent, lines_ref => \@lines_to_print );
-    print @lines_to_print;
+    # OK, we've figured out the details.
+    # Cut it down to size (possibly) before returning.
+    $self->apply_limit_lines( lines_ref => \@detail );
 
-    return;
+    return {
+        summary => $summary,
+        detail => \@detail,
+    };
 }
 
 sub apply_limit_lines
@@ -2533,14 +2565,14 @@ sub apply_limit_lines
 
     @{$lines_ref} = (
         @{$lines_ref}[ 0 .. ($chunk_count-2) ], # -1 additional to make up for the 1 added line
-        "$indent(... $omitted_count lines omitted; there are too many errors!)\n",
+        "(... $omitted_count lines omitted; there are too many errors!)",
         @{$lines_ref}[ -$chunk_count .. -1 ],
     );
 
     return;
 }
 
-sub output_summary
+sub extract_summary
 {
     my ($self, $fail) = @_;
 
@@ -2772,6 +2804,37 @@ sub output_summary
                   ."be worthwhile to attempt the build again.";
     }
 
+    return $summary;
+}
+
+sub output
+{
+    my ($self, $data) = @_;
+
+    if ($self->{ yaml }) {
+        my %yamldata = %{ $data || {} };
+
+        # in the YAML document, output the lines as a single scalar
+        # rather than a list
+        if ($yamldata{ detail }) {
+            $yamldata{ detail } = join( "\n", @{ $yamldata{ detail } || [] } );
+        }
+
+        print YAML::Dump( \%yamldata );
+        return;
+    }
+
+    my $summary;
+    my $detail_indent = q{};
+
+    if ($self->{ summarize }) {
+        $summary = $data->{ summary };
+        $detail_indent = '  ';
+    }
+
+    my @detail = @{ $data->{ detail } || [] };
+
+
     if ($summary) {
         # The summary is supposed to be human-readable text (not preformatted).
         # It's nice to wrap it.
@@ -2787,6 +2850,13 @@ sub output_summary
 
         # Blank lines after summary begin the (indented) body of the raw text
         print "\n\n";
+    }
+
+    if (@detail) {
+        # indent all lines, then eliminate any trailing whitespace
+        my @lines = map { "$detail_indent$_" } @detail;
+        @lines = apply { s{^\s+$}{} } @lines;
+        print map { "$_\n" } @lines;
     }
 
     return;

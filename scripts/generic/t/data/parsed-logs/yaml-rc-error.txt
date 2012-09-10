@@ -1,0 +1,8 @@
+[ '--yaml', "$DATADIR/raw-logs/rc-error.txt" ]
+---
+detail: |-2
+  	rc -DUNICODE -DWIN32 -DQT_NO_EXCEPTIONS -DQT_DLL -DQT_NO_DEBUG -DQT_PLUGIN -DQT_QUICK_LIB -DQT_QML_LIB -DQQmlImageProvider=QQuickImageProvider -DQT_NETWORK_LIB -DQT_GUI_LIB -DQT_CORE_LIB -DQT_NAMESPACE=TestNamespace -fo release\qtquick2plugin_resource.res qtquick2plugin_resource.rc
+  qtquick2plugin_resource.rc(8) : error RC2127 : version WORDs separated by commas expected
+  qtquick2plugin_resource.rc(9) : error RC2127 : version WORDs separated by commas expected
+  NMAKE : fatal error U1077: '"C:\Program Files\Microsoft SDKs\Windows\v7.0A\bin\rc.EXE"' : return code '0x2'
+summary: rc failed to process qtquick2plugin_resource.rc :(

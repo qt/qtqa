@@ -1,0 +1,2 @@
+[ '--yaml', "$DATADIR/raw-logs/control.txt" ]
+--- {}
