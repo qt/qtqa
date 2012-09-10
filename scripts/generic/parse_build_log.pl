@@ -113,6 +113,13 @@ Usually one or two sentences.
 
 The extracted text from the build log relating to the failure.
 
+=item should_retry
+
+A hint that it might make sense to retry the build/test.
+
+If set, this indicates that the failure extracted from the log may be unrelated
+to the code under test; for example, a temporary network outage.
+
 =back
 
 =item B<--limit> LINES
@@ -2292,12 +2299,14 @@ sub identify_failures
 
         # Pulse config problem?
         elsif ($save_failures && $line =~ $RE{ pulse_config_error }) {
+            $out->{ should_retry } = 1;
             $out->{ pulse_config_error } = $line;
             $out->{ significant_lines }{ $line } = 1;
         }
 
         # Badly understood glitchy behavior?
         elsif ($save_failures && $line =~ $RE{ glitch }) {
+            $out->{ should_retry } = 1;
             $out->{ glitch } = $line;
             $out->{ significant_lines }{ $line } = 1;
         }
@@ -2376,6 +2385,8 @@ sub extract
         # No idea about the failure ...
         return;
     }
+
+    my $should_retry = $fail->{ should_retry };
 
     # Buffer of recent lines, in case we need to look backwards.
     # Only keeps unprinted lines, and is cleared whenever something is printed.
@@ -2545,6 +2556,7 @@ sub extract
     return {
         summary => $summary,
         detail => \@detail,
+        ($should_retry ? (should_retry => 1) : ()),
     };
 }
 

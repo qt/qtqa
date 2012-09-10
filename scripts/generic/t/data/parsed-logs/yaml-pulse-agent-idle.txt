@@ -1,0 +1,8 @@
+[ '--yaml', "$DATADIR/raw-logs/pulse-agent-idle.txt" ]
+---
+detail: 'Recipe terminated with an error: Agent idle before recipe expected to complete (agent: bq-mac-mini-16, recipe: 179080136, since ping: 2549, timeout: 2400)'
+should_retry: 1
+summary: |-
+  An unexpected error occurred, most likely due to no fault in the tested code itself :(
+  
+  Please point some CI administrator towards this problem.  Meanwhile, it may be worthwhile to attempt the build again.
