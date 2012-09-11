@@ -112,6 +112,31 @@ complete.  In this case, this option may be used to ensure this script reports
 the failure summary from the failed configuration(s), rather than the default
 behavior of simply reporting "ABORTED" for aborted builds.
 
+=item --yaml
+
+Use YAML instead of plain text output.
+
+The output will consist of a single YAML document with the following key/value
+pairs:
+
+=over
+
+=item formatted
+
+Formatted plain text summarizing the build; i.e., the output from this script if
+it were run without --yaml.
+
+=item runs
+
+List of relevant test runs.
+
+Each run is a YAML associative array equal to the output of the parse_build_log.pl
+script on a single test run, containing keys such as B<summary>, B<detail> and
+B<should_retry>; see C<parse_build_log.pl --help> for more information on the
+available data.
+
+=back
+
 =item --force-jenkins-host <HOSTNAME>
 
 =item --force-jenkins-port <PORTNUMBER>
@@ -135,6 +160,7 @@ purposes.
 use AnyEvent::HTTP;
 use Capture::Tiny qw(capture);
 use Data::Dumper;
+use Encode;
 use File::Spec::Functions;
 use FindBin;
 use Getopt::Long qw(GetOptionsFromArray);
@@ -143,6 +169,7 @@ use JSON;
 use Pod::Usage;
 use Readonly;
 use URI;
+use YAML;
 
 # Jenkins status constants
 Readonly my $SUCCESS => 'SUCCESS';
@@ -195,7 +222,7 @@ sub get_build_data_from_url
         $json = get_json_from_url( $url )
     }
 
-    return from_json( $json );
+    return from_json( $json, { utf8 => 1 } );
 }
 
 # Runs parse_build_log.pl through system() for the given $url
@@ -203,13 +230,13 @@ sub run_parse_build_log
 {
     my ($url) = @_;
 
-    return system( $PARSE_BUILD_LOG, '--summarize', $url );
+    return system( $PARSE_BUILD_LOG, '--yaml', $url );
 }
 
-# Returns the output of parse_build_log.pl on the first
-# working of the given @url, or warns and returns nothing
+# Returns the parsed output of parse_build_log.pl --yaml on
+# the first working of the given @url, or warns and returns nothing
 # if all URLs are not usable.
-sub get_build_summary_from_log_url
+sub parse_log_from_url
 {
     my (@url) = @_;
 
@@ -225,19 +252,17 @@ sub get_build_summary_from_log_url
             $status = run_parse_build_log( $url );
         };
 
-        chomp $stdout;
-
         if ($status != 0) {
             warn "for $url, parse_build_log exited with status $status"
                 .($stderr ? ":\n$stderr" : q{})
                 ."\n";
 
             # Output is not trusted if script didn't succeed
-            undef $stdout;
+            $stdout = q{};
         }
     }
 
-    return $stdout;
+    return YAML::Load( $stdout );
 }
 
 # Given a Jenkins build object, returns one or more links
@@ -324,8 +349,75 @@ sub maybe_rewrite_url
     return $parsed->as_string();
 }
 
-# Given a jenkins build $url, returns a human-readable summary of
-# the build result.
+# Returns parsed build $data formatted as plain text.
+sub format_plaintext_output
+{
+    my ($self, $data) = @_;
+
+    my $build = $data->{ build };
+    my $result = $data->{ result };
+    my @runs = @{ $data->{ runs } || [] };
+
+    if (!@runs) {
+        return "$build->{ fullDisplayName }: $result";
+    }
+
+    my @texts = map { $self->format_plaintext_run( $_ ) } @runs;
+    return join( "\n\n--\n\n", @texts );
+}
+
+# Returns parsed build data for a single $run (test configuration)
+# formatted as plain text.
+sub format_plaintext_run
+{
+    my ($self, $run) = @_;
+
+    my $out = q{};
+    if (my $summary = $run->{ summary }) {
+        chomp $summary;
+        $out .= "$summary\n";
+    };
+
+    if (my $detail = $run->{ detail }) {
+        $detail =~ s{^}{  }mg;
+        chomp $detail;
+        chomp $out;
+        $out .= "\n\n$detail\n\n";
+    }
+
+    if (my $log_url = $run->{ private }{ log_url }) {
+        $out .= "  Build log: $log_url";
+    }
+
+    $out =~ s{\n+\z}{};
+    return $out;
+}
+
+# Given a hashref containing parsed build log data, returns a
+# formatted representation in plain text or YAML
+sub format_output
+{
+    my ($self, $data) = @_;
+
+    if ($self->{ yaml }) {
+        # Output data as YAML; the YAML output only includes these specifically
+        # documented parts of $data.
+        my %yaml_data = (
+            runs => [ @{ $data->{ runs } } ],
+            formatted => $self->format_plaintext_output( $data ),
+        );
+
+        # remove internal data from runs
+        map { delete $_->{ private } } @{ $yaml_data{ runs } };
+
+        return decode_utf8( YAML::Dump( \%yaml_data ) );
+    }
+
+    return $self->format_plaintext_output( $data );
+}
+
+# Given a jenkins build $url, returns a summary of the build result,
+# either in plain text format or in YAML.
 #
 # If $log_base_url is set, log URLs are derived under that base
 # URL using a predefined pattern, with Jenkins logs used as a fallback.
@@ -343,14 +435,16 @@ sub summarize_jenkins_build
     }
 
     my $result = $build->{ result };
-    my $number = $build->{ number };
-
-    my $out = "$build->{ fullDisplayName }: $result";
-
+    my %parsed = (
+        build => $build,
+        result => $result,
+    );
     if ($result eq $SUCCESS || (!$self->{ ignore_aborted } && $result eq $ABORTED)) {
         # no more info required
-        return $out;
+        return $self->format_output( \%parsed );
     }
+
+    my $number = $build->{ number };
 
     my @configurations = @{$build->{ runs } || []};
 
@@ -372,34 +466,25 @@ sub summarize_jenkins_build
         push @configurations, $build;
     }
 
-    my @summaries;
-
     foreach my $cfg (@configurations) {
         my (@log_url) = $self->get_url_for_build_log( $cfg, $log_base_url );
 
-        my $this_out;
+        my $this_run = parse_log_from_url( @log_url );
 
-        if (my $summary = get_build_summary_from_log_url( @log_url )) {
-            # If we can get a sensible summary, just do that.
-            # The summary should already mention the tested configuration.
-            $this_out = $summary;
-        } else {
-            # Otherwise, we don't know what happened, so just mention the
+        if (!$this_run || !$this_run->{ summary }) {
+            # We don't know what happened, so just mention the
             # jenkins result string.
-            $this_out = "$cfg->{ fullDisplayName }: $cfg->{ result }";
+            $this_run->{ summary } = "$cfg->{ fullDisplayName }: $cfg->{ result }";
         }
 
         if (@log_url) {
-            if ($this_out !~ m{\n\z}ms) {
-                $this_out .= "\n";
-            }
-            $this_out .= "  Build log: $log_url[0]";
+            $this_run->{ private }{ log_url } = $log_url[0];
         }
 
-        push @summaries, $this_out;
+        push @{ $parsed{ runs } }, $this_run;
     }
 
-    return join( "\n\n--\n\n", @summaries );
+    return $self->format_output( \%parsed );
 }
 
 sub new
@@ -422,13 +507,14 @@ sub run
         'force-jenkins-host=s' => \$self->{ force_jenkins_host },
         'force-jenkins-port=i' => \$self->{ force_jenkins_port },
         'ignore-aborted' => \$self->{ ignore_aborted },
+        'yaml' => \$self->{ yaml },
         'h|help' => sub { pod2usage( 2 ) },
         'debug' => \$self->{ debug },
     );
 
     $url || die 'Missing mandatory --url option';
 
-    print $self->summarize_jenkins_build( $url, $log_base_url ) . "\n";
+    print encode_utf8( $self->summarize_jenkins_build( $url, $log_base_url ) . "\n" );
 
     return;
 }

@@ -102,7 +102,7 @@ sub do_test
         );
     }
 
-    # Give parse_build_log.pl some predictable fake output
+    # Give parse_build_log.pl some predictable fake output (YAML)
     push @mock_subs, Sub::Override->new(
         "${PACKAGE}::run_parse_build_log",
         sub {
@@ -113,7 +113,9 @@ sub do_test
                 return 1;
             }
 
-            print "(parse_build_log.pl output for $url)\n";
+            print "---\n"
+                 ."summary: (parse_build_log.pl summary for $url)\n"
+                 ."detail: (parse_build_log.pl detail for $url)\n\n";
             return 0;
         },
     );
@@ -164,7 +166,8 @@ sub run_object_tests
             $url => '{"number":3,"result":"FAILURE","fullDisplayName":"bar build 3","url":"fake-url"}',
         },
         expected_output =>
-            "(parse_build_log.pl output for fake-url/consoleText)\n"
+            "(parse_build_log.pl summary for fake-url/consoleText)\n\n"
+           ."  (parse_build_log.pl detail for fake-url/consoleText)\n\n"
            ."  Build log: fake-url/consoleText",
     );
 
@@ -177,7 +180,8 @@ sub run_object_tests
             $url => '{"number":3,"result":"FAILURE","fullDisplayName":"bar build 3","url":"http://example.com/jenkins/job/Some_Job/123"}',
         },
         expected_output =>
-            "(parse_build_log.pl output for http://testresults.example.com/ci/Some_Job/build_00123/log.txt.gz)\n"
+            "(parse_build_log.pl summary for http://testresults.example.com/ci/Some_Job/build_00123/log.txt.gz)\n\n"
+           ."  (parse_build_log.pl detail for http://testresults.example.com/ci/Some_Job/build_00123/log.txt.gz)\n\n"
            ."  Build log: http://testresults.example.com/ci/Some_Job/build_00123/log.txt.gz",
     );
 
@@ -202,10 +206,12 @@ sub run_object_tests
 END
         },
         expected_output =>
-            "(parse_build_log.pl output for cfg1-url/consoleText)\n"
+            "(parse_build_log.pl summary for cfg1-url/consoleText)\n\n"
+           ."  (parse_build_log.pl detail for cfg1-url/consoleText)\n\n"
            ."  Build log: cfg1-url/consoleText"
            ."\n\n--\n\n"
-           ."(parse_build_log.pl output for cfg3-url/consoleText)\n"
+           ."(parse_build_log.pl summary for cfg3-url/consoleText)\n\n"
+           ."  (parse_build_log.pl detail for cfg3-url/consoleText)\n\n"
            ."  Build log: cfg3-url/consoleText"
     );
 
@@ -232,11 +238,13 @@ END
         },
         expected_output =>
             # note multi-axis config name is left as-is...
-            "(parse_build_log.pl output for http://testresults.example.com/ci/bar/build_00004/key1=val1,cfg=cfg1/log.txt.gz)\n"
+            "(parse_build_log.pl summary for http://testresults.example.com/ci/bar/build_00004/key1=val1,cfg=cfg1/log.txt.gz)\n\n"
+           ."  (parse_build_log.pl detail for http://testresults.example.com/ci/bar/build_00004/key1=val1,cfg=cfg1/log.txt.gz)\n\n"
            ."  Build log: http://testresults.example.com/ci/bar/build_00004/key1=val1,cfg=cfg1/log.txt.gz"
            ."\n\n--\n\n"
             # ... while a config with a single axis is collapsed, useless cfg= prefix removed
-           ."(parse_build_log.pl output for http://testresults.example.com/ci/bar/build_00004/cfg3/log.txt.gz)\n"
+           ."(parse_build_log.pl summary for http://testresults.example.com/ci/bar/build_00004/cfg3/log.txt.gz)\n\n"
+           ."  (parse_build_log.pl detail for http://testresults.example.com/ci/bar/build_00004/cfg3/log.txt.gz)\n\n"
            ."  Build log: http://testresults.example.com/ci/bar/build_00004/cfg3/log.txt.gz"
     );
 
@@ -278,10 +286,12 @@ END
             expected_output =>
                 # we simulated an error on the testresults host here, so parse_build_log was run directly on jenkins,
                 # but the link passed to gerrit is still the testresults link.
-                "(parse_build_log.pl output for http://forced-host:999/jenkins/job/bar/key1=val1,cfg=cfg1/4/consoleText)\n"
+                "(parse_build_log.pl summary for http://forced-host:999/jenkins/job/bar/key1=val1,cfg=cfg1/4/consoleText)\n\n"
+               ."  (parse_build_log.pl detail for http://forced-host:999/jenkins/job/bar/key1=val1,cfg=cfg1/4/consoleText)\n\n"
                ."  Build log: http://testresults.example.com/ci/bar/build_00004/key1=val1,cfg=cfg1/log.txt.gz"
                ."\n\n--\n\n"
-               ."(parse_build_log.pl output for http://testresults.example.com/ci/bar/build_00004/cfg3/log.txt.gz)\n"
+               ."(parse_build_log.pl summary for http://testresults.example.com/ci/bar/build_00004/cfg3/log.txt.gz)\n\n"
+               ."  (parse_build_log.pl detail for http://testresults.example.com/ci/bar/build_00004/cfg3/log.txt.gz)\n\n"
                ."  Build log: http://testresults.example.com/ci/bar/build_00004/cfg3/log.txt.gz"
         );
     }
@@ -332,11 +342,79 @@ END
 END
             },
             expected_output =>
-                "(parse_build_log.pl output for cfg1-url/consoleText)\n"
+                "(parse_build_log.pl summary for cfg1-url/consoleText)\n\n"
+               ."  (parse_build_log.pl detail for cfg1-url/consoleText)\n\n"
                ."  Build log: cfg1-url/consoleText"
                ."\n\n--\n\n"
-               ."(parse_build_log.pl output for cfg3-url/consoleText)\n"
+               ."(parse_build_log.pl summary for cfg3-url/consoleText)\n\n"
+               ."  (parse_build_log.pl detail for cfg3-url/consoleText)\n\n"
                ."  Build log: cfg3-url/consoleText"
+        );
+    }
+
+    {
+        local $o->{ yaml } = 1;
+        my $formatted =
+            "(parse_build_log.pl summary for fake-url/consoleText)\n\n"
+           ."  (parse_build_log.pl detail for fake-url/consoleText)\n\n"
+           ."  Build log: fake-url/consoleText";
+        my $yaml_formatted = $formatted;
+        $yaml_formatted =~ s{^}{  }mg;
+
+        do_test(
+            name => 'simple failure with master log [yaml]',
+            object => $o,
+            url => $url,
+            fake_json => {
+                $url => '{"number":3,"result":"FAILURE","fullDisplayName":"bar build 3","url":"fake-url"}',
+            },
+            expected_output =>
+                "---\n"
+               ."formatted: |-\n$yaml_formatted\n"
+               ."runs:\n"
+               ."  - detail: (parse_build_log.pl detail for fake-url/consoleText)\n"
+               ."    summary: (parse_build_log.pl summary for fake-url/consoleText)\n"
+        );
+
+        $formatted =
+            "(parse_build_log.pl summary for cfg1-url/consoleText)\n\n"
+           ."  (parse_build_log.pl detail for cfg1-url/consoleText)\n\n"
+           ."  Build log: cfg1-url/consoleText\n\n"
+           ."--\n\n"
+           ."(parse_build_log.pl summary for cfg3-url/consoleText)\n\n"
+           ."  (parse_build_log.pl detail for cfg3-url/consoleText)\n\n"
+           ."  Build log: cfg3-url/consoleText";
+        $yaml_formatted = $formatted;
+        $yaml_formatted =~ s{^}{  }mg;
+
+        do_test(
+            name => 'failure with master and configuration logs [yaml]',
+            object => $o,
+            url => $url,
+            fake_json => {
+                $url => <<'END'
+{
+    "number":4,
+    "result":"FAILURE",
+    "fullDisplayName":"bar build 4",
+    "url":"master-url",
+    "runs":[
+        {"number":4,"result":"FAILURE","fullDisplayName":"cfg1","url":"cfg1-url"},
+        {"number":4,"result":"SUCCESS","fullDisplayName":"cfg2","url":"cfg2-url"},
+        {"number":4,"result":"FAILURE","fullDisplayName":"cfg3","url":"cfg3-url"},
+        {"number":5,"result":"FAILURE","fullDisplayName":"not-this","url":"not-this-url"}
+    ]
+}
+END
+            },
+            expected_output =>
+                "---\n"
+               ."formatted: |-\n$yaml_formatted\n"
+               ."runs:\n"
+               ."  - detail: (parse_build_log.pl detail for cfg1-url/consoleText)\n"
+               ."    summary: (parse_build_log.pl summary for cfg1-url/consoleText)\n"
+               ."  - detail: (parse_build_log.pl detail for cfg3-url/consoleText)\n"
+               ."    summary: (parse_build_log.pl summary for cfg3-url/consoleText)\n"
         );
     }
 
