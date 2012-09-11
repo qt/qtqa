@@ -1,0 +1,93 @@
+Started by upstream project "QtBase-dev_master_Integration" build number 28
+[EnvInject] - Loading node environment variables.
+Building remotely on bq-ubuntu1004-x86-09 in workspace /work/ci/qt/qtbase/master
+Running Prebuild steps
+Run condition [Regular expression match] enabling prebuild for step [Execute Windows batch command]
+Run condition [Not] preventing prebuild for step [Execute shell]
+Run condition [Strings match] enabling prebuild for step [Execute shell]
+Regular expression run condition: Expression=[^.*\bwindows\b.*$], Label=[bq-ubuntu1004-x86-09 linux-g++-32_Ubuntu_10.04_x86 linux-g++-32_developer-build_Ubuntu_10.04_x86]
+Run condition [Regular expression match] preventing perform for step [Execute Windows batch command]
+Success build fororg.jenkinsci.plugins.conditionalbuildstep.singlestep.SingleConditionalBuilder@89525d0
+Regular expression run condition: Expression=[^.*\bwindows\b.*$], Label=[bq-ubuntu1004-x86-09 linux-g++-32_Ubuntu_10.04_x86 linux-g++-32_developer-build_Ubuntu_10.04_x86]
+Run condition [Not] enabling perform for step [Execute shell]
+FATAL: command execution failed
+java.io.IOException: Remote call on bq-ubuntu1004-x86-09 failed
+	at hudson.remoting.Channel.call(Channel.java:672)
+	at hudson.Launcher$RemoteLauncher.launch(Launcher.java:798)
+	at hudson.Launcher$ProcStarter.start(Launcher.java:338)
+	at hudson.Launcher$ProcStarter.join(Launcher.java:345)
+	at hudson.tasks.CommandInterpreter.perform(CommandInterpreter.java:82)
+	at hudson.tasks.CommandInterpreter.perform(CommandInterpreter.java:58)
+	at org.jenkins_ci.plugins.run_condition.BuildStepRunner$2.run(BuildStepRunner.java:110)
+	at org.jenkins_ci.plugins.run_condition.BuildStepRunner$Fail.conditionalRun(BuildStepRunner.java:154)
+	at org.jenkins_ci.plugins.run_condition.BuildStepRunner.perform(BuildStepRunner.java:105)
+	at org.jenkinsci.plugins.conditionalbuildstep.singlestep.SingleConditionalBuilder.perform(SingleConditionalBuilder.java:104)
+	at org.jenkinsci.plugins.preSCMbuildstep.PreSCMBuildStepsWrapper.preCheckout(PreSCMBuildStepsWrapper.java:122)
+	at jenkins.scm.SCMCheckoutStrategy.preCheckout(SCMCheckoutStrategy.java:78)
+	at hudson.model.AbstractBuild$AbstractBuildExecution.run(AbstractBuild.java:493)
+	at hudson.model.Run.execute(Run.java:1488)
+	at hudson.matrix.MatrixRun.run(MatrixRun.java:146)
+	at hudson.model.ResourceController.execute(ResourceController.java:88)
+	at hudson.model.Executor.run(Executor.java:236)
+Caused by: java.lang.NoClassDefFoundError: Could not initialize class jenkins.model.Jenkins$MasterComputer
+	at hudson.Launcher$LocalLauncher.<init>(Launcher.java:691)
+	at hudson.Launcher$RemoteLaunchCallable.call(Launcher.java:927)
+	at hudson.Launcher$RemoteLaunchCallable.call(Launcher.java:901)
+	at hudson.remoting.UserRequest.perform(UserRequest.java:118)
+	at hudson.remoting.UserRequest.perform(UserRequest.java:48)
+	at hudson.remoting.Request$2.run(Request.java:326)
+	at hudson.remoting.InterceptingExecutorService$1.call(InterceptingExecutorService.java:72)
+	at java.util.concurrent.FutureTask$Sync.innerRun(FutureTask.java:334)
+	at java.util.concurrent.FutureTask.run(FutureTask.java:166)
+	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1110)
+	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:603)
+	at hudson.remoting.Engine$1$1.run(Engine.java:60)
+	at java.lang.Thread.run(Thread.java:636)
+Failed build for org.jenkinsci.plugins.conditionalbuildstep.singlestep.SingleConditionalBuilder@463dacfa
+Strings match run condition: string 1=[bq-ubuntu1004-x86-09 linux-g++-32_Ubuntu_10.04_x86 linux-g++-32_developer-build_Ubuntu_10.04_x86], string 2=[master]
+Run condition [Strings match] preventing perform for step [Execute shell]
+Success build fororg.jenkinsci.plugins.conditionalbuildstep.singlestep.SingleConditionalBuilder@6b3e9928
+Run condition [Regular expression match] enabling prebuild for step [Execute Windows batch command]
+Run condition [Not] preventing prebuild for step [Execute shell]
+Regular expression run condition: Expression=[^.*\bwindows\b.*$], Label=[bq-ubuntu1004-x86-09 linux-g++-32_Ubuntu_10.04_x86 linux-g++-32_developer-build_Ubuntu_10.04_x86]
+Run condition [Regular expression match] preventing perform for step [Execute Windows batch command]
+Regular expression run condition: Expression=[^.*\bwindows\b.*$], Label=[bq-ubuntu1004-x86-09 linux-g++-32_Ubuntu_10.04_x86 linux-g++-32_developer-build_Ubuntu_10.04_x86]
+Run condition [Not] enabling perform for step [Execute shell]
+FATAL: command execution failed
+java.io.IOException: Remote call on bq-ubuntu1004-x86-09 failed
+	at hudson.remoting.Channel.call(Channel.java:672)
+	at hudson.Launcher$RemoteLauncher.launch(Launcher.java:798)
+	at hudson.Launcher$ProcStarter.start(Launcher.java:338)
+	at hudson.Launcher$ProcStarter.join(Launcher.java:345)
+	at hudson.tasks.CommandInterpreter.perform(CommandInterpreter.java:82)
+	at hudson.tasks.CommandInterpreter.perform(CommandInterpreter.java:58)
+	at org.jenkins_ci.plugins.run_condition.BuildStepRunner$2.run(BuildStepRunner.java:110)
+	at org.jenkins_ci.plugins.run_condition.BuildStepRunner$Fail.conditionalRun(BuildStepRunner.java:154)
+	at org.jenkins_ci.plugins.run_condition.BuildStepRunner.perform(BuildStepRunner.java:105)
+	at org.jenkinsci.plugins.conditionalbuildstep.singlestep.SingleConditionalBuilder.perform(SingleConditionalBuilder.java:104)
+	at hudson.tasks.BuildStepMonitor$3.perform(BuildStepMonitor.java:36)
+	at hudson.model.AbstractBuild$AbstractBuildExecution.perform(AbstractBuild.java:717)
+	at hudson.model.Build$BuildExecution.build(Build.java:199)
+	at hudson.model.Build$BuildExecution.doRun(Build.java:160)
+	at hudson.model.AbstractBuild$AbstractBuildExecution.run(AbstractBuild.java:499)
+	at hudson.model.Run.execute(Run.java:1488)
+	at hudson.matrix.MatrixRun.run(MatrixRun.java:146)
+	at hudson.model.ResourceController.execute(ResourceController.java:88)
+	at hudson.model.Executor.run(Executor.java:236)
+Caused by: java.lang.NoClassDefFoundError: Could not initialize class jenkins.model.Jenkins$MasterComputer
+	at hudson.Launcher$LocalLauncher.<init>(Launcher.java:691)
+	at hudson.Launcher$RemoteLaunchCallable.call(Launcher.java:927)
+	at hudson.Launcher$RemoteLaunchCallable.call(Launcher.java:901)
+	at hudson.remoting.UserRequest.perform(UserRequest.java:118)
+	at hudson.remoting.UserRequest.perform(UserRequest.java:48)
+	at hudson.remoting.Request$2.run(Request.java:326)
+	at hudson.remoting.InterceptingExecutorService$1.call(InterceptingExecutorService.java:72)
+	at java.util.concurrent.FutureTask$Sync.innerRun(FutureTask.java:334)
+	at java.util.concurrent.FutureTask.run(FutureTask.java:166)
+	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1110)
+	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:603)
+	at hudson.remoting.Engine$1$1.run(Engine.java:60)
+	at java.lang.Thread.run(Thread.java:636)
+Build step 'Conditional step (single)' marked build as failure
+Build step 'Groovy Postbuild' marked build as failure
+Finished: FAILURE

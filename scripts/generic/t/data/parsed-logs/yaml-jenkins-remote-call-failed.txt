@@ -1,0 +1,10 @@
+[ '--yaml', "$DATADIR/raw-logs/jenkins-remote-call-failed.txt" ]
+---
+detail: |-
+  java.io.IOException: Remote call on bq-ubuntu1004-x86-09 failed
+  java.io.IOException: Remote call on bq-ubuntu1004-x86-09 failed
+should_retry: 1
+summary: |-
+  An unexpected error occurred, most likely due to no fault in the tested code itself :(
+  
+  Please point some CI administrator towards this problem.  Meanwhile, it may be worthwhile to attempt the build again.

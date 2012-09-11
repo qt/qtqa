@@ -516,6 +516,13 @@ my %RE = (
             git\ clone[^']+'\ exited\ with\ code\ \d+\ at\ .*[\\/]test\.pl
         )
 
+        |
+
+        (?:
+            # jenkins master fails to issue a command to jenkins slave
+            \Qjava.io.IOException: Remote call on \E[^\n]{1,40}\Q failed\E
+        )
+
         # add more as discovered
     }xms,
 
