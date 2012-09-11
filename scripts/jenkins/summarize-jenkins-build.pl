@@ -97,6 +97,17 @@ URL passed in this option.
 
 Note that the build status is still fetched directly from Jenkins.
 
+=item --ignore-aborted
+
+If the build was aborted, but contains at least one failed configuration,
+ignore all aborted configurations.
+
+In some cases, if a single configuration of a build has failed, it makes sense to
+abort the build immediately rather than waiting for the other configurations to
+complete.  In this case, this option may be used to ensure this script reports
+the failure summary from the failed configuration(s), rather than the default
+behavior of simply reporting "ABORTED" for aborted builds.
+
 =item --force-jenkins-host <HOSTNAME>
 
 =item --force-jenkins-port <PORTNUMBER>
@@ -314,7 +325,7 @@ sub summarize_jenkins_build
 
     my $out = "$build->{ fullDisplayName }: $result";
 
-    if ($result eq $SUCCESS || $result eq $ABORTED) {
+    if ($result eq $SUCCESS || (!$self->{ ignore_aborted } && $result eq $ABORTED)) {
         # no more info required
         return $out;
     }
@@ -388,6 +399,7 @@ sub run
         'log-base-url=s' => \$log_base_url,
         'force-jenkins-host=s' => \$self->{ force_jenkins_host },
         'force-jenkins-port=i' => \$self->{ force_jenkins_port },
+        'ignore-aborted' => \$self->{ ignore_aborted },
         'h|help' => sub { pod2usage( 2 ) },
         'debug' => \$self->{ debug },
     );

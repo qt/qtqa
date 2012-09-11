@@ -244,6 +244,8 @@ END
         # try --force-jenkins-host and --force-jenkins-port
         local $o->{ force_jenkins_host } = 'forced-host';
         local $o->{ force_jenkins_port } = 999;
+        # --ignore-aborted should have no effect here
+        local $o->{ ignore_aborted } = 1;
         do_test(
             name => 'failure with rebased master and configuration logs, log force and fallback',
             object => $o,
@@ -306,6 +308,37 @@ END
         },
         expected_output => 'bar build 5: ABORTED',
     );
+
+    {
+        local $o->{ ignore_aborted } = 1;
+        do_test(
+            name => '--ignore-aborted extracts failures from ABORTED build',
+            object => $o,
+            url => $url,
+            fake_json => {
+                $url => <<'END'
+{
+    "number":5,
+    "result":"ABORTED",
+    "fullDisplayName":"bar build 5",
+    "url":"master-url",
+    "runs":[
+        {"number":5,"result":"FAILURE","fullDisplayName":"cfg1","url":"cfg1-url"},
+        {"number":5,"result":"SUCCESS","fullDisplayName":"cfg2","url":"cfg2-url"},
+        {"number":5,"result":"FAILURE","fullDisplayName":"cfg3","url":"cfg3-url"},
+        {"number":6,"result":"FAILURE","fullDisplayName":"not-this","url":"not-this-url"}
+    ]
+}
+END
+            },
+            expected_output =>
+                "(parse_build_log.pl output for cfg1-url/consoleText)\n"
+               ."  Build log: cfg1-url/consoleText"
+               ."\n\n--\n\n"
+               ."(parse_build_log.pl output for cfg3-url/consoleText)\n"
+               ."  Build log: cfg3-url/consoleText"
+        );
+    }
 
     return;
 }
