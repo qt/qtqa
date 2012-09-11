@@ -72,7 +72,11 @@ Print this help.
 
 =item --url B<URL>
 
-URL of the Jenkins build.
+URL of the Jenkins build. This may be an http or https URL, a local file,
+or '-' for standard input.
+
+The build data is fetched from Jenkins using the JSON API.
+If a file or standard input are used, the input data must be a valid JSON object.
 
 For a multi-configuration build, the URL of the top-level build should be used.
 The script will parse the logs from each configuration.
@@ -134,6 +138,7 @@ use Data::Dumper;
 use File::Spec::Functions;
 use FindBin;
 use Getopt::Long qw(GetOptionsFromArray);
+use IO::File;
 use JSON;
 use Pod::Usage;
 use Readonly;
@@ -169,11 +174,28 @@ sub get_json_from_url
 
 # Returns a hashref containing all (relevant) build data from the build at $url,
 # or dies on error.
+# $url may be a full URL, or a local file, or '-' to read from STDIN.
 sub get_build_data_from_url
 {
     my ($url) = @_;
 
-    return from_json( get_json_from_url( $url ) );
+    my $json;
+
+    my $fh;
+    if (-f $url) {
+        $fh = IO::File->new( $url, '<' ) || die "open $url for read: $!";
+    } elsif ($url eq '-') {
+        $fh = \*STDIN;
+    }
+
+    if ($fh) {
+        local $/ = undef;
+        $json = <$fh>;
+    } else {
+        $json = get_json_from_url( $url )
+    }
+
+    return from_json( $json );
 }
 
 # Runs parse_build_log.pl through system() for the given $url
