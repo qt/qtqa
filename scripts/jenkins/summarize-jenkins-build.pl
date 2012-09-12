@@ -450,6 +450,7 @@ sub summarize_jenkins_build
 
     # Only care about runs for this build...
     @configurations = grep { $_->{ number } == $number } @configurations;
+    my $run_count = @configurations;
 
     # ...and only care about failed runs.
     # If the top-level build is aborted, the results of individual configurations
@@ -475,6 +476,13 @@ sub summarize_jenkins_build
             # We don't know what happened, so just mention the
             # jenkins result string.
             $this_run->{ summary } = "$cfg->{ fullDisplayName }: $cfg->{ result }";
+
+            # If the failure was from the master, and parse_build_log couldn't extract any
+            # information about it, Jenkins is likely having some severe issues; give a hint
+            # that it might make sense to try again.
+            if (!$run_count) {
+                $this_run->{ should_retry } = 1;
+            }
         }
 
         if (@log_url) {
