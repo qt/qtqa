@@ -1,0 +1,8 @@
+[ '--yaml', "$DATADIR/raw-logs/jenkins-outdated-slave.txt" ]
+---
+detail: '[EnvInject] - [ERROR] - SEVERE ERROR occurs: java.io.InvalidClassException: hudson.FilePath; local class incompatible: stream classdesc serialVersionUID = 1, local class serialVersionUID = 7956486104865232330'
+should_retry: 1
+summary: |-
+  An unexpected error occurred, most likely due to no fault in the tested code itself :(
+  
+  Please point some CI administrator towards this problem.  Meanwhile, it may be worthwhile to attempt the build again.

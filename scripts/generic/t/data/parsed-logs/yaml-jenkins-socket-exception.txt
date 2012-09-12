@@ -1,0 +1,8 @@
+[ '--yaml', "$DATADIR/raw-logs/jenkins-socket-exception.txt" ]
+---
+detail: '[EnvInject] - [ERROR] - SEVERE ERROR occurs: hudson.remoting.RequestAbortedException: java.net.SocketException: Connection reset'
+should_retry: 1
+summary: |-
+  An unexpected error occurred, most likely due to no fault in the tested code itself :(
+  
+  Please point some CI administrator towards this problem.  Meanwhile, it may be worthwhile to attempt the build again.

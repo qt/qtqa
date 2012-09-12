@@ -523,6 +523,30 @@ my %RE = (
             \Qjava.io.IOException: Remote call on \E[^\n]{1,40}\Q failed\E
         )
 
+        |
+
+        (?:
+            # jenkins request aborted due to network problem
+            \Qhudson.remoting.RequestAbortedException: java.net.SocketException: Connection reset\E
+        )
+
+        |
+
+        (?:
+            # jenkins slave and master are incompatible versions
+            # (e.g. master was upgraded, slave.jar on slave was not)
+            \Qjava.io.InvalidClassException: \E
+            .*
+            (?:
+                # the bad class must be a class relating to jenkins; if not, we might get
+                # some false positives, e.g. if some java code executed during the test
+                # genuinely generated an InvalidClassException
+                jenkins|hudson|kohsuke
+            )
+            .*
+            \Q local class incompatible:\E
+        )
+
         # add more as discovered
     }xms,
 

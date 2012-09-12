@@ -1,0 +1,5 @@
+Started by upstream project "QtBase-dev_master_Integration" build number 38
+[EnvInject] - Loading node environment variables.
+[EnvInject] - [ERROR] - SEVERE ERROR occurs: hudson.remoting.RequestAbortedException: java.net.SocketException: Connection reset
+Build step 'Groovy Postbuild' marked build as failure
+Finished: FAILURE

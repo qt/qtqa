@@ -1,0 +1,5 @@
+Started by upstream project "QtBase-dev_master_Integration" build number 42
+[EnvInject] - Loading node environment variables.
+[EnvInject] - [ERROR] - SEVERE ERROR occurs: java.io.InvalidClassException: hudson.FilePath; local class incompatible: stream classdesc serialVersionUID = 1, local class serialVersionUID = 7956486104865232330
+Build step 'Groovy Postbuild' marked build as failure
+[EnvInject] - [ERROR] - SEVERE ERROR occurs: hudson.FilePath; local class incompatible: stream classdesc serialVersionUID = 1, local class serialVersionUID = 7956486104865232330
