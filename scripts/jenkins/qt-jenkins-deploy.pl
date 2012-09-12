@@ -497,7 +497,7 @@ sub desired_job_xml
             log_download_url => eval { $self->cfg( "job.$name", 'log_download_url' ) } || q{},
             enabled => eval { $self->cfg( "job.$name", 'enabled' ) } // 1,
             pretend => eval { $self->cfg( "job.$name", 'pretend' ) } // 0,
-            poll_cron => $self->cfg( "job.$name", 'poll_cron' ),
+            poll_cron => eval { $self->cfg( "job.$name", 'poll_cron' ) } || q{},
             configurations => [ split( /[ ,]+/, $self->cfg( "job.$name", 'configurations' ) ) ],
         },
         \$data
