@@ -72,8 +72,10 @@ Readonly my $PACKAGE => 'QtQA::App::SummarizeJenkinsBuild';
 #   name => the human-readable name for this test
 #   object => QtQA::App::SummarizeJenkinsBuild object
 #   url => url to summarize
-#   error_url => arrayref of URLs which, if fetched by parse_build_log.pl, should
-#                generate an error. All other URLs succeed with dummy text.
+#   parsed_url => hashref to customize behavior of parse_build_log mocking;
+#       keys are URLs, values are one of 'error' to simulate an error (non-zero
+#       exit code) or 'empty' to simulate a log from which nothing of value could
+#       be parsed. All other URLs succeed with dummy text.
 #   warnings_like => arrayref of expected warning patterns
 #   fake_json => ref to a hash containing (key,value) pairs, where keys are
 #       URLs and values are the fake JSON text to return for a URL
@@ -85,7 +87,7 @@ sub do_test
 
     my $o = $args{ object };
     my $name = $args{ name };
-    my @error_url = @{ $args{ error_url } || [] };
+    my $parsed_url = $args{ parsed_url } || {};
     my $warnings_like = $args{ warnings_like } || [];
     my $warnings_count = @{ $warnings_like };
 
@@ -108,9 +110,18 @@ sub do_test
         sub {
             my ($url) = @_;
 
-            if (grep { $_ eq $url } @error_url) {
-                print STDERR "(parse_build_log.pl error for $url)\n";
-                return 1;
+            if (my $type = $parsed_url->{ $url }) {
+                if ($type eq 'empty') {
+                    print "---\n"
+                         ."detail: ''\n"
+                         ."summary: ~\n\n";
+                    return 0;
+                }
+                elsif ($type eq 'error') {
+                    print STDERR "(parse_build_log.pl error for $url)\n";
+                    return 1;
+                }
+                die "invalid testdata: \$parsed_url->{ '$url' } == '$type', expect 'empty' or 'error'";
             }
 
             print "---\n"
@@ -216,6 +227,37 @@ END
     );
 
     do_test(
+        name => 'failure with no parseable details',
+        object => $o,
+        url => $url,
+        fake_json => {
+            $url => <<'END'
+{
+    "number":4,
+    "result":"FAILURE",
+    "fullDisplayName":"bar build 4",
+    "url":"master-url",
+    "runs":[
+        {"number":4,"result":"FAILURE","fullDisplayName":"cfg1","url":"cfg1-url"},
+        {"number":4,"result":"SUCCESS","fullDisplayName":"cfg2","url":"cfg2-url"},
+        {"number":4,"result":"FAILURE","fullDisplayName":"cfg3","url":"cfg3-url"},
+        {"number":5,"result":"FAILURE","fullDisplayName":"not-this","url":"not-this-url"}
+    ]
+}
+END
+        },
+        parsed_url => { map { +"$_-url/consoleText" => 'empty' } qw(cfg1 cfg2 cfg3) },
+        expected_output =>
+            # when no details are available, the summary should just contain the jenkins build
+            # status and a link to the log
+            "cfg1: FAILURE\n"
+           ."  Build log: cfg1-url/consoleText\n\n"
+           ."--\n\n"
+           ."cfg3: FAILURE\n"
+           ."  Build log: cfg3-url/consoleText"
+    );
+
+    do_test(
         name => 'failure with rebased master and configuration logs',
         object => $o,
         url => $url,
@@ -266,7 +308,7 @@ END
                     \Qparse_build_log exited with status 1\E
                 }xms
             ],
-            error_url => [ 'http://testresults.example.com/ci/bar/build_00004/key1=val1,cfg=cfg1/log.txt.gz' ],
+            parsed_url => { 'http://testresults.example.com/ci/bar/build_00004/key1=val1,cfg=cfg1/log.txt.gz' => 'error' },
             fake_json => {
                 'http://forced-host:999/jenkins/123' => <<'END'
 {
@@ -415,6 +457,72 @@ END
                ."    summary: (parse_build_log.pl summary for cfg1-url/consoleText)\n"
                ."  - detail: (parse_build_log.pl detail for cfg3-url/consoleText)\n"
                ."    summary: (parse_build_log.pl summary for cfg3-url/consoleText)\n"
+        );
+
+        $formatted =
+            "cfg1: FAILURE\n"
+           ."  Build log: cfg1-url/consoleText\n\n"
+           ."--\n\n"
+           ."cfg3: FAILURE\n"
+           ."  Build log: cfg3-url/consoleText";
+        $yaml_formatted = $formatted;
+        $yaml_formatted =~ s{^}{  }mg;
+
+        do_test(
+            name => 'failure with no parseable details [yaml]',
+            object => $o,
+            url => $url,
+            fake_json => {
+                $url => <<'END'
+{
+    "number":4,
+    "result":"FAILURE",
+    "fullDisplayName":"bar build 4",
+    "url":"master-url",
+    "runs":[
+        {"number":4,"result":"FAILURE","fullDisplayName":"cfg1","url":"cfg1-url"},
+        {"number":4,"result":"SUCCESS","fullDisplayName":"cfg2","url":"cfg2-url"},
+        {"number":4,"result":"FAILURE","fullDisplayName":"cfg3","url":"cfg3-url"},
+        {"number":5,"result":"FAILURE","fullDisplayName":"not-this","url":"not-this-url"}
+    ]
+}
+END
+            },
+            parsed_url => { map { +"$_-url/consoleText" => 'empty' } qw(cfg1 cfg2 cfg3) },
+            expected_output =>
+                "---\n"
+               ."formatted: |-\n$yaml_formatted\n"
+               ."runs:\n"
+               ."  - detail: ''\n"
+               ."    summary: 'cfg1: FAILURE'\n"
+               ."  - detail: ''\n"
+               ."    summary: 'cfg3: FAILURE'\n"
+        );
+
+        do_test(
+            name => 'aborted [yaml]',
+            object => $o,
+            url => $url,
+            fake_json => {
+                $url => <<'END'
+{
+    "number":5,
+    "result":"ABORTED",
+    "fullDisplayName":"bar build 5",
+    "url":"master-url",
+    "runs":[
+        {"number":5,"result":"FAILURE","fullDisplayName":"cfg1","url":"cfg1-url"},
+        {"number":5,"result":"SUCCESS","fullDisplayName":"cfg2","url":"cfg2-url"},
+        {"number":5,"result":"FAILURE","fullDisplayName":"cfg3","url":"cfg3-url"},
+        {"number":6,"result":"FAILURE","fullDisplayName":"not-this","url":"not-this-url"}
+    ]
+}
+END
+            },
+            expected_output =>
+                "---\n"
+               ."formatted: 'bar build 5: ABORTED'\n"
+               ."runs: []\n"
         );
     }
 
