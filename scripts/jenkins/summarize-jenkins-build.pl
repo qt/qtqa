@@ -403,7 +403,7 @@ sub format_output
         # Output data as YAML; the YAML output only includes these specifically
         # documented parts of $data.
         my %yaml_data = (
-            runs => [ @{ $data->{ runs } } ],
+            runs => [ @{ $data->{ runs } || [] } ],
             formatted => $self->format_plaintext_output( $data ),
         );
 
