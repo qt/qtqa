@@ -315,12 +315,21 @@ sub install_cpanminus
     $tempfh->print( $response->decoded_content );
     close( $tempfh ) || die "close $tempfilename: $OS_ERROR";
 
+    my $to_install =
+        # On Windows, due to bug https://github.com/miyagawa/cpanminus/issues/169 ,
+        # we use this older version of cpanminus; all other platforms may use latest
+        # available version
+        $WINDOWS
+            ? 'http://search.cpan.org/CPAN/authors/id/M/MI/MIYAGAWA/App-cpanminus-1.4008.tar.gz'
+            : 'App::cpanminus'
+    ;
+
     my @cmd = (
         'perl',
         $tempfilename,    # contains a copy of the cpanm bootstrap script
         '--local-lib',    # options from this line onwards are cpanm options, not perl options;
         $prefix,          # install to the given prefix
-        'App::cpanminus', # name of the module to install is App::cpanminus
+        $to_install,      # name or URL of the module to install
     );
 
     print "+ @cmd\n";
