@@ -1,0 +1,102 @@
+[ '--summarize', "$DATADIR/raw-logs/qtbase-windows-compile-failure-inside-test.txt" ]
+Autotest `tst_qfilesystementry' failed for win32-msvc2010
+developer-build qtnamespace Windows 7 :(
+
+  Testing tst_QFileSystemEntry
+  FAIL!  : tst_QFileSystemEntry::getSetCheck(empty) Compared values are not the same
+     Actual   (toLowerOnWindows(entry1.nativeFilePath())):
+     Expected (toLowerOnWindows(internalNativeFilePath)): \\?\c:\test\recipes\207395573\base\qt\qtbase\tests\auto\corelib\io\qfilesystementry\
+  .\tst_qfilesystementry.cpp(228) : failure location
+  FAIL!  : tst_QFileSystemEntry::getSetCheck(driveRelativePath) Compared values are not the same
+     Actual   (toLowerOnWindows(entry1.nativeFilePath())): \\?\a:\dir\without\leading\backslash.bat
+     Expected (toLowerOnWindows(internalNativeFilePath)): \\?\c:\test\recipes\207395573\base\qt\qtbase\tests\auto\corelib\io\qfilesystementry\a:dir\without\leading\backslash.bat
+  .\tst_qfilesystementry.cpp(228) : failure location
+  Totals: 72 passed, 2 failed, 0 skipped
+  QtQA::App::TestRunner: test failed, running again to see if it is flaky...
+  ********* Start testing of tst_QFileSystemEntry *********
+  Config: Using QTest library 5.0.0, Qt 5.0.0
+  PASS   : tst_QFileSystemEntry::initTestCase()
+  FAIL!  : tst_QFileSystemEntry::getSetCheck(empty) Compared values are not the same
+     Actual   (toLowerOnWindows(entry1.nativeFilePath())):
+     Expected (toLowerOnWindows(internalNativeFilePath)): \\?\c:\test\recipes\207395573\base\qt\qtbase\tests\auto\corelib\io\qfilesystementry\
+  .\tst_qfilesystementry.cpp(228) : failure location
+  PASS   : tst_QFileSystemEntry::getSetCheck(simple)
+  PASS   : tst_QFileSystemEntry::getSetCheck(relative)
+  PASS   : tst_QFileSystemEntry::getSetCheck(noSuffix)
+  PASS   : tst_QFileSystemEntry::getSetCheck(noLongSuffix)
+  PASS   : tst_QFileSystemEntry::getSetCheck(endingSlash)
+  FAIL!  : tst_QFileSystemEntry::getSetCheck(driveRelativePath) Compared values are not the same
+     Actual   (toLowerOnWindows(entry1.nativeFilePath())): \\?\a:\dir\without\leading\backslash.bat
+     Expected (toLowerOnWindows(internalNativeFilePath)): \\?\c:\test\recipes\207395573\base\qt\qtbase\tests\auto\corelib\io\qfilesystementry\a:dir\without\leading\backslash.bat
+  .\tst_qfilesystementry.cpp(228) : failure location
+  PASS   : tst_QFileSystemEntry::suffix(empty)
+  PASS   : tst_QFileSystemEntry::suffix(noextension0)
+  PASS   : tst_QFileSystemEntry::suffix(noextension1)
+  PASS   : tst_QFileSystemEntry::suffix(data0)
+  PASS   : tst_QFileSystemEntry::suffix(data1)
+  PASS   : tst_QFileSystemEntry::suffix(data2)
+  PASS   : tst_QFileSystemEntry::suffix(data3)
+  PASS   : tst_QFileSystemEntry::suffix(hidden1-1)
+  PASS   : tst_QFileSystemEntry::suffix(hidden1-2)
+  PASS   : tst_QFileSystemEntry::suffix(hidden1-3)
+  PASS   : tst_QFileSystemEntry::suffix(hidden1-4)
+  PASS   : tst_QFileSystemEntry::suffix(hidden2-1)
+  PASS   : tst_QFileSystemEntry::suffix(hidden2-2)
+  PASS   : tst_QFileSystemEntry::suffix(hidden2-3)
+  PASS   : tst_QFileSystemEntry::suffix(hidden2-4)
+  PASS   : tst_QFileSystemEntry::suffix(hidden2-5)
+  PASS   : tst_QFileSystemEntry::suffix(dots)
+  PASS   : tst_QFileSystemEntry::suffix(dots2)
+  PASS   : tst_QFileSystemEntry::completeSuffix(empty)
+  PASS   : tst_QFileSystemEntry::completeSuffix(noextension0)
+  PASS   : tst_QFileSystemEntry::completeSuffix(noextension1)
+  PASS   : tst_QFileSystemEntry::completeSuffix(data0)
+  PASS   : tst_QFileSystemEntry::completeSuffix(data1)
+  PASS   : tst_QFileSystemEntry::completeSuffix(data2)
+  PASS   : tst_QFileSystemEntry::completeSuffix(data3)
+  PASS   : tst_QFileSystemEntry::completeSuffix(dots)
+  PASS   : tst_QFileSystemEntry::completeSuffix(dots2)
+  PASS   : tst_QFileSystemEntry::baseName(empty)
+  PASS   : tst_QFileSystemEntry::baseName(data0)
+  PASS   : tst_QFileSystemEntry::baseName(data1)
+  PASS   : tst_QFileSystemEntry::baseName(data2)
+  PASS   : tst_QFileSystemEntry::baseName(data3)
+  PASS   : tst_QFileSystemEntry::baseName(data4)
+  PASS   : tst_QFileSystemEntry::baseName(dots)
+  PASS   : tst_QFileSystemEntry::baseName(dots2)
+  PASS   : tst_QFileSystemEntry::completeBaseName(empty)
+  PASS   : tst_QFileSystemEntry::completeBaseName(data0)
+  PASS   : tst_QFileSystemEntry::completeBaseName(data1)
+  PASS   : tst_QFileSystemEntry::completeBaseName(data2)
+  PASS   : tst_QFileSystemEntry::completeBaseName(data3)
+  PASS   : tst_QFileSystemEntry::completeBaseName(data4)
+  PASS   : tst_QFileSystemEntry::completeBaseName(dots)
+  PASS   : tst_QFileSystemEntry::completeBaseName(dots2)
+  PASS   : tst_QFileSystemEntry::absoluteOrRelative(empty)
+  PASS   : tst_QFileSystemEntry::absoluteOrRelative(data0)
+  PASS   : tst_QFileSystemEntry::absoluteOrRelative(data1)
+  PASS   : tst_QFileSystemEntry::absoluteOrRelative(data1)
+  PASS   : tst_QFileSystemEntry::absoluteOrRelative(data3)
+  PASS   : tst_QFileSystemEntry::absoluteOrRelative(data3)
+  PASS   : tst_QFileSystemEntry::isClean(empty)
+  PASS   : tst_QFileSystemEntry::isClean(simple)
+  PASS   : tst_QFileSystemEntry::isClean(complex)
+  PASS   : tst_QFileSystemEntry::isClean(.file)
+  PASS   : tst_QFileSystemEntry::isClean(..file)
+  PASS   : tst_QFileSystemEntry::isClean(...)
+  PASS   : tst_QFileSystemEntry::isClean(./)
+  PASS   : tst_QFileSystemEntry::isClean(../)
+  PASS   : tst_QFileSystemEntry::isClean(.)
+  PASS   : tst_QFileSystemEntry::isClean(..)
+  PASS   : tst_QFileSystemEntry::isClean(/.)
+  PASS   : tst_QFileSystemEntry::isClean(/..)
+  PASS   : tst_QFileSystemEntry::isClean(/../)
+  PASS   : tst_QFileSystemEntry::isClean(/./)
+  PASS   : tst_QFileSystemEntry::isClean(//)
+  PASS   : tst_QFileSystemEntry::defaultCtor()
+  PASS   : tst_QFileSystemEntry::cleanupTestCase()
+  Totals: 72 passed, 2 failed, 0 skipped
+  ********* Finished testing of tst_QFileSystemEntry *********
+  QtQA::App::TestRunner: test failure could be reproduced twice consecutively
+  QtQA::App::TestRunner: end tst_qfilesystementry: 1 seconds, exit code 2
+

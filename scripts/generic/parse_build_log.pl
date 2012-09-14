@@ -2053,11 +2053,13 @@ sub autotest_chunk_handler
             return;
         }
 
-        push @{$out->{ autotest_fail }}, {
-            name    =>  $name,
-            details =>  $chunk_ref->{ details },
-            flaky   =>  $chunk_ref->{ flaky },
-        };
+        if ($chunk_ref->{ failed }) {
+            push @{$out->{ autotest_fail }}, {
+                name    =>  $name,
+                details =>  $chunk_ref->{ details },
+                flaky   =>  $chunk_ref->{ flaky },
+            };
+        }
         return 1;
     };
 
@@ -2069,10 +2071,12 @@ sub autotest_chunk_handler
 
         my $name = $chunk_ref->{ name } || '(unknown autotest)';
 
-        push @{$out->{ autotest_fail }}, {
-            name    =>  $name,
-            details =>  $chunk_ref->{ first_details } || q{},
-        };
+        if ($chunk_ref->{ failed }) {
+            push @{$out->{ autotest_fail }}, {
+                name    =>  $name,
+                details =>  $chunk_ref->{ first_details } || q{},
+            };
+        }
     };
 
 
@@ -2233,7 +2237,7 @@ sub identify_failures
                 $out->{ make_check_fail } = $line;
 
                 # start reading the details of the failure.
-                $chunk_handler = $self->autotest_chunk_handler( found_test => 1 );
+                $chunk_handler = $self->autotest_chunk_handler( failed => 1, found_test => 1 );
             }
 
             # try to find qmake error message(s).
@@ -2252,9 +2256,22 @@ sub identify_failures
         elsif ($save_failures && $line =~ $RE{ autotest_fail }) {
             $chunk_handler = $self->autotest_chunk_handler(
                 name => $+{ name },
+                failed => 1,
                 # If we don't know the name, we have no way to correctly identify the
                 # test, so just assume we've found it already.
                 found_test => $+{ name } ? 0 : 1,
+            );
+        }
+
+        # autotest end? (not a failure)
+        # We need to process autotest output chunks even if the test didn't fail, because
+        # an autotest might output some messages which look like other failures (e.g.
+        # a cmake autotest deliberately testing compile failures)
+        elsif ($line =~ $RE{ autotest_end }) {
+            $chunk_handler = $self->autotest_chunk_handler(
+                name => $+{ name },
+                failed => 0,
+                found_test => 1,
             );
         }
 
