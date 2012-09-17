@@ -158,6 +158,7 @@ sub all_required_cpan_modules
         AnyEvent::HTTP
         AnyEvent::Util
         Capture::Tiny
+        Class::Data::Inheritable
         Class::Factory::Util
         Config::Tiny
         Coro::AnyEvent
