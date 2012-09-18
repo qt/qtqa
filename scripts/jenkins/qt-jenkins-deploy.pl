@@ -487,6 +487,7 @@ sub desired_job_xml
     $tt->process(
         $template_file,
         {
+            name => $name,
             gerrit_host => $self->cfg( "job.$name", 'gerrit_host' ),
             gerrit_port => eval { $self->cfg( "job.$name", 'gerrit_port' ) } // 29418,
             gerrit_project => $gerrit_project,
