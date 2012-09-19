@@ -547,7 +547,7 @@ sub desired_node_xml
             contact => $cfg_item->( 'contact' ),
             labels => $cfg_item->( 'labels' ),
             root => $cfg_item->( 'node_root' ),
-            environment => $self->{ cfg }{ "node.$cfg_basename.environment" },
+            environment => $self->{ cfg }{ "node.$cfg_basename.environment" } || {},
             git_location => (eval { $cfg_item->( 'git_location' ) } || q{}),
         },
         \$data
