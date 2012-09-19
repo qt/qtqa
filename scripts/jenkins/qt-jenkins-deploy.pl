@@ -237,6 +237,10 @@ The following attributes may be configured on a node:
 
 =over
 
+=item basename
+
+Overrides the default basename of the node (described above).
+
 =item contact
 
 A contact email address for this node, e.g. someone who can
@@ -513,12 +517,13 @@ sub desired_node_xml
 {
     my ($self, %args) = @_;
 
-    my $basename = $args{ basename } || confess;
+    my $cfg_basename = $args{ cfg_basename } || confess;
+    my $template_basename = $args{ template_basename } || confess;
     my $name = $args{ name } || confess;
 
     my $cfg_item = sub {
         my ($key) = @_;
-        return $self->cfg( "node.$basename", $key );
+        return $self->cfg( "node.$cfg_basename", $key );
     };
 
     my $node_template = $cfg_item->( 'node_template' );
@@ -538,11 +543,11 @@ sub desired_node_xml
         {
             name => $name,
             node_template => $node_template,
-            basename => $basename,
+            basename => $template_basename,
             contact => $cfg_item->( 'contact' ),
             labels => $cfg_item->( 'labels' ),
             root => $cfg_item->( 'node_root' ),
-            environment => $self->{ cfg }{ "node.$basename.environment" },
+            environment => $self->{ cfg }{ "node.$cfg_basename.environment" },
             git_location => (eval { $cfg_item->( 'git_location' ) } || q{}),
         },
         \$data
@@ -753,14 +758,15 @@ sub do_single_node
 {
     my ($self, %args) = @_;
 
-    my $basename = $args{ basename };
+    my $cfg_basename = $args{ cfg_basename };
+    my $template_basename = $args{ template_basename };
     my $name = $args{ name };
 
     local $Coro::current->{ desc } = "node $name";
 
     my $expected_xml = $self->desired_node_xml( %args );
 
-    my $jenkins = $self->cfg( "node.$basename", 'jenkins_url' );
+    my $jenkins = $self->cfg( "node.$cfg_basename", 'jenkins_url' );
 
     $self->die_if_insecure( $jenkins );
 
@@ -789,6 +795,7 @@ sub do_node_range
     local $Coro::current->{ desc } = "node $name";
 
     my $range = $self->cfg( "node.$name", 'range' );
+    my $basename = eval { $self->cfg( "node.$name", 'basename' ) } || $name;
 
     # $range should be a number range understood by perl
     # e.g. "1", "1, 2", "1..10"
@@ -803,11 +810,12 @@ sub do_node_range
 
     my @coro;
     foreach my $i (@range) {
-        my $fullname = sprintf( "%s-%02d", $name, $i );
+        my $fullname = sprintf( "%s-%02d", $basename, $i );
         push @coro, async {
             $self->do_single_node(
                 name => $fullname,
-                basename => $name,
+                cfg_basename => $name,
+                template_basename => $basename,
             );
         };
     }
