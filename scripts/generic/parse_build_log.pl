@@ -1487,6 +1487,27 @@ my %RE = (
         )
     }xms,
 
+    # If matched, indicates that the most significant error in the log definitely occurs
+    # prior to this line; hence, any of the log _after_ the first occurrence of this line
+    # may be ignored.
+    #
+    # For example, when parsing a Jenkins build log with multiple build steps, the first
+    # build step which fails is the step which causes the overall failure status of the
+    # build, so further build steps do not need to be parsed.
+    #
+    # Captures: nothing
+    #
+    fail_boundary => qr{
+        \A
+        (?:
+            # jenkins build step failed
+            \QBuild step '\E
+            .{1,100}?
+            \Q' marked build as failure\E
+            \z
+        )
+    }xms,
+
     # The line where execution of an autotest begins.
     #
     # Example (old style):
@@ -2359,6 +2380,13 @@ sub identify_failures
             $out->{ significant_lines }{ $line } = 1;
         }
 
+        # Failure boundary?
+        # Implies that the relevant failure must have occurred prior to this line,
+        # so we haven't seen it yet; forget what we know.
+        elsif ($save_failures && $line =~ $RE{ fail_boundary }) {
+            $out = {};
+        }
+
         # Extract some possibly useful info about the pulse properties
         #
         elsif ($line =~ $RE{ pulse_property })
@@ -2509,6 +2537,9 @@ sub extract
         $self->ensure_line_length(\$line);
 
         next if ($line =~ $RE{ insignificant } || $line =~ $RE{ hidden });
+
+        # there can be nothing of interest past the first fail boundary
+        last if ($line =~ $RE{ fail_boundary });
 
         # Have we explicitly stored this as a significant line already?
         if ($fail->{ significant_lines }{ $line }) {

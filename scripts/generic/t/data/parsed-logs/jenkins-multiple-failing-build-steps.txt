@@ -1,0 +1,6 @@
+[ '--summarize', "$DATADIR/raw-logs/jenkins-multiple-failing-build-steps.txt" ]
+qtbase failed to compile :(
+
+  /work/ci/build/qt/qtbase/tests/benchmarks/corelib/kernel/qmetaobject/main.cpp:219: undefined reference to `QTreeView::staticMetaObject'
+  make[6]: *** [tst_bench_qmetaobject] Error 1
+  make: *** [module-qtbase] Error 2

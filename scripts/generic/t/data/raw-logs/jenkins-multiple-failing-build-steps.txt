@@ -1,0 +1,188 @@
+Started by upstream project "QtQA-dev_master_Integration" build number 12
+[EnvInject] - Loading node environment variables.
+Building remotely on bq-ubuntu1204-x64-08 in workspace /work/ci/qt/qtqa/cfg/linux-g++_no-widgets_Ubuntu_12.04_x64
+Running Prebuild steps
+Run condition [Regular expression match] enabling prebuild for step [Execute Windows batch command]
+Run condition [Not] preventing prebuild for step [Execute shell]
+Regular expression run condition: Expression=[^.*\bwindows\b.*$], Label=[bq-ubuntu1204-x64-08 linux-g++_no-widgets_Ubuntu_12.04_x64]
+Run condition [Regular expression match] preventing perform for step [Execute Windows batch command]
+Success build fororg.jenkinsci.plugins.conditionalbuildstep.singlestep.SingleConditionalBuilder@4d5ac7a0
+Regular expression run condition: Expression=[^.*\bwindows\b.*$], Label=[bq-ubuntu1204-x64-08 linux-g++_no-widgets_Ubuntu_12.04_x64]
+Run condition [Not] enabling perform for step [Execute shell]
+[linux-g++_no-widgets_Ubuntu_12.04_x64] $ /bin/sh -xe /tmp/hudson1837023966976752442.sh
++ set +e
++ git init
+Reinitialized existing Git repository in /work/ci/qt/qtqa/cfg/linux-g++_no-widgets_Ubuntu_12.04_x64/.git/
++ git fetch --verbose qt-gerrit-mirror:qt/qtqa +refs/heads/*:refs/remotes/mirror/* +HEAD:refs/mirror_head
+From git://bq-git.apac.nokia.com/codereview/qt/qtqa
+   b6265c4..2cfa28d  master     -> mirror/master
+   b6265c4..2cfa28d             -> refs/mirror_head
++ git reset --hard refs/mirror_head
+HEAD is now at 2cfa28d qt-jenkins-deploy: export 'name' to job template, as documented
+Success build fororg.jenkinsci.plugins.conditionalbuildstep.singlestep.SingleConditionalBuilder@2c2300c0
+Run condition [Regular expression match] enabling prebuild for step [Execute Windows batch command]
+Run condition [Not] preventing prebuild for step [Execute shell]
+Regular expression run condition: Expression=[^.*\bwindows\b.*$], Label=[bq-ubuntu1204-x64-08 linux-g++_no-widgets_Ubuntu_12.04_x64]
+Run condition [Regular expression match] preventing perform for step [Execute Windows batch command]
+Regular expression run condition: Expression=[^.*\bwindows\b.*$], Label=[bq-ubuntu1204-x64-08 linux-g++_no-widgets_Ubuntu_12.04_x64]
+Run condition [Not] enabling perform for step [Execute shell]
+[linux-g++_no-widgets_Ubuntu_12.04_x64] $ /bin/sh -xe /tmp/hudson3328626300281211778.sh
++ GIT_BRANCH=refs/builds/master_1348013867
++ export GIT_BRANCH
++ set
+BUILD_CAUSE='UPSTREAMTRIGGER'
+BUILD_CAUSE_UPSTREAMTRIGGER='true'
+BUILD_ID='2012-09-19_00-17-54'
+BUILD_NUMBER='12'
+BUILD_TAG='jenkins-QtQA-dev_master_Integration-cfg=linux-g++_no-widgets_Ubuntu_12.04_x64-12'
+BUILD_URL='http://ci-dev.qt-project.org/job/QtQA-dev_master_Integration/./cfg=linux-g++_no-widgets_Ubuntu_12.04_x64/12/'
+CCACHE_PATH='/opt/icecream/bin'
+DBUS_SESSION_BUS_ADDRESS='unix:abstract=/tmp/dbus-wJQZyPVj6H,guid=c98cca7ee6be3080ecfd8c0c00000007'
+DEFAULTS_PATH='/usr/share/gconf/ubuntu-2d.default.path'
+DESKTOP_AUTOSTART_ID='108a7aa75bdfcd5c95134794468672114500000017730003'
+DESKTOP_SESSION='ubuntu-2d'
+DISPLAY=':0'
+EXECUTOR_NUMBER='0'
+GDMSESSION='ubuntu-2d'
+GIT_BRANCH='refs/builds/master_1348013867'
+GNOME_DESKTOP_SESSION_ID='this-is-deprecated'
+GNOME_KEYRING_CONTROL='/tmp/keyring-zrgtia'
+GPG_AGENT_INFO='/tmp/keyring-zrgtia/gpg:0:1'
+HOME='/home/qt'
+HUDSON_COOKIE='c842d3bb-60a2-40d8-b208-a9e0f28ce1b1'
+HUDSON_HOME='/var/lib/jenkins'
+HUDSON_SERVER_COOKIE='c4a4b5e08e4adc8c1ea0037d188621c3'
+HUDSON_URL='http://ci-dev.qt-project.org/'
+IFS=' 	
+'
+JENKINS_HOME='/var/lib/jenkins'
+JENKINS_SERVER_COOKIE='c4a4b5e08e4adc8c1ea0037d188621c3'
+JENKINS_URL='http://ci-dev.qt-project.org/'
+JOB_NAME='QtQA-dev_master_Integration/cfg=linux-g++_no-widgets_Ubuntu_12.04_x64'
+JOB_URL='http://ci-dev.qt-project.org/job/QtQA-dev_master_Integration/./cfg=linux-g++_no-widgets_Ubuntu_12.04_x64/'
+LANG='en_AU.UTF-8'
+LANGUAGE='en_AU:en'
+LD_LIBRARY_PATH='/usr/lib/jvm/java-6-openjdk-amd64/jre/lib/amd64/server:/usr/lib/jvm/java-6-openjdk-amd64/jre/lib/amd64:/usr/lib/jvm/java-6-openjdk-amd64/jre/../lib/amd64'
+LOGNAME='qt'
+MANDATORY_PATH='/usr/share/gconf/ubuntu-2d.mandatory.path'
+NODE_LABELS='bq-ubuntu1204-x64-08 linux-g++_no-widgets_Ubuntu_12.04_x64'
+NODE_NAME='bq-ubuntu1204-x64-08'
+OPTIND='1'
+PATH='/home/qt/bin:/home/qt/python27/bin:/home/qt/perl5/bin:/home/qt/bin:/usr/lib/lightdm/lightdm:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games'
+PERL5LIB='/home/qt/perl5/lib/perl5/x86_64-linux-gnu-thread-multi:/home/qt/perl5/lib/perl5'
+PERL_LOCAL_LIB_ROOT='/home/qt/perl5'
+PERL_MB_OPT='--install_base /home/qt/perl5'
+PERL_MM_OPT='INSTALL_BASE=/home/qt/perl5'
+PPID='2426'
+PS1='$ '
+PS2='> '
+PS4='+ '
+PWD='/work/ci/qt/qtqa/cfg/linux-g++_no-widgets_Ubuntu_12.04_x64'
+QT_TEST_SMALL_FS='/smallfs-ext2-2MB'
+SESSION_MANAGER='local/bq-ubuntu1204-x64-08:@/tmp/.ICE-unix/1773,unix/bq-ubuntu1204-x64-08:/tmp/.ICE-unix/1773'
+SHELL='/bin/bash'
+SSH_AGENT_PID='1823'
+SSH_AUTH_SOCK='/tmp/keyring-zrgtia/ssh'
+UBUNTU_MENUPROXY='libappmenu.so'
+USER='qt'
+VIRTUAL_ENV='/home/qt/python27'
+WORKSPACE='/work/ci/qt/qtqa/cfg/linux-g++_no-widgets_Ubuntu_12.04_x64'
+XAUTHORITY='/home/qt/.Xauthority'
+XDG_CONFIG_DIRS='/etc/xdg/xdg-ubuntu-2d:/etc/xdg'
+XDG_CURRENT_DESKTOP='Unity'
+XDG_DATA_DIRS='/usr/share/ubuntu-2d:/usr/share/gnome:/usr/local/share/:/usr/share/'
+XDG_SEAT_PATH='/org/freedesktop/DisplayManager/Seat0'
+XDG_SESSION_COOKIE='099baf08f84dd660e9f7fcf900000005-1347944686.363769-280113890'
+XDG_SESSION_PATH='/org/freedesktop/DisplayManager/Session0'
+cfg='linux-g++_no-widgets_Ubuntu_12.04_x64'
+qt_ci_git_ref='refs/builds/master_1348013867'
+qt_ci_git_url='ssh://dev-codereview.qt-project.org:29418/qt/qtqa'
+qt_ci_request_id='003f084a'
++ git clean -dqffx .
++ git fetch --verbose ssh://dev-codereview.qt-project.org:29418/qt/qtqa +refs/builds/master_1348013867:refs/testing
+From ssh://dev-codereview.qt-project.org:29418/qt/qtqa
+ + d8d939a...e8c59dc refs/builds/master_1348013867 -> refs/testing  (forced update)
++ git reset --hard refs/testing
+HEAD is now at e8c59dc BAD: introduce a silly typo
++ git clone git://gitorious.org/qtqa/testconfig.git _testconfig
+Initialized empty Git repository in /work/ci/qt/qtqa/cfg/linux-g++_no-widgets_Ubuntu_12.04_x64/_testconfig/.git/
+From git://gitorious.org/qtqa/testconfig
+ * [new branch]      master     -> origin/master
+origin/HEAD set to master
+Already on 'master'
+Branch master set up to track remote branch master from origin.
++ perl _testconfig/test.pl --project QtQA master Integration
+Note: --project "QtQA master Integration" option overrides value from Jenkins, "QtQA-dev_master_Integration".
+QTQA_BASE_DIR='/work/ci/qt/qtqa/cfg/linux-g++_no-widgets_Ubuntu_12.04_x64'
+QTQA_MAKE_ARGS=-j30
+PULSE_PROJECT='QtQA master Integration'
+QTQA_QT_CONFIGURE_ARGS='-opensource -confirm-license -prefix /work/ci/qt/qtqa/cfg/linux-g++_no-widgets_Ubuntu_12.04_x64/qt/qtbase -make libs -make tools -make examples -make tests'
+QTQA_QT_CONFIGURE_EXTRA_ARGS='-silent -no-pch -no-widgets -separate-debug-info'
+QTQA_QT_DIR='/work/ci/qt/qtqa/cfg/linux-g++_no-widgets_Ubuntu_12.04_x64/qt'
+QTQA_QT_GITMODULE=qtqa
+QTQA_QT_INIT_REPOSITORY_ARGS=-no-webkit
+QTQA_QT_INSTALL_DIR='/work/ci/qt/qtqa/cfg/linux-g++_no-widgets_Ubuntu_12.04_x64/qt/qtbase'
+QTQA_QT_QTQA_TESTS_ENABLED=1
+QTQA_QT_REVDEP_DEP_REF='refs/heads/master'
+QTQA_QT_REVDEP_REVDEP_REF='refs/heads/master'
+QTQA_QT_TESTS_ENABLED=1
+QTQA_QT_TESTS_FLAKY_MODE=best
+QTQA_QT_TESTS_INSIGNIFICANT=1
+QTQA_QT_TESTS_TEE_LOGS='/work/ci/qt/qtqa/cfg/linux-g++_no-widgets_Ubuntu_12.04_x64/_artifacts/test-logs'
+QTQA_QT_TESTS_TESTSCHEDULER=1
+QTQA_QT_TESTS_TESTSCHEDULER_ARGS=-j5
+QT_TEST_CI=1
+export QTQA_BASE_DIR QTQA_MAKE_ARGS PULSE_PROJECT QTQA_QT_CONFIGURE_ARGS QTQA_QT_CONFIGURE_EXTRA_ARGS QTQA_QT_DIR QTQA_QT_GITMODULE QTQA_QT_INIT_REPOSITORY_ARGS QTQA_QT_INSTALL_DIR QTQA_QT_QTQA_TESTS_ENABLED QTQA_QT_REVDEP_DEP_REF QTQA_QT_REVDEP_REVDEP_REF QTQA_QT_TESTS_ENABLED QTQA_QT_TESTS_FLAKY_MODE QTQA_QT_TESTS_INSIGNIFICANT QTQA_QT_TESTS_TEE_LOGS QTQA_QT_TESTS_TESTSCHEDULER QTQA_QT_TESTS_TESTSCHEDULER_ARGS QT_TEST_CI
+git clone . _qtqa_latest
+perl _qtqa_latest/scripts/setup.pl --install && perl _qtqa_latest/scripts/qt/qtmod_test.p
+========== TO REPRODUCE THIS BUILD, COPY THE ABOVE ===============
++ git clone . _qtqa_latest
+Cloning into '_qtqa_latest'...
+done.
+Log is faked here.
+.obj/release-shared/main.o: In function `tst_qmetaobject::indexOfSlot_data()':
+/work/ci/build/qt/qtbase/tests/benchmarks/corelib/kernel/qmetaobject/main.cpp:219: undefined reference to `QTreeView::staticMetaObject'
+collect2: ld returned 1 exit status
+make[6]: *** [tst_bench_qmetaobject] Error 1
+make: *** [module-qtbase] Error 2
+`perl _qtqa_latest/scripts/setup.pl --install && perl _qtqa_latest/scripts/qt/qtmod_test.pl' exited with code 2 at _testconfig/test.pl line 1103.
+Build step 'Conditional step (single)' marked build as failure
+ERROR: Failed to evaluate groovy script.
+java.io.IOException: Remote call on bq-ubuntu1204-x64-08 failed
+	at hudson.remoting.Channel.call(Channel.java:655)
+	at hudson.util.RemotingDiagnostics.executeGroovy(RemotingDiagnostics.java:119)
+	at hudson.util.RemotingDiagnostics$executeGroovy.call(Unknown Source)
+	at org.codehaus.groovy.runtime.callsite.CallSiteArray.defaultCall(CallSiteArray.java:42)
+	at org.codehaus.groovy.runtime.callsite.AbstractCallSite.call(AbstractCallSite.java:108)
+	at org.codehaus.groovy.runtime.callsite.AbstractCallSite.call(AbstractCallSite.java:120)
+	at Script1.run(Script1.groovy:26)
+	at groovy.lang.GroovyShell.evaluate(GroovyShell.java:580)
+	at groovy.lang.GroovyShell.evaluate(GroovyShell.java:618)
+	at groovy.lang.GroovyShell.evaluate(GroovyShell.java:589)
+	at org.jvnet.hudson.plugins.groovypostbuild.GroovyPostbuildRecorder.perform(GroovyPostbuildRecorder.java:273)
+	at hudson.tasks.BuildStepMonitor$1.perform(BuildStepMonitor.java:19)
+	at hudson.model.AbstractBuild$AbstractRunner.perform(AbstractBuild.java:710)
+	at hudson.model.AbstractBuild$AbstractRunner.performAllBuildSteps(AbstractBuild.java:685)
+	at hudson.model.Build$RunnerImpl.post2(Build.java:162)
+	at hudson.model.AbstractBuild$AbstractRunner.post(AbstractBuild.java:632)
+	at hudson.model.Run.run(Run.java:1463)
+	at hudson.matrix.MatrixRun.run(MatrixRun.java:146)
+	at hudson.model.ResourceController.execute(ResourceController.java:88)
+	at hudson.model.Executor.run(Executor.java:239)
+Caused by: java.lang.NoClassDefFoundError: Could not initialize class org.codehaus.groovy.runtime.InvokerHelper
+	at groovy.lang.GroovyObjectSupport.<init>(GroovyObjectSupport.java:32)
+	at groovy.lang.Binding.<init>(Binding.java:34)
+	at hudson.util.RemotingDiagnostics$Script.call(RemotingDiagnostics.java:144)
+	at hudson.util.RemotingDiagnostics$Script.call(RemotingDiagnostics.java:122)
+	at hudson.remoting.UserRequest.perform(UserRequest.java:118)
+	at hudson.remoting.UserRequest.perform(UserRequest.java:48)
+	at hudson.remoting.Request$2.run(Request.java:287)
+	at hudson.remoting.InterceptingExecutorService$1.call(InterceptingExecutorService.java:72)
+	at java.util.concurrent.FutureTask$Sync.innerRun(FutureTask.java:334)
+	at java.util.concurrent.FutureTask.run(FutureTask.java:166)
+	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1110)
+	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:603)
+	at hudson.remoting.Engine$1$1.run(Engine.java:60)
+	at java.lang.Thread.run(Thread.java:679)
+Build step 'Groovy Postbuild' marked build as failure
+Finished: FAILURE
