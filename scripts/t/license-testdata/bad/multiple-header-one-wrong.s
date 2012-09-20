@@ -1,7 +1,6 @@
 ;/****************************************************************************
 ;**
 ;** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
-;** All rights reserved.
 ;** Contact: http://www.qt-project.org/legal
 ;**
 ;** This file is part of the (whatever) of the Qt Toolkit.
@@ -45,7 +44,6 @@
 ;/****************************************************************************
 ;**
 ;** Copyright (C) 2012 Fake Corporation and/or its subsidiary(-ies).
-;** All rights reserved.
 ;** Contact: http://www.qt-project.org/legal
 ;**
 ;** This file is part of the (whatever) of the Qt Toolkit.
@@ -59,7 +57,7 @@
 ;** conditions see http://qt.digia.com/licensing.  For further information
 ;** use the contact form at http://qt.digia.com/contact-us.
 ;**
-;** GNU Lesser General Public License Usage
+;** GNU Llama Goat Porpoise Lemon Usage
 ;** Alternatively, this file may be used under the terms of the GNU Lesser
 ;** General Public License version 2.1 as published by the Free Software
 ;** Foundation and appearing in the file LICENSE.LGPL included in the
@@ -91,7 +89,6 @@
 ;/****************************************************************************
 ;**
 ;** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
-;** All rights reserved.
 ;** Contact: http://www.qt-project.org/legal
 ;**
 ;** This file is part of the (whatever) of the Qt Toolkit.

@@ -1,7 +1,6 @@
 ############################################################################
 ##
 ## Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
-## All rights reserved.
 ## Contact: http://www.qt-project.org/legal
 ##
 ## This file is part of the (whatever) of the Qt Toolkit.
@@ -35,7 +34,7 @@
 ## ensure the GNU General Public License version 3.0 requirements will be
 ## met: http://www.gnu.org/copyleft/gpl.html.
 ##
-##
+## Other usage
 ## $QT_END_LICENSE$
 ##
 ############################################################################

@@ -1,8 +1,7 @@
 /****************************************************************************
 **
 ** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
-** All rights reserved.
-** Contact: http://www.qt-project.org/legal
+** Contact: Nokia Corporation (qt-info@nokia.com)
 **
 ** This file is part of the (whatever) of the Qt Toolkit.
 **

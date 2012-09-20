@@ -1,7 +1,6 @@
 /****************************************************************************
 **
 ** Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
-** All rights reserved.
 ** Contact: http://www.qt-project.org/legal
 **
 ** This file is part of the (whatever) of the Qt Toolkit.
@@ -47,7 +46,6 @@
 
 - Copyright (C) 2012 Example Corporation and/or its subsidiary(-ies).
 -
-- All rights reserved.
 - Contact: http://www.qt-project.org/legal
 -
 - This file is part of the (crazy generated code) of the Qt Toolkit.

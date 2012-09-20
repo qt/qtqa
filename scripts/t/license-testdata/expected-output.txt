@@ -1,6 +1,5 @@
 #
 # Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
-# All rights reserved.
 # Contact: http://www.qt-project.org/legal
 #
 # This file is part of the automated tests of the Qt Toolkit.
@@ -45,7 +44,7 @@
 # is as expected).
 
 1..12
-not ok x - QT_BEGIN_LICENSE does not follow Copyright block in bad/missing-license-info.qdoc, line 9
+not ok x - QT_BEGIN_LICENSE does not follow Copyright block in bad/missing-license-info.qdoc, line 8
 not ok x - Mismatch in license text in bad/multiple-header-one-wrong.s
 not ok x - bad/noheader.cpp does not appear to contain a license header
 not ok x - bad/old-contact-info.cpp does not appear to contain a license header

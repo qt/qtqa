@@ -243,7 +243,6 @@ my $leadingDelimiter = qr/^(\s*[\*!;:#\-\.\\\"]+)/;
 # contact email address will be escaped.
 my @copyrightBlock = (
     qr/\s\bCopyright \(C\) 2[0-9][0-9][0-9] .*/,
-    qr/\s\b(?#optional)All rights reserved.*/,
     qr/\s\bContact: http:\/\/www\.qt-project\.org\/.*/,
     qr//,
     qr/\s\bThis file is (the|part of the)\s*\b(\w*)\b.*/,

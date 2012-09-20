@@ -2,7 +2,6 @@
 --
 -- Copyright (C) 2012 Alice
 -- Copyright (C) 2012 Bob
--- All rights reserved.
 -- Contact: http://www.qt-project.org/legal
 --
 -- This file is part of the (whatever) of the Qt Toolkit.
