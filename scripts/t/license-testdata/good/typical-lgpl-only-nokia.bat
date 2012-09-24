@@ -1,8 +1,8 @@
 ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 ::
-:: Copyright (C) 2012 Nokia Corporation and/or its subsidiary(-ies).
+:: Copyright (C) 2012 Digia Plc and/or its subsidiary(-ies).
 :: All rights reserved.
-:: Contact: http://www.qt-project.org/
+:: Contact: http://www.qt-project.org/legal
 ::
 :: This file is part of the (whatever) of the Qt Toolkit.
 ::
