@@ -160,6 +160,7 @@ my %optionalFiles = (
                           qr{^tests/auto/qml/},
                           qr{^tests/auto/quick/},
                           qr{^tests/benchmarks/qml/javascript/data/},
+                          qr{^tests/manual/scenegraph_lancelot/data/},
                           # The following can be removed when the paths become obsolete:
                           qr{^src/declarative/qml/v8/qv8debug_p\.h$},
                           qr{^tests/auto/declarative/},
