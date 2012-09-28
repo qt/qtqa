@@ -192,12 +192,10 @@ my @PROPERTIES = (
 
     q{qt.qtqa-tests.enabled}   => q{if 1, run the shared autotests in qtqa (over this module }
                                 . q{only, or all modules if qt.gitmodule == "qt5").  The qtqa }
-                                . q{tests are run after the other autotests.  All qt.tests.* }
-                                . q{settings are also applied to the qtqa tests},
+                                . q{tests are run after the other autotests.},
 
     q{qt.qtqa-tests.insignificant}
-                               => q{overrides the setting of qt.tests.insignificant, for the }
-                                . q{shared autotests in qtqa},
+                               => q{if 1, ignore all failures from shared autotests in qtqa},
 
     q{make.bin}                => q{`make' command (e.g. `make', `nmake', `jom' ...)},
 
@@ -342,12 +340,6 @@ sub default_qt_tests_backtraces
 {
     my ($self) = @_;
     return ($OSNAME =~ m{linux|darwin}i);
-}
-
-sub default_qt_qtqa_tests_insignificant
-{
-    my ($self) = @_;
-    return $self->{ 'qt.tests.insignificant' };
 }
 
 sub default_qt_revdep_ref
@@ -495,7 +487,7 @@ sub read_and_store_configuration
         'qt.tests.flaky_mode'     => q{}                                         ,
 
         'qt.qtqa-tests.enabled'         => 0                                     ,
-        'qt.qtqa-tests.insignificant'   => \&default_qt_qtqa_tests_insignificant ,
+        'qt.qtqa-tests.insignificant'   => 0                                     ,
     );
 
     # for convenience only - this should not be overridden
