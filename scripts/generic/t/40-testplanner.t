@@ -90,9 +90,11 @@ sub test_testplanner_on_testdata
 
 sub run
 {
-    # qmake the testdata before doing anything else.
-    ok( $QMAKE, 'found some qmake' );
+    if (!$QMAKE) {
+        plan skip_all => 'no qmake available for testing';
+    }
 
+    # qmake the testdata before doing anything else.
     {
         local $CWD = $TESTDATA_DIR;
         my $status = system( $QMAKE );

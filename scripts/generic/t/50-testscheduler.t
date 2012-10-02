@@ -376,9 +376,11 @@ sub test_concurrently_limit
 
 sub run
 {
-    # qmake the testdata before doing anything else.
-    ok( $QMAKE, 'found some qmake' );
+    if (!$QMAKE) {
+        plan skip_all => 'no qmake available for testing';
+    }
 
+    # qmake the testdata before doing anything else.
     {
         local $CWD = $TESTDATA_DIR;
         # we use qmake -r so we can access the makefiles at any level,
