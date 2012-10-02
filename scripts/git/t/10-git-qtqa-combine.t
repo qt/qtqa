@@ -458,6 +458,15 @@ sub run
     if ($OSNAME =~ m{win32}i) {
         plan skip_all => "git-qtqa-combine is not supported on $OSNAME";
     }
+
+    # set a fake git user.name and user.email for the test;
+    # the account under which this test is running might not
+    # have any set
+    local $ENV{ GIT_COMMITTER_NAME } = '10-git-qtqa-combine.t';
+    local $ENV{ GIT_COMMITTER_EMAIL } = 'autotest@example.com';
+    local $ENV{ GIT_AUTHOR_NAME } = $ENV{ GIT_COMMITTER_NAME };
+    local $ENV{ GIT_AUTHOR_EMAIL } = $ENV{ GIT_COMMITTER_EMAIL };
+
     test_basic_combine;
     test_multi_combine_with_files;
     test_submodule_combine;
