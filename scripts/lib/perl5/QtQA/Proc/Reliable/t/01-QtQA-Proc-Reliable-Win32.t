@@ -7,8 +7,12 @@ use threads;    # important - must come before Test::More.  See Test::More docs.
 
 use Encode;
 use English qw(-no_match_vars);
-use QtQA::Proc::Reliable::Win32;
+use File::Spec::Functions;
+use FindBin;
 use Test::More;
+
+use lib catfile( $FindBin::Bin, qw(..) x 4 );
+use QtQA::Proc::Reliable::Win32;
 
 # Perl scriptlet which will output some stdout/stderr lines in a predictable order
 my $OUTPUT_SCRIPT =

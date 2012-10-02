@@ -6,13 +6,16 @@ use Capture::Tiny qw( capture );
 use English qw( -no_match_vars );
 use Env::Path;
 use File::Temp qw( tempdir );
-use QtQA::Test::More qw( :all );
 use Readonly;
 use Test::More;
 use File::Basename qw( basename );
+use File::Spec::Functions;
+use FindBin;
 
+use lib catfile( $FindBin::Bin, qw(..) x 3 );
 use QtQA::Proc::Reliable;
 use QtQA::Proc::Reliable::TESTDATA qw( %TESTDATA );
+use QtQA::Test::More qw( :all );
 
 =head1 NAME
 

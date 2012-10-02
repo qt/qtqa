@@ -2,9 +2,13 @@
 use strict;
 use warnings;
 
+use File::Spec::Functions;
+use FindBin;
+use Readonly;
 use Test::Exception;
 use Test::More;
-use Readonly;
+
+use lib catfile( $FindBin::Bin, qw(..) x 3 );
 
 =head1 NAME
 

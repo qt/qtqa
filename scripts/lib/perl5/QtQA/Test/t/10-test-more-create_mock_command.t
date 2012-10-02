@@ -20,13 +20,17 @@ its usage in QtQA::Proc::Reliable tests.
 use Capture::Tiny qw( capture );
 use Encode;
 use English qw( -no_match_vars );
+use File::Spec::Functions;
 use File::Temp qw( tempdir );
+use FindBin;
 use IO::File;
-use QtQA::Test::More qw( :all );
 use Readonly;
 use Test::Exception;
 use Test::More tests => 22;
 use Test::NoWarnings;
+
+use lib catfile( $FindBin::Bin, qw(..) x 3 );
+use QtQA::Test::More qw( :all );
 
 # Separator for PATH-like variables
 Readonly my $PATHSEP => ($OSNAME =~ m{win32}i) ? q(;)

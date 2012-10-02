@@ -7,14 +7,17 @@ package TestReliableExe;
 use Capture::Tiny qw( capture );
 use English qw( -no_match_vars );
 use Env::Path;
+use File::Spec::Functions;
 use File::Temp qw( tempdir );
-use QtQA::Test::More qw( :all );
+use FindBin;
 use Readonly;
 use Test::Exception;
 use Test::More;
 use File::Basename qw( basename );
 
+use lib catfile( $FindBin::Bin, qw(..) x 2 );
 use QtQA::Proc::Reliable::TESTDATA qw( %TESTDATA );
+use QtQA::Test::More qw( :all );
 
 use base 'QtQA::TestScript';
 

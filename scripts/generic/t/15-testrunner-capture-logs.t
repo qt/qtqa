@@ -71,6 +71,7 @@ Readonly my %TEST_OUTPUT => (
 # Command used to output the above and handle `-o somefile' in testlib-compatible way
 Readonly my @TEST_COMMAND => (
     'perl',     # force `perl', not `$EXECUTABLE_NAME', as test log naming depends on it
+    "-I$FindBin::Bin/../../lib/perl5",
     '-e',
     "do q{$0} || die; run_from_subprocess( )",  # call run_from_subprocess in this file
     '--',                                       # tell perl interpreter not to handle any more args
