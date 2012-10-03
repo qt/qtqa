@@ -192,6 +192,12 @@ Jenkins for syntax details).
 
 If omitted, SCM polling is disabled.
 
+=item trigger_cron
+
+cron-style line for periodic triggering of the job.
+
+If omitted, the job is not triggered periodically.
+
 =item configurations
 
 A list of space-separated test/build configurations, e.g.
@@ -503,6 +509,7 @@ sub desired_job_xml
             enabled => eval { $self->cfg( "job.$name", 'enabled' ) } // 1,
             pretend => eval { $self->cfg( "job.$name", 'pretend' ) } // 0,
             poll_cron => eval { $self->cfg( "job.$name", 'poll_cron' ) } || q{},
+            trigger_cron => eval { $self->cfg( "job.$name", 'trigger_cron' ) } || q{},
             configurations => [ split( /[ ,]+/, $self->cfg( "job.$name", 'configurations' ) ) ],
         },
         \$data
