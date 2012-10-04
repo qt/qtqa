@@ -203,6 +203,21 @@ If omitted, the job is not triggered periodically.
 A list of space-separated test/build configurations, e.g.
 "linux-g++-32_Ubuntu_10.04_x86 win32-msvc2010_Windows_7".
 
+It is possible to set a top-level list of configurations,
+then add or subtract from that list for specific jobs by
+adding a 'configuration += ...' or 'configuration -= ...' line,
+as in the following example:
+
+  # default tests on each major desktop platform...
+  configurations = linux mac win
+
+  # ...but this job is not supported on windows
+  [job.Some_Unix_Thing]
+  configurations -= win
+
+Note that only one 'configurations +=' or 'configurations -=' directive
+may appear in each block.
+
 =item jenkins_url
 
 URL of the Jenkins server on which the job should be managed.
@@ -493,6 +508,18 @@ sub desired_job_xml
        || $auto_branch
        || confess "job $name: can't determine branch";
 
+    # configurations start from the 'configuration' key, but may be added or subtracted by
+    # configurations += or configurations -=, which are simply parsed as 'configuration +' and
+    # 'configuration -' keys
+    my %configurations = map { $_ => 1 } split( /[ ,]+/, $self->cfg( "job.$name", 'configurations' ) );
+    foreach my $add_cfg (eval { split( /[ ,]+/, $self->cfg( "job.$name", 'configurations +' ) ) } ) {
+        $configurations{ $add_cfg } = 1;
+    }
+    foreach my $remove_cfg (eval { split( /[ ,]+/, $self->cfg( "job.$name", 'configurations -' ) ) } ) {
+        delete $configurations{ $remove_cfg };
+    }
+    my @configurations = sort keys %configurations;
+
     my $data;
     $tt->process(
         $template_file,
@@ -510,7 +537,7 @@ sub desired_job_xml
             pretend => eval { $self->cfg( "job.$name", 'pretend' ) } // 0,
             poll_cron => eval { $self->cfg( "job.$name", 'poll_cron' ) } || q{},
             trigger_cron => eval { $self->cfg( "job.$name", 'trigger_cron' ) } || q{},
-            configurations => [ split( /[ ,]+/, $self->cfg( "job.$name", 'configurations' ) ) ],
+            configurations => \@configurations,
         },
         \$data
     ) || die "job $name: while parsing template: ".$tt->error();
