@@ -205,7 +205,7 @@ sub robust_http_get
             die "failed after repeated attempts. Last error: $error\n";
         }
 
-        AE::log warn => "$error, trying again in $sleep seconds";
+        AE::log(warn => "$error, trying again in $sleep seconds");
 
         Coro::AnyEvent::sleep( $sleep );
 
@@ -239,9 +239,9 @@ sub do_notify_commit
                 robust_http_get( $url->as_string() );
             };
             if (my $error = $EVAL_ERROR) {
-                AE::log warn => "notify to $url failed: $error\n";
+                AE::log(warn => "notify to $url failed: $error\n");
             } else {
-                AE::log debug => "notified $url";
+                AE::log(debug => "notified $url");
             }
         }
     }
@@ -259,7 +259,7 @@ sub handle_event
 
     # only hashes are expected
     if (ref($event) ne 'HASH') {
-        AE::log warn => 'unexpected gerrit event: ' . Dumper( $event ) . "\n";
+        AE::log(warn => 'unexpected gerrit event: ' . Dumper( $event ) . "\n");
         return;
     }
 
@@ -271,7 +271,7 @@ sub handle_event
     my $project = $event->{ refUpdate }{ project };
     my $ref = $event->{ refUpdate }{ refName };
 
-    AE::log debug => "$ref updated on $project, spawning notifyCommit";
+    AE::log(debug => "$ref updated on $project, spawning notifyCommit");
 
     $self->do_notify_commit( $project );
 
@@ -331,7 +331,7 @@ sub do_stream_events
 
         {
             local $LIST_SEPARATOR = '] [';
-            AE::log note => "Running: [@ssh]\n";
+            AE::log(note => "Running: [@ssh]\n");
         }
 
         # run stream-events with stdout connected to pipe ...
@@ -372,7 +372,7 @@ sub do_stream_events
             $msg = "ssh exited with status $status";
         }
 
-        AE::log warn => "$msg\nTrying again in $sleep seconds.\n";
+        AE::log(warn => "$msg\nTrying again in $sleep seconds.\n");
         Coro::AnyEvent::sleep( $sleep );
 
         $sleep *= 2;
@@ -382,7 +382,7 @@ sub do_stream_events
 
     }
 
-    AE::log error => 'internal error: main loop unexpectedly finished';
+    AE::log(error => 'internal error: main loop unexpectedly finished');
     return;
 }
 
