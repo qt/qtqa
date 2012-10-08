@@ -1,0 +1,257 @@
+Started by upstream project "QtBase_master_Integration" build number 4057
+[EnvInject] - Loading node environment variables.
+Building remotely on bqw7x86-msvc2010-08 in workspace c:\work\ci\qt\qtbase\cfg\win32-msvc2010_Windows_7
+Running Prebuild steps
+Run condition [And] preventing prebuild for step [Execute Windows batch command]
+Run condition [And] preventing prebuild for step [Execute shell]
+Regular expression run condition: Expression=[^.*\bwindows\b.*$], Label=[bqw7x86-msvc2010-08 win32-msvc2010_Windows_7 win32-msvc2010_developer-build_Windows_7 win32-msvc2010_developer-build_qtnamespace_Windows_7 windows]
+Regular expression run condition: Expression=[^.*\bmaster\b.*$], Label=[bqw7x86-msvc2010-08 win32-msvc2010_Windows_7 win32-msvc2010_developer-build_Windows_7 win32-msvc2010_developer-build_qtnamespace_Windows_7 windows]
+Run condition [And] enabling perform for step [Execute Windows batch command]
+[win32-msvc2010_Windows_7] $ cmd /c call C:\Users\pulse\AppData\Local\Temp\hudson6025794898501450447.bat
+
+c:\work\ci\qt\qtbase\cfg\win32-msvc2010_Windows_7>rd /S /Q c:\work\build 
+c:\work\build\qt\qtbase\examples\xml\XMLSTR~1\tmp - The directory is not empty.
+
+c:\work\ci\qt\qtbase\cfg\win32-msvc2010_Windows_7>mkdir c:\work\build 
+A subdirectory or file c:\work\build already exists.
+
+c:\work\ci\qt\qtbase\cfg\win32-msvc2010_Windows_7>cd c:\work\build 
+
+c:\work\build>call git init 
+Initialized empty Git repository in c:/work/build/.git/
+From git://bq-git.apac.nokia.com/codereview/qt/qtbase
+ * [new branch]      master     -> mirror/master
+From git://bq-git.apac.nokia.com/codereview/qt/qtbase
+ * [new tag]         qt-v5.0.0-alpha1 -> qt-v5.0.0-alpha1
+ * [new tag]         v5.0.0-beta1 -> v5.0.0-beta1
+Success build fororg.jenkinsci.plugins.conditionalbuildstep.singlestep.SingleConditionalBuilder@11797e27
+Regular expression run condition: Expression=[^.*\bwindows\b.*$], Label=[bqw7x86-msvc2010-08 win32-msvc2010_Windows_7 win32-msvc2010_developer-build_Windows_7 win32-msvc2010_developer-build_qtnamespace_Windows_7 windows]
+Run condition [And] preventing perform for step [Execute shell]
+Success build fororg.jenkinsci.plugins.conditionalbuildstep.singlestep.SingleConditionalBuilder@43a64562
+Run condition [Regular expression match] enabling prebuild for step [Execute Windows batch command]
+Run condition [Not] preventing prebuild for step [Execute shell]
+Regular expression run condition: Expression=[^.*\bwindows\b.*$], Label=[bqw7x86-msvc2010-08 win32-msvc2010_Windows_7 win32-msvc2010_developer-build_Windows_7 win32-msvc2010_developer-build_qtnamespace_Windows_7 windows]
+Run condition [Regular expression match] enabling perform for step [Execute Windows batch command]
+[win32-msvc2010_Windows_7] $ cmd /c call C:\Users\pulse\AppData\Local\Temp\hudson7697016964831095481.bat
+
+c:\work\ci\qt\qtbase\cfg\win32-msvc2010_Windows_7>cd c:\work\build 
+
+c:\work\build>set GIT_BRANCH=refs/builds/master_1349665873 
+
+c:\work\build>set
+ALLUSERSPROFILE=C:\ProgramData
+APPDATA=C:\Users\pulse\AppData\Roaming
+BUILD_CAUSE=UPSTREAMTRIGGER
+BUILD_CAUSE_UPSTREAMTRIGGER=true
+BUILD_ID=2012-10-08_03-12-09
+BUILD_NUMBER=4057
+BUILD_TAG=jenkins-QtBase_master_Integration-cfg=win32-msvc2010_Windows_7-4057
+BUILD_URL=http://ci-dev.qt-project.org/job/QtBase_master_Integration/./cfg=win32-msvc2010_Windows_7/4057/
+cfg=win32-msvc2010_Windows_7
+CI_NODE_ROOT=c:\work
+COMMONPROGRAMFILES=C:\Program Files\Common Files
+COMPUTERNAME=VM139230
+COMSPEC=C:\Windows\system32\cmd.exe
+DevEnvDir=C:\Program Files\Microsoft Visual Studio 10.0\Common7\IDE\
+DXSDK_DIR=C:\Program Files\Microsoft DirectX SDK\
+EXECUTOR_NUMBER=0
+FP_NO_HOST_CHECK=NO
+Framework35Version=v3.5
+FrameworkDir=c:\Windows\Microsoft.NET\Framework\
+FrameworkDIR32=c:\Windows\Microsoft.NET\Framework\
+FrameworkVersion=v4.0.30319
+FrameworkVersion32=v4.0.30319
+FTP_PASSIVE=1
+GIT_BRANCH=refs/builds/master_1349665873
+HOMEDRIVE=C:
+HOMEPATH=\Users\pulse
+HUDSON_COOKIE=dd707b7f-bd05-44ca-8810-2a18e5b11acd
+HUDSON_HOME=/var/lib/jenkins
+HUDSON_SERVER_COOKIE=c4a4b5e08e4adc8c1ea0037d188621c3
+HUDSON_URL=http://ci-dev.qt-project.org/
+INCLUDE=C:\Program Files\Microsoft Visual Studio 10.0\VC\INCLUDE;C:\Program Files\Microsoft Visual Studio 10.0\VC\ATLMFC\INCLUDE;C:\Program Files\Microsoft SDKs\Windows\v7.0A\include;c:\openssl\include;
+JAVA_HOME=C:\Program Files\Java\jdk1.6.0_24
+JENKINS_HOME=/var/lib/jenkins
+JENKINS_SERVER_COOKIE=c4a4b5e08e4adc8c1ea0037d188621c3
+JENKINS_URL=http://ci-dev.qt-project.org/
+JOB_NAME=QtBase_master_Integration/cfg=win32-msvc2010_Windows_7
+JOB_URL=http://ci-dev.qt-project.org/job/QtBase_master_Integration/./cfg=win32-msvc2010_Windows_7/
+LIB=C:\Program Files\Microsoft Visual Studio 10.0\VC\LIB;C:\Program Files\Microsoft Visual Studio 10.0\VC\ATLMFC\LIB;C:\Program Files\Microsoft SDKs\Windows\v7.0A\lib;c:\openssl\lib;
+LIBPATH=c:\Windows\Microsoft.NET\Framework\v4.0.30319;c:\Windows\Microsoft.NET\Framework\v3.5;C:\Program Files\Microsoft Visual Studio 10.0\VC\LIB;C:\Program Files\Microsoft Visual Studio 10.0\VC\ATLMFC\LIB;
+LOCALAPPDATA=C:\Users\pulse\AppData\Local
+LOGONSERVER=\\VM139230
+NODE_LABELS=bqw7x86-msvc2010-08 win32-msvc2010_Windows_7 win32-msvc2010_developer-build_Windows_7 win32-msvc2010_developer-build_qtnamespace_Windows_7 windows
+NODE_NAME=bqw7x86-msvc2010-08
+NUMBER_OF_PROCESSORS=4
+OPENSSL_CONF=C:\OpenSSL\bin\openssl.cfg
+OS=Windows_NT
+PATH=C:\Program Files\Microsoft Visual Studio 10.0\VSTSDB\Deploy;C:\Program Files\Microsoft Visual Studio 10.0\Common7\IDE\;C:\Program Files\Microsoft Visual Studio 10.0\VC\BIN;C:\Program Files\Microsoft Visual Studio 10.0\Common7\Tools;c:\Windows\Microsoft.NET\Framework\v4.0.30319;c:\Windows\Microsoft.NET\Framework\v3.5;C:\Program Files\Microsoft Visual Studio 10.0\VC\VCPackages;C:\Program Files\HTML Help Workshop;C:\Program Files\Microsoft SDKs\Windows\v7.0A\bin\NETFX 4.0 Tools;C:\Program Files\Microsoft SDKs\Windows\v7.0A\bin;C:\CMake\bin;C:\OpenSSL\bin;c:\test\bin;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;c:\Program Files\Microsoft SQL Server\100\Tools\Binn\;c:\Program Files\Microsoft SQL Server\100\DTS\Binn\;C:\Program Files\Microsoft Windows Performance Toolkit\;c:\Python27;c:\Python27\Scripts;C:\strawberry\c\bin;C:\strawberry\perl\site\bin;C:\strawberry\perl\bin;c:\Program Files\Git\cmd;C:\Program Files\Xoreax\IncrediBuild;C:\Users\pulse\perl5\bin;C:\OpenSSL\bin;c:\test\bin;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;c:\Program Files\Microsoft SQL Server\100\Tools\Binn\;c:\Program Files\Microsoft SQL Server\100\DTS\Binn\;C:\Program Files\Microsoft Windows Performance Toolkit\;c:\Python27;c:\Python27\Scripts;C:\strawberry\c\bin;C:\strawberry\perl\site\bin;C:\strawberry\perl\bin;c:\Program Files\Git\cmd;C:\Program Files\Xoreax\IncrediBuild
+PATH+CMAKE=C:\CMake\bin
+PATH+MSVC=C:\Program Files\Microsoft Visual Studio 10.0\VSTSDB\Deploy;C:\Program Files\Microsoft Visual Studio 10.0\Common7\IDE\;C:\Program Files\Microsoft Visual Studio 10.0\VC\BIN;C:\Program Files\Microsoft Visual Studio 10.0\Common7\Tools;c:\Windows\Microsoft.NET\Framework\v4.0.30319;c:\Windows\Microsoft.NET\Framework\v3.5;C:\Program Files\Microsoft Visual Studio 10.0\VC\VCPackages;C:\Program Files\HTML Help Workshop;C:\Program Files\Microsoft SDKs\Windows\v7.0A\bin\NETFX 4.0 Tools;C:\Program Files\Microsoft SDKs\Windows\v7.0A\bin
+PATHEXT=.COM;.EXE;.BAT;.CMD;.VBS;.VBE;.JS;.JSE;.WSF;.WSH;.MSC
+PERL5LIB=C:\Users\pulse\perl5\lib\perl5\MSWin32-x86-multi-thread;C:\Users\pulse\perl5\lib\perl5
+PERL_JSON_BACKEND=JSON::XS
+PERL_LOCAL_LIB_ROOT=C:\Users\pulse\perl5
+PERL_MB_OPT=--install_base C:\Users\pulse\perl5
+PERL_MM_OPT=INSTALL_BASE=C:\Users\pulse\perl5
+PERL_YAML_BACKEND=YAML
+PROCESSOR_ARCHITECTURE=x86
+PROCESSOR_IDENTIFIER=x86 Family 6 Model 26 Stepping 4, GenuineIntel
+PROCESSOR_LEVEL=6
+PROCESSOR_REVISION=1a04
+PROGRAMDATA=C:\ProgramData
+PROGRAMFILES=C:\Program Files
+PROMPT=$P$G
+PSMODULEPATH=C:\Windows\system32\WindowsPowerShell\v1.0\Modules\
+PUBLIC=C:\Users\Public
+PULSE_HOME=C:\Program Files\Zutubi\Pulse Agent
+qt_ci_git_ref=refs/builds/master_1349665873
+qt_ci_git_url=ssh://codereview.qt-project.org:29418/qt/qtbase
+qt_ci_request_id=04497c4c
+SESSIONNAME=Console
+SYSTEMDRIVE=C:
+SYSTEMROOT=C:\Windows
+TEMP=C:\Users\pulse\AppData\Local\Temp
+TERM=dumb
+TMP=C:\Users\pulse\AppData\Local\Temp
+USERDOMAIN=VM139230
+USERNAME=pulse
+USERPROFILE=C:\Users\pulse
+VCINSTALLDIR=C:\Program Files\Microsoft Visual Studio 10.0\VC\
+VS100COMNTOOLS=C:\Program Files\Microsoft Visual Studio 10.0\Common7\Tools\
+VSINSTALLDIR=C:\Program Files\Microsoft Visual Studio 10.0\
+WINDIR=C:\Windows
+WindowsSdkDir=C:\Program Files\Microsoft SDKs\Windows\v7.0A\
+WINDOWS_TRACING_FLAGS=3
+WINDOWS_TRACING_LOGFILE=C:\BVTBin\Tests\installpackage\csilogfile.log
+WORKSPACE=c:\work\ci\qt\qtbase\cfg\win32-msvc2010_Windows_7
+
+c:\work\build>call git fetch --verbose ssh://codereview.qt-project.org:29418/qt/qtbase +refs/builds/master_1349665873:refs/testing 
+From ssh://codereview.qt-project.org:29418/qt/qtbase
+ * [new branch]      refs/builds/master_1349665873 -> refs/testing
+Checking out files:   6% (1330/19310)   Checking out files:   7% (1352/19310)   Checking out files:   8% (1545/19310)   Checking out files:   9% (1738/19310)   Checking out files:  10% (1931/19310)   Checking out files:  11% (2125/19310)   Checking out files:  12% (2318/19310)   Checking out files:  13% (2511/19310)   Checking out files:  13% (2527/19310)   Checking out files:  14% (2704/19310)   Checking out files:  15% (2897/19310)   Checking out files:  16% (3090/19310)   Checking out files:  17% (3283/19310)   Checking out files:  17% (3389/19310)   Checking out files:  18% (3476/19310)   Checking out files:  19% (3669/19310)   Checking out files:  20% (3862/19310)   Checking out files:  21% (4056/19310)   Checking out files:  22% (4249/19310)   Checking out files:  22% (4426/19310)   Checking out files:  23% (4442/19310)   Checking out files:  24% (4635/19310)   Checking out files:  25% (4828/19310)   Checking out files:  26% (5021/19310)   Checking out files:  27% (5214/19310)   Checking out files:  28% (5407/19310)   Checking out files:  28% (5524/19310)   Checking out files:  29% (5600/19310)   Checking out files:  30% (5793/19310)   Checking out files:  31% (5987/19310)   Checking out files:  32% (6180/19310)   Checking out files:  33% (6373/19310)   Checking out files:  34% (6566/19310)   Checking out files:  34% (6667/19310)   Checking out files:  35% (6759/19310)   Checking out files:  36% (6952/19310)   Checking out files:  37% (7145/19310)   Checking out files:  38% (7338/19310)   Checking out files:  39% (7531/19310)   Checking out files:  39% (7645/19310)   Checking out files:  40% (7724/19310)   Checking out files:  41% (7918/19310)   Checking out files:  42% (8111/19310)   Checking out files:  43% (8304/19310)   Checking out files:  44% (8497/19310)   Checking out files:  44% (8602/19310)   Checking out files:  45% (8690/19310)   Checking out files:  46% (8883/19310)   Checking out files:  46% (8909/19310)   Checking out files:  47% (9076/19310)   Checking out files:  48% (9269/19310)   Checking out files:  49% (9462/19310)   Checking out files:  49% (9520/19310)   Checking out files:  50% (9655/19310)   Checking out files:  51% (9849/19310)   Checking out files:  52% (10042/19310)   Checking out files:  53% (10235/19310)   Checking out files:  54% (10428/19310)   Checking out files:  55% (10621/19310)   Checking out files:  56% (10814/19310)   Checking out files:  56% (10895/19310)   Checking out files:  57% (11007/19310)   Checking out files:  58% (11200/19310)   Checking out files:  59% (11393/19310)   Checking out files:  60% (11586/19310)   Checking out files:  61% (11780/19310)   Checking out files:  62% (11973/19310)   Checking out files:  63% (12166/19310)   Checking out files:  64% (12359/19310)   Checking out files:  65% (12552/19310)   Checking out files:  65% (12735/19310)   Checking out files:  66% (12745/19310)   Checking out files:  67% (12938/19310)   Checking out files:  67% (13085/19310)   Checking out files:  68% (13131/19310)   Checking out files:  69% (13324/19310)   Checking out files:  70% (13517/19310)   Checking out files:  71% (13711/19310)   Checking out files:  72% (13904/19310)   Checking out files:  73% (14097/19310)   Checking out files:  74% (14290/19310)   Checking out files:  75% (14483/19310)   Checking out files:  76% (14676/19310)   Checking out files:  76% (14709/19310)   Checking out files:  77% (14869/19310)   Checking out files:  78% (15062/19310)   Checking out files:  79% (15255/19310)   Checking out files:  80% (15448/19310)   Checking out files:  81% (15642/19310)   Checking out files:  82% (15835/19310)   Checking out files:  83% (16028/19310)   Checking out files:  84% (16221/19310)   Checking out files:  84% (16256/19310)   Checking out files:  85% (16414/19310)   Checking out files:  86% (16607/19310)   Checking out files:  87% (16800/19310)   Checking out files:  88% (16993/19310)   Checking out files:  89% (17186/19310)   Checking out files:  90% (17379/19310)   Checking out files:  91% (17573/19310)   Checking out files:  91% (17634/19310)   Checking out files:  92% (17766/19310)   Checking out files:  93% (17959/19310)   Checking out files:  94% (18152/19310)   Checking out files:  95% (18345/19310)   Checking out files:  96% (18538/19310)   Checking out files:  97% (18731/19310)   Checking out files:  98% (18924/19310)   Checking out files:  99% (19117/19310)   Checking out files:  99% (19249/19310)   Checking out files: 100% (19310/19310)   Checking out files: 100% (19310/19310), done.
+HEAD is now at f44f4c0 tst_qfiledialog: fixed typo causing semi-random completer() failure
+Initialized empty Git repository in c:/work/build/_testconfig/.git/
+From git://bq-git.apac.nokia.com/codereview/qtqa/testconfig
+ * [new branch]      master     -> mirror/master
+From git://gitorious.org/qtqa/testconfig
+ * [new branch]      master     -> origin/master
+HEAD is now at f2e3f3f Remove pulsefile.xml from repository
+Use of uninitialized value $value in scalar chomp at _testconfig/test.pl line 367.
+Use of uninitialized value $value in scalar chomp at _testconfig/test.pl line 367.
+set QTQA_BASE_DIR=C:\work\build
+set PULSE_HOME=C:\Program Files\Zutubi\Pulse Agent
+set QTQA_MAKE_CHECK_ARGS=/NOLOGO /K
+set QTQA_MAKE_CHECK_BIN=nmake
+set QTQA_MAKE_ARGS=-j8 -nologo
+set QTQA_MAKE_BIN=jom
+set QTQA_PLATFORM=win32-msvc2010
+set PULSE_PROJECT=QtBase_master_Integration
+set QTQA_QT_CONFIGURE_ARGS=-opensource -confirm-license -prefix C:\work\build\qt\qtbase -make libs -make tools -make examples -make tests
+set QTQA_QT_CONFIGURE_EXTRA_ARGS=-no-incredibuild-xge -release
+set QTQA_QT_DIR=C:\work\build/qt
+set QTQA_QT_GITMODULE=qtbase
+set QTQA_QT_INIT_REPOSITORY_ARGS=
+set QTQA_QT_INSTALL_DIR=C:\work\build/qt/qtbase
+set QTQA_QT_QTQA_TESTS_ENABLED=0
+set QTQA_QT_REVDEP_DEP_REF=refs/heads/master
+set QTQA_QT_REVDEP_REVDEP_REF=refs/heads/master
+set QTQA_QT_TESTS_ENABLED=1
+set QTQA_QT_TESTS_FLAKY_MODE=best
+set QTQA_QT_TESTS_TEE_LOGS=C:\work\build/_artifacts/test-logs
+set QTQA_QT_TESTS_TESTSCHEDULER=1
+set QTQA_QT_TESTS_TESTSCHEDULER_ARGS=-j5
+set CL=/MP5
+set QT_TEST_CI=1
+git clone qtgitreadonly:qt/qtqa.git _qtqa_latest
+call perl _qtqa_latest/scripts/setup.pl --install && perl _qtqa_latest/scripts/qt/qtmod_test.pl
+========== TO REPRODUCE THIS BUILD, COPY THE ABOVE ===============
++ git clone qtgitreadonly:qt/qtqa.git _qtqa_latest
+Initialized empty Git repository in c:/work/build/_qtqa_latest/.git/
+From git://scm.dev.nokia.troll.no/qt/qtqa
+ * [new branch]      master     -> origin/master
+ * [new tag]         v5.0.0-beta1 -> v5.0.0-beta1
+origin/HEAD set to master
+Branch master set up to track remote branch master from origin.
+Already on 'master'
++ call perl _qtqa_latest/scripts/setup.pl --install && perl _qtqa_latest/scripts/qt/qtmod_test.pl
+
+Checking perl modules ...
+Capture::Tiny - OK
+YAML - OK
+IO::CaptureOutput - OK
+Win32::Status - OK
+Inline::C - OK
+Time::Piece - OK
+Coro::AnyEvent - OK
+Lingua::EN::Numbers - OK
+Test::NoWarnings - OK
+Class::Factory::Util - OK
+IO::Uncompress::AnyInflate - OK
+AnyEvent::Util - OK
+HTTP::Headers - OK
+autodie - OK
+List::Compare - OK
+List::MoreUtils - OK
+AnyEvent - OK
+Test::Exception - OK
+parent - OK
+File::HomeDir - OK
+Test::Exit - OK
+Env::Path - OK
+AnyEvent::HTTP - OK
+File::Fetch - OK
+Test::More - OK
+Text::Diff - OK
+Data::Compare - OK
+Perl::Critic - OK
+Text::ParseWords - OK
+File::Copy::Recursive - OK
+QMake::Project - OK
+Timer::Simple - OK
+Tie::IxHash - OK
+File::Which - OK
+XML::Simple - OK
+File::chdir - OK
+Win32::Job - OK
+Sub::Override - OK
+Text::Trim - OK
+Test::Perl::Critic - OK
+Lingua::EN::Inflect - OK
+Text::Wrap - OK
+Class::Data::Inheritable - OK
+File::Slurp - OK
+File::Find::Rule - OK
+ReleaseAction - OK
+Template - OK
+Readonly - OK
+Win32::Process::Info - OK
+Params::Validate - OK
+Test::Warn - OK
+Win32::Process - OK
+YAML::Node - OK
+JSON - OK
+Config::Tiny - OK
+IO::Prompt - OK
+
+It looks like your CPAN setup is complete :)
++ CWD: C:\work\build
++ PATH: C:\Program Files\Microsoft Visual Studio 10.0\VSTSDB\Deploy;C:\Program Files\Microsoft Visual Studio 10.0\Common7\IDE\;C:\Program Files\Microsoft Visual Studio 10.0\VC\BIN;C:\Program Files\Microsoft Visual Studio 10.0\Common7\Tools;c:\Windows\Microsoft.NET\Framework\v4.0.30319;c:\Windows\Microsoft.NET\Framework\v3.5;C:\Program Files\Microsoft Visual Studio 10.0\VC\VCPackages;C:\Program Files\HTML Help Workshop;C:\Program Files\Microsoft SDKs\Windows\v7.0A\bin\NETFX 4.0 Tools;C:\Program Files\Microsoft SDKs\Windows\v7.0A\bin;C:\CMake\bin;C:\OpenSSL\bin;c:\test\bin;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;c:\Program Files\Microsoft SQL Server\100\Tools\Binn\;c:\Program Files\Microsoft SQL Server\100\DTS\Binn\;C:\Program Files\Microsoft Windows Performance Toolkit\;c:\Python27;c:\Python27\Scripts;C:\strawberry\c\bin;C:\strawberry\perl\site\bin;C:\strawberry\perl\bin;c:\Program Files\Git\cmd;C:\Program Files\Xoreax\IncrediBuild;C:\Users\pulse\perl5\bin;C:\OpenSSL\bin;c:\test\bin;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;c:\Program Files\Microsoft SQL Server\100\Tools\Binn\;c:\Program Files\Microsoft SQL Server\100\DTS\Binn\;C:\Program Files\Microsoft Windows Performance Toolkit\;c:\Python27;c:\Python27\Scripts;C:\strawberry\c\bin;C:\strawberry\perl\site\bin;C:\strawberry\perl\bin;c:\Program Files\Git\cmd;C:\Program Files\Xoreax\IncrediBuild
++ git update-ref refs/testing HEAD
++ CWD: C:\work\build\qt
+--- !qtqa.qt-project.org/error
+error: |-
+  Dirty build directory; 'qtbase' exists and is not empty.
+  Saw files: .git
+while:
+  - setting up git repositories
+  - testing qtbase
+... # end qtqa.qt-project.org/error
+ at _qtqa_latest/scripts/qt/qtmod_test.pl line 845
+	QtQA::ModuleTest::run_git_checkout('QtQA::ModuleTest=HASH(0x24676c4)') called at _qtqa_latest/scripts/qt/qtmod_test.pl line 286
+	QtQA::ModuleTest::run('QtQA::ModuleTest=HASH(0x24676c4)') called at _qtqa_latest/scripts/qt/qtmod_test.pl line 1435
+	QtQA::ModuleTest::main('QtQA::ModuleTest') called at _qtqa_latest/scripts/qt/qtmod_test.pl line 1440
+`call perl _qtqa_latest/scripts/setup.pl --install && perl _qtqa_latest/scripts/qt/qtmod_test.pl' exited with code 1 at _testconfig/test.pl line 1103.
+Build step 'Conditional step (single)' marked build as failure
+Build step 'Groovy Postbuild' marked build as failure
+Finished: FAILURE

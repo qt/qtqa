@@ -1,0 +1,7 @@
+[ qw(--yaml --summarize), "$DATADIR/raw-logs/qtbase-dirty-build-directory.txt" ]
+---
+detail: |
+  Dirty build directory; 'qtbase' exists and is not empty.
+  Saw files: .git
+should_retry: 1
+summary: Setting up git repositories failed :(

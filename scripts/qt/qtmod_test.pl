@@ -842,6 +842,24 @@ sub run_git_checkout
             # Otherwise, we don't have the repo (we didn't pass it to init-repository).
             # base.dir's HEAD should still point at what we want to test, so just clone
             # it, and no further work required.
+
+            # The directory should be empty; verify it first.
+            # Git will give a fatal error if it isn't empty; by verifying it first,
+            # we can give a more detailed and explicit error message.
+            my @files;
+            if (-d $qt_gitmodule) {
+                local $CWD = $qt_gitmodule;
+                push @files, glob( '*' );
+                push @files, glob( '.*' );
+                @files = grep { $_ ne '.' && $_ ne '..' } @files;
+            }
+            if (@files) {
+                $self->fatal_error(
+                    "Dirty build directory; '$qt_gitmodule' exists and is not empty.\n"
+                   ."Saw files: @files"
+                );
+            }
+
             $self->exe( 'git', 'clone', '--shared', $base_dir, $qt_gitmodule );
         }
     }
