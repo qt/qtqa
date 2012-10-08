@@ -502,7 +502,7 @@ sub generate_unique_logfile_name
     my $directory = $self->{ capture_logs };
     return if (!$directory);
 
-    my $lockfile = catfile( File::HomeDir->my_data, '.qtqa-testrunner-logfile-lock' );
+    my $lockfile = catfile( $self->datadir(), '.qtqa-testrunner-logfile-lock' );
     my $lockfh = IO::File->new( $lockfile, '>>' ) || $self->exit_with_logging_error( "open $lockfile: $!" );
     flock( $lockfh, LOCK_EX ) || die "flock $lockfile: $!";
 
@@ -561,6 +561,18 @@ sub generate_unique_logfile_name
     flock( $lockfh, LOCK_UN ) || die "flock $lockfile (unlock): $!";
 
     return $candidate;
+}
+
+# Returns path to a local data dir suitable for lock files and state files,
+# creating it if necessary.
+sub datadir
+{
+    my ($self) = @_;
+
+    my $path = File::HomeDir->my_data();
+    $self->safe_mkpath( $path ) || $self->exit_with_logging_error( "mkpath $path: $!" );
+
+    return;
 }
 
 # Creates a log file at the given $filename, and returns an open file handle.
@@ -1178,7 +1190,7 @@ sub do_subprocess_with_sync_output
 {
     my ($self, @args) = @_;
 
-    my $lockfile = catfile( File::HomeDir->my_data, '.qtqa-testrunner-lock' );
+    my $lockfile = catfile( $self->datadir(), '.qtqa-testrunner-lock' );
     my $fh = IO::File->new( $lockfile, '>>' ) || die "open $lockfile: $!";
 
     # The output will be buffered while we run the subprocess ...
