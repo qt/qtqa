@@ -354,6 +354,13 @@ Value too large to be stored in data type
 Wrong medium type
 END_ERROR_STRINGS
 
+# List of any test script contexts where an error indicates that the build may be
+# able to succeed if we retry.
+Readonly my %TESTSCRIPT_RETRY_CONTEXTS => map { $_ => 1 } (
+    'determining test script configuration',    # usually error in qtqa/testconfig
+    'setting up git repositories',              # usually network outage or similar
+);
+
 # All important regular expressions used to extract errors
 #Readonly my %RE => (  <- too slow :( Adds seconds to runtime, according to NYTProf.
 my %RE = (
@@ -2141,6 +2148,22 @@ sub autotest_chunk_handler
     return $self->chunk_handler( 'autotest', %chunk );
 }
 
+# Returns 1 if we should retry based on a QtQA::TestScript->fatal_error object
+# (i.e. sourced from YAML).
+sub testscript_error_should_retry
+{
+    my ($self, $object) = @_;
+
+    my @contexts = @{ $object->{ 'while' } || [] };
+    foreach my $ctx (@contexts) {
+        if ($TESTSCRIPT_RETRY_CONTEXTS{ $ctx }) {
+            return 1;
+        }
+    }
+
+    return;
+}
+
 # Create a handler for an embedded YAML chunk.
 sub yaml_chunk_handler
 {
@@ -2159,6 +2182,11 @@ sub yaml_chunk_handler
                 $loaded->{ message } = $error;
             }
             push @{$out->{ yaml_fail }}, $loaded;
+
+            # Retry if it makes sense; note that we only retry on errors, not failures
+            if ($chunk{ type } eq 'error' && $self->testscript_error_should_retry( $loaded )) {
+                $out->{ should_retry } = 1;
+            }
         } else {
             warn "log seems to contain a corrupt YAML block:\n$text\nFailed to parse: $@";
         }
@@ -2317,7 +2345,7 @@ sub identify_failures
 
         # opening a YAML error message?
         elsif ($save_failures && $line =~ $RE{ yaml_end }) {
-            $chunk_handler = $self->yaml_chunk_handler( );
+            $chunk_handler = $self->yaml_chunk_handler( type => $+{ type } );
         }
 
         # compiler failed?
