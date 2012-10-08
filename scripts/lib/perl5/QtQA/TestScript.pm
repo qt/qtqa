@@ -468,14 +468,32 @@ sub exe_qx
 
 sub fatal_error
 {
-    my ($self, $error) = @_;
+    my ($self, $text) = @_;
 
-    # We want to ensure that the 'error' key always comes first.
+    $self->_croak( $self->_format_yaml_block( 'error', $text ) );
+
+    return;
+}
+
+sub fail
+{
+    my ($self, $text) = @_;
+
+    $self->_croak( $self->_format_yaml_block( 'failure', $text ) );
+
+    return;
+}
+
+sub _format_yaml_block
+{
+    my ($self, $type, $text) = @_;
+
+    # We want to ensure that the 'message' key always comes first.
     # This is why we use YAML::Node.
-    my $id = 'qtqa.qt-project.org/error';
+    my $id = "qtqa.qt-project.org/$type";
     my $ynode = YAML::Node->new({}, $id );
     %{$ynode} = (
-        error => $error,
+        message => $text,
     );
     my @context = @{ $self->{ _context } || [] };
 
@@ -486,11 +504,8 @@ sub fatal_error
     local $YAML::UseBlock = 1;
     my $formatted = YAML::Dump( $ynode );
 
-    $self->_croak( "$formatted... # end $id\n" );
-
-    return;
+    return "$formatted... # end $id\n";
 }
-
 
 sub doing
 {
@@ -894,8 +909,8 @@ Example:
 =item B<doing>( STRING )
 
 Pushes the given STRING onto an internal context stack, which may then be used for
-stack traces produced on error (e.g. by L<fatal_error>).  The STRING should be a
-human-readable summary of a task (e.g. "compiling the autotests").
+stack traces produced on error or failure (e.g. by L<fatal_error> or L<fail>).
+The STRING should be a human-readable summary of a task (e.g. "compiling the autotests").
 
 Returns a reference.  When that reference is destroyed, the task is popped off
 the context stack.  It is invalid to call this function without storing the return
@@ -919,7 +934,7 @@ Example:
     my $doing = $self->doing( 'compiling the frobnitz' );
 
     # sanity check
-    (-e 'Makefile') || $self->fatal_error(
+    (-e 'Makefile') || $self->fail(
         'configure succeeded, but no Makefile found!'
     );
 
@@ -928,8 +943,8 @@ Example:
 
   ...
 
-In the above example, if the sanity check for the Makefile failed, the fatal
-error message would include a trace of the form:
+In the above example, if the sanity check for the Makefile failed, the failure
+message would include a trace of the form:
 
   while:
     - compiling the frobnitz
@@ -937,7 +952,7 @@ error message would include a trace of the form:
 
 Usage note: the most important consumer of this information is the
 C<parse_build_log.pl> script in the qtqa repository.  When this script finds
-a fatal error with context information, it uses the topmost part of the context
+a failure or error with context information, it uses the topmost part of the context
 stack as the failure summary (which is usually pasted into Gerrit).  The failure
 from the previous example code may be summarized as:
 
@@ -967,10 +982,27 @@ exited with status 123" where the process is expected to output its own error
 messages - it is generally better not to use this function, as the formatted
 error message is unlikely to provide any additional value.
 
+This function should be called only when I<errors> occur, not when I<failures>
+occur. In this context, a "failure" is attributable to the software under test,
+while an "error" is not. For example, when testing Qt, some .cpp files failing
+to compile is most likely a "failure", but some git repositories failing to
+clone is most likely an "error".
+
+The primary reason for differentiating between failures and errors is that it
+may make sense to retry some actions when errors occur, but it rarely makes
+sense to retry when failures occur.
+
 It is highly recommended to make use of this function together with L<doing>.
 See the documentation of that function for more information.
 
+=item B<fail>( STRING )
 
+Like L<fatal_error>, but for I<failures> rather than I<errors>; formats the
+given failure STRING into a human and machine-readable value, then dies
+with the formatted string.
+
+See L<fatal_error> for discussion on the difference between a failure and an
+error.
 
 =item B<get_options_from_array>( ARRAYREF [, LIST ] )
 

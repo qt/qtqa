@@ -453,7 +453,7 @@ sub test_fatal_error
 
 (?:\n|\A)
 \Q--- !qtqa.qt-project.org/error
-error: |
+message: |
   Error occurred while making sandwich:
   Somebody left the fridge door open all weekend
 ... \E\#\Q end qtqa.qt-project.org/error\E
@@ -464,25 +464,50 @@ error: |
     return;
 }
 
-sub test_doing_with_fatal_error
+sub test_fail
 {
     my $script = QtQA::TestScript->new;
 
-    my $error_header = qq{--- !qtqa.qt-project.org/error\nerror: };
+    throws_ok {
+        $script->fail(
+            "Error occurred while making sandwich:\n"
+           ."Somebody left the fridge door open all weekend\n"
+        );
+    } qr{
 
-    my $expected_error_for_scopes = sub {
-        my ($error, @scopes) = @_;
+(?:\n|\A)
+\Q--- !qtqa.qt-project.org/failure
+message: |
+  Error occurred while making sandwich:
+  Somebody left the fridge door open all weekend
+... \E\#\Q end qtqa.qt-project.org/failure\E
+(?:\n|\z)
+
+    }xms, 'fail output looks OK';
+
+    return;
+}
+
+sub test_doing
+{
+    my $script = QtQA::TestScript->new;
+
+    my $make_expected = sub {
+        my ($type, $message, @scopes) = @_;
         @scopes = reverse @scopes;
         return
-            "${error_header}$error\n"
+            "--- !qtqa.qt-project.org/$type\nmessage: $message\n"
            .(@scopes
                 ? "while:\n  - "
                  .join("\n  - ", @scopes)
                  ."\n"
                 : q{}
             )
-           ."... # end qtqa.qt-project.org/error\n";
+           ."... # end qtqa.qt-project.org/$type\n";
     };
+
+    my $expected_error_for_scopes = sub { return $make_expected->( 'error', @_ ) };
+    my $expected_failure_for_scopes = sub { return $make_expected->( 'failure', @_ ) };
 
     {
         my $outer = $script->doing( 'outer1' );
@@ -493,8 +518,8 @@ sub test_doing_with_fatal_error
             throws_ok { $script->fatal_error( 'quux' ) } qr{\A\Q$expected\E}, 'two scopes';
         }
 
-        my $expected = $expected_error_for_scopes->( 'bar', 'outer1' );
-        throws_ok { $script->fatal_error( 'bar' ) } qr{\A\Q$expected\E}, 'one scope';
+        my $expected = $expected_failure_for_scopes->( 'bar', 'outer1' );
+        throws_ok { $script->fail( 'bar' ) } qr{\A\Q$expected\E}, 'one scope';
     }
 
     my $expected = $expected_error_for_scopes->( 'baz' );
@@ -521,7 +546,8 @@ sub run_test
     test_exe_qx;
 
     test_fatal_error;
-    test_doing_with_fatal_error;
+    test_fail;
+    test_doing;
 
     return;
 }

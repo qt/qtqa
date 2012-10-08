@@ -569,7 +569,7 @@ sub read_dependencies
                 ($action, $error) = ('execute', $!);
             }
             if ($error) {
-                $self->fatal_error(
+                $self->fail(
                     "I couldn't $action $dependency_file, which I need to determine dependencies.\n"
                    ."The error was $error\n"
                 );
@@ -1059,7 +1059,7 @@ sub run_install_check
     my @required_files = map { "$qt_install_dir/$_" } qw(bin include);
     my @missing_files = grep { ! -e $_ } @required_files;
     if (@missing_files) {
-        $self->fatal_error(
+        $self->fail(
             'The make install command exited successfully, but the following expected file(s) '
            .'are missing from the install tree:'.join("\n ", q{}, @missing_files)."\n"
         );

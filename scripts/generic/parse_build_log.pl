@@ -1648,19 +1648,33 @@ my %RE = (
         \QQtQA::App::TestRunner: the test seems to be flaky\E
     }xms,
 
-    # The line where a QtQA::TestScript::fatal_error YAML error opens.
+    # The line where a QtQA::TestScript YAML message opens.
+    #
+    # Captures:
+    #
+    #   type    -   the type of message (currently 'error' or 'failure')
     #
     yaml_begin => qr{
         \A
-        \Q--- !qtqa.qt-project.org/error\E
+        \Q--- !qtqa.qt-project.org/\E
+        (?<type>
+            .{1,50}
+        )
         \z
     }xms,
 
-    # The line where a QtQA::TestScript::fatal_error YAML error ends.
+    # The line where a QtQA::TestScript YAML message ends.
+    #
+    # Captures:
+    #
+    #   type    -   the type of message (currently 'error' or 'failure')
     #
     yaml_end => qr{
         \A
-        \Q... \E\#\Q end qtqa.qt-project.org/error\E
+        \Q... \E\#\Q end qtqa.qt-project.org/\E
+        (?<type>
+            .{1,50}
+        )
         \z
     }xms,
 
@@ -2139,6 +2153,11 @@ sub yaml_chunk_handler
         my $text = "$line\n" . $chunk_ref->{ details };
         my $loaded = eval { YAML::Load( $text ) };
         if ($loaded) {
+            # for backwards compatibility: message now named 'message', but used
+            # to be named 'error', support both for a while.
+            if (my $error = delete $loaded->{ error }) {
+                $loaded->{ message } = $error;
+            }
             push @{$out->{ yaml_fail }}, $loaded;
         } else {
             warn "log seems to contain a corrupt YAML block:\n$text\nFailed to parse: $@";
@@ -2435,7 +2454,7 @@ sub extract_yaml_fail
     my $lines_ref = $args{ lines_ref };
 
     foreach my $error (@{ $fail->{ yaml_fail } || []} ) {
-        my @lines = split( /\n/, $error->{ error } );
+        my @lines = split( /\n/, $error->{ message } );
         push @{$lines_ref}, @lines;
         # each failure gets one trailing blank line to separate it from others
         push @{$lines_ref}, q{};

@@ -144,8 +144,8 @@
 4/12/12 5:33:31 AM EST: Cloning into /build/recipes/179081964/base/qt...
 4/12/12 5:33:32 AM EST: String found where operator expected at /build/recipes/179081964/base/sync.profile line 36, near ""libedit""
 4/12/12 5:33:32 AM EST:         (Missing semicolon on previous line?)
-4/12/12 5:33:32 AM EST: --- !qtqa.qt-project.org/error
-4/12/12 5:33:32 AM EST: error: |+
+4/12/12 5:33:32 AM EST: --- !qtqa.qt-project.org/failure
+4/12/12 5:33:32 AM EST: message: |+
 4/12/12 5:33:32 AM EST:   I couldn't parse /build/recipes/179081964/base/sync.profile, which I need to determine dependencies.
 4/12/12 5:33:32 AM EST:   The error was syntax error at /build/recipes/179081964/base/sync.profile line 36, near ""libedit""
 4/12/12 5:33:32 AM EST: 
@@ -153,7 +153,7 @@
 4/12/12 5:33:32 AM EST:   - reading dependencies from qtjsondb/sync.profile
 4/12/12 5:33:32 AM EST:   - setting up git repositories
 4/12/12 5:33:32 AM EST:   - testing qtjsondb
-4/12/12 5:33:32 AM EST: ... # end qtqa.qt-project.org/error
+4/12/12 5:33:32 AM EST: ... # end qtqa.qt-project.org/failure
 4/12/12 5:33:32 AM EST:  at _qtqa_latest/scripts/qt/qtmod_test.pl line 444
 4/12/12 5:33:32 AM EST:         QtQA::ModuleTest::read_dependencies('QtQA::ModuleTest=HASH(0x9daa310)', '/home/rmcgover/build/qt/qt5/qtsvg/sync.profile') called at ../qtqa/scripts/qt/qtmod_test.pl line 513
 4/12/12 5:33:32 AM EST:         QtQA::ModuleTest::run_git_checkout('QtQA::ModuleTest=HASH(0x9daa310)') called at ../qtqa/scripts/qt/qtmod_test.pl line 211
