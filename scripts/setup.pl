@@ -161,6 +161,7 @@ sub all_required_cpan_modules
         Class::Data::Inheritable
         Class::Factory::Util
         Config::Tiny
+        Const::Fast
         Coro::AnyEvent
         Data::Compare
         Env::Path
