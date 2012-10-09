@@ -1835,6 +1835,16 @@ sub normalize_line
     # Note: don't use Text::Trim here, it's surprisingly slow.
     $line =~ s/\s+\z//;
 
+    # Truncate lines exceeding $MAX_LINE_LENGTH to $MAX_LINE_LENGTH
+    my $length = length($line);
+    if ($length > $MAX_LINE_LENGTH) {
+        my $truncated = " (truncated)";
+        $line = substr($line, 0, $MAX_LINE_LENGTH - length($truncated) ) . $truncated;
+        if ($self->{ debug }) {
+            print STDERR "line too long ($length characters), truncated to " . length($line) . " characters\n";
+        }
+    }
+
     return $line;
 }
 
@@ -1918,22 +1928,6 @@ sub read_file
     @lines = map { $self->normalize_line($_) } @lines;
 
     return @lines;
-}
-
-# Truncates lines exceeding $MAX_LINE_LENGTH to $MAX_LINE_LENGTH
-sub ensure_line_length
-{
-    my ($self, $line) = @_;
-
-    my $length = length($$line);
-    if ($length > $MAX_LINE_LENGTH) {
-        my $truncated = " (truncated)";
-        $$line = substr($$line, 0, $MAX_LINE_LENGTH - length($truncated) ) . $truncated;
-        if ($self->{ debug }) {
-            print STDERR "line too long ($length characters), truncated to " . length($$line) . " characters\n";
-        }
-    }
-    return;
 }
 
 # Create a handler for identifying "chunks" of text.
@@ -2206,8 +2200,6 @@ sub identify_failures
     # We start from the end of the log and move backwards, since we're interested in what caused
     # the build to terminate.
     foreach my $line (reverse @{$args{ lines }}) {
-
-        $self->ensure_line_length(\$line);
 
         if ($chunk_handler) {
             if ($chunk_handler->( $line, $out )) {
@@ -2526,7 +2518,6 @@ sub extract
         }
 
         my $line = shift @lines;
-        $self->ensure_line_length(\$line);
 
         next if ($line =~ $RE{ insignificant } || $line =~ $RE{ hidden });
 
