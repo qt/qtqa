@@ -1,6 +1,5 @@
 [ '--summarize', "$DATADIR/raw-logs/qtdeclarative-mac-clang-huge-whitespace-lines.txt" ]
-Autotest `tst_qquickitem' failed for macx-clang developer-build OSX
-10.7 :(
+Autotest `tst_qquickitem' failed :(
 
   ********* Start testing of tst_qquickitem *********
   Config: Using QTest library 5.0.0, Qt 5.0.0

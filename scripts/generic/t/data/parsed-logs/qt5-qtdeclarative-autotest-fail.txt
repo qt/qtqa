@@ -1,6 +1,5 @@
 [ '--summarize', "$DATADIR/raw-logs/qt5-qtdeclarative-autotest-fail.txt" ]
-Autotest `tst_qquicklistmodelworkerscript' failed for linux-g++
-developer-build qtnamespace qtlibinfix Ubuntu 11.10 x64 :(
+Autotest `tst_qquicklistmodelworkerscript' failed :(
 
   QIBusPlatformInputContext: ibus config file '/home/qt/.config/ibus/bus/b6fb9560d0c3d2a5ceaf30530000016c-unix-0' does not exist.
   QIBusPlatformInputContext: not connected.

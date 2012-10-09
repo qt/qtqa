@@ -1,5 +1,5 @@
 [ '--summarize', "$DATADIR/raw-logs/qtbase-mac-cc1plus-error.txt" ]
-qtbase failed to compile for macx-g++ developer-build OSX 10.6 :(
+qtbase failed to compile :(
 
   cc1plus: error: unrecognized command line option "-Wlogical-op"
   make[5]: *** [.obj/debug-shared/tst_headersclean.o] Error 1

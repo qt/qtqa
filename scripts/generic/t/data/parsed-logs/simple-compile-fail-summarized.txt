@@ -1,5 +1,5 @@
 [ '--summarize', "$DATADIR/raw-logs/qtdeclarative-simple-compile-fail.txt" ]
-qtdeclarative failed to compile for linux-g++-32 Ubuntu 10.04 x86 :(
+qtdeclarative failed to compile :(
 
   compiling quicktestresult.cpp
   quicktestresult.cpp: In member function 'void QuickTestResult::skipSingle(const QString&, const QString&, int)':

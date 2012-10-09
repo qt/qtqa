@@ -1,6 +1,5 @@
 [ '--summarize', "$DATADIR/raw-logs/qtbase-mac-objc-compile-fail.txt" ]
-qtbase failed to compile for macx-g++ qpa developer-build cocoa OSX
-10.7 x64 :(
+qtbase failed to compile :(
 
   In file included from ../../../../include/QtGui/qplatformintegration_qpa.h:1,
                    from ../../../../include/QtGui/QPlatformIntegration:1,

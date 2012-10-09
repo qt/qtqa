@@ -1,2 +1,4 @@
 [ "$DATADIR/raw-logs/file-format.gz" ]
-No online agents satisfy the request requirements. Agent frobnitz is not available.
+scm.dev.nokia.troll.no[0: 10.215.6.39]: errno=Operation timed out
+fatal: unable to connect a socket (Operation timed out)
+fatal: destination path '_testconfig' already exists and is not an empty directory.

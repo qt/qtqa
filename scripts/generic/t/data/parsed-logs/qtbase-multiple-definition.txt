@@ -1,5 +1,5 @@
 [ '--summarize', "$DATADIR/raw-logs/qtbase-multiple-definition.txt" ]
-qtbase failed to compile for linux-arm-gnueabi-g++ Ubuntu 11.10 x86 :(
+qtbase failed to compile :(
 
   .obj/release-shared/adler32.o: In function `adler32':
   /build/recipes/187512961/base/qt/qtbase/src/gui/../3rdparty/zlib/adler32.c:69: multiple definition of `adler32'

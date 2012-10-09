@@ -1,6 +1,5 @@
 [ '--summarize', "$DATADIR/raw-logs/qtbase-linux-single-flaky-autotest.txt" ]
-Autotest `tst_qhostinfo' failed for linux-g++-32 qpa developer-build
-Ubuntu 10.04 x86 :(
+Autotest `tst_qhostinfo' failed :(
 
 The test was determined to be flaky, meaning results were not
 consistent across multiple runs.  This might make the problem difficult

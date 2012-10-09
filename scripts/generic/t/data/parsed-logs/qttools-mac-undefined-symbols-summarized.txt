@@ -1,6 +1,5 @@
 [ '--summarize', "$DATADIR/raw-logs/qttools-mac-undefined-symbols.txt" ]
-qttools failed to compile for macx-g++ developer-build cocoa OSX 10.7
-x64 :(
+qttools failed to compile :(
 
   Undefined symbols for architecture x86_64:
     "QWizard::QWizard(QWidget*, QFlags<Qt::WindowType>)", referenced from:

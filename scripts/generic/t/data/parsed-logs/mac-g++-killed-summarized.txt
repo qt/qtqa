@@ -1,9 +1,5 @@
 [ '--summarize', "$DATADIR/raw-logs/mac-g++-killed.txt" ]
-qtbase failed to compile for macx-g++ qpa developer-build cocoa OSX
-10.7 x64 :(
-
-We were trying to test qtdeclarative.  One of the dependencies, qtbase,
-failed to compile.
+qtbase failed to compile :(
 
   compiling graphicsview/qgraphicstransform.cpp
   compiling graphicsview/qgraphicstransform.cpp

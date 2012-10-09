@@ -1,5 +1,5 @@
 [ '--summarize', "$DATADIR/raw-logs/qtbase-linux-assembler-errors.txt" ]
-qtbase failed to compile for linux-arm-gnueabi-g++ Ubuntu 11.10 x86 :(
+qtbase failed to compile :(
 
   {standard input}: Assembler messages:
   {standard input}:12763: Error: thumb conditional instruction should be in IT block -- `strexheq r3,r5,[r6]'

@@ -1,6 +1,5 @@
 [ '--summarize', "$DATADIR/raw-logs/qtpim-linux-autotest-compile-fail.txt" ]
-qtpim failed to compile for linux-g++-32 qpa developer-build Ubuntu
-10.04 x86 :(
+qtpim failed to compile :(
 
   compiling tst_qorganizeritemasync.cpp
   tst_qorganizeritemasync.cpp: In member function 'void tst_QOrganizerItemAsync::itemPartialSave()':

@@ -1,9 +1,5 @@
 [ '--summarize', "$DATADIR/raw-logs/qt5-linux-ld-library-not-found-wrong-order.txt" ]
-qtfeedback failed to compile for linux-g++-32 qpa developer-build
-Ubuntu 10.04 x86 :(
-
-We were trying to test qt5.  One of the dependencies, qtfeedback,
-failed to compile.
+qtfeedback failed to compile :(
 
 It seems that some project tried to link against libQtMultimediaKit
 before that library was built.

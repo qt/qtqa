@@ -1,5 +1,5 @@
 [ '--summarize', "$DATADIR/raw-logs/qt3d-windows-test-fail.txt" ]
-Autotest `tst_qglvertexbundle' failed for win32-msvc2010 Windows 7 :(
+Autotest `tst_qglvertexbundle' failed :(
 
   No platform plugin argument was specified, defaulting to "windows".
   ********* Start testing of tst_QGLVertexBundle *********

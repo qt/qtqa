@@ -1,9 +1,5 @@
 [ '--summarize', "$DATADIR/raw-logs/qtpim-linux-compile-fail-in-qtdeclarative.txt" ]
-qtdeclarative failed to compile for linux-g++-32 qpa developer-build
-Ubuntu 10.04 x86 :(
-
-We were trying to test qtpim.  One of the dependencies, qtdeclarative,
-failed to compile.
+qtdeclarative failed to compile :(
 
   compiling quicktestresult.cpp
   quicktestresult.cpp: In member function 'void QuickTestResult::skipSingle(const QString&, const QString&, int)':

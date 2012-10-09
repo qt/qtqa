@@ -1,5 +1,5 @@
 [ '--summarize', "$DATADIR/raw-logs/qtlocation-linux-missing-headers.txt" ]
-qtlocation failed to compile for linux-g++-32 Ubuntu 10.04 x86 :(
+qtlocation failed to compile :(
 
   In file included from mapsgl/map_p.h:59,
                    from mapsgl/map2d/map2d_p.h:55,

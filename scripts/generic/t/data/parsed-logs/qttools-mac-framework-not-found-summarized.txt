@@ -1,6 +1,5 @@
 [ '--summarize', "$DATADIR/raw-logs/qttools-mac-framework-not-found.txt" ]
-qttools failed to compile for macx-g++ developer-build cocoa OSX 10.7
-x64 :(
+qttools failed to compile :(
 
 It seems that something tried to link against QtUiTools as a framework,
 but that library was built _not_ as a framework.

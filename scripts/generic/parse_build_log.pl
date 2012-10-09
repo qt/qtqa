@@ -379,75 +379,6 @@ const my %RE => (
     # never matches anything
     never_match => qr{a\A}ms,
 
-
-    # the kind of timestamp prefix used by Pulse.
-    # example:
-    #
-    #  8/29/11 7:03:33 PM EST: Hi there
-    #
-    # matches up to and including the `: '
-    #
-    # Captures:
-    #   date    -   the date string
-    #   time    -   the time string (incl. AM/PM, and timezone)
-    #
-    pulse_timestamp => qr{
-            \A
-
-            (?<date>
-                # d/m/y
-                \d{1,2}/\d{1,2}/\d{1,2}
-            )
-
-            \s+
-
-            (?<time>
-                # h:m:s
-                \d{1,2}:\d{1,2}:\d{1,2}
-
-                \s+
-
-                # AM or PM
-                [AP]M
-
-                \s+
-
-                # some timezone (e.g. EST)
-                [A-Z]{2,4}
-            )
-
-            # and the `: ' at the end
-            :[ ]
-    }xms,
-
-    # Any kind of error in the Pulse configuration.
-    #
-    # Example:
-    #   Recipe terminated with an error: Recipe request timed out waiting for a capable agent to become available.
-    #
-    # These kinds of errors are always the fault of the CI infrastructure
-    # and not the code under test.
-    #
-    pulse_config_error => qr{
-        (?:
-            \A
-            \QNo online agents satisfy the request requirements.\E
-        )
-
-        |
-
-        (?:
-            # Stage name in pulse doesn't match stage name in testconfig.git
-            \A
-            \s*
-            \QCould not find a stage directory for \E
-            .*
-            \s at \s [^\s]+/test\.pl \s line \s \d+
-        )
-
-        # add more as discovered
-    }xms,
-
     # Any kind of glitch which can be identified as the reason for the build failure,
     # but the underlying cause is unknown.
     #
@@ -459,26 +390,6 @@ const my %RE => (
     #    problem or confidently present more information about the problem.
     #
     glitch => qr{
-        (?:
-            # note, deliberately not anchored at \A - this can occur in the middle of a line!
-            \QRecipe terminated with an error: \E
-            (?:
-                \QAgent status changed to 'invalid master' while recipe in progress\E
-                |
-                \QAgent idle before recipe expected to complete\E
-            )
-        )
-
-        |
-
-        (?:
-            \QRecipe terminated with an error: Unable to dispatch recipe:\E
-            [^\n]+
-            \Qcom.caucho.hessian.io.HessianProtocolException: expected boolean at end of file\E
-        )
-
-        |
-
         (?:
             # Bizarre error on mac - see QTQAINFRA-376
             # Format is:
@@ -516,14 +427,6 @@ const my %RE => (
             # testconfig directory can't be removed;
             # usually means the testconfig repo couldn't be cloned for some reason.
             \Qfatal: destination path '_testconfig' already exists and is not an empty directory.\E
-        )
-
-        |
-
-        (?:
-            # the bootstrap command fails to run;
-            # this has a number of different triggers, however it won't be related to the code under test.
-            \QCommand 'bootstrap' completed with status error\E
         )
 
         |
@@ -571,7 +474,7 @@ const my %RE => (
     # line output when the top-level qtqa script fails.
     #
     # Example:
-    #   `perl _qtqa_latest/scripts/setup.pl --install && perl _qtqa_latest/scripts/qt/qtmod_test.pl' exited with code 3 at _pulseconfig/test.pl line 1025.
+    #   `perl _qtqa_latest/scripts/setup.pl --install && perl _qtqa_latest/scripts/qt/qtmod_test.pl' exited with code 3 at _testconfig/test.pl line 1025.
     #
     # Captures:
     #   qtqa_script -   path of the qtqa script which failed, relative to qtqa
@@ -1376,54 +1279,6 @@ const my %RE => (
         \z
     }xms,
 
-
-    # Info about some pulse property.
-    #
-    # Note that these lines come from our pulseconfig/test.pl script,
-    # and not from Pulse itself.  Pulse itself does not put the values
-    # of properties directly into the build logs.
-    #
-    # Example:
-    #
-    #  PULSE_STAGE='linux-g++-32 Ubuntu 10.04 x86'
-    #
-    # Captures:
-    #   property    -   the property name (all in uppercase and _ instead of .,
-    #                   e.g. QT_TESTS_ENABLED rather than qt.tests.enabled)
-    #   value       -   the value of the property
-    #
-    pulse_property => qr{
-        \A
-
-        # Windows-only starts with cmd-style `set '
-        (?: set \s )?
-
-        PULSE_
-
-        (?<property>
-            [^=]+
-        )
-
-        =
-
-        # value may or may not be quoted
-        (?:
-            '
-            (?<value>
-                [^']+
-            )
-            '
-
-            |
-
-            (?<value>
-                [^'].+
-            )
-        )
-
-        \z
-    }xms,
-
     # If matched, indicates that all failures prior to this point in the log are non-fatal.
     # Usually the reason for this is that a part of the test script is configured to treat
     # errors as warnings.
@@ -1820,17 +1675,11 @@ sub set_options_from_args
 }
 
 # Given a raw log line, returns a normalized form of that line; for example:
-#  - strips Pulse-format timestamps
 #  - trims trailing whitespace
-#
-# The purpose of this is to format lines in such a way that regular expressions
-# do not need to be written to explicitly handle things which may or may not
-# be in the logs; e.g. the Pulse timestamps.
+#  - truncates line if too long
 sub normalize_line
 {
     my ($self, $line) = @_;
-
-    $line =~ s/$RE{ pulse_timestamp }//;
 
     # Note: don't use Text::Trim here, it's surprisingly slow.
     $line =~ s/\s+\z//;
@@ -2351,13 +2200,6 @@ sub identify_failures
             add_tool_fail( $out, $tool, $line );
         }
 
-        # Pulse config problem?
-        elsif ($save_failures && $line =~ $RE{ pulse_config_error }) {
-            $out->{ should_retry } = 1;
-            $out->{ pulse_config_error } = $line;
-            $out->{ significant_lines }{ $line } = 1;
-        }
-
         # Badly understood glitchy behavior?
         elsif ($save_failures && $line =~ $RE{ glitch }) {
             $out->{ should_retry } = 1;
@@ -2370,13 +2212,6 @@ sub identify_failures
         # so we haven't seen it yet; forget what we know.
         elsif ($save_failures && $line =~ $RE{ fail_boundary }) {
             $out = {};
-        }
-
-        # Extract some possibly useful info about the pulse properties
-        #
-        elsif ($line =~ $RE{ pulse_property })
-        {
-            $out->{ pulse_property }{ $+{ property } } = $+{ value };
         }
 
         # Something happen to make us ignore errors?
@@ -2702,11 +2537,6 @@ sub extract_summary
             $summary = num2en( scalar(@autotest_fail) ) . q{ autotests failed};
         }
 
-        # do we know the stage name?  (i.e. the test configuration)
-        if ($fail->{ pulse_property }{ STAGE }) {
-            $summary .= " for $fail->{ pulse_property }{ STAGE }";
-        }
-
         $summary .= q{ :(};
 
         # any flaky tests?
@@ -2736,16 +2566,6 @@ sub extract_summary
         my $qtmodule = $fail->{ tool_fail_qtmodule }{ $tool };
         my @sources = keys %{ $fail->{ tool_fail_sources }{ $tool } // {} };
 
-        # niceify the names, make them relative to the top-level directory.
-        my $pulse_base_dir = $fail->{ pulse_property }{ BASE_DIR };
-        if ($pulse_base_dir) {
-            @sources = map {
-                my $file = $_;
-                $file =~ s{^ \Q$pulse_base_dir\E [\\/]* }{}xms;
-                $file
-            } @sources;
-        }
-
         my $some_files =
             (@sources == 0) ? 'some file(s)'
           : (@sources == 1) ? $sources[0]
@@ -2753,15 +2573,6 @@ sub extract_summary
         ;
 
         $summary = "$tool failed to process $some_files :(";
-
-        if ($qtmodule) {
-            my $tested_qtmodule = $fail->{ pulse_property }{ QT_GITMODULE };
-            if ($tested_qtmodule && $qtmodule ne $tested_qtmodule) {
-                $summary .= "\n\nWe were trying to test $tested_qtmodule.  "
-                           ."The $tool error(s) occurred in one of the dependencies, "
-                           ."$qtmodule.";
-            }
-        }
     }
 
     # In the vernacular, "compile" is generally understood to also include linking.
@@ -2781,23 +2592,7 @@ sub extract_summary
             $summary = "$compile_fail_qtmodule failed to compile";
         }
 
-        # do we know the stage name?  (i.e. the test configuration)
-        if ($fail->{ pulse_property }{ STAGE }) {
-            $summary .= " for $fail->{ pulse_property }{ STAGE }";
-        }
-
         $summary .= ' :(';
-
-        # if this seems to be a dependency of the tested module, and not the module
-        # we intended to test, give a hint about it
-        if ($compile_fail_qtmodule) {
-            my $tested_qtmodule = $fail->{ pulse_property }{ QT_GITMODULE };
-            if ($tested_qtmodule && $compile_fail_qtmodule ne $tested_qtmodule) {
-                $summary .= "\n\nWe were trying to test $tested_qtmodule.  "
-                           ."One of the dependencies, $compile_fail_qtmodule, "
-                           ."failed to compile.";
-            }
-        }
 
         # Check for the specific case where someone has attempted to link against
         # some library before it has been compiled.
@@ -2830,15 +2625,6 @@ sub extract_summary
                            ."as a framework, but that library was built _not_ as a framework.";
             }
         }
-    }
-
-    # Pulse config problem?
-    if ($fail->{ pulse_config_error }) {
-        $summary = "It seems that there has been some misconfiguration of the Pulse CI tool, "
-                  ."or some related CI infrastructure error. "
-                  ."This is NOT the fault of the code under test!"
-                  ."\n\nPlease contact $CI_CONTACT to resolve this problem.  Meanwhile, it may "
-                  ."be worthwhile to attempt the build again.";
     }
 
     # YAML failure from a test script?

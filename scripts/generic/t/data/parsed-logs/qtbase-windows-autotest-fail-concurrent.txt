@@ -1,6 +1,5 @@
 [ '--summarize', "$DATADIR/raw-logs/qtbase-windows-autotest-fail-concurrent.txt" ]
-Autotest `tst_qfile' failed for win32-msvc2010 developer-build
-qtnamespace Windows 7 :(
+Autotest `tst_qfile' failed :(
 
   Testing tst_QFile
   FAIL!  : tst_QFile::writeLargeDataBlock(unc file) Compared values are not the same

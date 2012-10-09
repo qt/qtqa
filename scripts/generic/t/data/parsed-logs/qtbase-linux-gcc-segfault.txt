@@ -1,5 +1,5 @@
 [ '--summarize', "$DATADIR/raw-logs/qtbase-linux-gcc-segfault.txt" ]
-Compilation failed for linux-g++ shadow-build Ubuntu 11.10 x86 :(
+Compilation failed :(
 
   generators/unix/unixmake2.cpp: In member function 'void UnixMakefileGenerator::writeMakeParts(QTextStream&)':
   generators/unix/unixmake2.cpp:996:1: internal compiler error: Segmentation fault

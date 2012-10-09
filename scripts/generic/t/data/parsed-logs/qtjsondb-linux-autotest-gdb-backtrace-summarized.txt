@@ -1,6 +1,5 @@
 [ '--summarize', "$DATADIR/raw-logs/qtjsondb-linux-autotest-gdb-backtrace.txt" ]
-seven autotests failed for linux-g++ developer-build qtnamespace
-qtlibinfix Ubuntu 11.10 x64 :(
+seven autotests failed :(
 
   ********* Start testing of TestJsonDbChangesSinceObject *********
   Config: Using QTest library 5.0.0, Qt 5.0.0

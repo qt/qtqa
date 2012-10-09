@@ -1,5 +1,5 @@
 [ '--summarize', "$DATADIR/raw-logs/qtmultimedia-mac-ld-duplicate-symbol.txt" ]
-qtmultimedia failed to compile for macx-g++ cocoa OSX 10.7 x64 :(
+qtmultimedia failed to compile :(
 
   ld: duplicate symbol operator<<(QDebug, QAudioFormat const&)in .obj/debug-shared/qaudio_mac.o and .obj/debug-shared/qaudioformat.o for architecture x86_64
   make[4]: *** [/Users/qt/.pulse2-agent/data/recipes/139765982/base/qt/qtbase/lib/QtMultimedia.framework/QtMultimedia_debug] Error 1

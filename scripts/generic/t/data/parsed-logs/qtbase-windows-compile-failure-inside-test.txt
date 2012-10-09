@@ -1,6 +1,5 @@
 [ '--summarize', "$DATADIR/raw-logs/qtbase-windows-compile-failure-inside-test.txt" ]
-Autotest `tst_qfilesystementry' failed for win32-msvc2010
-developer-build qtnamespace Windows 7 :(
+Autotest `tst_qfilesystementry' failed :(
 
   Testing tst_QFileSystemEntry
   FAIL!  : tst_QFileSystemEntry::getSetCheck(empty) Compared values are not the same

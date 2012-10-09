@@ -1,5 +1,5 @@
 [ '--summarize', "$DATADIR/raw-logs/qtbase-linux-undefined-reference.txt" ]
-qtbase failed to compile for linux-g++-32 Ubuntu 10.04 x86 :(
+qtbase failed to compile :(
 
   /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/benchmarks/corelib/kernel/qmetaobject/main.cpp:219: undefined reference to `QTreeView::staticMetaObject'
   /home/qt/.pulse2-agent/data/recipes/133469235/base/qt/qtbase/tests/benchmarks/corelib/kernel/qmetaobject/main.cpp:220: undefined reference to `QTreeView::staticMetaObject'

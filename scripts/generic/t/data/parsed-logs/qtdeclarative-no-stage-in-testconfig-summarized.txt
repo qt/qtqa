@@ -1,9 +1,0 @@
-[ '--summarize', "$DATADIR/raw-logs/qtdeclarative-no-stage-in-testconfig.txt" ]
-It seems that there has been some misconfiguration of the Pulse CI
-tool, or some related CI infrastructure error. This is NOT the fault of
-the code under test!
-
-Please contact some CI administrator to resolve this problem.
-Meanwhile, it may be worthwhile to attempt the build again.
-
-   Could not find a stage directory for macx-g++ developer-build OSX 10.7 (looked at /Users/qt/.pulse2-agent/data/recipes/151223160/base/_testconfig/projects/Qt_Modules_Continuous_Integration/stages/macx-g++_developer-build_OSX_10.7, /Users/qt/.pulse2-agent/data/recipes/151223160/base/_testconfig/projects/QtDeclarative_master_Integration/stages/macx-g++_developer-build_OSX_10.7) at _testconfig/test.pl line 909.

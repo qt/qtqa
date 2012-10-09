@@ -1,6 +1,5 @@
 [ '--summarize', "$DATADIR/raw-logs/qtbase-linux-fatal-error.txt" ]
-qtbase failed to compile for linux-g++ developer-build qtnamespace
-qtlibinfix Ubuntu 11.10 x64 :(
+qtbase failed to compile :(
 
   qxcbdrag.cpp:59:64: fatal error: QtPlatformSupport/private/qshapedpixmapdndwindow_p.h: No such file or directory
   make[4]: *** [.obj/debug-shared/qxcbdrag.o] Error 1

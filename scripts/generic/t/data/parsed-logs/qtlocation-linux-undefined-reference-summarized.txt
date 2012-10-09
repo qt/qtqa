@@ -1,8 +1,5 @@
 [ '--summarize', "$DATADIR/raw-logs/qtlocation-linux-undefined-reference.txt" ]
-qtlocation failed to compile for linux-g++-32 Ubuntu 10.04 x86 :(
-
-We were trying to test qt5.  One of the dependencies, qtlocation,
-failed to compile.
+qtlocation failed to compile :(
 
   tst_sphere.o: In function `tst_Sphere::planeTest(QList<QPlane3D> const&, QList<int> const&) const':
   tst_sphere.cpp:(.text+0x14d): undefined reference to `Sphere::Sphere(double)'

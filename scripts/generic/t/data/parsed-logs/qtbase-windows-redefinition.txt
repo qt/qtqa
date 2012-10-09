@@ -1,5 +1,5 @@
 [ '--summarize', "$DATADIR/raw-logs/qtbase-windows-redefinition.txt" ]
-Compilation failed for win32-msvc2010 Windows 7 :(
+Compilation failed :(
 
   C:\Program Files\Microsoft SDKs\Windows\v7.0A\include\ws2def.h(91) : warning C4005: 'AF_IPX' : macro redefinition
           C:\Program Files\Microsoft SDKs\Windows\v7.0A\include\winsock.h(460) : see previous definition of 'AF_IPX'

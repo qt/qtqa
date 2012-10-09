@@ -1,5 +1,5 @@
 [ '--summarize', "$DATADIR/raw-logs/qtbase-parallel-test-wrong-order-shortened.txt" ]
-Autotest `tst_qchar' failed for linux-g++-32 Ubuntu 10.04 x86 :(
+Autotest `tst_qchar' failed :(
 
   Testing tst_QChar
   FAIL!  : tst_QChar::lineBreakClass() 'QUnicodeTables::lineBreakClass(0x3041u) == QUnicodeTables::LineBreak_ID' returned FALSE. ()

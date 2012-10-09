@@ -1,4 +1,4 @@
 [ '--summarize', "$DATADIR/raw-logs/qtbase-parallel-test-wrong-order.txt" ]
-Autotest `tst_qchar' failed for linux-g++-32 Ubuntu 10.04 x86 :(
+Autotest `tst_qchar' failed :(
 
 

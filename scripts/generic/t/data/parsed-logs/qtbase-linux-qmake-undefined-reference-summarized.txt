@@ -1,5 +1,5 @@
 [ '--summarize', "$DATADIR/raw-logs/qtbase-linux-qmake-undefined-reference.txt" ]
-Compilation failed for linux-g++-32 developer-build Ubuntu 10.04 x86 :(
+Compilation failed :(
 
   qvariant.o: In function `QVariantComparator<CoreTypesFilter>::FilteredComparator<QEasingCurve, true>::compare(QVariant::Private const*, QVariant::Private const*)':
   qvariant.cpp:(.text._ZN18QVariantComparatorI15CoreTypesFilterE18FilteredComparatorI12QEasingCurveLb1EE7compareEPKN8QVariant7PrivateES8_[QVariantComparator<CoreTypesFilter>::FilteredComparator<QEasingCurve, true>::compare(QVariant::Private const*, QVariant::Private const*)]+0x37): undefined reference to `QEasingCurve::operator==(QEasingCurve const&) const'

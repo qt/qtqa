@@ -1,6 +1,6 @@
 [ '--summarize', "$DATADIR/raw-logs/qtdeclarative-qmake-error-long-path.txt" ]
 qmake failed to process
-qt/qtdeclarative/tests/auto/declarative/qpacketprotocol/qpacketprotocol.pro
+/home/qt/.pulse2-agent/data/recipes/139757302/base/qt/qtdeclarative/tests/auto/declarative/qpacketprotocol/qpacketprotocol.pro
 :(
 
   Cannot find file: /home/qt/.pulse2-agent/data/recipes/139757302/base/qt/qtdeclarative/tests/auto/declarative/qpacketprotocol/qpacketprotocol.pro.

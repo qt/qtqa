@@ -1,6 +1,5 @@
 [ '--summarize', "$DATADIR/raw-logs/qtbase-linux-hundreds-of-failures.txt" ]
-three hundred and ninety-seven autotests failed for linux-g++-32
-developer-build Ubuntu 10.04 x86 :(
+three hundred and ninety-seven autotests failed :(
 
   ASSERT failure in QObject internal error: "QObjectData's bitfields are larger than one uint", file kernel/qobject.cpp, line 164
   QtQA::App::TestRunner: Process exited due to signal 6; dumped core

@@ -1,5 +1,5 @@
 [ '--summarize', "$DATADIR/raw-logs/qttools-msvc-ambiguous-call.txt" ]
-Compilation failed for win32-msvc2010 Windows 7 :(
+Compilation failed :(
 
   shared\qdesigner_propertysheet.cpp(1120) : error C2668: 'QVariant::QVariant' : ambiguous call to overloaded function
           c:\test\recipes\187501831\base\qtbase\include\qtcore\../../src/corelib/kernel/qvariant.h(254): could be 'QVariant::QVariant(QVariant &&)'
