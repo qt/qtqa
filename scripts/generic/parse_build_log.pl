@@ -609,8 +609,6 @@ const my %RE => (
     #   jom support is missing (it probably can't be added without modifying jom,
     #   as jom simply doesn't output enough info - tested with jom 0.9.3)
     #
-    #   According to NYTProf, this regex is unusually slow ... why??
-    #
     make_fail => qr{
         \A
 
@@ -681,15 +679,12 @@ const my %RE => (
                 )
             )
 
-        )
+            |
 
-        |
-
-        # nmake example:
-        #  NMAKE : fatal error U1077: 'somecmd' : return code '0xff'
-        (?i:
+            # nmake example:
+            #  NMAKE : fatal error U1077: 'somecmd' : return code '0xff'
             (?<make>
-                nmake
+                (?i:nmake)  # 'nmake' or 'NMAKE' allowed
             )
 
             \s{0,20}
@@ -736,10 +731,10 @@ const my %RE => (
     #   name source files like this :)
     #
     compile_fail => qr{
+        \A
 
-        # gcc or similar
         (?:
-            \A
+            # gcc or similar
 
             # foobar.cpp:123: error: quiznux
             (?<file>
@@ -774,15 +769,9 @@ const my %RE => (
                 )
             )
 
-            \z
-        )
+          |
 
-        |
-
-        # gcc killed for some reason
-        (?:
-            \A
-
+            # gcc killed for some reason
             # note, assumes `make' is using `/bin/sh' (probably safe assumption)
             # /bin/sh: line 123: 456 Killed: 9
             /bin/sh:
@@ -810,15 +799,9 @@ const my %RE => (
                 [^\s]+
             )
 
-            \z
-        )
+          |
 
-        |
-
-        # msvc or similar
-        (?:
-            \A
-
+            # msvc or similar
             #foobar.cpp(65) : fatal error C123: quiznux
             (?<file>
                 [^\(]+
@@ -843,17 +826,11 @@ const my %RE => (
                 .+
             )
 
-            \z
-        )
+          |
 
-        |
-
-        # GNU assembler errors (when used with -pipe)
-        # example:
-        #   \{standard input\}:12763: Error: thumb conditional instruction should be in IT block -- `strexheq r3,r5,[r6]'
-        (?:
-            \A
-
+            # GNU assembler errors (when used with -pipe)
+            # example:
+            #   \{standard input\}:12763: Error: thumb conditional instruction should be in IT block -- `strexheq r3,r5,[r6]'
             (?<file>
                 \Q\{standard input\}\E
             )
@@ -872,17 +849,11 @@ const my %RE => (
                 .+
             )
 
-            \z
-        )
+          |
 
-        |
-
-        # cc1plus errors
-        # example:
-        #    cc1plus: error: unrecognized command line option "-Wlogical-op"
-        (?:
-            \A
-
+            # cc1plus errors
+            # example:
+            #    cc1plus: error: unrecognized command line option "-Wlogical-op"
             cc1plus:
 
             [ ]
@@ -892,11 +863,10 @@ const my %RE => (
                 .+
             )
 
-            \z
+            # add more compilers here as needed
         )
 
-        # add more compilers here as needed
-
+        \z
     }xms,
 
     # Continued lines from a compile failure.
@@ -994,14 +964,14 @@ const my %RE => (
     #   lib     -   the relevant library or object (if any)
     #
     linker_fail => qr{
-        (?:
+        \A
 
-            \A
+        (?:
 
             (?<linker>
                 ld              # basename only
                 |
-                /[^\s]+/ld      # full path
+                /[^\s]{1,80}/ld      # full path
             )
 
             :
@@ -1032,12 +1002,8 @@ const my %RE => (
                 # add others as discovered
             )
 
-            \z
-        )
+          |
 
-        |
-
-        (?:
             # `Undefined symbols' error message doesn't contain the linker name
             # in the error message.  Therefore, there is a risk of false positives
             # here (considered acceptable).
@@ -1051,7 +1017,6 @@ const my %RE => (
             #       v8::internal::Bootstrapper::NativesSourceLookup(int)  in bootstrapper.o
             #       v8::internal::Deserializer::ReadChunk(v8::internal::Object**, v8::internal::Object**, int, unsigned char*)in serialize.o
             #
-            \A
             \s{0,20}
             (?<error>
                 \QUndefined symbols\E
@@ -1063,20 +1028,16 @@ const my %RE => (
                 :
             )
             \s{0,20}
-            \z
-        )
 
-        |
+          |
 
-        (?:
             # Linux-style undefined or multiply defined symbol, e.g.
             #  tst_sphere.o: In function `tst_Sphere::planes() const':
             #  tst_sphere.cpp:(.text+0x244): undefined reference to `ViewportCamera::ViewportCamera()'
             #  tst_sphere.o:tst_sphere.cpp:(.text+0x3bb): more undefined references to `Frustum::plane(QFlags<Frustum::Plane>) const' follow
-            \A
             \s{0,20}
 
-            .+?     # file part (may be .o, .cpp, or both, with also .text reference)
+            .{1,300}?     # file part (may be .o, .cpp, or both, with also .text reference)
 
             :
             \s
@@ -1090,19 +1051,15 @@ const my %RE => (
             )
 
             .+
-            \z
-        )
 
-        |
+          |
 
-        (?:
             # Windows:
             # ..\..\lib\QtWidgets5.dll : fatal error LNK1120: 1 unresolved externals
-            \A
             \s{0,20}
 
             (?<lib>
-                [^:]+?
+                [^:]{1,80}?
             )
 
             \s+
@@ -1117,18 +1074,19 @@ const my %RE => (
                 unresolved externals
             )
 
-        )
+            |
 
-        |
-
-        (?:
             # Windows:
             # qfiledialog_win.obj : error LNK2019: unresolved external symbol "char const * const qt_file_dialog_filter_reg_exp" (?qt_file_dialog_filter_reg_exp@@3PBDB) referenced in function "class QString __cdecl qt_win_extract_filter(class QString const &)" (?qt_win_extract_filter@@YA?AVQString@@ABV1@@Z)
+            .{0,80}
             (?<error>
                 (?:fatal\s)?
                 error\sLNK\d+
             )
+            .+
         )
+
+        \z
     }xms,
 
     # Line continuing a linker error message previously extracted.
@@ -1237,11 +1195,9 @@ const my %RE => (
 
                 [^\s]+
             )
-        )
 
-        |
+          |
 
-        (?:
             # non-silent mode, static lib (ar)
             # command is usually like: ar cqs libFoo.a
             ar
@@ -1254,11 +1210,9 @@ const my %RE => (
             )
             \s+
             # ... then the list of .o files, which we don't care about.
-        )
 
-        |
+          |
 
-        (?:
             # silent mode, linking path/to/libWhatever.so
             linking
 
@@ -1277,11 +1231,9 @@ const my %RE => (
             )
 
             \z
-        )
 
-        |
+          |
 
-        (?:
             # silent mode, linking path/to/Something.framework/Something
             linking
 
@@ -1321,8 +1273,9 @@ const my %RE => (
     #   to violate this convention.
     #
     tool_fail => qr{
+        \A
+
         (?:
-            \A
 
             # path/to/file.pro:123: Parse Error
             (?<file>
@@ -1333,14 +1286,10 @@ const my %RE => (
             \s*
             \QParse Error\E
             .*
-            \z
             (?<tool_qmake>)
-        )
 
-        |
+          |
 
-        (?:
-            \A
             (?:
                 \QError processing project file: \E
                 |
@@ -1351,15 +1300,11 @@ const my %RE => (
                 \.pr[iof]
             )
             \.?
-            \z
             (?<tool_qmake>)
-        )
 
-        |
+          |
 
-        (?:
             # qfeedback.h:59: Parse error at "FILE"
-            \A
             (?<file>
                 [^:]{1,100}
             )
@@ -1371,16 +1316,12 @@ const my %RE => (
                 \QParse error at \E.+
                 # add more as discovered
             )
-            \z
             (?<tool_moc>)
-        )
 
-        |
+          |
 
-        (?:
             # MSVC RC (Resource Compiler)
             # qtquick2plugin_resource.rc(9) : error RC2127 : version WORDs separated by commas expected
-            \A
             (?<file>
                 [^(]{1,100}
             )
@@ -1391,16 +1332,14 @@ const my %RE => (
             :
             [ ]
             error[ ]RC\d
+            .*
             (?<tool_rc>)
-        )
 
-        |
+          |
 
-        (?:
             # MSVC MT (Manifest Tool)
             # mt.exe : general error c101008d: Failed to write the updated manifest to the resource of file
             # somefile : general error c1010070: Failed to load and parse the manifest. The system cannot find the file specified.
-            \A
             (?:
                 # error message seems to start with 'mt.exe' for a generic error,
                 # filename for an error specifically relating to some file
@@ -1416,23 +1355,25 @@ const my %RE => (
             # seem to start with 'c101'
             \Q : general error c101\E
 
+            .*
+
             (?<tool_mt>)
-        )
 
-        |
+          |
 
-        (?:
             # objcopy: 'libQtCore.so.5.0.0': No such file
-            \A
             objcopy:\ '
             (?<file>
                 [^']{1,100}
             )
             ':
+            .*
             (?<tool_objcopy>)
+
+            # add more as discovered
         )
 
-        # add more as discovered
+        \z
     }xms,
 
 
