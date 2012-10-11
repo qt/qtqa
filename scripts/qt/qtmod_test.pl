@@ -791,8 +791,19 @@ sub run_git_checkout
     $self->exe( 'git', 'update-ref', 'refs/testing', 'HEAD' );
 
     # Clone the Qt superproject
-    if ($qt_gitmodule ne 'qt5' && ! -d $qt_dir) {
-        $self->exe( 'git', 'clone', '--branch', $qt_branch, $qt_repository, $qt_dir );
+    if ($qt_gitmodule ne 'qt5') {
+        if (-d $qt_dir) {
+            # qt5 directory already exists? do a basic sanity check to make sure it is really qt5
+            my $expected_file = catfile( $qt_dir, 'init-repository' );
+            if (! -f $expected_file) {
+                $self->fatal_error(
+                    "qt5 directory '$qt_dir' exists but seems invalid; "
+                   ."$expected_file doesn't exist"
+                );
+            }
+        } else {
+            $self->exe( 'git', 'clone', '--branch', $qt_branch, $qt_repository, $qt_dir );
+        }
     }
 
     local $CWD = $qt_dir;
