@@ -178,6 +178,17 @@ If omitted, notifications aren't supported, and polling must be used.
 
 See L<JENKINS BUILD NOTIFICATIONS> for more information.
 
+=item B<DebugTcpPort> [global]
+
+Port number opened for debugging connections.
+
+This port may be connected to with telnet and allows arbitrary code to be
+executed from within the integrator.
+A potential security risk, should only be enabled for debugging purposes.
+
+For more information, connect to the debugger and run the 'help' command,
+or see L<Coro::Debug>.
+
 =item B<WorkingDirectory> [global]
 
 Working directory used for this instance of the integrator.
@@ -2483,6 +2494,24 @@ sub create_unix_signal_watcher
     return \%out;
 }
 
+# Creates and returns a debugger object, if enabled in config
+sub create_debugger
+{
+    my ($self) = @_;
+
+    my $debugger_port = eval { $self->config( 'Global', 'DebugTcpPort' ) };
+    return unless $debugger_port;
+
+    my $log = $self->logger();
+
+    require Coro::Debug;
+    my $out = Coro::Debug->new_tcp_server( $debugger_port );
+
+    $log->warning( "POSSIBLE SECURITY RISK: debugger enabled on port $debugger_port" );
+
+    return $out;
+}
+
 # Creates all top-level event sources
 sub create_event_watchers
 {
@@ -2491,6 +2520,7 @@ sub create_event_watchers
     $self->{ httpd } = $self->create_httpd( );
     $self->{ jenkins_tcpd } = $self->create_jenkins_notify_server( );
     $self->{ unix_signal_watcher } = $self->create_unix_signal_watcher( );
+    $self->{ debugger } = $self->create_debugger( );
 
     return;
 }
