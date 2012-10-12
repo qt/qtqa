@@ -464,6 +464,8 @@ use YAML::Any;
 
 use autodie;
 
+use feature 'switch';
+
 use lib catfile( $FindBin::Bin, qw(.. lib perl5) );
 use QtQA::AnyEvent::Util;
 use QtQA::Gerrit;
@@ -1398,11 +1400,60 @@ sub run_state_method
     return ($next_state_name, $next_stash);
 }
 
+# Returns 0 or a random number of seconds used to stagger the initialization
+# of each project.
+#
+# When the integrator is managing many projects, initializing every project
+# as fast as possible may cause network congestion or other issues.
+#
+# For example, if 40 projects were managed and starting from state 'start',
+# the integrator would open 40 concurrent network connections to gerrit to
+# check staging branch contents, and do the same again after each staging
+# poll interval.
+#
+# At the very least, this results in undesirable periodic spikes in network
+# activity; it may also result in dropped connections.
+#
+# This function calculates a reasonable period over which project initialization
+# should be staggered, then returns a random delay so that the initialization
+# of projects is uniformly distributed over the stagger period.
+sub stagger_delay
+{
+    my ($self) = @_;
+
+    alias my $stagger_period = $self->{ stagger_period };
+    if (!defined($stagger_period)) {
+        # initial calculation of whether we need to stagger;
+        # the scale is picked more or less arbitrarily
+        my $project_count = scalar( @{ $self->{ projects } } );
+        given ($project_count) {
+            when ($_ > 100) { $stagger_period = 300 }
+            when ($_ > 50)  { $stagger_period = 180 }
+            when ($_ > 25)  { $stagger_period = 90 }
+            when ($_ > 10)  { $stagger_period = 60 }
+            default         { $stagger_period = 0 }
+        }
+        if ($stagger_period) {
+            $self->logger()->notice( "Project initialization staggered over $stagger_period seconds" );
+        }
+    }
+
+    if ($stagger_period) {
+        return int(rand($stagger_period));
+    }
+
+    return 0;
+}
+
 # Project-specific initialization.
 # This is called once for each project before the state machine begins.
 sub do_project_init
 {
     my ($self, $project_id) = @_;
+
+    if (my $delay = $self->stagger_delay()) {
+        Coro::AnyEvent::sleep( $delay );
+    }
 
     # create a stream-events watcher for this gerrit (if we don't already have one)
     my $gerrit_url = $self->project_config( $project_id, 'GerritUrl' )->clone();
