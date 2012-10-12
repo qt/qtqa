@@ -199,6 +199,31 @@ working directory for each.
 
 See L<PERSISTENT STATE> for more information.
 
+=item B<RestartInterval> [global]
+
+Interval, in seconds, after which the integrator will restart itself.
+Disabled by default.
+
+Periodic restart may be useful for the following purposes:
+
+=over
+
+=item *
+
+reloading integrator configuration
+
+=item *
+
+loading updated versions of perl modules (for bug fixes)
+
+=item *
+
+as a pre-emptive measure against unexpected bugs (such as long-term resource leaks)
+
+=back
+
+Hint: one day equals ~86400 seconds.
+
 =item B<StagingQuietPeriod> [global, project]
 
 Amount of time, in seconds, for which a staging branch should have no activity before a build
@@ -463,10 +488,12 @@ Readonly my $MAX_LOGS => 50;
 
 # ==================================== STATIC ===========================================
 
-# Returns an ISO 8601 timestamp for the current time in UTC
+# Returns an ISO 8601 timestamp for $time (or the current time) in UTC
 sub timestamp
 {
-    return gmtime()->datetime() . 'Z';
+    my ($time) = @_;
+    $time ||= gmtime();
+    return $time->datetime() . 'Z';
 }
 
 # parse a line of output from gerrit staging-ls
@@ -2512,6 +2539,27 @@ sub create_debugger
     return $out;
 }
 
+# Creates and returns an object to restart self, if RestartInterval is set
+sub create_restarter
+{
+    my ($self) = @_;
+
+    my $interval = eval { $self->config( 'Global', 'RestartInterval' ) };
+    return unless $interval;
+
+    my $log = $self->logger();
+
+    my $timer = AE::timer($interval, 0, sub {
+        $log->notice( 'RestartInterval elapsed, restarting.' );
+        AnyEvent::Watchdog::Util::restart_in( 5 );
+        $self->loop_exit( 0 );
+    });
+
+    $log->notice( 'Restart scheduled for ' . timestamp( gmtime() + $interval ) );
+
+    return $timer;
+}
+
 # Creates all top-level event sources
 sub create_event_watchers
 {
@@ -2521,6 +2569,7 @@ sub create_event_watchers
     $self->{ jenkins_tcpd } = $self->create_jenkins_notify_server( );
     $self->{ unix_signal_watcher } = $self->create_unix_signal_watcher( );
     $self->{ debugger } = $self->create_debugger( );
+    $self->{ restarter } = $self->create_restarter( );
 
     return;
 }
