@@ -155,7 +155,7 @@ my %optionalFiles = (
     "qtdeclarative"  => [
                           # This is a single line forwarding header
                           qr{^src/qml/qml/v8/qv8debug_p\.h$},
-                          # Nokia Legal has agreed that .qml files in test data
+                          # Qt Project Legal has agreed that .qml files in test data
                           # need not have a license header.
                           qr{^tests/auto/qml/},
                           qr{^tests/auto/quick/},
@@ -172,12 +172,12 @@ my %optionalFiles = (
                           qr{^doc/src/classes/phonon-api\.qdoc$},
                         ],
     "qtfeedback"     => [
-                          # Nokia Legal has agreed that .qml files in test data
+                          # Qt Project Legal has agreed that .qml files in test data
                           # need not have a license header.
                           qr{^tests/auto/qdeclarativefeedback/data/},
                         ],
     "qtquick1"       => [
-                          # Nokia Legal has agreed that .qml files in test data
+                          # Qt Project Legal has agreed that .qml files in test data
                           # need not have a license header.
                           qr{^tests/auto/declarative/},
                         ],
@@ -191,7 +191,7 @@ my %optionalFiles = (
                           qr{^src/assistant/clucene/},
                           # This directory is a copy of a 3rdparty library
                           qr{^src/assistant/lib/fulltextsearch/},
-                          # Nokia Legal has agreed that .qml files in test data
+                          # Qt Project Legal has agreed that .qml files in test data
                           # need not have a license header.
                           qr{^tests/auto/linguist/lupdate/testdata/good/parseqml/main\.qml$},
                         ],
