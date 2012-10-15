@@ -125,6 +125,24 @@ Therefore, if notifications are used, this value can be quite large; otherwise,
 it should be small. In fact, the value defaults to something appropriate in both
 cases, so it can generally be omitted.
 
+=item B<JenkinsTriggerTimeout> [global, project]
+
+Maximum amount of time (in seconds) Jenkins is expected to take to schedule a
+build after being triggered.
+
+Normally, this only takes a few seconds, but certain conditions (such as no available
+'master' executor) may cause delays.
+
+Defaults to 15 minutes.
+
+=item B<JenkinsTriggerPollInterval> [global, project]
+
+Poll interval (seconds) to check whether Jenkins has scheduled a build after being
+triggered. This is not covered by L<JENKINS BUILD NOTIFICATIONS> and there is no
+alternative to polling.
+
+Defaults to 10 seconds.
+
 =item B<MailTo> [global, project]
 
 E-mail recipients for mails sent by the integrator.
@@ -496,6 +514,13 @@ sub timestamp
     my ($time) = @_;
     $time ||= gmtime();
     return $time->datetime() . 'Z';
+}
+
+# Returns base command used for summarizing Jenkins build;
+# this is a function so that it may be mocked by tests.
+sub summarize_jenkins_build_cmd
+{
+    return $SUMMARIZE_JENKINS_BUILD;
 }
 
 # parse a line of output from gerrit staging-ls
@@ -925,7 +950,7 @@ sub jenkins_build_summary
     my $build = $stash->{ build };
 
     my $gerrit_url = $self->gerrit_www_url( $project_id );
-    my @cmd = ($SUMMARIZE_JENKINS_BUILD, '--yaml', '--url', '-');
+    my @cmd = (summarize_jenkins_build_cmd(), '--yaml', '--url', '-');
 
     if ($build->{ aborted_by_integrator }) {
         push @cmd, '--ignore-aborted';
@@ -988,7 +1013,7 @@ sub check_should_retry_jenkins
     my $MAX_ATTEMPTS = eval { $self->project_config( $project_id, 'BuildAttempts' ) } || 8;
     alias my $build_attempt = $stash->{ build_attempt };
     $build_attempt ||= 1;
-    if ($build_attempt > $MAX_ATTEMPTS) {
+    if ($build_attempt >= $MAX_ATTEMPTS) {
         $log->error( "already tried $MAX_ATTEMPTS times, giving up" );
         return;
     }
@@ -1637,8 +1662,11 @@ sub do_state_wait_for_jenkins_build_active
         $self->jenkins_job_url( $project_id )
        .'/api/json?depth=2&tree=builds[number,actions[parameters[name,value]]]';
 
-    my $MAX_WAIT = 60*15;  # build should take up to this amount of time to be triggered, max. (seconds)
-    my $INTERVAL = 10;     # poll interval when waiting for build to be triggered (seconds)
+    # build should take up to this amount of time to be triggered, max. (seconds)
+    my $MAX_WAIT = eval { $self->project_config( $project_id, 'JenkinsTriggerTimeout' ) } || 60*15;
+
+    # poll interval when waiting for build to be triggered (seconds)
+    my $INTERVAL = eval { $self->project_config( $project_id, 'JenkinsTriggerPollInterval' ) } || 10;
 
     my $timer = Timer::Simple->new();
 
@@ -1956,6 +1984,8 @@ sub do_state_error
         $log->critical( "$error, occurred repeatedly." );
         $log->critical( "Suspending for investigation; to resume: kill -USR2 $PID" );
         $self->wait_for_resume_from_error_signal();
+        # SIGUSR2 resets error count
+        $error_count = 0;
     } else {
         my $delay = 2**$error_count;
         $log->error( "$error, retry in $delay seconds" );
