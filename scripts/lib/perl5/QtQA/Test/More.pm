@@ -85,7 +85,7 @@ sub is_or_like
     if (ref($expected) eq 'Regexp') {
         if ($testname) {
             $testname .= ' (regex match)';
-            $_[2]      = $testname;
+            @_         = (@_[0..1], $testname);
         }
         goto &like;
     }
@@ -103,7 +103,7 @@ sub is_or_like
 
     if ($testname) {
         $testname .= ' (exact match)';
-        $_[2]      = $testname;
+        @_         = (@_[0..1], $testname);
     }
     goto &is;
 }
