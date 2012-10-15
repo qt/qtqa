@@ -231,6 +231,11 @@ sub all_required_cpan_modules
     # Avoid https://rt.cpan.org/Public/Bug/Display.html?id=53064
     $out{ 'File::chdir' } = '0.1005';
 
+    # Some modules cannot be installed with particularly old cpanm;
+    # force at least this version. However, note that, on Windows, a too recent
+    # version will hit https://github.com/miyagawa/cpanminus/issues/169
+    $out{ 'App::cpanminus' } = $WINDOWS ? '1.4008' : '1.5018';
+
     return %out;
 }
 
