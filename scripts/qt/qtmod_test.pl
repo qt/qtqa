@@ -315,9 +315,14 @@ sub new
 sub default_qt_repository
 {
     my ($self) = @_;
-    return ( $self->{'location'} )
-           ? 'git://scm.dev.nokia.troll.no/qt/qt5.git'
-           : 'git://qt.gitorious.org/qt/qt5.git';
+    my $have_qtgitreadonly;
+    if (0 == system(qw(git config --get-regexp ^url\..*\.insteadof$ ^qtgitreadonly:$))) {
+        $have_qtgitreadonly = 1;
+    }
+
+    return ( $self->{'location'} ) ? 'git://scm.dev.nokia.troll.no/qt/qt5.git'
+         : ( $have_qtgitreadonly ) ? 'qtgitreadonly:qt/qt5.git'
+         :                           'git://qt.gitorious.org/qt/qt5.git';
 }
 
 sub default_qt_tests_enabled
