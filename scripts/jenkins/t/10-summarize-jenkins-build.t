@@ -66,6 +66,9 @@ use Test::Warn;
 Readonly my $SCRIPT => catfile( $FindBin::Bin, '..', 'summarize-jenkins-build.pl' );
 Readonly my $PACKAGE => 'QtQA::App::SummarizeJenkinsBuild';
 
+# expected string separating multiple failed configurations
+Readonly my $CFG_SEPARATOR => "\n\n    ============================================================\n\n";
+
 # Do a single test run.
 # Accepts the following arguments:
 #
@@ -220,7 +223,7 @@ END
             "(parse_build_log.pl summary for cfg1-url/consoleText)\n\n"
            ."  (parse_build_log.pl detail for cfg1-url/consoleText)\n\n"
            ."  Build log: cfg1-url/consoleText"
-           ."\n\n--\n\n"
+           .$CFG_SEPARATOR
            ."(parse_build_log.pl summary for cfg3-url/consoleText)\n\n"
            ."  (parse_build_log.pl detail for cfg3-url/consoleText)\n\n"
            ."  Build log: cfg3-url/consoleText"
@@ -251,8 +254,8 @@ END
             # when no details are available, the summary should just contain the jenkins build
             # status and a link to the log
             "cfg1: FAILURE\n"
-           ."  Build log: cfg1-url/consoleText\n\n"
-           ."--\n\n"
+           ."  Build log: cfg1-url/consoleText"
+           .$CFG_SEPARATOR
            ."cfg3: FAILURE\n"
            ."  Build log: cfg3-url/consoleText"
     );
@@ -283,7 +286,7 @@ END
             "(parse_build_log.pl summary for http://testresults.example.com/ci/bar/build_00004/key1=val1,cfg=cfg1/log.txt.gz)\n\n"
            ."  (parse_build_log.pl detail for http://testresults.example.com/ci/bar/build_00004/key1=val1,cfg=cfg1/log.txt.gz)\n\n"
            ."  Build log: http://testresults.example.com/ci/bar/build_00004/key1=val1,cfg=cfg1/log.txt.gz"
-           ."\n\n--\n\n"
+           .$CFG_SEPARATOR
             # ... while a config with a single axis is collapsed, useless cfg= prefix removed
            ."(parse_build_log.pl summary for http://testresults.example.com/ci/bar/build_00004/cfg3/log.txt.gz)\n\n"
            ."  (parse_build_log.pl detail for http://testresults.example.com/ci/bar/build_00004/cfg3/log.txt.gz)\n\n"
@@ -331,7 +334,7 @@ END
                 "(parse_build_log.pl summary for http://forced-host:999/jenkins/job/bar/key1=val1,cfg=cfg1/4/consoleText)\n\n"
                ."  (parse_build_log.pl detail for http://forced-host:999/jenkins/job/bar/key1=val1,cfg=cfg1/4/consoleText)\n\n"
                ."  Build log: http://testresults.example.com/ci/bar/build_00004/key1=val1,cfg=cfg1/log.txt.gz"
-               ."\n\n--\n\n"
+               .$CFG_SEPARATOR
                ."(parse_build_log.pl summary for http://testresults.example.com/ci/bar/build_00004/cfg3/log.txt.gz)\n\n"
                ."  (parse_build_log.pl detail for http://testresults.example.com/ci/bar/build_00004/cfg3/log.txt.gz)\n\n"
                ."  Build log: http://testresults.example.com/ci/bar/build_00004/cfg3/log.txt.gz"
@@ -387,7 +390,7 @@ END
                 "(parse_build_log.pl summary for cfg1-url/consoleText)\n\n"
                ."  (parse_build_log.pl detail for cfg1-url/consoleText)\n\n"
                ."  Build log: cfg1-url/consoleText"
-               ."\n\n--\n\n"
+               .$CFG_SEPARATOR
                ."(parse_build_log.pl summary for cfg3-url/consoleText)\n\n"
                ."  (parse_build_log.pl detail for cfg3-url/consoleText)\n\n"
                ."  Build log: cfg3-url/consoleText"
@@ -421,8 +424,8 @@ END
         $formatted =
             "(parse_build_log.pl summary for cfg1-url/consoleText)\n\n"
            ."  (parse_build_log.pl detail for cfg1-url/consoleText)\n\n"
-           ."  Build log: cfg1-url/consoleText\n\n"
-           ."--\n\n"
+           ."  Build log: cfg1-url/consoleText"
+           .$CFG_SEPARATOR
            ."(parse_build_log.pl summary for cfg3-url/consoleText)\n\n"
            ."  (parse_build_log.pl detail for cfg3-url/consoleText)\n\n"
            ."  Build log: cfg3-url/consoleText";
@@ -461,8 +464,8 @@ END
 
         $formatted =
             "cfg1: FAILURE\n"
-           ."  Build log: cfg1-url/consoleText\n\n"
-           ."--\n\n"
+           ."  Build log: cfg1-url/consoleText"
+           .$CFG_SEPARATOR
            ."cfg3: FAILURE\n"
            ."  Build log: cfg3-url/consoleText";
         $yaml_formatted = $formatted;

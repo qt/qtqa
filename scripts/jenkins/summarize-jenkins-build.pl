@@ -365,7 +365,12 @@ sub format_plaintext_output
     }
 
     my @texts = map { $self->format_plaintext_run( $_ ) } @runs;
-    return join( "\n\n--\n\n", @texts );
+
+    # if more than one configuration failed, each configuration is separated
+    # by a bar like this:
+    #      ============================================================
+    # ... to help keep the separate logs visually distinct.
+    return join( "\n\n    " . ('=' x 60) . "\n\n", @texts );
 }
 
 # Returns parsed build data for a single $run (test configuration)
