@@ -360,7 +360,7 @@ identifier higher than this will be included.
 
 Each response includes a "last_id" property which is the latest ID of any project state
 or log message included in the response.  This value may be passed as the "since_id"
-parameter in a subsequent response to receive only the differences between the new
+parameter in a subsequent request to receive only the differences between the new
 state and old state, which may save a significant amount of network traffic when there
 are many projects.
 
