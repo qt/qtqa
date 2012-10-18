@@ -59,6 +59,7 @@ sub new
         max_timeout => 600,
         header => q{},
         prefix => q{},
+        replyto => q{},
     );
 
     foreach my $key (keys %params) {
@@ -158,7 +159,7 @@ sub send_email
                 encoding => 'quoted-printable',
                 from => $self->{ from } || 'LogDispatch@foo.bar',
                 on_errors => 'die',
-                replyto => $self->{ from } || 'LogDispatch@foo.bar',
+                replyto => $self->{ replyto } || q{},
                 smtp => $self->{ smtp },
                 subject => $self->{ subject },
                 to => ( join ',', @{ $self->{ to } } ),

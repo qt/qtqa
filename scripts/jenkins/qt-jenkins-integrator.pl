@@ -157,6 +157,21 @@ If no MailTo option is set, emails are not sent.
 
 From name and address for emails sent by the integrator.
 
+=item B<MailReplyTo> [global, project]
+
+Reply-To header for emails sent by the integrator.
+
+When MailFrom is an address which does not receive emails, and when sending mails to
+a mailing list, it may make sense to set MailReplyTo to the same list, causing
+replies to go to the list by default.
+
+=item B<MailSubjectPrefix> [global, project]
+
+A prefix applied to the Subject of each mail sent by the integrator.
+
+For example, setting MailSubjectPrefix=[Qt CI] would result in emails with
+subjects of "[Qt CI] pass on <repo>", "[Qt CI] fail on <repo>", etc.
+
 =item B<MailSmtp> [global, project]
 
 SMTP server used when sending mails; defaults to 'localhost'.
@@ -296,6 +311,7 @@ Here's a complete example of a configuration file handling a couple of projects.
   JenkinsUser = qt-integration
   #JenkinsToken =  # pass it on the command-line
   MailTo = ci-reports@example.com
+  MailReplyTo = ci-reports@example.com
   MailFrom = Qt Continuous Integration System <ci-noreply@example.com>
   LogBaseHttpUrl = "http://testresults.example.com/ci"
   LogBaseSshUrl = "ssh://logs@testresults.example.com/var/www/ci"
@@ -1917,16 +1933,12 @@ sub do_state_send_mail
 {
     my ($self, $project_id, $stash) = @_;
 
-    my @to = eval { $self->project_config( $project_id, 'MailTo' ) };
-    if (!@to) {
+    if (! eval { $self->project_config( $project_id, 'MailTo' ) }) {
         return 'start';
     }
 
     my $parsed_build = delete $stash->{ parsed_build };
     my $build_ref = delete $stash->{ build_ref };
-
-    my $smtp = eval { $self->project_config( $project_id, 'MailSmtp' ) } || 'localhost';
-    my $from = eval { $self->project_config( $project_id, 'MailFrom' ) };
 
     my $gerrit_url = $self->project_config( $project_id, 'GerritUrl' );
     my $gerrit_branch = $self->project_config( $project_id, 'GerritBranch' );
@@ -1936,9 +1948,7 @@ sub do_state_send_mail
     my $sender = Mail::Sender->new();
 
     my %args = (
-        to => \@to,
-        smtp => $smtp,
-        subject => "[Qt CI] $result on $ident",
+        subject => "$result on $ident",
         headers => {
             'X-Qt-CI-Status' => $result,
             'X-Qt-CI-Repository' => $gerrit_url,
@@ -1951,9 +1961,7 @@ sub do_state_send_mail
         charset => 'utf-8'
     );
 
-    if ($from) {
-        $args{ from } = $from;
-    }
+    $self->fill_mail_args( \%args, $project_id );
 
     $sender->MailMsg( \%args );
 
@@ -2072,8 +2080,8 @@ sub load_config
     return;
 }
 
-# Returns project-specific config if available, or global config otherwise, or dies
-# if neither is available.
+# Returns project-specific config if available (and $project_id is defined), or global
+# config otherwise, or dies if neither is available.
 # If called in list context, comma or space separated values will be split into a list.
 sub project_config
 {
@@ -2081,6 +2089,7 @@ sub project_config
 
     my $out;
     eval {
+        $project_id // die 'no project_id given';
         $out = $self->config( $project_id, $key );
     };
     if ($EVAL_ERROR) {
@@ -2703,18 +2712,17 @@ sub logger_outputs
     if (my @mailto = eval { $self->config( 'Global', 'MailTo' ) }) {
         push @logging_to, @mailto;
 
-        my $smtp = eval { $self->config( 'Global', 'MailSmtp' ) } || 'localhost';
-        my $from = eval { $self->config( 'Global', 'MailFrom' ) };
+        my %mail_args = (
+            subject => 'Problems...',
+        );
+        $self->fill_mail_args( \%mail_args );
 
         push @outputs, [
             '+QtQA::Log::Dispatch::Email::MailSender',
             min_level => 'error',
-            to => \@mailto,
-            smtp => $smtp,
-            subject => '[Qt CI] Problems...',
-            from => $from,
             prefix => sub { timestamp() . ': ' },
             header => q{Some problems occurred recently...},
+            %mail_args
         ];
     }
 
@@ -2791,6 +2799,50 @@ sub create_logger
 
     return;
 }
+
+# Insert/update Mail::Sender arguments into $args, according to the configuration
+# of the given $project_id (which may be undefined for global configuration only).
+sub fill_mail_args
+{
+    my ($self, $args, $project_id) = @_;
+
+    my %config_mandatory = (
+        MailTo => 'to',
+    );
+    my %config = (
+        %config_mandatory,
+        MailFrom => 'from',
+        MailReplyTo => 'replyto',
+        MailSmtp => 'smtp',
+    );
+
+    my %defaults = (
+        smtp => 'localhost',
+    );
+
+    while (my ($config, $arg) = each %config) {
+        my @value = eval { $self->project_config( $project_id, $config ) };
+        next unless @value;
+        $args->{ $arg } = (@value > 1) ? \@value : $value[0];
+    }
+
+    while (my ($config, $arg) = each %config_mandatory) {
+        next if defined $args->{ $arg };
+        croak "can't send mail: missing mandatory configuration value '$config'";
+    }
+
+    while (my ($arg, $value) = each %defaults) {
+        $args->{ $arg } //= $value;
+    }
+
+    # this one is a bit special, it prepends to (rather than overwrites) the input argument
+    if (my $subject_prefix = eval { $self->project_config( $project_id, 'MailSubjectPrefix' ) }) {
+        $args->{ subject } = "$subject_prefix ".$args->{ subject };
+    }
+
+    return;
+}
+
 
 # ========================================= INITIALIZATION ==============================
 
