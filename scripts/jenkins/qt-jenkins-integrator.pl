@@ -1293,13 +1293,21 @@ sub sync_logs
     # the rest is valid only when the build is completed
     return if $build_data->{ building };
 
-    # Create the 'latest' and possibly 'latest-success' links
-    my $cmd = qq{cd "$dest_project_path" && ln -snf "$dest_build_number" latest};
+    # Create the 'state.json.gz' dump of the stash, and the
+    # 'latest' and possibly 'latest-success' links.
+    my %cut_stash = %{ $stash };
+    delete $cut_stash{ logs }; # doesn't make sense to show this
+    my $stash_json = JSON->new()->pretty(1)->utf8(1)->encode( \%cut_stash );
+    my $cmd =
+        qq{cd "$dest_project_path" && }
+       .qq{gzip > "$dest_build_number/.incoming.state.json.gz" && }
+       .qq{mv "$dest_build_number/.incoming.state.json.gz" "$dest_build_number/state.json.gz" && }
+       .qq{ln -snf "$dest_build_number" latest};
     if ($build_data->{ result } eq 'SUCCESS') {
         $cmd .= qq{ && ln -snf "$dest_build_number" latest-success};
     }
 
-    cmd( [@ssh_base, $cmd] );
+    cmd( [@ssh_base, $cmd], '<' => \$stash_json );
 
     return;
 }
