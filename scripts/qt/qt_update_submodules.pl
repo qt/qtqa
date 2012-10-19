@@ -62,9 +62,6 @@ use autodie;
 Readonly my @PROPERTIES => (
     q{base.dir}                => q{top-level source directory of Qt},
 
-    q{location}                => q{location hint for git mirrors (`oslo' or `brisbane'); }
-                                . q{only useful inside of Nokia LAN},
-
     q{qt.git.push}             => q{if 1, really push the commit (if any)},
 
     q{qt.git.push.dry-run}     => q{if 1, do a dry-run push (only used if qt.git.push is set)},
@@ -110,7 +107,6 @@ sub read_and_store_configuration
 
     $self->read_and_store_properties(
         'base.dir'                => \&QtQA::TestScript::default_common_property,
-        'location'                => \&QtQA::TestScript::default_common_property,
         'qt.git.push'             => 0,
         'qt.git.push.dry-run'     => 0,
         'qt.git.url'              => 'ssh://qt_submodule_update_bot@codereview.qt-project.org:29418/qt/qt5',
@@ -141,19 +137,11 @@ sub run_init_repository
     my ($self) = @_;
 
     my $base_dir = $self->{ 'base.dir' };
-    my $location = $self->{ 'location' };
     my $args = $self->{ 'qt.init-repository.args' };
 
     chdir $base_dir;
 
     my @init_repository_arguments = ( '-force' );
-    if (defined( $location ) && ($location eq 'brisbane')) {
-        push @init_repository_arguments, '-brisbane-nokia-developer';
-    }
-    elsif (defined( $location )) {
-        push @init_repository_arguments, '-nokia-developer';
-    }
-
     push @init_repository_arguments, (split /\s+/, $args);
 
     $self->exe( 'perl', './init-repository', @init_repository_arguments );
