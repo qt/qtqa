@@ -50,6 +50,9 @@ use lib "$FindBin::Bin/../lib/perl5";
 package QtQA::QtUpdateSubmodules;
 use base qw(QtQA::TestScript);
 
+use QtQA::Gerrit;
+
+use AnyEvent;
 use Capture::Tiny qw( tee );
 use Carp;
 use English qw( -no_match_vars );
@@ -121,6 +124,12 @@ sub run
 {
     my ($self) = @_;
 
+    # Ensure author, committer are set to the right values.
+    local %ENV = QtQA::Gerrit::git_environment(
+        bot_name => $GIT_USER_NAME,
+        bot_email => $GIT_USER_EMAIL,
+    );
+
     $self->read_and_store_configuration;
     $self->run_init_repository;
     $self->update_submodules;
@@ -166,11 +175,6 @@ sub git_commit
     };
 
     # Yes, there is a diff. Do the commit.
-    # Ensure author, committer are set to the right values.
-    local $ENV{ GIT_AUTHOR_NAME }     = $GIT_USER_NAME;
-    local $ENV{ GIT_COMMITTER_NAME }  = $GIT_USER_NAME;
-    local $ENV{ GIT_AUTHOR_EMAIL }    = $GIT_USER_EMAIL;
-    local $ENV{ GIT_COMMITTER_EMAIL } = $GIT_USER_EMAIL;
     $self->exe(
         'git',
         'commit',
@@ -188,94 +192,7 @@ sub commit_message
 {
     my ($self) = @_;
 
-    return "$COMMIT_MESSAGE\n\nChange-Id: ".$self->change_id();
-}
-
-# Returns the Change-Id used for gerrit.
-#
-# Technically, the value here does not really matter.
-# However, it is nice to use the same Change-Id for contiguous update attempts,
-# if the previous update attempt failed.
-#
-# For example, consider this scenario:
-#
-#  - on Monday morning, this script attempts an update of qt5.git and pushes
-#    it to gerrit.  It is staged, but rejected due to a regression.
-#
-#  - during the day, someone fixes the problem.
-#
-#  - on Tuesday morning, the script again attempts an update of qt5.git.
-#
-#    This time, it should succeed as the regression is allegedly fixed.
-#
-#    It is preferable to update the gerrit change from yesterday with a second
-#    attempt (patch set 2), rather than creating a whole new gerrit change
-#    (which would make the prior change useless and require someone to abandon
-#    it).
-#
-# To accomplish this, the Change-Id is based on the SHA1 of the last successful
-# update from this script.  Note there's a race condition: we could make use
-# of a Change-Id which is in INTEGRATING state.  We choose not to care about
-# this for now.
-#
-sub change_id
-{
-    my ($self) = @_;
-
-    my $base_dir = $self->{ 'base.dir' };
-
-    # Find the most recent commit from this author
-    my $author = "$GIT_USER_NAME <$GIT_USER_EMAIL>";
-    my ($change_id) = trim $self->exe_qx(
-        'git',
-        "--git-dir=$base_dir/.git",
-        'rev-list',
-        '-n1',
-        '--fixed-strings',
-        "--author=$author",
-        'HEAD',
-    );
-
-    if (!$change_id) {
-        warn "It seems like this repo currently has no commits from $author";
-
-        # Use hash of this script for an arbitrary but stable Change-Id
-        ($change_id) = trim $self->exe_qx( 'git', 'hash-object', '--', $0 );
-
-        confess "Somehow failed to calculate any Change-Id" if (!$change_id);
-    }
-
-    # Check if we seem to have this change id already.
-    # This can happen if an author other than ourself has already used the change id.
-    my ($found) = trim $self->exe_qx(
-        'git',
-        "--git-dir=$base_dir/.git",
-        'log',
-        '-n1000',   # don't search too far
-        "--grep=I$change_id",
-        'HEAD',
-    );
-
-    if ($found) {
-        warn "The desired Change-Id, I$change_id, is unexpectedly already used!\n"
-            ."Falling back to a random Change-Id...\n";
-        $change_id = $self->random_change_id( );
-    }
-
-    return "I$change_id";
-}
-
-# Returns a random change id, used as a last resort if none of the calculated change ids
-# are available.
-sub random_change_id
-{
-    my ($self) = @_;
-
-    return sprintf(
-        # 40 hex digits (32 bits gives 8 hex digits)
-        "%08x" x 5,
-        map { rand()*(2**32) } (1..5)
-    );
+    return "$COMMIT_MESSAGE\n\nChange-Id: ".QtQA::Gerrit::next_change_id();
 }
 
 # Push the current HEAD of base.dir to some repository.
@@ -474,36 +391,23 @@ sub post_git_submodule_summary
 
     my ($head) = trim $self->exe_qx( qw(git rev-parse HEAD) );
 
-    my @ssh_post_comment = (
-        'ssh',
-        '-oBatchMode=yes',
-
-        $gerrit{ port }
-            ? ('-p', $gerrit{ port })
-            : ()
-        ,
-
-        $gerrit{ user }
-            ? $gerrit{ user }.'@'.$gerrit{ host }
-            : $gerrit{ host }
-        ,
-
-        'gerrit',
-        'review',
-        $head,
-        '--message', $summary,
-        '--project', $gerrit{ project },
-        '--code-review', '0',
-    );
-
     # dry run requested, just print what we would do
     if ($qt_git_push_dry_run) {
-        warn 'qt.git.push.dry-run is set; if it were not, I would now run: '
-            .join(' ', @ssh_post_comment);
+        warn "qt.git.push.dry-run is set; if it were not, I would now post comment:\n"
+            .$summary
+            ."\n... onto $head in gerrit\n";
         return;
     }
 
-    $self->exe( @ssh_post_comment );
+    my $cv = AE::cv();
+    QtQA::Gerrit::review(
+        $head,
+        url => $qt_git_url,
+        message => $summary,
+        on_success => sub { $cv->send() },
+        on_error => sub { $cv->croak(@_) },
+    );
+    $cv->recv();
 
     return;
 }
