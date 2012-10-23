@@ -1,0 +1,11 @@
+[ '--yaml', "$DATADIR/raw-logs/jenkins-socket-exception-closed.txt" ]
+---
+detail: |-
+  FATAL: hudson.remoting.RequestAbortedException: java.net.SocketException: Socket closed
+  hudson.remoting.RequestAbortedException: hudson.remoting.RequestAbortedException: java.net.SocketException: Socket closed
+  Caused by: hudson.remoting.RequestAbortedException: java.net.SocketException: Socket closed
+should_retry: 1
+summary: |-
+  An unexpected error occurred, most likely due to no fault in the tested code itself :(
+  
+  Please point some CI administrator towards this problem.  Meanwhile, it may be worthwhile to attempt the build again.

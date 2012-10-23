@@ -448,7 +448,12 @@ const my %RE => (
 
         (?:
             # jenkins request aborted due to network problem
-            \Qhudson.remoting.RequestAbortedException: java.net.SocketException: Connection reset\E
+            \Qhudson.remoting.RequestAbortedException: java.net.SocketException: \E
+            (?:
+                Connection\ reset
+                |
+                Socket\ closed
+            )
         )
 
         |
