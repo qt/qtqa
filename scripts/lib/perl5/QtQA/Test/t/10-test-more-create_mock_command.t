@@ -26,7 +26,7 @@ use FindBin;
 use IO::File;
 use Readonly;
 use Test::Exception;
-use Test::More tests => 22;
+use Test::More tests => 24;
 use Test::NoWarnings;
 
 use lib catfile( $FindBin::Bin, qw(..) x 3 );
@@ -108,10 +108,10 @@ sub test_basic_success
 
     my @sequence = (
         # stdout only
-        { stdout => "Hello\nthere :)\n",     exitcode => 0 },
+        { stdout => "Hello\nthere :)\n",     exitcode => 0, delay => 1 },
 
         # stderr only
-        { stderr => "I hope you are well\n", exitcode => 2 },
+        { stderr => "I hope you are well\n", exitcode => 2, delay => 2 },
 
         # mixed (and with nonascii)
         { stdout => "早上好\n你好马？\n",    stderr => "我很好\n你呢？\n", exitcode => 58 },
@@ -130,13 +130,19 @@ sub test_basic_success
     my $i = 0;
     foreach my $step (@sequence) {
         my $status;
+        my $then = time();
         my ($stdout, $stderr) = capture {
             $status = system( 'git', '--foo', 'bar', 'baz' );
         };
+        my $runtime = time() - $then;
 
         is( ($status >> 8), $step->{ exitcode },                     "step $i exitcode is OK" );
         is( $stdout,        encode_utf8( $step->{ stdout } // q{} ), "step $i stdout is OK" );
         is( $stderr,        encode_utf8( $step->{ stderr } // q{} ), "step $i stderr is OK" );
+        if ($step->{ delay }) {
+            ok( $runtime >= $step->{ delay }, "step $i delay is OK" )
+                || diag "command only took $runtime seconds to run, expected at least $step->{ delay }";
+        }
 
         ++$i;
     }

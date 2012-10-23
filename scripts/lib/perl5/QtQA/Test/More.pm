@@ -161,6 +161,7 @@ sub create_mock_command
                     stdout   => { default => q{} },
                     stderr   => { default => q{} },
                     exitcode => { default => 0 },
+                    delay    => { default => 0 },
                 },
             );
         };
@@ -221,6 +222,7 @@ use strict;
 use warnings;
 use utf8;
 use Data::Dumper;
+use English qw(-no_match_vars);
 
 binmode( STDOUT, ':utf8' );
 binmode( STDERR, ':utf8' );
@@ -235,8 +237,10 @@ foreach my $file (@{$step_files}) {
     die "$file did not give a hashref" if (ref($data) ne 'HASH');
     die "couldn't unlink $file: $!"    if (! unlink( $file ));
 
+    local $OUTPUT_AUTOFLUSH = 1;
     print STDOUT $data->{stdout};
     print STDERR $data->{stderr};
+    sleep( $data->{delay} ) if $data->{delay};
     exit $data->{exitcode};
 }
 
@@ -406,9 +410,10 @@ could be used:
     name        =>  'git',
     directory   =>  $tempdir,
     sequence    =>  [
-      # first two times, simulate the server hanging up for unknown reasons
-      { stdout => q{}, stderr => "fatal: The remote end hung up unexpectedly\n", exitcode => 2 },
-      { stdout => q{}, stderr => "fatal: The remote end hung up unexpectedly\n", exitcode => 2 },
+      # first two times, simulate the server hanging up for unknown reasons after
+      # a few seconds
+      { stdout => q{}, stderr => "fatal: The remote end hung up unexpectedly\n", exitcode => 2, delay => 3 },
+      { stdout => q{}, stderr => "fatal: The remote end hung up unexpectedly\n", exitcode => 2, delay => 3 },
       # on the third try, complete successfully
       { stdout => q{}, stderr => q{},                                            exitcode => 0 },
     ],
@@ -459,6 +464,11 @@ Standard error to be written by the command.
 =item exitcode
 
 The exit code for the command.
+
+=item delay
+
+Delay, in seconds, to wait after the command has printed its output and before
+the command exits.
 
 =back
 
