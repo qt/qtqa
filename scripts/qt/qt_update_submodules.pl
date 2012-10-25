@@ -370,14 +370,6 @@ sub post_git_submodule_summary
     # Indent all text by two spaces, causing gerrit to consider it preformatted
     $summary = q{  }.join(qq{\n  }, split( qq{\n}, $summary ) );
 
-    # Quote the text for posting to gerrit.
-    # gerrit's quoting is quite bizarre.  This quoting should be unnecessary
-    # since we are passing this as a separate argument anyway, but gerrit seems to
-    # join all the arguments and parse them again, requiring double quoting.
-    $summary =~ s{"}{}g;
-    $summary = qq{"$summary"};
-
-
     my %gerrit = $self->gerrit_giturl_split( $qt_git_url );
     if (!$gerrit{ host }) {
         # not gerrit, nothing to be done
