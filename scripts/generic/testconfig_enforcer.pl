@@ -77,6 +77,13 @@ If set, use `--dry-run' when performing the git push to gerrit; in other words,
 the commit is not actually pushed. A `git log' in the local testconfig repository
 will show what would have been pushed.
 
+=item --reviewer <reviewer1> [ --reviewer <reviewer2> ... ]
+
+=item -r <reviewer1> [ -r <reviewer2> ... ]
+
+Add the named reviewer(s) to the change in gerrit.
+Reviewers may be specified by email address or username.
+
 =item --random
 
 Randomly remove some properties regardless of the test results.
@@ -431,6 +438,7 @@ sub new
         'author-only' => \$out->{ author_only },
         'update!' => \$out->{ update },
         'dry-run' => \$out->{ dry_run },
+        'r|reviewer=s@' => \$out->{ reviewers },
         'random' => \$RAND,
     ) || die;
 
@@ -465,12 +473,26 @@ sub run
 
     my ($change_id, $sha1) = create_git_commit( %to_remove );
 
-    exe(
+    my @git_push = (
         qw(git push --verbose),
         $self->{ dry_run } ? '--dry-run' : (),
+    );
+
+    if (my @reviewers = @{ $self->{ reviewers } || [] }) {
+        push @git_push, "--receive-pack=git receive-pack ".join(' ', map { "--reviewer=$_" } @reviewers);
+    }
+
+    push @git_push, (
         $GERRIT_URL,
         "HEAD:$GERRIT_DEST_REF",
     );
+
+    {
+        local $LIST_SEPARATOR = '] [';
+        print "Running: [@git_push]\n";
+    }
+
+    exe( @git_push );
 
     if (!$self->{ dry_run }) {
         add_gerrit_message( $sha1, %to_remove );
