@@ -625,6 +625,12 @@ sub run_clean_directories
         # note we do not create the install dir, `make install' is expected to do that
     }
 
+    # Job can be configured to outside base.dir.
+    if (-e $qt_dir) {
+        push @to_delete, $qt_dir;
+    }
+    # it will get created once cloned and checked out
+
     if (@to_delete) {
         local $LIST_SEPARATOR = qq{\n*** WARNING:    };
         warn(
@@ -797,18 +803,7 @@ sub run_git_checkout
 
     # Clone the Qt superproject
     if ($qt_gitmodule ne 'qt5') {
-        if (-d $qt_dir) {
-            # qt5 directory already exists? do a basic sanity check to make sure it is really qt5
-            my $expected_file = catfile( $qt_dir, 'init-repository' );
-            if (! -f $expected_file) {
-                $self->fatal_error(
-                    "qt5 directory '$qt_dir' exists but seems invalid; "
-                   ."$expected_file doesn't exist"
-                );
-            }
-        } else {
-            $self->exe( 'git', 'clone', '--branch', $qt_branch, $qt_repository, $qt_dir );
-        }
+        $self->exe( 'git', 'clone', '--branch', $qt_branch, $qt_repository, $qt_dir );
     }
 
     local $CWD = $qt_dir;
