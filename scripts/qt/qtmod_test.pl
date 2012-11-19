@@ -208,6 +208,11 @@ my @PROPERTIES = (
                                 . q{tests (e.g. `-j2'); defaults to the value of make.args with }
                                 . q{any -jN replaced with -j1, and with -k appended},
 
+    q{qt.sync.profile.dir}     => q{dir prefix, if sync.profile is not stored directly under }
+                                . q{$qt.gitmodule/sync.profile. This will append it to }
+                                . q{$qt.gitmodule/$qt.sync.profile.dir/sync.profile },
+
+
 );
 
 # gitmodules for which `make check' is not yet safe.
@@ -493,6 +498,8 @@ sub read_and_store_configuration
 
         'qt.qtqa-tests.enabled'         => 0                                     ,
         'qt.qtqa-tests.insignificant'   => 0                                     ,
+        'qt.sync.profile.dir'     => q{}                                         ,
+
     );
 
     # for convenience only - this should not be overridden
@@ -791,6 +798,8 @@ sub run_git_checkout
     my $qt_revdep_gitmodule = $self->{ 'qt.revdep.gitmodule' };
     my $qt_revdep_revdep_ref = $self->{ 'qt.revdep.revdep_ref' };
     my $location      = $self->{ 'location'      };
+    my $qt_sync_profile_dir = $self->{ 'qt.sync.profile.dir' };
+
 
     # We don't need to clone submodules for qt/qt.git
     return if ($qt_gitmodule eq 'qt');
@@ -824,7 +833,7 @@ sub run_git_checkout
         # an incoming change
         delete $module_to_ref{ $qt_gitmodule };
     } elsif ($qt_gitmodule ne 'qt5' && $qt_gitmodule ne 'qtbase') {
-        %module_to_ref = $self->read_dependencies( catfile($base_dir, 'sync.profile') );
+        %module_to_ref = $self->read_dependencies( catfile($base_dir, $qt_sync_profile_dir, 'sync.profile') );
     }
 
     # clone any remaining modules we haven't got yet.
