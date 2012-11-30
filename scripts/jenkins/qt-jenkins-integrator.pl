@@ -207,9 +207,16 @@ See L<HTTP REMOTE API> for more information.
 =item B<TcpPort> [global]
 
 Port number for Jenkins build notification events.
-If omitted, notifications aren't supported, and polling must be used.
+If omitted, notifications are not supported, and polling must be used.
 
 See L<JENKINS BUILD NOTIFICATIONS> for more information.
+
+=item B<AdminTcpPort> [global]
+
+Port number for admin command interface.
+If omitted, admin commands are not supported.
+
+See L<ADMINISTRATIVE COMMAND INTERFACE> for more information.
 
 =item B<DebugTcpPort> [global]
 
@@ -392,7 +399,7 @@ If the TcpPort configuration option is set, the integrator will listen on that p
 for connections. It expects each connection to write exactly one JSON object of the
 following form:
 
-  {"type":"build-updated","job":<some_job>}
+  {"type":"build-updated","job":"<some_job>"}
 
 Upon receiving such an event, the integrator will check the state of any Jenkins build
 it has triggered for the given job. If the integrator hasn't triggered any builds for
@@ -408,6 +415,34 @@ notifications. A simple script like the following is sufficient:
 If build notifications can't be used for some reason (e.g. the Jenkins server can't
 open a TCP connection to the machine running this script), polling is used instead,
 which introduces some delays and wastes resources.
+
+=head1 ADMINISTRATIVE COMMAND INTERFACE
+
+The integrator supports administrative commands which can be posted as JSON events
+via TCP.
+
+If the AdminTcpPort configuration option is set, the integrator will listen on that port
+for connections. It expects each connection to write exactly one JSON object of the
+following form:
+
+  {"type":"<some-command>","project":"<some_project>","token":"<JenkinsToken>"}
+
+The token is used to authenticate received commands and must match the configured
+JenkinsToken. Following commands are supported:
+
+=over
+
+=item remove-state
+
+Remove state and history of project. Can be used when project is disabled or removed
+from integrator.
+
+=item reset-state
+
+Reset state of project to 'start'. Can only be used when project is in 'error' state.
+Used when project error state is resolved so that previous state cannot be retried.
+
+=back
 
 =head1 ERRORS, SIGNALS, LOGGING
 
@@ -2012,6 +2047,11 @@ sub do_state_error
     %{ $stash } = %{ $from_state->{ stash } };
     $stash->{ error_count } = $error_count;
 
+    # check if state was reset
+    if ( $self->{ state }{ project }{ $project_id }{ state }{ reset } ) {
+        $state_name = 'start';
+    }
+
     $log->notice( "resuming from error into state $state_name" );
 
     return $state_name;
@@ -2129,29 +2169,19 @@ sub config
     return $out;
 }
 
-# ================================ TCP REMOTE API =======================================
-#
-# To avoid polling Jenkins for build updates, this script supports a simple protocol for
-# Jenkins to report build completions via TCP.
-#
-# If enabled, this script will open a TCP port. On that port, it expects to receive JSON
-# objects (one object per connection) of the form:
-#
-#   {"type":"build-updated","job":"some job"}
-#
-# When these events are received, any coros waiting on the specified job may be woken up.
+# ================================ TCP SERVER =======================================
 
-# Create and return a simple TCP server listening for connections from Jenkins (if enabled
-# in config).
-sub create_jenkins_notify_server
+# Create and return a simple TCP server listening for connections. Configured with
+# port and event handler subroutine.
+sub create_tcp_server
 {
-    my ($self) = @_;
+    my ($self, $port_config, $event_handler) = @_;
 
     my $log = $self->logger();
 
-    my $port = eval { $self->config( 'Global', 'TcpPort' ) };
+    my $port = eval { $self->config( 'Global', $port_config ) };
     if (!$port) {
-        $log->warning( "TCP interface not available. Set TcpPort in configuration file to enable it." );
+        $log->warning( "TCP interface not available. Set '$port_config' in configuration file to enable it." );
         return;
     }
 
@@ -2159,19 +2189,19 @@ sub create_jenkins_notify_server
         undef,
         $port,
         sub {
-            $self->handle_jenkins_tcp_connection( @_ );
+            $self->handle_tcp_connection( @_, $event_handler );
         }
     );
 
-    $log->notice( "TCP listening on port $port" );
+    $log->notice( "TCP listening on port $port ($port_config)" );
 
     return $out;
 }
 
-# Handle an incoming connection from (hopefully) Jenkins
-sub handle_jenkins_tcp_connection
+# Handle an incoming TCP connection
+sub handle_tcp_connection
 {
-    my ($self, $fh, $host, $port) = @_;
+    my ($self, $fh, $host, $port, $event_handler) = @_;
 
     my $desc = "TCP handler $host:$port";
     local $Coro::current->{ desc } = $desc;
@@ -2203,7 +2233,7 @@ sub handle_jenkins_tcp_connection
         json => sub {
             my (undef, $data) = @_;
             local $Coro::current->{ desc } = $desc;
-            $self->handle_jenkins_event( $data );
+            $event_handler->( $self, $data );
             $finish->();
         }
     );
@@ -2219,6 +2249,17 @@ sub handle_jenkins_tcp_connection
 
     return;
 }
+
+# ================================ TCP REMOTE API =======================================
+#
+# To avoid polling Jenkins for build updates, this script supports a simple protocol for
+# Jenkins to report build completions via TCP.
+#
+# If enabled, it expects to receive JSON objects (one object per connection) of the form:
+#
+#   {"type":"build-updated","job":"some job"}
+#
+# When these events are received, any coros waiting on the specified job may be woken up.
 
 # Called whenever an event is received from Jenkins
 sub handle_jenkins_event
@@ -2254,6 +2295,89 @@ sub handle_jenkins_event
     return;
 }
 
+# ================================ TCP ADMIN API =======================================
+#
+# Admin interface for receiving remote commands to modify state machine
+#
+# If enabled, it expects to receive JSON objects (one object per connection) of the form:
+#
+#  {"type":"<some-command>","project":"<some_project>","token":"<JenkinsToken>"}
+
+# Called whenever an admin command is received
+sub handle_admin_cmd
+{
+    my ($self, $event) = @_;
+
+    my $log = $self->logger();
+    if (!$event->{ type }) {
+        $log->warning( 'received admin command with no type, ignored' );
+        return;
+    }
+
+    # Basic authentication using JenkinsToken
+    if (!$event->{ token } || $event->{ token } ne $self->config( 'Global', 'JenkinsToken' )) {
+        $log->warning( "received admin command with missing or wrong token" );
+        return;
+    }
+
+    if ($event->{ type } eq 'remove-state') {
+        $self->handle_admin_cmd_remove_state($event);
+    } elsif ($event->{ type } eq 'reset-state') {
+        $self->handle_admin_cmd_reset_state($event);
+    } else {
+        $log->warning( "received admin command with unknown type '$event->{ type }', ignored" );
+    }
+    return;
+}
+
+# Handle administrative command reset-state
+sub handle_admin_cmd_reset_state
+{
+    my ($self, $event) = @_;
+
+    my $log = $self->logger();
+    my $project = $event->{ project };
+
+    if (!$project) {
+        $log->warning( "reset-state command is missing 'project', ignored" );
+        return;
+    }
+
+    my $project_ref = $self->{ state }{ project }{ $project };
+    if ( $project_ref->{ state }{ name } ne 'error' ) {
+        $log->info( "Project '$project' not in error state, ignoring reset-state" );
+        return;
+    }
+
+    $log->notice( "Resetting state for project '$project'" );
+    $project_ref->{ state }{ reset } = 1;
+    $project_ref->{ state }{ name } = 'start';
+
+    $self->sync_state( );
+
+    return;
+}
+
+# Handle administrative command remove-state
+sub handle_admin_cmd_remove_state
+{
+    my ($self, $event) = @_;
+
+    my $log = $self->logger();
+    my $project = $event->{ project };
+
+    if (!$project) {
+        $log->warning( "remove-state command is missing 'project', ignored" );
+        return;
+    }
+
+    $log->notice( "Removing state for project '$project'" );
+    delete $self->{ state }{ project }{ $project };
+
+    $self->sync_state( );
+
+    return;
+}
 # ================================ HTTP REMOTE API ======================================
 
 # Create and return an HTTP server object, if enabled.
@@ -2664,7 +2788,8 @@ sub create_event_watchers
     my ($self) = @_;
 
     $self->{ httpd } = $self->create_httpd( );
-    $self->{ jenkins_tcpd } = $self->create_jenkins_notify_server( );
+    $self->{ jenkins_tcpd } = $self->create_tcp_server( 'TcpPort', \&handle_jenkins_event );
+    $self->{ admin_tcpd } = $self->create_tcp_server( 'AdminTcpPort', \&handle_admin_cmd );
     $self->{ unix_signal_watcher } = $self->create_unix_signal_watcher( );
     $self->{ debugger } = $self->create_debugger( );
     $self->{ restarter } = $self->create_restarter( );
