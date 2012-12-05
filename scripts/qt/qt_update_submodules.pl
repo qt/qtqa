@@ -72,16 +72,21 @@ Readonly my @PROPERTIES => (
     q{qt.git.url}              => q{giturl of the repo to push to (only used if qt.git.push }
                                 . q{is set)},
 
-    q{qt.git.ref}              => q{the ref to push to (only used if qt.git.push is set)},
+    q{qt.git.ref}              => q{the ref to push to (`stable' branch by default, only used }
+                                . q{if qt.git.push is set)},
+
+    q{qt.git.submodule.ref}    => q{the submodule ref which should be tracked (`stable' branch }
+                                . q{by default)},
 
     q{qt.init-repository.args} => q{additional arguments for init-repository; e.g., use }
                                 . q{-module-subset argument to only update a subset of modules},
 );
 
 # Map from submodule to the ref which should be tracked.
-# When omitted, defaults to `refs/heads/master'.
+# When omitted, defaults to `refs/heads/stable'.
 Readonly my %SUBMODULE_TRACKING_REF => (
-    qtquick3d   =>  'refs/heads/qml2',
+    qtrepotools  =>  'refs/heads/master',
+    qtqa         =>  'refs/heads/master',
 );
 
 # Author and committer to be used for commits by this script.
@@ -113,7 +118,8 @@ sub read_and_store_configuration
         'qt.git.push'             => 0,
         'qt.git.push.dry-run'     => 0,
         'qt.git.url'              => 'ssh://qt_submodule_update_bot@codereview.qt-project.org:29418/qt/qt5',
-        'qt.git.ref'              => 'refs/for/master',
+        'qt.git.ref'              => 'refs/for/stable',
+        'qt.git.submodule.ref'    => 'refs/heads/stable',
         'qt.init-repository.args' => q{},
     );
 
@@ -241,8 +247,9 @@ sub update_submodule
     my ($self, $submodule) = @_;
 
     my $base_dir = $self->{ 'base.dir' };
+    my $qt_git_submodule_ref = $self->{ 'qt.git.submodule.ref' };
 
-    my $ref = $SUBMODULE_TRACKING_REF{ $submodule } // 'refs/heads/master';
+    my $ref = $SUBMODULE_TRACKING_REF{ $submodule } // $qt_git_submodule_ref;
 
     # Note that we always use the giturl stored in .gitmodules, even though
     # init-repository may have used some other giturl.
@@ -443,7 +450,7 @@ The expected usage of this script is:
 
 Periodically (e.g. daily), this script is run on qt5.git.
 It updates all submodules to the latest SHA1 for each tracked branch (typically
-`master'), and pushes the change to gerrit.
+`stable'), and pushes the change to gerrit.
 
 =item *
 
