@@ -89,7 +89,7 @@ my @PROPERTIES = (
     q{location}                => q{location hint for git mirrors (`oslo' or `brisbane'); }
                                 . q{only useful inside of Nokia LAN},
 
-    q{qt.branch}               => q{git branch of Qt superproject (e.g. `master'); only used }
+    q{qt.branch}               => q{git branch of Qt superproject (e.g. `stable'); only used }
                                 . q{if qt.gitmodule != "qt5"},
 
     q{qt.configure.args}       => q{space-separated arguments passed to Qt's configure},
@@ -134,11 +134,11 @@ my @PROPERTIES = (
                                 . q{qtdeclarative on top of qtbase)},
 
     q{qt.revdep.revdep_ref}    => q{git ref for the name of the reverse dependency module under test }
-                                . q{(e.g. `refs/heads/master'); mandatory iff qt.revdep.gitmodule is }
+                                . q{(e.g. `refs/heads/stable'); mandatory iff qt.revdep.gitmodule is }
                                 . q{set},
 
     q{qt.revdep.dep_ref}       => q{git ref for the name of the dependency module upon which the }
-                                . q{revdep shall be tested (e.g. `refs/heads/master'); mandatory iff }
+                                . q{revdep shall be tested (e.g. `refs/heads/stable'); mandatory iff }
                                 . q{qt.revdep.gitmodule is set},
 
     q{qt.repository}           => q{giturl of Qt superproject; only used if }
@@ -476,7 +476,7 @@ sub read_and_store_configuration
         'qt.revdep.dep_ref'       => \&default_qt_revdep_ref                     ,
         'qt.dir'                  => \&default_qt_dir                            ,
         'qt.repository'           => \&default_qt_repository                     ,
-        'qt.branch'               => q{master}                                   ,
+        'qt.branch'               => q{stable}                                   ,
         'qt.init-repository.args' => q{}                                         ,
         'qt.configure.args'       => \&default_qt_configure_args                 ,
         'qt.configure.extra_args' => q{}                                         ,
@@ -566,7 +566,7 @@ sub read_dependencies
 
     our (%dependencies);
 
-    my %default_dependencies = ( 'qtbase' => 'refs/heads/master' );
+    my %default_dependencies = ( 'qtbase' => 'refs/heads/stable' );
     my $default_reason;
 
     if (! -e $dependency_file ) {
