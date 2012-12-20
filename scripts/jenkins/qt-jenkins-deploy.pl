@@ -198,6 +198,11 @@ cron-style line for periodic triggering of the job.
 
 If omitted, the job is not triggered periodically.
 
+=item log_days_to_keep
+=item log_num_to_keep
+
+Variables to configure how jenkins should store the log items.
+
 =item configurations
 
 A list of space-separated test/build configurations, e.g.
@@ -526,6 +531,8 @@ sub desired_job_xml
             branch => $branch,
             log_upload_url => eval { $self->cfg( "job.$name", 'log_upload_url' ) } || q{},
             log_download_url => eval { $self->cfg( "job.$name", 'log_download_url' ) } || q{},
+            log_days_to_keep => eval {$self->cfg( "job.$name", 'log_days_to_keep' )} || q{1},
+            log_num_to_keep =>  eval {$self->cfg( "job.$name", 'log_num_to_keep' )} || q{4},
             enabled => eval { $self->cfg( "job.$name", 'enabled' ) } // 1,
             pretend => eval { $self->cfg( "job.$name", 'pretend' ) } // 0,
             poll_cron => eval { $self->cfg( "job.$name", 'poll_cron' ) } || q{},
