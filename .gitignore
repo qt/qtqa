@@ -260,3 +260,6 @@ work
 
 # Build artifacts from Inline::C
 _Inline/
+
+# Generated static plugin import sources
+*_plugin_import.cpp
