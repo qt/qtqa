@@ -189,13 +189,15 @@ void tst_Bic::sizesAndVTables_data()
     QSKIP("Test not implemented for this compiler/platform");
 #else
 
-#if defined Q_OS_LINUX && defined Q_WS_X11
+#if defined Q_OS_LINUX
 # if defined(__powerpc__) && !defined(__powerpc64__)
 #  define FILESUFFIX "linux-gcc-ppc32"
 # elif defined(__amd64__)
 #  define FILESUFFIX "linux-gcc-amd64"
 # elif defined(__i386__)
 #  define FILESUFFIX "linux-gcc-ia32"
+# elif defined(__arm__)
+#  define FILESUFFIX "linux-gcc-arm"
 # endif
 #elif defined Q_OS_MAC && defined(__powerpc__)
 #  define FILESUFFIX "macx-gcc-ppc32"
@@ -217,8 +219,8 @@ void tst_Bic::sizesAndVTables_data()
     int patch = QT_VERSION & 0xFF;
     for (int i = 0; i <= minor; ++i) {
         if (i != minor || patch)
-            QTest::newRow("4." + QByteArray::number(i))
-                << (QString(qtModuleDir + "/tests/auto/bic/data/%1.4.")
+            QTest::newRow("5." + QByteArray::number(i))
+                << (QString(qtModuleDir + "/tests/auto/bic/data/%1.5.")
                     + QString::number(i)
                     + QString(".0." FILESUFFIX ".txt"))
                 << (i == minor && patch);
@@ -258,6 +260,7 @@ QBic::Info tst_Bic::getCurrentInfo(const QString &libName)
          << "-o" << "/dev/null"
 #endif
          << "-fdump-class-hierarchy"
+         << "-fPIE"
          << tmpFileName;
 
     QProcess proc;

@@ -49,14 +49,14 @@ if [ "$#" -lt 2 ]; then
 fi
 
 if [ "$1" = "-all" ]; then
-    modules="QtCore QtGui QtDBus QtDesigner QtHelp QtMultimedia QtNetwork QtOpenGL QtScript QtScriptTools QtSql QtSvg QtWebKit QtXml QtXmlPatterns phonon"
+    modules="QtCore QtGui QtDBus QtDesigner QtHelp QtMultimedia QtNetwork QtOpenGL QtScript QtScriptTools QtSql QtSvg QtTest QtWebKit QtWebKitWidgets QtWidgets QtXml QtXmlPatterns"
 else
     modules="$1"
 fi
 
 for module in $modules; do
     echo "#include <$module/$module>" >test.cpp
-    g++ -c -I$QTDIR/include -DQT_NO_STL -fdump-class-hierarchy test.cpp
+    g++ -c -I$QTDIR/include -DQT_NO_STL -fdump-class-hierarchy -fPIE test.cpp
     mv test.cpp*.class $module.$2.txt
     # Remove template classes from the output
     perl -pi -e '$skip = 1 if (/^(Class|Vtable).*</);
