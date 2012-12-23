@@ -96,6 +96,8 @@ my %excludedFiles = (
 # found license headers.
 my %optionalFiles = (
     "all"            => [
+                          # change logs
+                          qr{^dist/},
                           # Third-party files are not expected to have a Qt license
                           qr{/3rdparty/},
                           qr{^3rdparty/},
@@ -109,8 +111,6 @@ my %optionalFiles = (
                           # These are two-line wrappers around perl programs.
                           qr{^bin/elf2e32_qtwrapper\.bat$},
                           qr{^bin/patch_capabilities\.bat$},
-                          # change logs
-                          qr{^dist/},
                           # Wrappers around non-Qt headers
                           qr{^mkspecs/common/symbian/header-wrappers/},
                           # These three are for assemblers that don't allow comments
