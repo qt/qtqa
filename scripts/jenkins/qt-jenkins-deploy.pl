@@ -244,6 +244,14 @@ file.
 
 See L<TEMPLATE FILES> for more information.
 
+=item qt_version
+
+Qt version number, used in packaging.
+
+=item qt_license
+
+Qt license type (commercial/opensource), used in packaging.
+
 =back
 
 =item [node.<node_basename>]
@@ -538,6 +546,8 @@ sub desired_job_xml
             poll_cron => eval { $self->cfg( "job.$name", 'poll_cron' ) } || q{},
             trigger_cron => eval { $self->cfg( "job.$name", 'trigger_cron' ) } || q{},
             configurations => \@configurations,
+            qt_version => eval { $self->cfg( "job.$name", 'qt_version' ) } || q{},
+            qt_license => eval { $self->cfg( "job.$name", 'qt_license' ) } || q{},
         },
         \$data
     ) || die "job $name: while parsing template: ".$tt->error();
