@@ -214,13 +214,6 @@ void tst_Headers::macros()
     QByteArray data = f.readAll();
     QStringList content = QString::fromLocal8Bit(data.replace('\r', "")).split("\n");
 
-    int beginHeader = content.indexOf("QT_BEGIN_HEADER");
-    int endHeader = content.lastIndexOf("QT_END_HEADER");
-
-    QVERIFY(beginHeader >= 0);
-    QVERIFY(endHeader >= 0);
-    QVERIFY(beginHeader < endHeader);
-
     // "signals" and "slots" should be banned in public headers
     // headers which use signals/slots wouldn't compile if Qt is configured with QT_NO_KEYWORDS
     QVERIFY2(content.indexOf(QRegExp("\\bslots\\s*:")) == -1, "Header contains `slots' - use `Q_SLOTS' instead!");
@@ -235,9 +228,7 @@ void tst_Headers::macros()
     int endNamespace = content.lastIndexOf("QT_END_NAMESPACE");
     QVERIFY(beginNamespace != -1);
     QVERIFY(endNamespace != -1);
-    QVERIFY(beginHeader < beginNamespace);
     QVERIFY(beginNamespace < endNamespace);
-    QVERIFY(endNamespace < endHeader);
 }
 
 QTEST_MAIN(tst_Headers)
