@@ -422,8 +422,8 @@ sub resolved_makefile
 
     my $makefile = $self->{ makefile } || 'Makefile';
 
-    # no globbing necessary on platforms other than Windows.
-    if (!$WINDOWS) {
+    # no globbing necessary on makefile flavors other than MS.
+    if ($self->make_flavor() ne 'MS') {
         return $makefile;
     }
 
