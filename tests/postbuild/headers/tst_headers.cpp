@@ -224,7 +224,7 @@ void tst_Headers::macros()
     QVERIFY2(content.indexOf(QRegExp("\\bsignals\\s*:")) == -1, "Header contains `signals' - use `Q_SIGNALS' instead!");
 
     if (header.contains("/sql/drivers/") || header.contains("/arch/qatomic")
-        || header.endsWith("qglobal.h")
+        || header.contains(QRegExp("q.*global\\.h$"))
         || header.endsWith("qwindowdefs_win.h"))
         return;
 
