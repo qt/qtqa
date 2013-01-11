@@ -82,19 +82,20 @@ tst_Bic::tst_Bic()
     bic.addBlacklistedClass(QLatin1String("<anonymous*"));
 
     /* some system stuff we don't care for */
-    bic.addBlacklistedClass(QLatin1String("timespec"));
-    bic.addBlacklistedClass(QLatin1String("itimerspec"));
-    bic.addBlacklistedClass(QLatin1String("sched_param"));
-    bic.addBlacklistedClass(QLatin1String("timeval"));
     bic.addBlacklistedClass(QLatin1String("drand"));
+    bic.addBlacklistedClass(QLatin1String("itimerspec"));
     bic.addBlacklistedClass(QLatin1String("lconv"));
     bic.addBlacklistedClass(QLatin1String("random"));
-    bic.addBlacklistedClass(QLatin1String("wait"));
-    bic.addBlacklistedClass(QLatin1String("tm"));
+    bic.addBlacklistedClass(QLatin1String("sched_param"));
     bic.addBlacklistedClass(QLatin1String("sigcontext"));
-    bic.addBlacklistedClass(QLatin1String("ucontext"));
-    bic.addBlacklistedClass(QLatin1String("ucontext64"));
     bic.addBlacklistedClass(QLatin1String("sigaltstack"));
+    bic.addBlacklistedClass(QLatin1String("timespec"));
+    bic.addBlacklistedClass(QLatin1String("timeval"));
+    bic.addBlacklistedClass(QLatin1String("timex"));
+    bic.addBlacklistedClass(QLatin1String("tm"));
+    bic.addBlacklistedClass(QLatin1String("ucontext64"));
+    bic.addBlacklistedClass(QLatin1String("ucontext"));
+    bic.addBlacklistedClass(QLatin1String("wait"));
 
     /* QtOpenGL includes qt_windows.h, and some SDKs don't have these structs present */
     bic.addBlacklistedClass(QLatin1String("tagTITLEBARINFO"));
