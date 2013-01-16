@@ -40,21 +40,25 @@ sub test_cmd
 
 sub run
 {
-    SKIP: {
-        skip( 'Win32-specific test', 1 ) if ($OSNAME !~ m{win32}i);
+    my $should_skip = 1;
+    if ($OSNAME =~ m{win32}i) {
+        # Skip this test case also on Windows if nmake is not in path
+        $should_skip = system( 'where', "/Q", "nmake" );
+    }
+    plan 'skip_all', "This test is relevant only on Win32 and nmake" if ($should_skip != 0);
 
-        local $CWD = $TESTDATA_DIR;
 
-        for my $makefile ('basic-makefile', 'makefile with spaces') {
-            ok( test_cmd( [qw(nmake -C -S -F), $makefile], $makefile ) );
-            ok( test_cmd( [qw(nmake -C -S /F), $makefile], $makefile ) );
-            ok( test_cmd( [qw(nmake -C -S -f), $makefile], $makefile ) );
-            ok( test_cmd( [qw(nmake -C -S /f), $makefile], $makefile ) );
-            ok( test_cmd( [qw(nmake -C -S), "-F$makefile"], $makefile ) );
-            ok( test_cmd( [qw(nmake -C -S), "/F$makefile"], $makefile ) );
-            ok( test_cmd( [qw(nmake -C -S), "-f$makefile"], $makefile ) );
-            ok( test_cmd( [qw(nmake -C -S), "/f$makefile"], $makefile ) );
-        }
+    local $CWD = $TESTDATA_DIR;
+
+    for my $makefile ('basic-makefile', 'makefile with spaces') {
+        ok( test_cmd( [qw(nmake -C -S -F), $makefile], $makefile ) );
+        ok( test_cmd( [qw(nmake -C -S /F), $makefile], $makefile ) );
+        ok( test_cmd( [qw(nmake -C -S -f), $makefile], $makefile ) );
+        ok( test_cmd( [qw(nmake -C -S /f), $makefile], $makefile ) );
+        ok( test_cmd( [qw(nmake -C -S), "-F$makefile"], $makefile ) );
+        ok( test_cmd( [qw(nmake -C -S), "/F$makefile"], $makefile ) );
+        ok( test_cmd( [qw(nmake -C -S), "-f$makefile"], $makefile ) );
+        ok( test_cmd( [qw(nmake -C -S), "/f$makefile"], $makefile ) );
     }
 
     done_testing;

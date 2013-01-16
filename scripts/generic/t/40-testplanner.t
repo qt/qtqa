@@ -51,6 +51,20 @@ sub test_testplanner_on_testdata
         "$testplan",
     );
 
+    if ($OSNAME =~ m{win32}i) {
+        if (!system( 'where', "/Q", "nmake" )) {
+            push @cmd, (
+                '--make',
+                'nmake',
+            );
+        } elsif (!system( 'where', "/Q", "mingw32-make" )) {
+            push @cmd, (
+                '--make',
+                'mingw32-make',
+            );
+        } # else - use default
+    } # else - use default
+
     my $status = system( @cmd );
     is( $status, 0, 'testplanner exit code OK' );
 

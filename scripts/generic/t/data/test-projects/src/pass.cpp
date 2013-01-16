@@ -41,7 +41,7 @@
 
 #include <stdio.h>
 
-#ifdef _MSC_VER
+#ifdef _WIN32
 # include <windows.h>
 # define sleep(x) Sleep(x*1000)
 #else

@@ -99,8 +99,23 @@ sub make_testplan_from_directory
         $directory,
         '--output',
         "$testplan",
-        @args,
     );
+
+    if ($OSNAME =~ m{win32}i) {
+        if (!system( 'where', "/Q", "nmake" )) {
+            push @cmd, (
+                '--make',
+                'nmake',
+            );
+        } elsif (!system( 'where', "/Q", "mingw32-make" )) {
+            push @cmd, (
+                '--make',
+                'mingw32-make',
+            );
+        } # else - use default
+    } # else - use default
+
+    push (@cmd, @args);
 
     my $status = system( @cmd );
     is( $status, 0, 'testplanner exit code OK' );
