@@ -125,6 +125,11 @@ my @PROPERTIES = (
                                 . q{configure option has been used appropriately, and (2) }
                                 . q{the `-developer-build' configure argument was not used},
 
+    q{qt.make_html_docs}       => q{if 1, perform a `make html_docs' step after building Qt. },
+
+    q{qt.make_html_docs.insignificant}
+                               => q{if 1, ignore all failures from 'make html_docs'},
+
     q{qt.gitmodule}            => q{(mandatory) git module name of the module under test }
                                 . q{(e.g. `qtbase').  Use special value `qt5' for testing of }
                                 . q{all modules together in the qt5 superproject},
@@ -301,6 +306,7 @@ sub run
     $self->run_compile;
     $self->run_install;
     $self->run_install_check;
+    $self->run_make_html_docs;
     $self->run_autotests;
     $self->run_coverage;
     $self->run_qtqa_autotests( 'postbuild' );
@@ -488,6 +494,8 @@ sub read_and_store_configuration
         'qt.coverage.tests_output'=> q{}                                         ,
         'qt.coverage.tool'        => q{}                                         ,
         'qt.make_install'         => 0                                           ,
+        'qt.make_html_docs'       => 0                                           ,
+        'qt.make_html_docs.insignificant' => 0                                   ,
         'qt.minimal_deps'         => \&default_qt_minimal_deps                   ,
         'qt.install.dir'          => \&default_qt_install_dir                    ,
         'qt.tests.enabled'        => \&default_qt_tests_enabled                  ,
@@ -1112,6 +1120,43 @@ sub run_install_check
 
     return;
 }
+
+sub run_make_html_docs
+{
+    my ($self) = @_;
+
+    my $doing = $self->doing( 'making Qt docs' );
+
+    my $make_bin        = $self->{ 'make.bin' };
+    my $qt_build_dir    = $self->{ 'qt.build.dir' };
+    my $qt_make_html_docs = $self->{ 'qt.make_html_docs' };
+    my $doc_insignificant = $self->{ 'qt.make_html_docs.insignificant' };
+
+    return if (!$qt_make_html_docs);
+
+    my $run = sub {
+      chdir( $qt_build_dir );
+      $self->exe( $make_bin, 'html_docs' );
+    };
+
+    if ($doc_insignificant) {
+        eval { $run->() };
+        if ($EVAL_ERROR) {
+            warn "$EVAL_ERROR\n"
+                .qq{This is a warning, not an error, because the 'make html_docs' is permitted to fail};
+        } else {
+            print "Note: 'make html_docs' succeeded. "
+                 ."This may indicate it is safe to enforce the 'make html_docs'.\n";
+        }
+    }
+    else {
+        $run->();
+    }
+
+    return;
+
+}
+
 
 # Returns a testrunner command
 sub get_testrunner_command
