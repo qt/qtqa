@@ -49,7 +49,7 @@ setup.pl - set up environment for Qt QA scripts
 
 =head1 SYNOPSIS
 
-setup.pl [--install] [--prefix <prefix>]
+setup.pl [--install] [--prefix <prefix>] [--cpan-mirror <url-base>]
 
 Attempt to ensure all prerequisites for this repo are installed.
 
@@ -73,6 +73,11 @@ Customize the prefix used for perl installation.
 Defaults to $HOME/perl5 .
 
 Only makes sense combined with `--install'.
+
+=item --cpan-mirror <url-base>
+
+Uses <url-base> as the base URL to get cpan modules.
+Defaults to 'http://cpan.metacpan.org'.
 
 =back
 
@@ -373,11 +378,15 @@ sub run_cpan
     my ($self, @modules) = @_;
 
     my $prefix = $self->{locallib};
+    my $cpan_mirror = $self->{cpanmirror};
     my @cpan = (
         "$prefix/bin/cpanm",
 
         # Install into the local prefix
         "--local-lib", $prefix,
+
+        # mirror for cpan modules
+        "--mirror", $cpan_mirror,
 
         # Skip autotests.
         # If autotests fail, there's not really any practical way for
@@ -506,13 +515,15 @@ sub new
 
     my %self = (
         install     =>  0,
+        cpanmirror  => 'http://cpan.metacpan.org',
         locallib    =>  catfile($home, 'perl5'),
     );
 
     GetOptionsFromArray(\@args,
-        "install"     =>  \$self{install},
-        "prefix=s"    =>  \$self{locallib},
-        "help"        =>  sub { pod2usage(2) },
+        "install"       =>  \$self{install},
+        "prefix=s"      =>  \$self{locallib},
+        "cpan-mirror=s" =>  \$self{cpanmirror},
+        "help"          =>  sub { pod2usage(2) },
     ) || pod2usage(1);
 
     bless \%self, $class;
