@@ -252,6 +252,19 @@ Qt version number, used in packaging.
 
 Qt license type (commercial/opensource), used in packaging.
 
+=item artifacts_download_url
+
+The url where to download the build artifacts, typically via http.
+
+=item artifacts_upload_host
+
+The host server to be used when uploading build artifacts, should be
+accessible with SSH/SCP.
+
+=item artifacts_upload_path
+
+The base path on host server where to upload build artifacts.
+
 =back
 
 =item [node.<node_basename>]
@@ -531,7 +544,7 @@ sub desired_job_xml
         $template_file,
         {
             name => $name,
-            gerrit_host => $self->cfg( "job.$name", 'gerrit_host' ),
+            gerrit_host => eval { $self->cfg( "job.$name", 'gerrit_host' ) } || q{},
             gerrit_port => eval { $self->cfg( "job.$name", 'gerrit_port' ) } // 29418,
             gerrit_project => $gerrit_project,
             testconfig_project => eval { $self->cfg( "job.$name", 'testconfig_project' ) } // $name,
@@ -548,6 +561,9 @@ sub desired_job_xml
             configurations => \@configurations,
             qt_version => eval { $self->cfg( "job.$name", 'qt_version' ) } || q{},
             qt_license => eval { $self->cfg( "job.$name", 'qt_license' ) } || q{},
+            artifacts_download_url => eval { $self->cfg( "job.$name", 'artifacts_download_url' ) } || q{},
+            artifacts_upload_host => eval { $self->cfg( "job.$name", 'artifacts_upload_host' ) } || q{},
+            artifacts_upload_path => eval { $self->cfg( "job.$name", 'artifacts_upload_path' ) } || q{},
         },
         \$data
     ) || die "job $name: while parsing template: ".$tt->error();
