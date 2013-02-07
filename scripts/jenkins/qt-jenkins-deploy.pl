@@ -265,6 +265,10 @@ accessible with SSH/SCP.
 
 The base path on host server where to upload build artifacts.
 
+=item boot_script
+
+File that contains Groovy script for booting the machine down after the build.
+
 =back
 
 =item [node.<node_basename>]
@@ -539,6 +543,19 @@ sub desired_job_xml
     }
     my @configurations = sort keys %configurations;
 
+    # get boot_script from ini
+    my $boot_script_file = eval { $self->cfg( "job.$name", 'boot_script' ) } || q{};
+    my $file_contents = '';
+    # if file is found read contents to $file_contents variable
+    if ($boot_script_file) {
+        if (!file_name_is_absolute( $boot_script_file )) {
+            $boot_script_file = rel2abs( $boot_script_file, dirname( $self->{ ini } ) );
+        }
+        open my $file, "<", $boot_script_file or die "Can't read file $boot_script_file\n";
+        $file_contents = do { local $/; <$file> };
+        close ($file);
+    }
+
     my $data;
     $tt->process(
         $template_file,
@@ -564,6 +581,7 @@ sub desired_job_xml
             artifacts_download_url => eval { $self->cfg( "job.$name", 'artifacts_download_url' ) } || q{},
             artifacts_upload_host => eval { $self->cfg( "job.$name", 'artifacts_upload_host' ) } || q{},
             artifacts_upload_path => eval { $self->cfg( "job.$name", 'artifacts_upload_path' ) } || q{},
+            boot_script => $file_contents,
         },
         \$data
     ) || die "job $name: while parsing template: ".$tt->error();
