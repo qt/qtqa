@@ -190,6 +190,8 @@ my @PROPERTIES = (
 
     q{qt.tests.flaky_mode}     => q{how to handle flaky autotests ("best", "worst" or "ignore")},
 
+    q{qt.tests.dir}            => q{directory where to run the testplanner and execute tests},
+
     q{qt.qtqa-tests.enabled}   => q{if 1, run the shared autotests in qtqa (over this module }
                                 . q{only, or all modules if qt.gitmodule == "qt5").  The qtqa }
                                 . q{tests are run after the other autotests.},
@@ -492,6 +494,7 @@ sub read_and_store_configuration
         'qt.tests.timeout'        => 450                                         ,
         'qt.tests.capture_logs'   => q{}                                         ,
         'qt.tests.tee_logs'       => q{}                                         ,
+        'qt.tests.dir'            => q{}                                         ,
         'qt.tests.args'           => \&default_qt_tests_args                     ,
         'qt.tests.backtraces'     => \&default_qt_tests_backtraces               ,
         'qt.tests.flaky_mode'     => q{}                                         ,
@@ -1214,6 +1217,7 @@ sub run_autotests
     my $doing = $self->doing( 'running the autotests' );
 
     my $qt_gitmodule_build_dir = $self->{ 'qt.gitmodule.build.dir' };
+    my $qt_tests_dir = $self->{ 'qt.tests.dir' };
 
     # Add this module's `bin' directory to PATH.
     # FIXME: verify if this is really needed (should each module's tools build directly
@@ -1230,9 +1234,10 @@ sub run_autotests
     # In qt5, all tests are expected to be correctly set up in top-level .pro files, so they
     # do not need an explicit added compile step.
     # In qt4, this is not the case, so they need to be compiled separately.
+    # By using qt.tests.dir one can change the test dir to be tests/auto in qt5 also.
     return $self->_run_autotests_impl(
         tests_dir            =>  ($self->{ 'qt.gitmodule' } ne 'qt')
-                                 ? $qt_gitmodule_build_dir                           # qt5
+                                 ? catfile( $qt_gitmodule_build_dir, $qt_tests_dir)  # qt5
                                  : catfile( $qt_gitmodule_build_dir, 'tests/auto' ), # qt4
         insignificant_option =>  'qt.tests.insignificant',
         do_compile           =>  ($self->{ 'qt.gitmodule' } ne 'qt')
