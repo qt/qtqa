@@ -1388,7 +1388,7 @@ sub _run_autotests_impl
                 '--output',
                 'testplan.txt',
                 '--make',
-                $make_bin,
+                $make_check_bin,
                 '--',
                 split(/ /, $qt_tests_args),
             );
