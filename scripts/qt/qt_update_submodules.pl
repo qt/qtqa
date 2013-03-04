@@ -87,6 +87,7 @@ Readonly my @PROPERTIES => (
 Readonly my %SUBMODULE_TRACKING_REF => (
     qtrepotools  =>  'refs/heads/master',
     qtqa         =>  'refs/heads/master',
+    qtx11extras  =>  'refs/heads/master',
 );
 
 # Author and committer to be used for commits by this script.
