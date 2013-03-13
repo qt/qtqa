@@ -130,10 +130,15 @@ tst_Bic::tst_Bic()
     /* Jambi-related classes in Designer */
     bic.addBlacklistedClass(QLatin1String("QDesignerLanguageExtension"));
 
-    /* Harald says it's undocumented and private :) */
-    bic.addBlacklistedClass(QLatin1String("QAccessibleInterfaceEx"));
-    bic.addBlacklistedClass(QLatin1String("QAccessibleObjectEx"));
-    bic.addBlacklistedClass(QLatin1String("QAccessibleWidgetEx"));
+    /* Frederik says it's undocumented and private :) */
+    bic.addBlacklistedClass(QLatin1String("QAccessibleWidget"));
+    bic.addBlacklistedClass(QLatin1String("QAccessibleTextInterface"));
+    bic.addBlacklistedClass(QLatin1String("QAccessibleEditableTextInterface"));
+    bic.addBlacklistedClass(QLatin1String("QAccessibleValueInterface"));
+    bic.addBlacklistedClass(QLatin1String("QAccessibleTableCellInterface"));
+    bic.addBlacklistedClass(QLatin1String("QAccessibleTableInterface"));
+    bic.addBlacklistedClass(QLatin1String("QAccessibleActionInterface"));
+    bic.addBlacklistedClass(QLatin1String("QAccessibleImageInterface"));
 
     /* This structure is semi-private and should never shrink */
     bic.addBlacklistedClass(QLatin1String("QVFbHeader"));
