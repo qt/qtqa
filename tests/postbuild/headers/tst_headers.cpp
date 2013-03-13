@@ -206,6 +206,7 @@ void tst_Headers::macros()
         || header.contains("/src/tools/") || header.contains("/src/plugins/")
         || header.contains("/src/imports/")
         || header.contains("/src/uitools/")
+        || header.contains("/src/daemon")
         || header.endsWith("/qiconset.h") || header.endsWith("/qfeatures.h")
         || header.endsWith("qt_windows.h")
         // qtsvg.git files
