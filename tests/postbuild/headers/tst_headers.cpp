@@ -228,8 +228,8 @@ void tst_Headers::macros()
         || header.endsWith("qwindowdefs_win.h"))
         return;
 
-    int beginNamespace = content.indexOf("QT_BEGIN_NAMESPACE");
-    int endNamespace = content.lastIndexOf("QT_END_NAMESPACE");
+    int beginNamespace = content.indexOf(QRegExp("QT_BEGIN_NAMESPACE(_[A-Z_]+)?"));
+    int endNamespace = content.lastIndexOf(QRegExp("QT_END_NAMESPACE(_[A-Z_]+)?"));
     QVERIFY(beginNamespace != -1);
     QVERIFY(endNamespace != -1);
     QVERIFY(beginNamespace < endNamespace);
