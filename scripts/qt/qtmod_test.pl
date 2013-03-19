@@ -965,39 +965,29 @@ sub run_compile
     my @make_args = split(/ /, $make_args);
     my @commands;
 
+    my @qmake_args;
+    if ($qt_minimal_deps) {
+        # Qt 5 only:
+        # minimal deps mode?  Then we turned off some build parts in configure, and must
+        # now explicitly enable them for this module only.
+        push @qmake_args, uc($qt_gitmodule)."_BUILD_PARTS = ".join(" ", @OPTIONAL_BUILD_PARTS);
+    }
+
     if (($self->{'qt.gitmodule'} eq 'qt5') or ($self->{'qt.gitmodule'} eq 'qt')) {
         # Building qt5 or qt4; just do a `make' of all default targets in the top-level makefile.
         push @commands, sub { $self->exe( $make_bin, @make_args ) };
     }
     elsif ($module_in_qt5) {
-        if ($qt_minimal_deps) {
-            # minimal deps mode?  Then we turned off some build parts in configure, and must
-            # now explicitly enable them for this module only.
-
-            if (! -e $qt_gitmodule_build_dir) {
-                mkpath( $qt_gitmodule_build_dir );
-                # Note, we don't have to worry about emptying the build dir,
-                # because it's always under the top-level build dir, and we already
-                # cleaned that if it existed.
-            }
-
-            push @commands, sub {
-                local $CWD = $qt_gitmodule_build_dir;
-                $self->exe(
-                    $qmake_bin,
-                    $qt_gitmodule_dir,
-                    map { "QT_BUILD_PARTS+=$_" } @OPTIONAL_BUILD_PARTS
-                );
-            };
-        }
-
         # Building a module hosted in qt5; `configure' is expected to have generated a
         # makefile with a `module-FOO' target for this module, with correct dependency
         # information. Issuing a `make module-FOO' should automatically build the module
         # and all deps, as parallel as possible.
         my $make_target = "module-$qt_gitmodule";
 
-        push @commands, sub { $self->exe( $make_bin, @make_args, $make_target ) };
+        push @commands, sub {
+            local $ENV{'QMAKEFLAGS'} = join(" ", map { '"'.$_.'"' } @qmake_args);
+            $self->exe( $make_bin, @make_args, $make_target );
+        };
     }
     else {
         # Building a module, hosted outside of qt5.
@@ -1019,12 +1009,6 @@ sub run_compile
 
         push @commands, sub { chdir( $qt_gitmodule_build_dir ) };
 
-        my @qmake_args;
-        if ($qt_minimal_deps) {
-            # minimal deps mode?  Then we turned off some build parts in configure, and must
-            # now explicitly enable them for this module only.
-            push @qmake_args, map { "QT_BUILD_PARTS+=$_" } @OPTIONAL_BUILD_PARTS;
-        }
         push @commands, sub { $self->exe(
             $qmake_bin,
             $qt_gitmodule_dir,
