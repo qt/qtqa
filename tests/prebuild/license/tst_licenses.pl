@@ -149,6 +149,8 @@ my %optionalFiles = (
                           qr{^tests/benchmarks/corelib/tools/qstring/data\.cpp$},
                           qr{^tests/benchmarks/corelib/tools/qstring/fromutf8\.cpp$},
                           qr{^tests/benchmarks/corelib/tools/qstring/fromlatin1\.cpp$},
+                          # This is a copy of a Google Android tool with a fix.
+                          qr{^mkspecs/features/data/android/dx\.bat$},
                         ],
     "qtconnectivity" => [
                           # This directory contain generated files
