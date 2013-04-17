@@ -526,6 +526,10 @@ sub _push_context
 
     push @{ $self->{ _context } }, $thing;
 
+    my $time = time();
+    push @{ $self->{ _context_start } }, $time;
+    print "#=# ". localtime($time) ." #=# >$thing\n";
+
     return;
 }
 
@@ -537,6 +541,10 @@ sub _pop_context
     if ($actual_thing ne $thing) {
         $self->_warn( "scope mismatch: leaving context '$actual_thing', expecting to leave '$thing'" );
     }
+
+    my $time = time();
+    my $elapsed = $time - pop @{ $self->{ _context_start } || [] };
+    print "#=# ". localtime($time) ." #=# <$thing #=# Elapsed $elapsed second(s).\n";
 
     return;
 }
