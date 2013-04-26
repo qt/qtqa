@@ -131,6 +131,7 @@ tst_Bic::tst_Bic()
     bic.addBlacklistedClass(QLatin1String("QDesignerLanguageExtension"));
 
     /* Frederik says it's undocumented and private :) */
+    bic.addBlacklistedClass(QLatin1String("QAccessible"));
     bic.addBlacklistedClass(QLatin1String("QAccessibleWidget"));
     bic.addBlacklistedClass(QLatin1String("QAccessibleTextInterface"));
     bic.addBlacklistedClass(QLatin1String("QAccessibleEditableTextInterface"));
