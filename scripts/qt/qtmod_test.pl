@@ -818,6 +818,11 @@ sub run_git_checkout
         $self->exe( 'git', 'clone', '--branch', $qt_branch, $qt_repository, $qt_dir );
     }
 
+    if ($qt_gitmodule eq 'qt5') {
+        # We have to set the remote url to be used with older git clients
+        $self->exe( 'git', 'config', 'remote.origin.url', $qt_repository );
+    }
+
     local $CWD = $qt_dir;
 
     # map from gitmodule name to desired ref for testing
