@@ -975,7 +975,7 @@ sub run_compile
         # Qt 5 only:
         # minimal deps mode?  Then we turned off some build parts in configure, and must
         # now explicitly enable them for this module only.
-        push @qmake_args, uc($qt_gitmodule)."_BUILD_PARTS = ".join(" ", @OPTIONAL_BUILD_PARTS);
+        push @qmake_args, uc($qt_gitmodule)."_BUILD_PARTS = libs tools ".join(" ", @OPTIONAL_BUILD_PARTS);
     }
 
     if (($self->{'qt.gitmodule'} eq 'qt5') or ($self->{'qt.gitmodule'} eq 'qt')) {
