@@ -1,0 +1,45 @@
+These are the zone files for the QDnsLookup test. The files are
+self-contained, except for:
+ - the SOA records in each file
+ - the NS records for each file
+   (note that there are NS for the sub-zones too)
+
+To deploy these zones, add to named.conf:
+
+zone "test.qt-project.org" IN {
+     type master;
+     file "test.ZONEINFO";
+     allow-query { any; };
+     allow-transfer { any; };
+};
+
+zone "xn--alqualond-34a.test.qt-project.org" IN {
+     type master;
+     file "test.ZONEINFO";
+     allow-query { any; };
+     allow-transfer { any; };
+};
+
+zone "ns-single.test.qt-project.org" IN {
+     type master;
+     file "ns-single.test.ZONEINFO";
+     allow-query { any; };
+};
+
+zone "ns-multi.test.qt-project.org" IN {
+     type master;
+     file "ns-multi.test.ZONEINFO";
+     allow-query { any; };
+};
+
+zone "ns-single.xn--alqualond-34a.test.qt-project.org" IN {
+     type master;
+     file "ns-single.test.ZONEINFO";
+     allow-query { any; };
+};
+
+zone "ns-multi.xn--alqualond-34a.test.qt-project.org" IN {
+     type master;
+     file "ns-multi.test.ZONEINFO";
+     allow-query { any; };
+};
