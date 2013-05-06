@@ -6,7 +6,7 @@
 $TTL    60
 
 @                       IN SOA ns3.macieira.info. root.macieira.info. (
-                                 8         ; serial
+                                 12        ; serial
                                  10800     ; refresh (3 hours)
                                  60        ; retry (1 min)
                                  60        ; expire (1 min)
@@ -22,47 +22,51 @@ localhost               IN A    127.0.0.1
                         IN AAAA ::1
 
 ; This zone matches the tests for QDnsLookup
-; Unless required for other reasons, all IPv4 addresses are in Class E
-; and all IPv6 addresses are in the deprecated site-local fec0::/64 domain.
-; This way, we're sure that we're not going to match anything in the global
-; Internet.
+
+; Unless required for other reasons -- specifically, the NS entries --
+; all IPv4 and IPv6 addresses should be in one of the test networks
+; reserved for testing and documentation. They are:
+;   192.0.2.0/24       TEST-NET-1	  (RFC 5737)
+;   198.51.100.0/24    TEST-NET-2	  (RFC 5737)
+;   203.0.113.0/24     TEST-NET-3	  (RFC 5737)
+;   2001::db8::/32     IPV6-DOC-AP	  (RFC 3849)
 
 ; Make sure this never exists
 ; invalid              -> always NXDOMAIN
 
 ; Simple record with one A only
-a-single                IN A    240.0.0.1
+a-single                IN A    192.0.2.1
 
 ; Simple record with multiple A records
-a-multi                 IN A    240.0.0.1
-                        IN A    240.0.0.2
-                        IN A    240.0.0.3
+a-multi                 IN A    192.0.2.1
+                        IN A    192.0.2.2
+                        IN A    192.0.2.3
 
 ; Simple record with one AAAA only
-aaaa-single             IN AAAA fec0::1
+aaaa-single             IN AAAA 2001:db8::1
 
 ; Simple record with multiple AAAA records
-aaaa-multi              IN AAAA fec0::1
-                        IN AAAA fec0::2
-                        IN AAAA fec0::3
+aaaa-multi              IN AAAA 2001:db8::1
+                        IN AAAA 2001:db8::2
+                        IN AAAA 2001:db8::3
 
 ; Record with one A and one AAAA
-a-plus-aaaa             IN A    240.0.1.1
-                        IN AAAA fec0::1:1
+a-plus-aaaa             IN A    198.51.100.1
+                        IN AAAA 2001:db8::1:1
 
 ; Record with multiple A and AAAA entries
-multi                   IN A    240.0.1.1
-                        IN A    240.0.1.2
-                        IN AAAA fec0::1:1
-                        IN A    240.0.1.3
-                        IN AAAA fec0::1:2
+multi                   IN A    198.51.100.1
+                        IN A    198.51.100.2
+                        IN AAAA 2001:db8::1:1
+                        IN A    198.51.100.3
+                        IN AAAA 2001:db8::1:2
 
 ; MX record
 mx-single               IN MX   10 multi
 mx-multi                IN MX   10 multi
                         IN MX   20 a-single
-mx-multi-sameprio       IN MX   10 multi
-                        IN MX   10 a-single
+mx-multi-sameprio	IN MX	10 multi
+			IN MX	10 a-single
 mx-single-cname         IN MX   10 cname
 
 ; CNAME records
@@ -89,9 +93,9 @@ _echo._tcp.srv-prio     IN SRV 1 0 7 multi
                         IN SRV 2 0 7 a-plus-aaaa
 ; multiple priorities, same weights, port 7 (echo)
 _echo._tcp.srv-multi    IN SRV 1 50 7 multi
-                        IN SRV 2 50 7 a-single
-                        IN SRV 2 50 7 aaaa-single
-                        IN SRV 3 50 7 a-multi
+			IN SRV 2 50 7 a-single
+			IN SRV 2 50 7 aaaa-single
+			IN SRV 3 50 7 a-multi
 
 ; TXT records
 ; TXT records can carry more than one string
@@ -101,8 +105,8 @@ txt-multi-multirr       IN TXT  "Hello"
 txt-multi-onerr         IN TXT  "Hello" "World"
 
 ; A bit of everything, except what can't be in the same rrset
-everything              IN A    240.0.3.1
-                        IN AAAA fec0::3:0
+everything              IN A    192.0.2.4
+                        IN AAAA 2001:db8::3:0
                         IN MX   0 everything
                         IN TXT  "Hello World"
                         IN SRV  1 0 7 everything
