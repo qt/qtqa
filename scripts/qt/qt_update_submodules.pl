@@ -268,7 +268,7 @@ sub update_submodule
 
     # Let's be prepared for relative paths in .gitmodules
     if ($giturl eq "../$submodule.git") {
-        $giturl = trim $self->exe( qw(git config --file), ".git/config", "remote.origin.url" );
+        $giturl = trim $self->exe_qx( qw(git config --file), "$base_dir/.git/config", "remote.origin.url" );
         $giturl =~ s,[^/]+$,$submodule.git,;
     }
 
