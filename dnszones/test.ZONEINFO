@@ -3,23 +3,27 @@
 ;
 
 ; Set the TTL to a low value, so redeployment is easy
-$TTL    60
+$TTL	60
 
-@                       IN SOA ns3.macieira.info. root.macieira.info. (
-                                 12        ; serial
-                                 10800     ; refresh (3 hours)
-                                 60        ; retry (1 min)
-                                 60        ; expire (1 min)
-                                 60        ; minimum (1 min)
-                               )
-                        IN NS ns3.macieira.info.
+@			IN SOA ns-foo.linpro.net. hostmaster.redpill-linpro.com. (
+				 13	   ; serial
+				 10800	   ; refresh (3 hours)
+				 60	   ; retry (1 min)
+				 60	   ; expire (1 min)
+				 60	   ; minimum (1 min)
+			       )
+			IN NS ns-foo.linpro.net.
+			IN NS ns-zoo.linpro.net.
+			IN NS ns-bar.linpro.net.
 ; IDN test domain
 ; This expands to "alqualondë" -- historical reasons
-xn--alqualond-34a 86400 IN NS   ns3.macieira.info.
+xn--alqualond-34a 86400 IN NS	ns-foo.linpro.net.
+			IN NS	ns-bar.linpro.net.
+			IN NS	ns-zoo.linpro.net.
 
 
-localhost               IN A    127.0.0.1
-                        IN AAAA ::1
+localhost		IN A	127.0.0.1
+			IN AAAA ::1
 
 ; This zone matches the tests for QDnsLookup
 
@@ -32,89 +36,89 @@ localhost               IN A    127.0.0.1
 ;   2001::db8::/32     IPV6-DOC-AP	  (RFC 3849)
 
 ; Make sure this never exists
-; invalid              -> always NXDOMAIN
+; invalid	       -> always NXDOMAIN
 
 ; Simple record with one A only
-a-single                IN A    192.0.2.1
+a-single		IN A	192.0.2.1
 
 ; Simple record with multiple A records
-a-multi                 IN A    192.0.2.1
-                        IN A    192.0.2.2
-                        IN A    192.0.2.3
+a-multi			IN A	192.0.2.1
+			IN A	192.0.2.2
+			IN A	192.0.2.3
 
 ; Simple record with one AAAA only
-aaaa-single             IN AAAA 2001:db8::1
+aaaa-single		IN AAAA 2001:db8::1
 
 ; Simple record with multiple AAAA records
-aaaa-multi              IN AAAA 2001:db8::1
-                        IN AAAA 2001:db8::2
-                        IN AAAA 2001:db8::3
+aaaa-multi		IN AAAA 2001:db8::1
+			IN AAAA 2001:db8::2
+			IN AAAA 2001:db8::3
 
 ; Record with one A and one AAAA
-a-plus-aaaa             IN A    198.51.100.1
-                        IN AAAA 2001:db8::1:1
+a-plus-aaaa		IN A	198.51.100.1
+			IN AAAA 2001:db8::1:1
 
 ; Record with multiple A and AAAA entries
-multi                   IN A    198.51.100.1
-                        IN A    198.51.100.2
-                        IN AAAA 2001:db8::1:1
-                        IN A    198.51.100.3
-                        IN AAAA 2001:db8::1:2
+multi			IN A	198.51.100.1
+			IN A	198.51.100.2
+			IN AAAA 2001:db8::1:1
+			IN A	198.51.100.3
+			IN AAAA 2001:db8::1:2
 
 ; MX record
-mx-single               IN MX   10 multi
-mx-multi                IN MX   10 multi
-                        IN MX   20 a-single
+mx-single		IN MX	10 multi
+mx-multi		IN MX	10 multi
+			IN MX	20 a-single
 mx-multi-sameprio	IN MX	10 multi
 			IN MX	10 a-single
-mx-single-cname         IN MX   10 cname
+mx-single-cname		IN MX	10 cname
 
 ; CNAME records
-cname                   IN CNAME multi
-cname-cname             IN CNAME cname
+cname			IN CNAME multi
+cname-cname		IN CNAME cname
 
 ; NS record
 ; Note: NS records must point to valid DNS servers...
-ns-single               IN NS ns3.macieira.info.
-ns-multi                IN NS ns3.macieira.info.
-                        IN NS gondolin.macieira.info.
+ns-single		IN NS ns-foo.linpro.net.
+ns-multi		IN NS ns-foo.linpro.net.
+			IN NS ns-bar.linpro.net.
 
 ; PTR records
-ptr-single              IN PTR a-single
+ptr-single		IN PTR a-single
 
 ; SRV records
 ; priority 5, weight 0, port 7 (echo)
-_echo._tcp.srv-single   IN SRV 5 0 7 multi
+_echo._tcp.srv-single	IN SRV 5 0 7 multi
 ; priority 5, multiple weights, port 7 (echo)
 _echo._tcp.srv-weighted IN SRV 5 25 7 a-plus-aaaa
-                        IN SRV 5 75 7 multi
+			IN SRV 5 75 7 multi
 ; multiple priorities, weight 0, port 7 (echo)
-_echo._tcp.srv-prio     IN SRV 1 0 7 multi
-                        IN SRV 2 0 7 a-plus-aaaa
+_echo._tcp.srv-prio	IN SRV 1 0 7 multi
+			IN SRV 2 0 7 a-plus-aaaa
 ; multiple priorities, same weights, port 7 (echo)
-_echo._tcp.srv-multi    IN SRV 1 50 7 multi
+_echo._tcp.srv-multi	IN SRV 1 50 7 multi
 			IN SRV 2 50 7 a-single
 			IN SRV 2 50 7 aaaa-single
 			IN SRV 3 50 7 a-multi
 
 ; TXT records
 ; TXT records can carry more than one string
-txt-single              IN TXT  "Hello"
-txt-multi-multirr       IN TXT  "Hello"
-                        IN TXT  "World"
-txt-multi-onerr         IN TXT  "Hello" "World"
+txt-single		IN TXT	"Hello"
+txt-multi-multirr	IN TXT	"Hello"
+			IN TXT	"World"
+txt-multi-onerr		IN TXT	"Hello" "World"
 
 ; A bit of everything, except what can't be in the same rrset
-everything              IN A    192.0.2.4
-                        IN AAAA 2001:db8::3:0
-                        IN MX   0 everything
-                        IN TXT  "Hello World"
-                        IN SRV  1 0 7 everything
-                        IN PTR  everything
-                        ; SSH fingerprint
-                        IN SSHFP 1 1 0000000000000000000000000000000000000000
-                        IN SSHFP 2 1 0000000000000000000000000000000000000000
-                        ; SPF record
-                        IN SPF  "v=spf1 a mx -all"
-                        ; location 0°0'0.1" S, 0°0'0.2" W, 0 m altitude, size 1m, 0 precision
-                        IN LOC     0 0 0.1  S  0 0 0.2  W  0m            1m       0 0
+everything		IN A	192.0.2.4
+			IN AAAA 2001:db8::3:0
+			IN MX	0 everything
+			IN TXT	"Hello World"
+			IN SRV	1 0 7 everything
+			IN PTR	everything
+			; SSH fingerprint
+			IN SSHFP 1 1 0000000000000000000000000000000000000000
+			IN SSHFP 2 1 0000000000000000000000000000000000000000
+			; SPF record
+			IN SPF	"v=spf1 a mx -all"
+			; location 0°0'0.1" S, 0°0'0.2" W, 0 m altitude, size 1m, 0 precision
+			IN LOC	   0 0 0.1  S  0 0 0.2	W  0m		 1m	  0 0

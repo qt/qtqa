@@ -5,12 +5,11 @@
 ; Set the TTL to a low value, so redeployment is easy
 $TTL    60
 
-@                       IN SOA ns3.macieira.info. root.macieira.info. (
-                                 6         ; serial
+@			IN SOA ns-foo.linpro.net. hostmaster.redpill-linpro.com.                                 6         ; serial
                                  10800     ; refresh (3 hours)
                                  60        ; retry (1 min)
                                  60        ; expire (1 min)
                                  60        ; minimum (1 min)
-                               )
-                        IN NS ns3.macieira.info.
-                        IN NS gondolin.macieira.info.
+			       )
+			IN NS ns-foo.linpro.net.
+			IN NS ns-bar.linpro.net.
