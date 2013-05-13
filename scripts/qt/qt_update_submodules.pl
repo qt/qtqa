@@ -266,6 +266,11 @@ sub update_submodule
         confess "Command `@cmd' did not output a giturl";
     }
 
+    # .gitmodules may contain relative path for submodules
+    if ($giturl eq "../$submodule.git") {
+        $giturl = catfile("qtgitreadonly:qt", "$submodule.git");
+    }
+
     chdir catfile($base_dir, $submodule);
     $self->exe( qw(git fetch --verbose), $giturl, "+$ref:refs/heads/updated_submodule" );
 
