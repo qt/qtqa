@@ -1834,6 +1834,8 @@ sub do_state_monitor_jenkins_build
         url
         result
         fullDisplayName
+        timestamp
+        duration
     );
 
     my $json_tree;
