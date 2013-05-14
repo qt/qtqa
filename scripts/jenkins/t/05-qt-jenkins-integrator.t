@@ -88,7 +88,7 @@ if ($OSNAME =~ m{win32}i) {
 my $QUEUE_JSON_QUERY_STRING = 'depth=2&tree=builds[number,actions[parameters[name,value]]]';
 
 # expected query string when monitoring a build
-my $BUILD_JSON_QUERY_STRING = 'depth=2&tree=building,number,url,result,fullDisplayName,runs[building,number,url,result,fullDisplayName]';
+my $BUILD_JSON_QUERY_STRING = 'depth=2&tree=building,number,url,result,fullDisplayName,timestamp,duration,runs[building,number,url,result,fullDisplayName,timestamp,duration]';
 
 # base configuration used in tests; override where appropriate
 my $GERRIT_BASE = 'ssh://gerrit.example.com';
