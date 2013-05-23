@@ -731,11 +731,13 @@ sub set_module_refs
     my ($self, %module_to_ref) = @_;
 
     my $qt_dir = $self->{ 'qt.dir' };
+    my $qt_ref = "refs/heads/".$self->{ 'qt.branch' };
 
     # Checkout dependencies as specified in the sync.profile, which specifies the sha1s/refs within them
     # Also, this code assumes that init-repository always uses `origin' as the remote.
     while ( my ($module, $ref) = each %module_to_ref ) {
         local $CWD = catfile( $qt_dir, $module );
+        $ref = $qt_ref if ($ref eq '@same');
 
         # FIXME how do we guarantee we have this SHA1?
         # If it's not reachable from a branch obtained from a default `clone', it could be missing.
