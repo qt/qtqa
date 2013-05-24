@@ -737,7 +737,7 @@ sub set_module_refs
     # Also, this code assumes that init-repository always uses `origin' as the remote.
     while ( my ($module, $ref) = each %module_to_ref ) {
         local $CWD = catfile( $qt_dir, $module );
-        $ref = $qt_ref if ($ref eq '@same');
+        $ref = $qt_ref if ($ref eq '');
 
         # FIXME how do we guarantee we have this SHA1?
         # If it's not reachable from a branch obtained from a default `clone', it could be missing.
