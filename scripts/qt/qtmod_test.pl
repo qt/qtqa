@@ -92,6 +92,8 @@ my @PROPERTIES = (
     q{qt.branch}               => q{git branch of Qt superproject (e.g. `stable'); only used }
                                 . q{if qt.gitmodule != "qt5"},
 
+    q{qt.deps_branch}          => q{default git branch for the tested repo's dependencies},
+
     q{qt.configure.args}       => q{space-separated arguments passed to Qt's configure},
 
     q{qt.configure.extra_args} => q{more space-separated arguments passed to Qt's configure; }
@@ -479,6 +481,7 @@ sub read_and_store_configuration
         'qt.dir'                  => \&default_qt_dir                            ,
         'qt.repository'           => \&default_qt_repository                     ,
         'qt.branch'               => q{stable}                                   ,
+        'qt.deps_branch'          => q{}                                         ,
         'qt.init-repository.args' => q{}                                         ,
         'qt.configure.args'       => \&default_qt_configure_args                 ,
         'qt.configure.extra_args' => q{}                                         ,
@@ -731,7 +734,9 @@ sub set_module_refs
     my ($self, %module_to_ref) = @_;
 
     my $qt_dir = $self->{ 'qt.dir' };
-    my $qt_ref = "refs/heads/".$self->{ 'qt.branch' };
+    my $qt_ref = $self->{ 'qt.deps_branch' };
+    $qt_ref = $self->{ 'qt.branch' } if ($qt_ref eq '');
+    $qt_ref = "refs/heads/".$qt_ref;
 
     # Checkout dependencies as specified in the sync.profile, which specifies the sha1s/refs within them
     # Also, this code assumes that init-repository always uses `origin' as the remote.
