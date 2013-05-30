@@ -307,12 +307,35 @@ sub _reliable_exe
         return;
     }
 
+    # TODO: Hack for Windows 8 "Can't spawn cmd.exe" problem.
+    #
+    # When command is executed with Qt reliability strategy,
+    # OS environment is *sporadically* corrupted. The corrupted environment
+    # contains one new environment variable & value with cryptic (illegal) characters.
+    #
+    # The exact line where environment corruption seems to happen most often is:
+    # https://qt.gitorious.org/qt/qtqa/blobs/master/scripts/lib/perl5/QtQA/Proc/Reliable/Win32.pm#line355
+    # Initially I thought it is due to encode_base64, which allows  '+', '/' and '=' charachers,
+    # but switching to URL safe base64 encoding did not solve the problem.
+    # http://search.cpan.org/~kazuho/MIME-Base64-URLSafe-0.01/lib/MIME/Base64/URLSafe.pm
+    #
+    # The broken OS environment causes perl system() command to fail later on.
+    #
+    # Because the root cause for environment corruption is not yet known,
+    # we backup the environment before the reliable command execution,
+    # and revert the environment back to original after command execcution.
+    my %ENV_BACKUP = %ENV;
+
     # Whenever we retry the command, log it
     $proc->retry_cb( sub { $self->_log_exe_retry( @_ ) } );
 
     # internally, run() may retry many times, but it only returns the last status
     my $status = $proc->run( );
     $self->_handle_exe_status( $status );
+
+    # TODO: Hack for Windows 8 "Can't spawn cmd.exe" problem.
+    # Revert environment back to backed-up version.
+    %ENV = %ENV_BACKUP;
 
     return;
 }
