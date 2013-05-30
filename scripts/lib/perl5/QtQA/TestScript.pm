@@ -335,7 +335,7 @@ sub _reliable_exe
 
     # TODO: Hack for Windows 8 "Can't spawn cmd.exe" problem.
     # Revert environment back to backed-up version.
-    %ENV = %ENV_BACKUP;
+    %ENV = %ENV_BACKUP; ## no critic
 
     return;
 }
