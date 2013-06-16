@@ -71,6 +71,7 @@ headers.
 # These modules are not expected to contain any files that need
 # Qt license headers.  They are entirely excluded from license checking.
 my @excludedModules = qw{
+    qtrepotools
     qtwebkit
 };
 
