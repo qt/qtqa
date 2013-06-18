@@ -781,7 +781,7 @@ sub maybe_skip_revdep_test
     }
 
     my $wanted_dep_ref = $module_to_ref{ $qt_gitmodule };
-    if ($wanted_dep_ref ne $qt_revdep_dep_ref) {
+    if ($wanted_dep_ref ne $qt_revdep_dep_ref && $wanted_dep_ref ne '') {
         warn "revdep module's sync.profile refers to a ref other than this one:\n"
             ."  [$qt_revdep_gitmodule]: $qt_gitmodule => $wanted_dep_ref\n"
             ."  [$qt_gitmodule]: qt.revdep.dep_ref => $qt_revdep_dep_ref\n"
