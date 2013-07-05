@@ -49,7 +49,7 @@ if [ "$#" -lt 2 ]; then
 fi
 
 if [ "$1" = "-all" ]; then
-    modules="QtCLucene QtConcurrent QtCore QtDBus QtDeclarative QtDesignerComponents QtDesigner QtGui QtHelp QtMultimediaQuick_p QtMultimedia QtMultimediaWidgets QtNetwork QtOpenGL QtPrintSupport QtQml QtQuickParticles QtQuick QtQuickTest QtScript QtScriptTools QtSql QtSvg QtTest QtWebKit QtWebKitWidgets QtWidgets QtXmlPatterns QtXml"
+    modules="QtConcurrent QtCore QtDBus QtDeclarative QtDesigner QtGui QtHelp QtMultimedia QtMultimediaWidgets QtNetwork QtOpenGL QtPrintSupport QtQml QtQuickParticles QtQuick QtQuickTest QtScript QtScriptTools QtSql QtSvg QtTest QtWebKit QtWebKitWidgets QtWidgets QtXmlPatterns QtXml"
 else
     modules="$1"
 fi
