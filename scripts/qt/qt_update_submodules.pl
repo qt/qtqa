@@ -87,15 +87,12 @@ Readonly my @PROPERTIES => (
 Readonly my %SUBMODULE_TRACKING_REF => (
     qlalr          => 'refs/heads/master',
     qt3d           => 'refs/heads/master',
-    qtconnectivity => 'refs/heads/master',
     qtdocgallery   => 'refs/heads/master',
     qtfeedback     => 'refs/heads/master',
     qtjsondb       => 'refs/heads/master',
-    qtlocation     => 'refs/heads/master',
     qtpim          => 'refs/heads/master',
     qtqa           => 'refs/heads/master',
     qtrepotools    => 'refs/heads/master',
-    qtsystems      => 'refs/heads/master',
 );
 
 # Author and committer to be used for commits by this script.
