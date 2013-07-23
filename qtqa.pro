@@ -10,6 +10,8 @@ tests.subdir = tests
 tests.CONFIG = no_default_install
 !contains(QT_BUILD_PARTS,tests):tests.CONFIG += no_default_target
 
+linux-*:system(". /etc/lsb-release && [ $DISTRIB_CODENAME = precise ]"):CONFIG+=insignificant_test # QTQAINFRA-708
+
 SUBDIRS +=  \
     scripts \
     tests
