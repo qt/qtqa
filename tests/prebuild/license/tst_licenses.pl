@@ -73,6 +73,7 @@ headers.
 my @excludedModules = qw{
     qtrepotools
     qtwebkit
+    test262
 };
 
 # If you add to the following lists of regexes, please
