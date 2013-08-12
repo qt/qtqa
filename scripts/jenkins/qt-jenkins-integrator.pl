@@ -1344,6 +1344,20 @@ sub sync_logs
 
     cmd( [@ssh_base, $cmd], '<' => \$stash_json );
 
+    # Launch testparser.pl at remote site to scan the sent logs to the SQL database
+    my $scriptpath = catdir( $parsed_ssh_url->path(), "/.hooks/post-upload-script" );
+    my $scanfolder = catdir( $dest_project_path, $dest_build_number );
+
+    $self->logger()->notice( "Calling '$scriptpath $scanfolder'" );
+
+    eval {
+        cmd(
+            [@ssh_base, $scriptpath, $scanfolder],
+            timeout => 60*5, retry => 0
+        );
+    };
+    $self->logger()->warning( "$@" ) if $@;
+
     return;
 }
 
