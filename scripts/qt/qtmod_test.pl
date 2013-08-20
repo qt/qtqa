@@ -896,6 +896,14 @@ sub run_git_checkout
             }
 
             $self->exe( 'git', 'clone', '--shared', $base_dir, $qt_gitmodule );
+            # run git submodule update for module under test, if there is one for module
+            chdir( $qt_gitmodule );
+            my $res = $self->exe_qx( 'git', 'submodule', 'status');
+            if ($res ne "") {
+                $self->exe( 'git', 'submodule', 'update', '--recursive', '--init' );
+            }
+            # return just in case
+            chdir( $qt_dir );
         }
     }
 
