@@ -348,6 +348,8 @@ sub install_cpanminus
         $tempfilename,    # contains a copy of the cpanm bootstrap script
         '--local-lib',    # options from this line onwards are cpanm options, not perl options;
         $prefix,          # install to the given prefix
+        '--mirror',       # www.cpan.org is having too many problems
+        'http://cpan.metacpan.org',
         '--reinstall',    # install in that prefix even if already installed somewhere else
         $to_install,      # name or URL of the module to install
     );
