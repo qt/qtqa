@@ -74,6 +74,8 @@ my @excludedModules = qw{
     qtrepotools
     qtwebkit
     test262
+    qtwebengine
+    3rdparty
 };
 
 # If you add to the following lists of regexes, please
