@@ -202,6 +202,13 @@ my @PROPERTIES = (
 
     q{qt.tests.dir}            => q{directory where to run the testplanner and execute tests},
 
+    q{qt.mobile.test.enabled}  => q{enabling non-default testrunner},
+
+    q{qt.mobile.testrunner}    => q{external perl script to run tests on mobile target like Android},
+
+    q{qt.mobile.testrunner.args}
+                               => q{args for perl script to run tests on mobile target},
+
     q{qt.qtqa-tests.enabled}   => q{if 1, run the shared autotests in qtqa (over this module }
                                 . q{only, or all modules if qt.gitmodule == "qt5").  The qtqa }
                                 . q{tests are run after the other autotests.},
@@ -520,6 +527,9 @@ sub read_and_store_configuration
         'qt.tests.backtraces'     => \&default_qt_tests_backtraces               ,
         'qt.tests.flaky_mode'     => q{}                                         ,
         'qt.tests.flaky.enabled'  => 1                                           ,
+        'qt.mobile.test.enabled'  => 0                                           ,
+        'qt.mobile.testrunner'      => q{}                                       ,
+        'qt.mobile.testrunner.args' => q{}                                       ,
 
         'qt.qtqa-tests.enabled'         => 0                                     ,
         'qt.qtqa-tests.insignificant'   => 0                                     ,
@@ -1417,11 +1427,25 @@ sub _run_autotests_impl
     my $qt_tests_testscheduler = $self->{ 'qt.tests.testscheduler' };
     my $qt_tests_testscheduler_args = $self->{ 'qt.tests.testscheduler.args' };
 
+    my $mobile_test_enabled  = $self->{ 'qt.mobile.test.enabled' };
+    my $mobile_testrunner    = $self->{ 'qt.mobile.testrunner' };
+    my $qt_testargs          = $self->{ 'qt.mobile.testrunner.args' };
+    my @mobile_testargs = split(/ /, $qt_testargs);
+
     # settings for this autotest run
     my $tests_dir            = $args{ tests_dir };
     my $insignificant_option = $args{ insignificant_option };
     my $do_compile           = $args{ do_compile };
     my $insignificant        = $self->{ $insignificant_option };
+
+    # mobile targets
+    if ($mobile_test_enabled) {
+        # sanity check
+        $self->fatal_error( "internal error: $mobile_testrunner does not exist" ) if (! -e $mobile_testrunner);
+        # disable building and desktop scheduler
+        $do_compile = 0;
+        $qt_tests_testscheduler = 0;
+    }
 
     # Add tools from all the modules to PATH.
     # If shadow-build with install enabled, then we need to add install path
@@ -1481,7 +1505,12 @@ sub _run_autotests_impl
                 split( m{ }, $qt_tests_testscheduler_args ),
                 @testrunner_args,
             );
-
+        } elsif ($mobile_test_enabled) {
+            $self->exe(
+                $EXECUTABLE_NAME,       # perl
+                $mobile_testrunner,        #/full/path/to/<runner>.pl
+                @mobile_testargs,
+            );
         } else {
             my $testrunner_command = $self->get_testrunner_command( );
 
