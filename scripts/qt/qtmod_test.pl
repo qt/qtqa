@@ -195,6 +195,8 @@ my @PROPERTIES = (
                                => q{arguments to pass to testscheduler, if any; for example, -j4 }
                                 . q{to run autotests in parallel},
 
+    q{qt.tests.flaky.enabled}   => q{enable flaky test plugin },
+
     q{qt.tests.flaky_mode}     => q{how to handle flaky autotests ("best", "worst" or "ignore")},
 
     q{qt.tests.dir}            => q{directory where to run the testplanner and execute tests},
@@ -509,6 +511,7 @@ sub read_and_store_configuration
         'qt.tests.args'           => \&default_qt_tests_args                     ,
         'qt.tests.backtraces'     => \&default_qt_tests_backtraces               ,
         'qt.tests.flaky_mode'     => q{}                                         ,
+        'qt.tests.flaky.enabled'  => 1                                           ,
 
         'qt.qtqa-tests.enabled'         => 0                                     ,
         'qt.qtqa-tests.insignificant'   => 0                                     ,
@@ -1192,6 +1195,7 @@ sub get_testrunner_args
     my $qt_tests_tee_logs        = $self->{ 'qt.tests.tee_logs' };
     my $qt_tests_backtraces      = $self->{ 'qt.tests.backtraces' };
     my $qt_tests_flaky_mode      = $self->{ 'qt.tests.flaky_mode' };
+    my $qt_tests_flaky_enabled   = $self->{ 'qt.tests.flaky.enabled' };
     my $qt_tests_testscheduler   = $self->{ 'qt.tests.testscheduler' };
 
     my @testrunner_args = (
@@ -1216,10 +1220,13 @@ sub get_testrunner_args
         }
     }
 
-    # give more info about unstable / flaky tests
-    push @testrunner_args, '--plugin', 'flaky';
-    if ($qt_tests_flaky_mode) {
-        push @testrunner_args, '--flaky-mode', $qt_tests_flaky_mode;
+    # enable flaky test plugin
+    if ($qt_tests_flaky_enabled) {
+        # give more info about unstable / flaky tests
+        push @testrunner_args, '--plugin', 'flaky';
+        if ($qt_tests_flaky_mode) {
+            push @testrunner_args, '--flaky-mode', $qt_tests_flaky_mode;
+        }
     }
 
     if ($qt_coverage_tool) {
