@@ -54,7 +54,6 @@ private slots:
     void macros();
 
 private:
-    static QStringList getHeaders(const QString &path);
     static QString explainPrivateSlot(const QString &line);
 
     void allHeadersData();
@@ -62,33 +61,25 @@ private:
     QString qtModuleDir;
 };
 
-QStringList tst_Headers::getHeaders(const QString &path)
+static QByteArray captureOutput(const QString &program, const QStringList &arguments, const QString &workingDirectory = QString())
 {
-    QStringList result;
+    QProcess process;
+    process.setWorkingDirectory(workingDirectory);
+    process.start(program, arguments);
 
-    QProcess git;
-    git.setWorkingDirectory(path);
-    git.start("git", QStringList() << "ls-files");
+    if (!process.waitForFinished(30000))
+        qFatal("'%s' did not complete within 30 seconds: %s", qPrintable(program), qPrintable(process.errorString()));
 
-    // Wait for git to start
-    if (!git.waitForStarted())
-        qFatal("Error running 'git': %s", qPrintable(git.errorString()));
+    if (0 != process.exitCode())
+        qFatal("Error running '%s': %s", qPrintable(program), process.readAllStandardError().constData());
 
-    // Continue reading the data until EOF reached
-    QByteArray data;
-    while (git.waitForReadyRead(-1))
-        data.append(git.readAll());
+    return process.readAll();
+}
 
-    // wait until the process has finished
-    if ((git.state() != QProcess::NotRunning) && !git.waitForFinished(30000))
-        qFatal("'git ls-files' did not complete within 30 seconds: %s", qPrintable(git.errorString()));
-
-    // Check for the git's exit code
-    if (0 != git.exitCode())
-        qFatal("Error running 'git ls-files': %s", qPrintable(git.readAllStandardError()));
-
+static QStringList getHeaders(const QString &path)
+{
     // Create a QStringList of files out of the standard output
-    QString string(data);
+    QString string(captureOutput("git", QStringList() << "ls-files", path));
     QStringList entries = string.split( "\n" );
 
     // We just want to check header files
@@ -96,10 +87,35 @@ QStringList tst_Headers::getHeaders(const QString &path)
     entries = entries.filter(QRegExp("^(?!ui_)"));
 
     // Recreate the whole file path so we can open the file from disk
+    QStringList result;
     foreach (QString entry, entries)
         result += path + "/" + entry;
 
     return result;
+}
+
+static QStringList getModuleHeaders(const QString &moduleRoot)
+{
+    // Read the sync.profile file of the module and test headers that syncqt will consider deploying.
+    const QLatin1String perlReadSyncProfileExpr(
+        "use File::Spec; use Cwd 'abs_path';"
+        "$basedir = $ARGV[0];"
+        "do File::Spec->catfile($basedir, 'sync.profile');"
+        "foreach my $lib (keys(%modules)) {"
+            "my $module = $modules{$lib};"
+            "my $moduleheader = $moduleheaders{$lib};"
+            "my $is_qt = !($module =~ s/^!//);"
+            "my $joined = abs_path(File::Spec->catdir($module, $moduleheader));"
+            "push @searchPaths, $joined if ($is_qt);"
+        "}"
+        "print join(\"\\n\", @searchPaths);");
+
+    QString string(captureOutput("perl", QStringList() << "-e" << perlReadSyncProfileExpr << moduleRoot));
+    QStringList entries = string.split("\n");
+    QStringList headers;
+    foreach (const QString &headersPath, entries)
+        headers += getHeaders(headersPath);
+    return headers;
 }
 
 void tst_Headers::initTestCase()
@@ -132,9 +148,11 @@ void tst_Headers::initTestCase()
 
             QVERIFY(QDir::setCurrent(dir.absolutePath() + "/.."));
 
-            headers = getHeaders(module + "/src");
+            headers = getModuleHeaders(module);
         }
         if (headers.isEmpty()) {
+            QVERIFY2(module != "qtbase",
+                "qtbase not containing any header? Something might be wrong with this test.");
             QSKIP("It seems there are no headers in this module; this test is "
                   "not applicable");
         }
