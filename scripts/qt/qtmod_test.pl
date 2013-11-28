@@ -62,6 +62,7 @@ use List::MoreUtils qw( any apply );
 use autodie;
 use Readonly;
 use Text::Trim;
+use Cwd;
 
 #Code coverage tools
 Readonly my $TESTCOCOON  => 'testcocoon';
@@ -650,7 +651,8 @@ sub run_clean_directories
     }
 
     # Job can be configured to outside base.dir.
-    if (-e $qt_dir) {
+    # If we are in same dir, it was already deleted
+    if ((-e $qt_dir) && ( cwd() ne $qt_dir)) {
         push @to_delete, $qt_dir;
     }
     # it will get created once cloned and checked out
