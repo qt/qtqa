@@ -1824,7 +1824,7 @@ sub do_state_monitor_jenkins_build
 {
     my ($self, $project_id, $stash) = @_;
 
-    my $build_number = delete $stash->{ build_number };
+    my $build_number = $stash->{ build_number };
 
     my $interval = eval { $self->project_config( $project_id, 'JenkinsPollInterval' ) };
 
@@ -2001,7 +2001,7 @@ sub do_state_send_mail
 
     my $gerrit_url = $self->project_config( $project_id, 'GerritUrl' );
     my $gerrit_branch = $self->project_config( $project_id, 'GerritBranch' );
-    my $ident = "$gerrit_url#$gerrit_branch";
+    my $ident = "$project_id #$stash->{ build_number }";
     my $result = ($parsed_build->{ result } eq 'SUCCESS') ? 'pass' : 'fail';
 
     my $sender = Mail::Sender->new();
