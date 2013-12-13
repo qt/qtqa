@@ -198,6 +198,19 @@ cron-style line for periodic triggering of the job.
 
 If omitted, the job is not triggered periodically.
 
+=item publish_xunit
+
+Parameter to enable xUnit jenkins plugin.
+
+Default is not to publish.
+
+=item publish_build
+
+Parameter to publish build results via another Jenkins dashboar,
+like https://builds.qt-project.org/.
+
+Default is not to publish.
+
 =item log_days_to_keep
 =item log_num_to_keep
 
@@ -575,6 +588,8 @@ sub desired_job_xml
             pretend => eval { $self->cfg( "job.$name", 'pretend' ) } // 0,
             poll_cron => eval { $self->cfg( "job.$name", 'poll_cron' ) } || q{},
             trigger_cron => eval { $self->cfg( "job.$name", 'trigger_cron' ) } || q{},
+            publish_xunit => eval { $self->cfg( "job.$name", 'publish_xunit' ) } || q{0},
+            publish_build => eval { $self->cfg( "job.$name", 'publish_build' ) } || q{0},
             configurations => \@configurations,
             qt_version => eval { $self->cfg( "job.$name", 'qt_version' ) } || q{},
             qt_license => eval { $self->cfg( "job.$name", 'qt_license' ) } || q{},
