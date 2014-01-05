@@ -1018,7 +1018,8 @@ sub run_compile
         my $make_target = "module-$qt_gitmodule";
 
         push @commands, sub {
-            local $ENV{'QMAKEFLAGS'} = join(" ", map { '"'.$_.'"' } @qmake_args);
+            my $global_qmakeflags = $ENV{'QMAKEFLAGS'};
+            local $ENV{'QMAKEFLAGS'} = join(" ", map { '"'.$_.'"' } $global_qmakeflags, @qmake_args);
             $self->exe( $make_bin, @make_args, $make_target );
         };
     }
