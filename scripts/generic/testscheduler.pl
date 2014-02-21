@@ -98,6 +98,10 @@ parallel-safe.
 The test scheduler will output a summary of its suggested modifications
 to the test configuration.
 
+=item --skip-insignificant
+
+Does not run insignificant tests.
+
 =item --debug
 
 Output a lot of additional information.  Use it for debugging,
@@ -165,6 +169,7 @@ sub new
         jobs => 1,
         debug => 0,
         summary => 1,
+        skip_insignificant => 0,
     }, $class;
 }
 
@@ -179,6 +184,7 @@ sub run
         'debug'     =>  \$self->{ debug },
         'summary!'  =>  \$self->{ summary },
         'parallel-stress' => \$self->{ parallel_stress },
+        'skip-insignificant' => \$self->{ skip_insignificant },
     ) || pod2usage(2);
 
     # Strip trailing --, if that's what ended our argument processing
@@ -470,7 +476,9 @@ sub read_tests_from_testplan
         if (my $error = $@) {
             die "$testplan:$line_no: error: $error";
         }
-        push @tests, $test;
+        if (!$test->{ insignificant_test } || !$self->{ skip_insignificant }) {
+            push @tests, $test;
+        }
     }
 
     return @tests;
