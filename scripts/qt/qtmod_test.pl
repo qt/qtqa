@@ -1114,8 +1114,8 @@ sub run_install_check
 
     return if (!$qt_make_install);
 
-    # check whether dirs 'bin' and 'include' actually exists under qt.install.dir
-    my @required_files = map { "$qt_install_dir/$_" } qw(bin include);
+    # check whether dirs 'bin' and 'mkspecs' actually exists under qt.install.dir
+    my @required_files = map { "$qt_install_dir/$_" } qw(bin mkspecs);
     my @missing_files = grep { ! -e $_ } @required_files;
     if (@missing_files) {
         $self->fail(
