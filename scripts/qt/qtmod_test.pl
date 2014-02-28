@@ -984,6 +984,8 @@ sub run_compile
     my $qt_gitmodule_build_dir  = $self->{ 'qt.gitmodule.build.dir'  };
     my $make_bin                = $self->{ 'make.bin'                };
     my $make_args               = $self->{ 'make.args'               };
+    my $qt_configure_args       = $self->{ 'qt.configure.args'       };
+    my $qt_configure_extra_args = $self->{ 'qt.configure.extra_args' };
     my $qt_make_install         = $self->{ 'qt.make_install'         };
     my $qt_minimal_deps         = $self->{ 'qt.minimal_deps'         };
 
@@ -999,11 +1001,13 @@ sub run_compile
     my @commands;
 
     my @qmake_args;
+    # do not build tools when targeting xplatform
+    my $make_tools = ($qt_configure_extra_args =~ m/-xplatform/ or $qt_configure_args =~ m/-xplatform/) ? "" : "tools ";
     if ($qt_minimal_deps) {
         # Qt 5 only:
         # minimal deps mode?  Then we turned off some build parts in configure, and must
         # now explicitly enable them for this module only.
-        push @qmake_args, uc($qt_gitmodule)."_BUILD_PARTS = libs tools ".join(" ", @OPTIONAL_BUILD_PARTS);
+        push @qmake_args, uc($qt_gitmodule)."_BUILD_PARTS = libs $make_tools".join(" ", @OPTIONAL_BUILD_PARTS);
     }
 
     if (($self->{'qt.gitmodule'} eq 'qt5') or ($self->{'qt.gitmodule'} eq 'qt')) {
