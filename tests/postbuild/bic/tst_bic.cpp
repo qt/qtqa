@@ -126,6 +126,7 @@ tst_Bic::tst_Bic()
     bic.addBlacklistedClass(QLatin1String("QDrawPixmaps::Data"));
     bic.addBlacklistedClass(QLatin1String("QS60Style"));
     bic.addBlacklistedClass(QLatin1String("QPointerBase"));
+    bic.addBlacklistedClass(QLatin1String("QOpenGLFunctionsPrivate"));
 
     /* Jambi-related classes in Designer */
     bic.addBlacklistedClass(QLatin1String("QDesignerLanguageExtension"));
