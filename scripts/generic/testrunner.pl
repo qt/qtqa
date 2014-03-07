@@ -1254,6 +1254,14 @@ sub do_subprocess
         push @{$self->{ timer }}, Timer::Simple->new( );
 
         my @command = $self->command( );
+
+        # Running test in iOS simulator, with ios-sim
+        if ( $ENV{QT_TEST_USE_IOS_SIM} ) {
+            # Apps are launched as ios-sim launch <tst_app> --args <tst_app args >
+            my $app = shift @command;
+            unshift @command, 'ios-sim', 'launch', $app,'--args';
+        }
+
         $self->plugins_about_to_run( \@command );
 
         {
