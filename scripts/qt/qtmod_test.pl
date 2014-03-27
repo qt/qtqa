@@ -235,6 +235,13 @@ my %MAKE_CHECK_BLACKLIST = map { $_ => 1 } qw(
     qtwebkit
 );
 
+# Some modules contains nested submodules. Until we get rid of old git
+# clients, like in Ubuntu 11.10, we can't run submodule update for some
+# of the modules
+my %SUBMODULE_UPDATE_BLACKLIST = map { $_ => 1 } qw(
+    qtdeclarative
+);
+
 # Like abs_path, but dies instead of returning an empty value if dirname($path)
 # doesn't exist.
 sub safe_abs_path
@@ -769,7 +776,11 @@ sub set_module_refs
         # need to redo a `submodule update' in case any gitmodule content is
         # affected.  Note that the `submodule update' is a no-op in the usual case
         # of no nested gitmodules.
-        $self->exe( 'git', 'submodule', 'update', '--recursive', '--init' );
+        if ($SUBMODULE_UPDATE_BLACKLIST{$module}) {
+            warn "It is not safe to run submodule update for $module";
+        } else {
+            $self->exe( 'git', 'submodule', 'update', '--recursive', '--init' );
+        }
     }
 
     return;
@@ -909,14 +920,19 @@ sub run_git_checkout
             }
 
             $self->exe( 'git', 'clone', '--shared', $base_dir, $qt_gitmodule );
-            # run git submodule update for module under test, if there is one for module
-            chdir( $qt_gitmodule );
-            my $res = $self->exe_qx( 'git', 'submodule', 'status');
-            if ($res ne "") {
-                $self->exe( 'git', 'submodule', 'update', '--recursive', '--init' );
+
+            if ($SUBMODULE_UPDATE_BLACKLIST{$qt_gitmodule}) {
+              warn "It is not safe to run submodule update for $qt_gitmodule";
+            } else {
+                # run git submodule update for module under test, if there is one for module
+                chdir( $qt_gitmodule );
+                my $res = $self->exe_qx( 'git', 'submodule', 'status');
+                if ($res ne "") {
+                    $self->exe( 'git', 'submodule', 'update', '--recursive', '--init' );
+                }
+                # return just in case
+                chdir( $qt_dir );
             }
-            # return just in case
-            chdir( $qt_dir );
         }
     }
 
