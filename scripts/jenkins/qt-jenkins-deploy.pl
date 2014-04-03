@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 #############################################################################
 ##
-## Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
+## Copyright (C) 2014 Digia Plc and/or its subsidiary(-ies).
 ## Contact: http://www.qt-project.org/legal
 ##
 ## This file is part of the Quality Assurance module of the Qt Toolkit.
@@ -210,6 +210,20 @@ Parameter to publish build results via another Jenkins dashboar,
 like https://builds.qt-project.org/.
 
 Default is not to publish.
+
+=item run_remote_job
+
+Parameter to enable additional build step after default job config.
+
+Default is not to run
+
+=item remote_jenkins
+
+Parameter to configure remote Jenkins' URL, where to run the remote job.
+
+=item remote_jenkins_job
+
+Parameter to configure the remote job to be run.
 
 =item log_days_to_keep
 =item log_num_to_keep
@@ -590,6 +604,9 @@ sub desired_job_xml
             trigger_cron => eval { $self->cfg( "job.$name", 'trigger_cron' ) } || q{},
             publish_xunit => eval { $self->cfg( "job.$name", 'publish_xunit' ) } || q{0},
             publish_build => eval { $self->cfg( "job.$name", 'publish_build' ) } || q{0},
+            run_remote_job => eval { $self->cfg( "job.$name", 'run_remote_job' ) } || q{0},
+            remote_jenkins => eval { $self->cfg( "job.$name", 'remote_jenkins' ) } || q{},
+            remote_jenkins_job => eval { $self->cfg( "job.$name", 'remote_jenkins_job' ) } || q{},
             configurations => \@configurations,
             qt_version => eval { $self->cfg( "job.$name", 'qt_version' ) } || q{},
             qt_license => eval { $self->cfg( "job.$name", 'qt_license' ) } || q{},
