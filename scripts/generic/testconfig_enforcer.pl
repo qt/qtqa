@@ -239,6 +239,8 @@ sub get_content_from_url
     } elsif ($response->code( ) == 404) {
         # Treat 404 non-fatal, it generally means the stage hasn't been run yet.
         return q{};
+    } elsif ($response->code( ) == 403) {
+        return q{};
     }
     die $response->decoded_content;
 }
