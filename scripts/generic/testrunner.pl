@@ -344,6 +344,7 @@ use lib (
 BEGIN {
     # Proc::Reliable is not reliable on Windows
     if ($OSNAME !~ m{win32}i) {
+        require AutoLoader;
         require Proc::Reliable;
         Proc::Reliable->import( );
     }

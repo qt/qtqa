@@ -60,6 +60,7 @@ BEGIN {
         QtQA::Proc::Reliable::Win32->import( );
     }
     else {
+        require AutoLoader;
         require Proc::Reliable;
         Proc::Reliable->import( );
     }
