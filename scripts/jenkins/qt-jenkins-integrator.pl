@@ -1270,8 +1270,25 @@ sub sync_logs
         my $src_url = "$run->{ url }/consoleText";
         my $dest_path = catfile( $dest_build_path, $dest_config, 'log.txt.gz' );
 
+        my $src_url_testlogs = "$run->{ url }"."artifact/_artifacts/test-logs/*zip*/test-logs.zip";
+        my $dest_path_testlogs = catfile( $dest_build_path, $dest_config, 'test-logs.zip' );
+
         if (!$stash->{ logs }{ $src_url }) {
             $to_upload{ $src_url } = $dest_path;
+
+            my $exit_wait = AnyEvent->condvar;
+
+            http_get $src_url_testlogs,
+                on_header => sub {
+                  if ($_[0]{"content-type"} =~ /^application\/zip$/) {
+                    $to_upload{ $src_url_testlogs } = $dest_path_testlogs;
+                  }
+                  0;
+                },
+                sub {
+                    $exit_wait->send;
+                };
+            $exit_wait->recv;
         }
     }
 
@@ -1294,11 +1311,14 @@ sub sync_logs
     my @coro;
     while (my ($src, $dest) = each %to_upload) {
         my $dir = dirname( $dest );
+        # don't re-compress zip files
+        my $storecmd = ($src =~ m/\.zip$/) ? "cat" : "gzip";
+        my $filename = fileparse ($dest);
         my @command = (
             @ssh_base,
             qq{mkdir -p "$dir" && cd "$dir" && }
-           .qq{gzip > .incoming.log.txt.gz && }
-           .qq{mv .incoming.log.txt.gz log.txt.gz}
+           .qq{$storecmd > .incoming.$filename && }
+           .qq{mv .incoming.$filename $filename}
         );
         push @coro, async {
             local $Coro::current->{ desc } = "$parent_coro->{ desc } uploader";
