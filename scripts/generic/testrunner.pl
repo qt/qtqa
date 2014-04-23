@@ -1240,6 +1240,7 @@ sub do_subprocess
     my $keep_running = 1;
     my $attempt = 1;
     my $force_failure_exitcode;
+    my $kill_cmd = "killall -v \"iPhone Simulator\"";
 
     # creates an array to store the timer details for each attempt
     $self->{ timer } = [];
@@ -1260,6 +1261,8 @@ sub do_subprocess
             # Apps are launched as ios-sim launch <tst_app> --args <tst_app args >
             my $app = shift @command;
             unshift @command, 'ios-sim', 'launch', $app,'--args';
+            # Looks like ios-sim can't re-launch the simulator properly, so we'll kill it
+            qx{${kill_cmd}};
         }
 
         $self->plugins_about_to_run( \@command );
