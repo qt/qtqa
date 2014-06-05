@@ -85,12 +85,11 @@ Readonly my @PROPERTIES => (
 # Map from submodule to the ref which should be tracked.
 # When omitted, defaults to `refs/heads/stable'.
 Readonly my %SUBMODULE_TRACKING_REF => (
-    qlalr          => 'refs/heads/master',
     qt3d           => 'refs/heads/master',
     qtdocgallery   => 'refs/heads/master',
     qtfeedback     => 'refs/heads/master',
     qtjsondb       => 'refs/heads/master',
-    qtpim          => 'refs/heads/master',
+    qtpim          => 'refs/heads/dev',
     qtqa           => 'refs/heads/master',
     qtrepotools    => 'refs/heads/master',
 );
