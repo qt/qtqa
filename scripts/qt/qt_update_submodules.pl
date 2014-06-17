@@ -84,15 +84,31 @@ Readonly my @PROPERTIES => (
 
 # Map from submodule to the ref which should be tracked.
 # When omitted, defaults to `refs/heads/stable'.
-Readonly my %SUBMODULE_TRACKING_REF => (
-    qt3d           => 'refs/heads/master',
-    qtdocgallery   => 'refs/heads/master',
-    qtfeedback     => 'refs/heads/master',
-    qtjsondb       => 'refs/heads/master',
-    qtpim          => 'refs/heads/dev',
-    qtqa           => 'refs/heads/master',
-    qtrepotools    => 'refs/heads/master',
-);
+sub get_submodule_ref
+{
+    my ($submodule, $qt_branch) = @_;
+
+    my @submodules_based_only_on_master_branch = ('qt3d', 'qtdocgallery', 'qtfeedback', 'qtjsondb', 'qtqa', 'qtrepotools');
+    my @submodules_based_only_on_dev_branch = ('qtpim');
+    my %submodules_based_on_custom_branch = (
+         'qtenginio' =>
+            {
+                'refs/heads/5.3' => 'refs/heads/1.0',
+                'refs/heads/5.3.1' => 'refs/heads/1.0.5',
+                'refs/heads/5.3.2' => 'refs/heads/1.0.6',
+            }
+    );
+
+    if ($submodule ~~ @submodules_based_only_on_master_branch) {
+        return "refs/heads/master";
+    }
+
+    if ($submodule ~~ @submodules_based_only_on_dev_branch) {
+        return "refs/heads/dev";
+    }
+
+    return $submodules_based_on_custom_branch{$submodule}{$qt_branch} // $qt_branch;
+}
 
 # Author and committer to be used for commits by this script.
 Readonly my $GIT_USER_NAME  => 'Qt Submodule Update Bot';
@@ -254,7 +270,7 @@ sub update_submodule
     my $base_dir = $self->{ 'base.dir' };
     my $qt_git_submodule_ref = $self->{ 'qt.git.submodule.ref' };
 
-    my $ref = $SUBMODULE_TRACKING_REF{ $submodule } // $qt_git_submodule_ref;
+    my $ref = get_submodule_ref($submodule, $qt_git_submodule_ref);
 
     # Note that we always use the giturl stored in .gitmodules, even though
     # init-repository may have used some other giturl.
