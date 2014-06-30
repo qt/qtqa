@@ -144,8 +144,9 @@ my %optionalFiles = (
                           qr{^mkspecs/features/data/android/dx\.bat$},
                         ],
     "qtconnectivity" => [
-                          # This directory contain generated files
+                          # These directories contain generated files
                           qr{^src/bluetooth/bluez/},
+                          qr{^src/nfc/neard/},
                         ],
     "qtdeclarative"  => [
                           # This is a single line forwarding header
