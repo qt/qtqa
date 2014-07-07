@@ -98,6 +98,7 @@ QStringList qt_tests_shared_global_get_include_paths(const QString &workDir, QHa
 
     QStringList incPaths;
 
+#ifndef QT_NO_PROCESS
     QFile file(proFile);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
         QWARN("Can't open the pro file for global.");
@@ -137,6 +138,9 @@ QStringList qt_tests_shared_global_get_include_paths(const QString &workDir, QHa
     incPaths = qt_tests_shared_global_get_include_path(makeFile);
 
     QFile::remove(makeFile);
+#else
+    Q_UNUSED(modules);
+#endif // QT_NO_PROCESS
 
     return incPaths;
 }
