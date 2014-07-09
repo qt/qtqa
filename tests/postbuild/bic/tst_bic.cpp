@@ -128,6 +128,7 @@ tst_Bic::tst_Bic()
     bic.addBlacklistedClass(QLatin1String("QPointerBase"));
     bic.addBlacklistedClass(QLatin1String("QOpenGLFunctionsPrivate"));
     bic.addBlacklistedClass(QLatin1String("QGLFunctionsPrivate"));
+    bic.addBlacklistedClass(QLatin1String("QDebug::Stream"));
 
     /* Jambi-related classes in Designer */
     bic.addBlacklistedClass(QLatin1String("QDesignerLanguageExtension"));
