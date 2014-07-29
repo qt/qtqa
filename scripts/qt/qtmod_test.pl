@@ -938,6 +938,14 @@ sub run_git_checkout
                 chdir( $qt_gitmodule );
                 my $res = $self->exe_qx( 'git', 'submodule', 'status');
                 if ($res ne "") {
+                    # Check the submodules url and make it to point local mirror if it is relative
+                    my $submodule_url = $self->exe_qx('git config -f .gitmodules --get-regexp submodule\..*\.url');
+                    for (split /^/, $submodule_url) {
+                        my ($submodule, $url) = split / /;
+                        if ($url =~ s/^\.\./qtgitreadonly:qt/) {
+                            $self->exe('git', 'config', $submodule, $url);
+                        }
+                    }
                     $self->exe( 'git', 'submodule', 'update', '--recursive', '--init' );
                 }
                 # return just in case
