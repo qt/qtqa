@@ -212,7 +212,7 @@ my $leadingDelimiter = qr/^(\s*[\*!;:#\-\.\\\"]+)/;
 # Where these are embedded in literals in a perl script, the @ in the
 # contact email address will be escaped.
 my @copyrightBlock = (
-    qr/\s\bCopyright \(C\) 2[0-9][0-9][0-9] .*/,
+    qr/\s\bCopyright \(C\) 2[0-9][0-9][0-9].*/,
     qr/\s\bContact: http:\/\/www\.qt-project\.org\/.*/,
     qr//,
     qr/\s\bThis file is (the|part of the)\s*\b(\w*)\b.*/,
