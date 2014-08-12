@@ -96,6 +96,10 @@ sub get_submodule_ref
                 'refs/heads/5.3' => 'refs/heads/1.0',
                 'refs/heads/5.3.1' => 'refs/heads/1.0.5',
                 'refs/heads/5.3.2' => 'refs/heads/1.0.6',
+            },
+         'qtwebengine' =>
+            {
+                'refs/heads/5.4' => 'refs/heads/1.0',
             }
     );
 
