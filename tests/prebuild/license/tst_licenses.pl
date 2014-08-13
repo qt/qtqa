@@ -92,6 +92,13 @@ my %excludedFiles = (
                           # contains deliberately incorrect license headers, for testing
                           qr{^scripts/t/license-testdata/bad/},
                         ],
+    "qtwayland"      => [
+                          # XML files for protocol
+                          qr{^src/extensions/.+\.xml$},
+                          qr{^config\.tests/wayland_scanner/scanner-test\.xml$},
+                          qr{^examples/server-buffer/share-buffer\.xml$},
+                        ],
+
 );
 
 # The following regex patterns designate directories and files for which
