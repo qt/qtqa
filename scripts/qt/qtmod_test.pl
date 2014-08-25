@@ -503,7 +503,7 @@ sub read_and_store_configuration
         'qt.revdep.dep_ref'       => \&default_qt_revdep_ref                     ,
         'qt.dir'                  => \&default_qt_dir                            ,
         'qt.repository'           => \&default_qt_repository                     ,
-        'qt.branch'               => q{stable}                                   ,
+        'qt.branch'               => q{dev}                                      ,
         'qt.deps_branch'          => q{}                                         ,
         'qt.init-repository.args' => q{}                                         ,
         'qt.configure.args'       => \&default_qt_configure_args                 ,
@@ -601,7 +601,7 @@ sub read_dependencies
 
     our (%dependencies);
 
-    my %default_dependencies = ( 'qtbase' => 'refs/heads/stable' );
+    my %default_dependencies = ( 'qtbase' => 'refs/heads/dev' );
     my $default_reason;
 
     if (! -e $dependency_file ) {
