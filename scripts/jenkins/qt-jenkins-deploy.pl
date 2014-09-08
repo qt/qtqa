@@ -333,6 +333,26 @@ Contains addons application repository branch
 Contains combination Filter for build. Filtering build
 targets for different releases.
 
+=item squish_test_suite_path
+
+Path to Squish installation
+
+=item squish_config_path
+
+Path to job specifig configurations, needed by Squish Plugin.
+
+=item squish_test_suites
+
+Space separated list of test suites to run, combined with squish_test_suite_path should form valid path to test suite
+
+=item auth_token
+
+Authorization token to be used when triggering the build from other scripts
+
+=item job_description
+
+Description for the job.
+
 =back
 
 =item [node.<node_basename>]
@@ -607,9 +627,14 @@ sub desired_job_xml
     }
     my @configurations = sort keys %configurations;
 
+    # get squish test suites
+    my @squish_test_suites;
+    @squish_test_suites = eval { split( /[ ,]+/, $self->cfg( "job.$name", 'squish_test_suites' )) };
+
     # get boot_script from ini
     my $boot_script_file = eval { $self->cfg( "job.$name", 'boot_script' ) } || q{};
     my $file_contents = '';
+
     # if file is found read contents to $file_contents variable
     if ($boot_script_file) {
         if (!file_name_is_absolute( $boot_script_file )) {
@@ -662,6 +687,11 @@ sub desired_job_xml
             artifacts_upload_path => eval { $self->cfg( "job.$name", 'artifacts_upload_path' ) } || q{},
             send_status_mail => eval { $self->cfg( "job.$name", 'send_status_mail' ) } || q{},
             boot_script => $file_contents,
+            squish_test_suite_path => eval { $self->cfg( "job.$name", 'squish_test_suite_path' ) } || q{},
+            squish_config_path => eval { $self->cfg( "job.$name", 'squish_config_path' ) } || q{},
+            squish_test_suites => \@squish_test_suites,
+            auth_token => eval { $self->cfg( "job.$name", 'auth_token' ) } || q{},
+            job_description => eval { $self->cfg( "job.$name", 'job_description' ) } || q{},
         },
         \$data
     ) || die "job $name: while parsing template: ".$tt->error();
