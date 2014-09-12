@@ -292,6 +292,10 @@ accessible with SSH/SCP.
 
 The base path on host server where to upload build artifacts.
 
+=item send_status_mail
+
+Parameter to send status e-mail from jenkins by using extended e-mail plugin.
+
 =item boot_script
 
 File that contains Groovy script for booting the machine down after the build.
@@ -613,6 +617,7 @@ sub desired_job_xml
             artifacts_download_url => eval { $self->cfg( "job.$name", 'artifacts_download_url' ) } || q{},
             artifacts_upload_host => eval { $self->cfg( "job.$name", 'artifacts_upload_host' ) } || q{},
             artifacts_upload_path => eval { $self->cfg( "job.$name", 'artifacts_upload_path' ) } || q{},
+            send_status_mail => eval { $self->cfg( "job.$name", 'send_status_mail' ) } || q{},
             boot_script => $file_contents,
         },
         \$data
