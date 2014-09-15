@@ -75,7 +75,6 @@ struct Example {
 };
 
 QList<Example> examples;
-QList<Example> demos;
 
 // Data struct used in tests, specifying paths and timeouts
 struct AppLaunchData {
@@ -122,8 +121,7 @@ public:
     typedef QPair<const char*, AppLaunchData> TestDataEntry;
     typedef QList<TestDataEntry> TestDataEntries;
 
-    enum { TestTools = 0x1, TestDemo = 0x2, TestExamples = 0x4,
-           TestAll = TestTools|TestDemo|TestExamples };
+    enum { TestTools = 0x1, TestExamples = 0x2, TestAll = TestTools|TestExamples };
 
     tst_GuiAppLauncher();
 
@@ -156,8 +154,6 @@ static inline unsigned testMask()
         testMask &= ~ tst_GuiAppLauncher::TestTools;
     if (!qgetenv("QT_TEST_NOEXAMPLES").isEmpty())
         testMask &= ~tst_GuiAppLauncher::TestExamples;
-    if (!qgetenv("QT_TEST_NODEMOS").isEmpty())
-        testMask &= ~tst_GuiAppLauncher::TestDemo;
     return testMask;
 }
 
@@ -308,18 +304,6 @@ tst_GuiAppLauncher::TestDataEntries tst_GuiAppLauncher::testData() const
         data.upTimeMS = 5000; // Slow loading
         data.args.append(m_dir + QLatin1String("test.ts"));
         rc.append(TestDataEntry("Qt Linguist", data));
-    }
-
-    if (m_testMask & TestDemo) {
-        data.clear();
-        data.upTimeMS = 5000; // Startup animation
-        data.binary = binPath + guiBinary(QLatin1String("qtdemo"));
-        rc.append(TestDataEntry("Qt Demo", data));
-
-        if (!path.isEmpty()) {
-            demos = readDataEntriesFromFile(path + "/tests/auto/guiapplauncher/demos.txt");
-            rc += exampleData(m_examplePriority, path, demos, demos.size());
-        }
     }
 
     if (m_testMask & TestExamples) {
