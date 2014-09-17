@@ -17,7 +17,7 @@ HEADERS += windowmanager.h
 
 # process enumeration,etc.
 win32:LIBS+=-luser32
-unix:!osx {
+linux {
     LIBS += $$QMAKE_LIBS_X11
 }
 

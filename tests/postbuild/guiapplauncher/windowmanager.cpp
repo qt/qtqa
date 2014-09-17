@@ -45,7 +45,8 @@
 #include <QtCore/QDebug>
 #include <QtCore/QTextStream>
 
-#if defined(Q_OS_UNIX) && !defined(Q_OS_OSX)
+// There is no portable way to check for X11 at compile time, so limit to Linux for now.
+#if defined(Q_OS_LINUX)
 #  include <string.h>     // memset
 #  include <X11/Xlib.h>
 #  include <X11/Xatom.h>  // XA_WM_STATE
@@ -63,7 +64,7 @@ public:
     static void sleepMS(int milliSeconds) { msleep(milliSeconds); }
 };
 
-#if defined(Q_OS_UNIX) && !defined(Q_OS_OSX)
+#if defined(Q_OS_LINUX)
 // X11 Window manager
 
 // Register our own error handler to prevent the defult crashing
@@ -434,7 +435,7 @@ WindowManager::~WindowManager()
 
 QSharedPointer<WindowManager> WindowManager::create()
 {
-#if defined(Q_OS_UNIX) && !defined(Q_OS_OSX)
+#if defined(Q_OS_LINUX)
     return QSharedPointer<WindowManager>(new X11_WindowManager);
 #elif defined(Q_OS_WIN) && !defined(Q_OS_WINCE)
     return QSharedPointer<WindowManager>(new Win_WindowManager);
