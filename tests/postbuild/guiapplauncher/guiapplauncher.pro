@@ -17,8 +17,9 @@ HEADERS += windowmanager.h
 
 # process enumeration,etc.
 win32:LIBS+=-luser32
-linux {
+contains(QT_CONFIG, xlib) {
     LIBS += $$QMAKE_LIBS_X11
+    DEFINES += Q_WS_X11
 }
 
 CONFIG += insignificant_test    # QTQAINFRA-323
