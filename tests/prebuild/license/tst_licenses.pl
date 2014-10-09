@@ -88,7 +88,8 @@ my %excludedFiles = (
                           # XML files for protocol
                           qr{^src/extensions/.+\.xml$},
                           qr{^config\.tests/wayland_scanner/scanner-test\.xml$},
-                          qr{^examples/server-buffer/share-buffer\.xml$},
+                          qr{^examples/server-buffer/share-buffer\.xml$}, # ### fixme: Remove after moving of examples.
+                          qr{^examples/wayland/server-buffer/share-buffer\.xml$},
                         ],
 
 );
