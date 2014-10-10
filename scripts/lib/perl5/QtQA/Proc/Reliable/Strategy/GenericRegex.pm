@@ -115,7 +115,7 @@ sub _process_text
 
     confess 'internal error: undefined $text' unless defined( $text );
 
-    my $match = firstval { $text ~~ $_ } @patterns;
+    my $match = firstval { $text =~ $_ } @patterns;
     return if !$match;
 
     ++$self->{ junk_error_count };

@@ -361,7 +361,7 @@ sub checkLicense
             if (/^\Q$beginDelimiter\E$licenseBeginMarker/) {
                 ($licenseType,$endDelimiter) = ($1, $2);
                 # Verify that we have reference text for the license type
-                if (!defined(@{$licenseTexts{$licenseType}})) {
+                if (!@{$licenseTexts{$licenseType}}) {
                     fail("No reference text for license type $licenseType in $shortfilename, line $currentLine");
                     return 0;
                 }
