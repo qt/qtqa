@@ -292,6 +292,42 @@ Parameter to send status e-mail from jenkins by using extended e-mail plugin.
 
 File that contains Groovy script for booting the machine down after the build.
 
+=item build_trigger
+
+Contains next build job to start if build succeeds.
+
+=item build_flow
+
+Contains the information about the build flow e.g. 5.4.1
+
+=item qt5sha1
+
+Contains sha1 for qt5
+
+=item url_trigger
+
+Contains url to be polled to start specific build flow compilation
+
+=item application_name
+
+Contains addons application name
+
+=item application_version
+
+Contains addons application version
+
+=item application_sha1
+
+Contains addons application sha1
+
+=item git_application_repo
+
+Contains addons application repository
+
+=item git_application_repo_branch
+
+Contains addons application repository branch
+
 =back
 
 =item [node.<node_basename>]
@@ -586,6 +622,15 @@ sub desired_job_xml
             name => $name,
             gerrit_host => eval { $self->cfg( "job.$name", 'gerrit_host' ) } || q{},
             gerrit_port => eval { $self->cfg( "job.$name", 'gerrit_port' ) } // 29418,
+            build_trigger => eval { $self->cfg( "job.$name", 'build_trigger' ) } || q{},
+            build_flow => eval { $self->cfg( "job.$name", 'build_flow' ) } || q{},
+            qt5sha1 => eval { $self->cfg( "job.$name", 'qt5sha1' ) } || q{},
+            url_trigger => eval { $self->cfg( "job.$name", 'url_trigger' ) } || q{},
+            application_name => eval { $self->cfg( "job.$name", 'application_name' ) } || q{},
+            application_version => eval { $self->cfg( "job.$name", 'application_version' ) } || q{},
+            application_sha1 => eval { $self->cfg( "job.$name", 'application_sha1' ) } || q{},
+            git_application_repo => eval { $self->cfg( "job.$name", 'git_application_repo' ) } || q{},
+            git_application_repo_branch => eval { $self->cfg( "job.$name", 'git_application_repo_branch' ) } || q{},
             gerrit_project => $gerrit_project,
             testconfig_project => eval { $self->cfg( "job.$name", 'testconfig_project' ) } // $name,
             job_template => $job_template,
