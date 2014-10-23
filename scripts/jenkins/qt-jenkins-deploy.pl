@@ -328,6 +328,11 @@ Contains addons application repository
 
 Contains addons application repository branch
 
+=item build_combination
+
+Contains combination Filter for build. Filtering build
+targets for different releases.
+
 =back
 
 =item [node.<node_basename>]
@@ -631,6 +636,7 @@ sub desired_job_xml
             application_sha1 => eval { $self->cfg( "job.$name", 'application_sha1' ) } || q{},
             git_application_repo => eval { $self->cfg( "job.$name", 'git_application_repo' ) } || q{},
             git_application_repo_branch => eval { $self->cfg( "job.$name", 'git_application_repo_branch' ) } || q{},
+            build_combination => eval { $self->cfg( "job.$name", 'build_combination' ) } || q{},
             gerrit_project => $gerrit_project,
             testconfig_project => eval { $self->cfg( "job.$name", 'testconfig_project' ) } // $name,
             job_template => $job_template,
