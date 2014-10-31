@@ -538,7 +538,7 @@ sub run
             return;
         }
 
-        my @allFiles = `git ls-files`;
+        my @allFiles = grep(!/\/3rdparty\//,`git ls-files`);
 
         if ($? != 0) {
             fail("There was a problem running 'git ls-files' on the repository");
