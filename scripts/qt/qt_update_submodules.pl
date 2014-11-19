@@ -80,8 +80,8 @@ sub get_submodule_ref
 {
     my ($submodule, $qt_branch) = @_;
 
-    my @submodules_based_only_on_master_branch = ('qt3d', 'qtdocgallery', 'qtfeedback', 'qtjsondb', 'qtqa', 'qtrepotools');
-    my @submodules_based_only_on_dev_branch = ('qtpim');
+    my @submodules_based_only_on_master_branch = ('qtdocgallery', 'qtfeedback', 'qtjsondb', 'qtqa', 'qtrepotools');
+    my @submodules_based_only_on_dev_branch = ('qt3d','qtpim');
     my %submodules_based_on_custom_branch = (
          'qtenginio' =>
             {
