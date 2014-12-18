@@ -418,7 +418,7 @@ sub checkLicense
     }
 
     # Did we find any valid licenses?
-    if ($matchedLicenses == 0) {
+    if ($matchedLicenses == 0 && $#lines > 2) {
         fail("$shortfilename does not appear to contain a license header");
         return 0;
     }
