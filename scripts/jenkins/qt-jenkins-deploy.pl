@@ -673,6 +673,8 @@ sub desired_job_xml
             enabled => eval { $self->cfg( "job.$name", 'enabled' ) } // 1,
             pretend => eval { $self->cfg( "job.$name", 'pretend' ) } // 0,
             poll_cron => eval { $self->cfg( "job.$name", 'poll_cron' ) } || q{},
+            on_demand => eval { $self->cfg( "job.$name", 'on_demand' ) } // 0,
+            template_ini_prefix => eval { $self->cfg( "job.$name", 'template_ini_prefix' ) } // $branch,
             trigger_cron => eval { $self->cfg( "job.$name", 'trigger_cron' ) } || q{},
             publish_xunit => eval { $self->cfg( "job.$name", 'publish_xunit' ) } || q{0},
             publish_build => eval { $self->cfg( "job.$name", 'publish_build' ) } || q{0},
