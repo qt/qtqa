@@ -356,7 +356,7 @@ sub create_git_commit
 
     local $LIST_SEPARATOR = ', ';
     my $message_summary = "@projects: set $some_configs enforcing";
-    my $message_body = "$these_are passing.  Make sure $they_stay that way.";
+    my $message_body = "$these_are passing. Make sure $they_stay that way.";
 
     if (length( $message_summary ) > 75) {
         # If we can't reasonably fit all affected projects into the oneline summary,
@@ -366,7 +366,7 @@ sub create_git_commit
         $message_body = wrap(
             q{},
             q{},
-            "These configs on @projects are passing.  Make sure they stay that way."
+            "These configs on @projects are passing. Make sure they stay that way."
         );
     }
 
