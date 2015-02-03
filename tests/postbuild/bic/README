@@ -1,0 +1,37 @@
+simple guide to generate the bic test data
+------------------------------------------
+
+* download and install, e.g., http://download.qt.io/official_releases/qt/5.4/5.4.0/qt-opensource-linux-x64-5.4.0.run
+* compile tst_bic
+    * `cd /path/to/qtqa/tests/postbuild/bic/`
+    * `~/Qt5.4.0/5.4/gcc_64/bin/qmake`
+    * make
+* generate the data, e.g., for qtdeclarative
+    * `cd /path/to/qtdeclarative/tests/auto/bic/data/`
+    * `QTDIR=~/Qt5.4.0/5.4/gcc_64/ /path/to/qtqa/tests/postbuild/bic/gen.sh "QtQml QtQuick QtQuickTest" 5.4.0.linux-gcc-amd64`
+* test if tst_bic succeeds
+    * `cd /path/to/qtdeclarative`
+    * `PATH=$PATH:~/Qt5.4.0/5.4/gcc_64/bin QT_MODULE_TO_TEST=$PWD /path/to/qtqa/tests/postbuild/bic/tst_bic`
+* expected output
+    ********* Start testing of tst_Bic *********
+    Config: Using QtTest library 5.4.0, Qt 5.4.0 (x86_64-little_endian-lp64 shared (dynamic) release build; by GCC 4.6.1)
+    WARNING: tst_Bic::initTestCase() This test needs the correct qmake in PATH, we need it to generate INCPATH for qt modules.
+       Loc: [tst_bic.cpp(149)]
+    QDEBUG : tst_Bic::initTestCase() modules keys: ("QtQuick", "QtQml", "QtQuickTest")
+    QDEBUG : tst_Bic::initTestCase() modules values: ("quick", "qml", "qmltest")
+    PASS   : tst_Bic::initTestCase()
+    PASS   : tst_Bic::sizesAndVTables(QtQuick:5.0)
+    PASS   : tst_Bic::sizesAndVTables(QtQuick:5.1)
+    PASS   : tst_Bic::sizesAndVTables(QtQuick:5.2)
+    PASS   : tst_Bic::sizesAndVTables(QtQuick:5.3)
+    PASS   : tst_Bic::sizesAndVTables(QtQml:5.0)
+    PASS   : tst_Bic::sizesAndVTables(QtQml:5.1)
+    PASS   : tst_Bic::sizesAndVTables(QtQml:5.2)
+    PASS   : tst_Bic::sizesAndVTables(QtQml:5.3)
+    PASS   : tst_Bic::sizesAndVTables(QtQuickTest:5.0)
+    PASS   : tst_Bic::sizesAndVTables(QtQuickTest:5.1)
+    PASS   : tst_Bic::sizesAndVTables(QtQuickTest:5.2)
+    PASS   : tst_Bic::sizesAndVTables(QtQuickTest:5.3)
+    PASS   : tst_Bic::cleanupTestCase()
+    Totals: 14 passed, 0 failed, 0 skipped, 0 blacklisted
+    ********* Finished testing of tst_Bic *********
