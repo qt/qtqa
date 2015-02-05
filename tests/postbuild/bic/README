@@ -11,7 +11,7 @@ simple guide to generate the bic test data
     * `QTDIR=~/Qt5.4.0/5.4/gcc_64/ /path/to/qtqa/tests/postbuild/bic/gen.sh "QtQml QtQuick QtQuickTest" 5.4.0.linux-gcc-amd64`
 * test if tst_bic succeeds
     * `cd /path/to/qtdeclarative`
-    * `PATH=$PATH:~/Qt5.4.0/5.4/gcc_64/bin QT_MODULE_TO_TEST=$PWD /path/to/qtqa/tests/postbuild/bic/tst_bic`
+    * `PATH=~/Qt5.4.0/5.4/gcc_64/bin:$PATH QT_MODULE_TO_TEST=$PWD /path/to/qtqa/tests/postbuild/bic/tst_bic`
 * expected output
     ********* Start testing of tst_Bic *********
     Config: Using QtTest library 5.4.0, Qt 5.4.0 (x86_64-little_endian-lp64 shared (dynamic) release build; by GCC 4.6.1)
