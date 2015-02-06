@@ -77,6 +77,7 @@ tst_Bic::tst_Bic()
     bic.addBlacklistedClass(QLatin1String("drand"));
     bic.addBlacklistedClass(QLatin1String("itimerspec"));
     bic.addBlacklistedClass(QLatin1String("lconv"));
+    bic.addBlacklistedClass(QLatin1String("pthread_attr_t"));
     bic.addBlacklistedClass(QLatin1String("random"));
     bic.addBlacklistedClass(QLatin1String("sched_param"));
     bic.addBlacklistedClass(QLatin1String("sigcontext"));
