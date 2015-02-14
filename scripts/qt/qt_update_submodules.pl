@@ -64,10 +64,10 @@ Readonly my @PROPERTIES => (
     q{qt.git.url}              => q{giturl of the repo to push to (only used if qt.git.push }
                                 . q{is set)},
 
-    q{qt.git.ref}              => q{the ref to push to (`stable' branch by default, only used }
+    q{qt.git.ref}              => q{the ref to push to (`dev' branch by default, only used }
                                 . q{if qt.git.push is set)},
 
-    q{qt.git.submodule.ref}    => q{the submodule ref which should be tracked (`stable' branch }
+    q{qt.git.submodule.ref}    => q{the submodule ref which should be tracked (`dev' branch }
                                 . q{by default)},
 
     q{qt.init-repository.args} => q{additional arguments for init-repository; e.g., use }
@@ -75,7 +75,7 @@ Readonly my @PROPERTIES => (
 );
 
 # Map from submodule to the ref which should be tracked.
-# When omitted, defaults to `refs/heads/stable'.
+# When omitted, defaults to `refs/heads/dev'.
 sub get_submodule_ref
 {
     my ($submodule, $qt_branch) = @_;
@@ -134,8 +134,8 @@ sub read_and_store_configuration
         'qt.git.push'             => 0,
         'qt.git.push.dry-run'     => 0,
         'qt.git.url'              => 'ssh://qt_submodule_update_bot@codereview.qt-project.org:29418/qt/qt5',
-        'qt.git.ref'              => 'refs/for/stable',
-        'qt.git.submodule.ref'    => 'refs/heads/stable',
+        'qt.git.ref'              => 'refs/for/dev',
+        'qt.git.submodule.ref'    => 'refs/heads/dev',
         'qt.init-repository.args' => q{},
     );
 
@@ -471,7 +471,7 @@ The expected usage of this script is:
 
 Periodically (e.g. daily), this script is run on qt5.git.
 It updates all submodules to the latest SHA1 for each tracked branch (typically
-`stable'), and pushes the change to gerrit.
+`dev'), and pushes the change to gerrit.
 
 =item *
 
