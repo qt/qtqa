@@ -68,7 +68,6 @@ my @excludedModules = qw{
     test262
     qtwebengine
     3rdparty
-    qtlocation
 };
 
 # If you add to the following lists of regexes, please
