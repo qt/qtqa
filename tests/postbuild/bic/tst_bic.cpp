@@ -143,6 +143,9 @@ tst_Bic::tst_Bic()
 
     /* This structure has a version field that allows extension */
     bic.addBlacklistedClass(QLatin1String("QDeclarativePrivate::RegisterType"));
+
+    /* according to Thiago this is a false positive */
+    bic.addBlacklistedClass(QLatin1String("QLoggingCategory::AtomicBools"));
 }
 
 void tst_Bic::initTestCase()
