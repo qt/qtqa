@@ -146,6 +146,12 @@ tst_Bic::tst_Bic()
 
     /* according to Thiago this is a false positive */
     bic.addBlacklistedClass(QLatin1String("QLoggingCategory::AtomicBools"));
+
+    /* according to Sean Harmer these are a false positive (qtbase/ea80316f) */
+    bic.addBlacklistedClass(QLatin1String("QOpenGLFunctions_1_1_DeprecatedBackend"));
+    bic.addBlacklistedClass(QLatin1String("QOpenGLFunctions_2_0_CoreBackend"));
+    bic.addBlacklistedClass(QLatin1String("QOpenGLFunctions_3_0_CoreBackend"));
+    bic.addBlacklistedClass(QLatin1String("QOpenGLFunctions_4_3_CoreBackend"));
 }
 
 void tst_Bic::initTestCase()
