@@ -68,6 +68,7 @@ my @excludedModules = qw{
     test262
     qtwebengine
     3rdparty
+    qtqa
 };
 
 # If you add to the following lists of regexes, please
@@ -80,10 +81,6 @@ my @excludedModules = qw{
 # license headers are not checked at all.  Valid uses of this should be
 # very rare - use %optionalFiles where possible.
 my %excludedFiles = (
-    "qtqa"           => [
-                          # contains deliberately incorrect license headers, for testing
-                          qr{^scripts/t/license-testdata/bad/},
-                        ],
     "qtwayland"      => [
                           # XML files for protocol
                           qr{^src/extensions/.+\.xml$},
