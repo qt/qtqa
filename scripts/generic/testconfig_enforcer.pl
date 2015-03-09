@@ -45,7 +45,7 @@ testconfig_enforcer - set Qt CI test configurations enforcing when appropriate
   # from a daily cron job, or similar...
   ./testconfig_enforcer.pl --testconfig-path [path to local qtqa/testconfig]
 
-Check the latest test results on testresults.qt-project.org, cross-reference
+Check the latest test results on testresults.qt.io, cross-reference
 with the settings in the testconfig repository, and push a commit removing
 any appropriate `forcesuccess' or `*insignificant*' properties.
 
@@ -118,7 +118,7 @@ enumerates all properties under qtqa/testconfig which represent a non-enforcing
 =item *
 
 for each non-enforcing test configuration, the latest successful test log is downloaded
-from testresults.qt-project.org and scanned; if the log indicates that the test
+from testresults.qt.io and scanned; if the log indicates that the test
 configuration would pass if it were enforcing, the appropriate files are removed from
 the local copy of qtqa/testconfig
 
@@ -154,7 +154,7 @@ use lib "$FindBin::Bin/../lib/perl5";
 
 use QtQA::Gerrit;
 
-const my $CI_BASE_URL => 'http://testresults.qt-project.org/ci';
+const my $CI_BASE_URL => 'http://testresults.qt.io/ci';
 
 const my $BOT_NAME => 'Qt Testconfig Enforcer Bot';
 
