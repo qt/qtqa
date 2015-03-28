@@ -107,6 +107,8 @@ my %optionalFiles = (
                           # Don't look at git's metadata
                           qr{^\.git/},
                           # These are qt5 third-party files.
+                          qr{^gnuwin32/bin/data/glr\.c$},
+                          qr{^gnuwin32/bin/data/yacc\.c$},
                           qr{^gnuwin32/share/bison/glr\.c$},
                           qr{^gnuwin32/share/bison/yacc\.c$},
                         ],
