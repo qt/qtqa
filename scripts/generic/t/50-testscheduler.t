@@ -144,35 +144,35 @@ sub test_mixed
     isnt( $status, 0, 'testscheduler fails if some tests fail' );
     like( $output, qr|
 \A
-\QQtQA::App::TestRunner: begin failing_significant_test: \E[^\n]+\Q
+\QQtQA::App::TestRunner: begin failing_significant_test @ \E[^\n]+\Q
 failing. 1 arg(s)
 QtQA::App::TestRunner: end failing_significant_test: \E[^\n]+\Q
 QtQA::App::TestScheduler: failing_significant_test failed; run concurrently with passing_insignificant_test
-QtQA::App::TestRunner: begin passing_insignificant_test: \E[^\n]+\Q
+QtQA::App::TestRunner: begin passing_insignificant_test @ \E[^\n]+\Q
 passing. 1 arg(s)
 QtQA::App::TestRunner: end passing_insignificant_test: \E[^\n]+\Q
 QtQA::App::TestScheduler: ran 2 parallel tests.  Starting 6 serial tests.
-QtQA::App::TestRunner: begin failing_custom_check_target: \E[^\n]+\Q
+QtQA::App::TestRunner: begin failing_custom_check_target @ \E[^\n]+\Q
 Custom failing
 QtQA::App::TestRunner: end failing_custom_check_target: \E[^\n]+\Q
 QtQA::App::TestScheduler: failing_custom_check_target failed
-QtQA::App::TestRunner: begin failing_insignificant_test: \E[^\n]+\Q
+QtQA::App::TestRunner: begin failing_insignificant_test @ \E[^\n]+\Q
 failing. 1 arg(s)
 QtQA::App::TestRunner: end failing_insignificant_test: \E[^\n]+\Q
 QtQA::App::TestScheduler: failing_insignificant_test failed, but it is marked with insignificant_test
 QtQA::App::TestScheduler: passing_custom_check_target: ignored invalid testcase.timeout value of "-120"
-QtQA::App::TestRunner: begin passing_custom_check_target: \E[^\n]+\Q
+QtQA::App::TestRunner: begin passing_custom_check_target @ \E[^\n]+\Q
 Custom passing
 QtQA::App::TestRunner: end passing_custom_check_target: \E[^\n]+\Q
-QtQA::App::TestRunner: begin passing_significant_test: \E[^\n]+\Q
+QtQA::App::TestRunner: begin passing_significant_test @ \E[^\n]+\Q
 passing. 1 arg(s)
 QtQA::App::TestRunner: end passing_significant_test: \E[^\n]+\Q
 QtQA::App::TestScheduler: subtest (sub1): ignored invalid testcase.timeout value of "Some bogus timeout"
-QtQA::App::TestRunner: begin subtest (sub1): \E[^\n]+\Q
+QtQA::App::TestRunner: begin subtest (sub1) @ \E[^\n]+\Q
 failing. 1 arg(s)
 QtQA::App::TestRunner: end subtest (sub1): \E[^\n]+\Q
 QtQA::App::TestScheduler: subtest (sub1) failed
-QtQA::App::TestRunner: begin subtest (sub2): \E[^\n]+\Q
+QtQA::App::TestRunner: begin subtest (sub2) @ \E[^\n]+\Q
 failing. 1 arg(s)
 QtQA::App::TestRunner: end subtest (sub2): \E[^\n]+\Q
 QtQA::App::TestScheduler: subtest (sub2) failed

@@ -1319,7 +1319,7 @@ sub print_test_begin_info
 
     my @command = $self->pretty_printed_command( );
 
-    $self->print_info( "begin $label: @command\n" );
+    $self->print_info( "begin $label @ $CWD: @command\n" );
 
     return;
 }

@@ -94,7 +94,7 @@ Readonly my $IS_SUPERUSER
 
 # Pattern matching --verbose 'begin' line, without trailing \n.
 Readonly my $TESTRUNNER_VERBOSE_BEGIN
-    => qr{\QQtQA::App::TestRunner: begin \E[^:]+:\Q [perl]\E[^\n]*};
+    => qr{\QQtQA::App::TestRunner: begin \E.*?:\Q [perl]\E[^\n]*};
 
 # Pattern matching --verbose 'end' line, without trailing \n.
 # Ends with [^\n]*, so it can match or not match the exit status portion,

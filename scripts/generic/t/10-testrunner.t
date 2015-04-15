@@ -56,7 +56,7 @@ Readonly my $TESTSCRIPT_PRINT_CWD
 # Pattern matching --verbose 'begin' line, without trailing \n.
 # 'label' is captured.
 Readonly my $TESTRUNNER_VERBOSE_BEGIN
-    => qr{\QQtQA::App::TestRunner: begin \E(?<label>[^:]+)\Q: [perl]\E[^\n]*};
+    => qr{\QQtQA::App::TestRunner: begin \E(?<label>.*?)\s\@.*?\Q: [perl]\E[^\n]*};
 
 # Pattern matching --verbose 'end' line, without trailing \n.
 # Ends with [^\n]*, so it can match or not match the exit status portion,

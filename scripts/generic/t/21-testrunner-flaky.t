@@ -129,7 +129,7 @@ Readonly my $RE => {
 \QQtQA::App::TestRunner: this flaky test is being treated as a FAIL\E                                       \n
     }xms,
 
-    verbose_begin => qr{\QQtQA::App::TestRunner: begin \E[^:]+:\Q [perl]\E[^\n]*},
+    verbose_begin => qr{\QQtQA::App::TestRunner: begin \E.*?:\Q [perl]\E[^\n]*},
     verbose_end   => qr{\QQtQA::App::TestRunner: end \E[^:]+\Q: \E[^\n]*},
 };
 
