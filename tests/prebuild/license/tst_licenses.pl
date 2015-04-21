@@ -504,6 +504,7 @@ sub run
     my @qtbase_paths = (
         catfile( $QT_MODULE_TO_TEST, '..', 'qtbase' ),  # qt5 submodule case
         catfile( $QT_MODULE_TO_TEST, 'qtbase' ),        # qt5 case
+        catfile( $QT_MODULE_TO_TEST, '../..', 'qt/qtbase' ),  # any other module (qt-labs/someproject)
     );
 
     my $qtbase_path = first { -d $_ } @qtbase_paths;
