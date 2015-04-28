@@ -128,6 +128,10 @@ QStringList qt_tests_shared_global_get_include_paths(const QString &workDir, QHa
     QFile::remove(proFile);
 
     incPaths = qt_tests_shared_global_get_include_path(makeFile);
+#ifdef Q_OS_WIN
+    if (incPaths.isEmpty())
+        incPaths = qt_tests_shared_global_get_include_path(makeFile + QLatin1String(".Release"));
+#endif
 
     QFile::remove(makeFile);
 #else

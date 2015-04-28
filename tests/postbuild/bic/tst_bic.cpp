@@ -280,7 +280,7 @@ void tst_Bic::initTestCase()
 {
     QWARN("This test needs the correct qmake in PATH, we need it to generate INCPATH for qt modules.");
 
-    qtModuleDir = QString::fromLocal8Bit(qgetenv("QT_MODULE_TO_TEST"));
+    qtModuleDir = QDir::cleanPath(QFile::decodeName(qgetenv("QT_MODULE_TO_TEST")));
     if (qtModuleDir.isEmpty()) {
         QSKIP("$QT_MODULE_TO_TEST is unset - nothing to test.  Set QT_MODULE_TO_TEST to the path "
               "of a Qt module to test.");
