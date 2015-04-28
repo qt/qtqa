@@ -116,11 +116,11 @@ QStringList qt_tests_shared_global_get_include_paths(const QString &workDir, QHa
     QProcess proc;
     proc.start(qmakeApp, qmakeArgs, QIODevice::ReadOnly);
     if (!proc.waitForFinished(6000000)) {
-        qWarning() << "qmake didn't finish" << proc.errorString();
+        qWarning() << qmakeApp << qmakeArgs << "in" << workDir << "didn't finish" << proc.errorString();
         return incPaths;
     }
     if (proc.exitCode() != 0) {
-        qWarning() << "gcc returned with" << proc.exitCode();
+        qWarning() << qmakeApp << qmakeArgs << "in" << workDir << "returned with" << proc.exitCode();
         qDebug() << proc.readAllStandardError();
         return incPaths;
     }

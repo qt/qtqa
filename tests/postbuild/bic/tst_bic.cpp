@@ -38,6 +38,80 @@
 #include "global.h"
 #include <stdlib.h>
 
+typedef QPair<int, int> Version;
+
+static QString compiler()
+{
+#if defined(Q_CC_INTEL)
+    return QLatin1String("icc");
+#elif defined(Q_CC_CLANG)
+    return QLatin1String("clang++");
+#elif defined(Q_CC_GNU)
+    return QLatin1String("g++");
+#elif defined(Q_CC_MSVC)
+    return QLatin1String("cl");
+#else
+    return QLatin1String("unknown");
+#endif
+}
+
+static QStringList compilerArguments(const QString &compiler, const QStringList &incPaths)
+{
+    Q_UNUSED(compiler)
+    QStringList result;
+    result << "-c"
+         << incPaths
+#ifdef Q_OS_MAC
+        << "-arch" << "i386" // Always use 32-bit data on Mac.
+#endif
+#ifndef Q_OS_WIN
+         << "-I/usr/X11R6/include/"
+#endif
+         << "-DQT_NO_STL"
+         << "-xc++"
+#if !defined(Q_OS_AIX) && !defined(Q_OS_WIN)
+         << "-o" << "/dev/null"
+#endif
+         << "-fdump-class-hierarchy"
+         << "-fPIE";
+    return result;
+}
+
+static const char noneSuchFileSuffix[] = "nonsuch";
+
+static QString fileSuffix(const QString &compiler, const Version &compilerVersion)
+{
+    Q_UNUSED(compiler)
+    Q_UNUSED(compilerVersion);
+    QString result;
+#if !defined(Q_CC_GNU) || defined(Q_CC_INTEL)
+    return result;
+#endif
+
+#if defined Q_OS_LINUX
+# if defined(__powerpc__) && !defined(__powerpc64__)
+    result = QLatin1String("linux-gcc-ppc32");
+# elif defined(__amd64__)
+    result = QLatin1String("linux-gcc-amd64");
+# elif defined(__i386__)
+    result = QLatin1String("linux-gcc-ia32");
+# elif defined(__arm__)
+    result = QLatin1String("linux-gcc-arm");
+# endif
+#elif defined Q_OS_MAC && defined(__powerpc__)
+    result = QLatin1String("macx-gcc-ppc32");
+#elif defined Q_OS_MAC && defined(__i386__)
+    result = QLatin1String("macx-gcc-ia32");
+#elif defined Q_OS_MAC && defined(__amd64__)
+    result = QLatin1String("macx-gcc-amd64");
+#elif defined Q_OS_WIN && defined Q_CC_GNU
+    result = QLatin1String("win32-gcc-ia32");
+#else
+    result = QLatin1String(noneSuchFileSuffix);
+#endif
+    return result;
+}
+
 class tst_Bic: public QObject
 {
     Q_OBJECT
@@ -62,11 +136,17 @@ private:
     QString qtModuleDir;
     QHash<QString, QString> modules;
     QStringList incPaths;
+    QString m_compiler;
+    Version m_compilerVersion;
+    QString m_fileSuffix;
+    QStringList m_compilerArguments;
 };
 
 typedef QPair<QString, QString> QStringPair;
 
 tst_Bic::tst_Bic()
+    : m_compiler(compiler())
+    , m_compilerVersion(0, 0)
 {
     bic.addBlacklistedClass(QLatin1String("std::*"));
     bic.addBlacklistedClass(QLatin1String("qIsNull*"));
@@ -167,6 +247,11 @@ void tst_Bic::initTestCase()
         QSKIP("$QT_MODULE_TO_TEST is unset - nothing to test.  Set QT_MODULE_TO_TEST to the path "
               "of a Qt module to test.");
     }
+    if (m_compiler != QLatin1String("g++")) {
+        const QString message = QLatin1String("Support for \"")
+            + m_compiler + QLatin1String("\" is not implemented yet.");
+        QSKIP(qPrintable(message));
+    }
 
     if (qgetenv("PATH").contains("teambuilder"))
         QWARN("This test might not work with teambuilder, consider switching it off.");
@@ -189,12 +274,53 @@ void tst_Bic::initTestCase()
     incPaths = qt_tests_shared_global_get_include_paths(workDir, modules);
 
     QVERIFY2(incPaths.size() > 0, "Parse INCPATH failed.");
+    m_compilerArguments = compilerArguments(m_compiler, incPaths);
 
     QTest::addColumn<QString>("libName");
 
     QStringList keys = modules.keys();
     for (int i = 0; i < keys.size(); ++i)
         QTest::newRow(keys.at(i).toLatin1()) << keys.at(i);
+
+    // Run compiler to obtain version information.
+    QProcess proc;
+    proc.start(m_compiler, QStringList(QLatin1String("--version")), QIODevice::ReadOnly);
+    QVERIFY2(proc.waitForStarted(),
+             qPrintable(QLatin1String("Cannot launch: ") + m_compiler + QLatin1String(": ") + proc.errorString()));
+    QVERIFY(proc.waitForFinished());
+    const QString output = QString::fromLocal8Bit(proc.readAllStandardOutput());
+
+    // Extract version from last token of first line ("g++ (Ubuntu 4.8.2-19ubuntu1) 4.8.2 [build (prerelease)]\n...")
+    QRegExp versionPattern(QLatin1String("^[^(]+\\([^)]+\\) (\\d+)\\.(\\d+)\\.\\d+.*$"));
+    QVERIFY2(versionPattern.isValid(), qPrintable(versionPattern.errorString()));
+    QVERIFY2(versionPattern.exactMatch(output),
+             qPrintable(QString::number(versionPattern.matchedLength()) + QLatin1String(": ") + output));
+    QCOMPARE(versionPattern.captureCount(), 2);
+    m_compilerVersion.first = versionPattern.cap(1).toInt();
+    m_compilerVersion.second = versionPattern.cap(2).toInt();
+
+    m_fileSuffix = fileSuffix(m_compiler, m_compilerVersion);
+
+    QString message;
+    QTextStream str(&message);
+    str << "\nCompiler: " << m_compiler << ' ' << m_compilerVersion.first << '.'
+        << m_compilerVersion.second << '\n' <<  output << "\nArguments: ";
+    for (int i = 0; i < m_compilerArguments.size(); ++i) {
+        if (i)
+            str << ' ';
+        const bool needsQuote = m_compilerArguments.at(i).contains(QLatin1Char(' '));
+        if (needsQuote)
+            str << '"';
+        str << m_compilerArguments.at(i);
+        if (needsQuote)
+            str << '"';
+    }
+    str << "\n\nFile suffix: " << m_fileSuffix << "\n\n";
+    qDebug().nospace()
+#if QT_VERSION >= 0x050000
+        .noquote()
+#endif
+        << message;
 }
 
 void tst_Bic::cleanupTestCase()
@@ -203,32 +329,10 @@ void tst_Bic::cleanupTestCase()
 
 void tst_Bic::sizesAndVTables_data()
 {
-#if !defined(Q_CC_GNU) || defined(Q_CC_INTEL)
-    QSKIP("Test not implemented for this compiler/platform");
-#else
-
-#if defined Q_OS_LINUX
-# if defined(__powerpc__) && !defined(__powerpc64__)
-#  define FILESUFFIX "linux-gcc-ppc32"
-# elif defined(__amd64__)
-#  define FILESUFFIX "linux-gcc-amd64"
-# elif defined(__i386__)
-#  define FILESUFFIX "linux-gcc-ia32"
-# elif defined(__arm__)
-#  define FILESUFFIX "linux-gcc-arm"
-# endif
-#elif defined Q_OS_MAC && defined(__powerpc__)
-#  define FILESUFFIX "macx-gcc-ppc32"
-#elif defined Q_OS_MAC && defined(__i386__)
-#  define FILESUFFIX "macx-gcc-ia32"
-#elif defined Q_OS_MAC && defined(__amd64__)
-#  define FILESUFFIX "macx-gcc-amd64"
-#elif defined Q_OS_WIN && defined Q_CC_GNU
-#  define FILESUFFIX "win32-gcc-ia32"
-#else
-#  define FILESUFFIX "nonsuch"
-    QSKIP("No reference files found for this platform");
-#endif
+    if (m_fileSuffix.isEmpty())
+        QSKIP("Test not implemented for this compiler/platform");
+    if (m_fileSuffix == QLatin1String(noneSuchFileSuffix))
+        QSKIP("No reference files found for this platform");
 
     QTest::addColumn<QString>("oldLib");
     QTest::addColumn<bool>("isPatchRelease");
@@ -240,10 +344,9 @@ void tst_Bic::sizesAndVTables_data()
             QTest::newRow("5." + QByteArray::number(i))
                 << (QString(qtModuleDir + "/tests/auto/bic/data/%1.5.")
                     + QString::number(i)
-                    + QString(".0." FILESUFFIX ".txt"))
+                    + QLatin1String(".0.") + m_fileSuffix + QLatin1String(".txt"))
                 << (i == minor && patch);
     }
-#endif
 }
 
 #ifndef QT_NO_PROCESS
@@ -261,34 +364,17 @@ QBic::Info tst_Bic::getCurrentInfo(const QString &libName)
     tmpQFile.write(tmpFileContents);
     tmpQFile.flush();
 
-    QString compilerName = "g++";
-
-    QStringList args;
-    args << "-c"
-         << incPaths
-#ifdef Q_OS_MAC
-        << "-arch" << "i386" // Always use 32-bit data on Mac.
-#endif
-#ifndef Q_OS_WIN
-         << "-I/usr/X11R6/include/"
-#endif
-         << "-DQT_NO_STL"
-         << "-xc++"
-#if !defined(Q_OS_AIX) && !defined(Q_OS_WIN)
-         << "-o" << "/dev/null"
-#endif
-         << "-fdump-class-hierarchy"
-         << "-fPIE"
-         << tmpFileName;
+    QStringList args = m_compilerArguments;
+    args.append(tmpFileName);
 
     QProcess proc;
-    proc.start(compilerName, args, QIODevice::ReadOnly);
+    proc.start(m_compiler, args, QIODevice::ReadOnly);
     if (!proc.waitForFinished(6000000)) {
-        qWarning() << "gcc didn't finish" << proc.errorString();
+        qWarning() << m_compiler << "didn't finish" << proc.errorString();
         return QBic::Info();
     }
     if (proc.exitCode() != 0) {
-        qWarning() << "gcc returned with" << proc.exitCode();
+        qWarning() << m_compiler << "returned with" << proc.exitCode();
         qDebug() << proc.readAllStandardError();
         return QBic::Info();
     }
@@ -301,13 +387,20 @@ QBic::Info tst_Bic::getCurrentInfo(const QString &libName)
 
     // See if we find the gcc output file, which seems to change
     // from release to release
-    QStringList files = QDir().entryList(QStringList() << "*.class");
+    QDir dir;
+    QStringList files = dir.entryList(QStringList() << "*.class");
     if (files.isEmpty()) {
-        qFatal("Could not locate the GCC output file, update this test");
+        const QString message = QLatin1String("Could not locate the GCC output file in ")
+            + QDir::toNativeSeparators(dir.absolutePath())
+            + QLatin1String(", update this test");
+        qFatal("%s", qPrintable(message));
         return QBic::Info();
     } else if (files.size() > 1) {
-        qDebug() << files;
-        qFatal("Located more than one output file, please clean up before running this test");
+        const QString message = QLatin1String("Located more than one output file (")
+            + files.join(QLatin1String(" ")) + QLatin1String(") in ")
+            + QDir::toNativeSeparators(dir.absolutePath())
+            + QLatin1String(", please clean up before running this test");
+        qFatal("%s", qPrintable(message));
         return QBic::Info();
     }
 
@@ -335,11 +428,16 @@ void tst_Bic::sizesAndVTables()
 
     bool isFailed = false;
 
-    //qDebug() << oldLib.arg(libName);
-    if (oldLib.isEmpty() || !QFile::exists(oldLib.arg(libName)))
+    if (oldLib.isEmpty())
         QSKIP("No platform spec found for this platform/version.");
+    const QString oldLibFileName = oldLib.arg(libName);
+    if (!QFile::exists(oldLibFileName)) {
+        const QString message = QLatin1String("No platform spec found for this platform/version - ")
+            + QDir::toNativeSeparators(oldLibFileName) + QLatin1String(" not found.");
+        QSKIP(qPrintable(message));
+    }
 
-    const QBic::Info oldLibInfo = bic.parseFile(oldLib.arg(libName));
+    const QBic::Info oldLibInfo = bic.parseFile(oldLibFileName);
     QVERIFY(!oldLibInfo.classVTables.isEmpty());
 
     const QBic::Info currentLibInfo = getCurrentInfo(libName);
