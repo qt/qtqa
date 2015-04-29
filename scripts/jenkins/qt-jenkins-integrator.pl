@@ -1729,6 +1729,7 @@ sub do_state_trigger_jenkins
         headers => $self->http_headers(
             'Content-Type' => 'application/x-www-form-urlencoded',
         ),
+        accept_status => [200, 201],
     );
 
     $stash->{ request_id } = $request_id;
