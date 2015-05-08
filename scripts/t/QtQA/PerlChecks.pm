@@ -41,6 +41,7 @@ our @EXPORT_OK = qw( all_files_in_git all_perl_files_in_git );
 
 use File::chdir;
 use File::Spec::Functions;
+use File::Find;
 use List::MoreUtils qw( apply );
 use Perl::Critic::Utils qw( all_perl_files );
 use Test::More;
@@ -60,11 +61,21 @@ sub all_files_in_git
     # Do everything from $path, so we get filenames relative to that
     local $CWD = $path;
 
+    my $QT_MODULE_TO_TEST=$ENV{QT_MODULE_TO_TEST};
+
     # Find all the files known to git
-    my @out =
-        apply { canonpath } # make paths canonical ...
-        apply { chomp }     # strip all newlines ...
-            qx( git ls-files );
+    my @out;
+    if (-d $QT_MODULE_TO_TEST . '/.git') {
+        @out =
+            apply { canonpath } # make paths canonical ...
+            apply { chomp }     # strip all newlines ...
+                qx( git ls-files );
+    } else {
+        find(sub{ push @out, canonpath($File::Find::name); }, ".");
+    }
+    foreach (@out) {
+        print "$_\n";
+    }
 
     # Get files in a reliable order
     @out = sort @out;
