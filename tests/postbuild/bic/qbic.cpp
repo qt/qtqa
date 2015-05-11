@@ -59,9 +59,88 @@ bool QBic::isBlacklisted(const QString &className) const
     return false;
 }
 
+static bool qualifiedTailMatch(const QString &expectedTail, const QString &symbol)
+{
+    if (symbol == expectedTail)
+        return true;
+    const QString tail = symbol.right(expectedTail.length() - 2);
+    if (!tail.startsWith(QLatin1String("::")))
+        return false;
+    return tail.endsWith(expectedTail);
+}
+
+static QString innerClassVTableSymbol(const QString &outerClass, const QString &innerClass)
+{
+    return (QLatin1String("_ZTVN") + QString::number(outerClass.length()) + outerClass
+            + QString::number(innerClass.length()) + innerClass + QLatin1Char('E'));
+}
+
+static QStringList nonVirtualThunkToDestructorSymbols(const QString &className)
+{
+
+    const QString symbolTemplate = QString::fromLatin1("%1::_ZThn%2_N%3%4");
+    QStringList candidates;
+    candidates << symbolTemplate.arg(className).arg(16).arg(className.length()).arg(className)
+               << symbolTemplate.arg(className).arg(32).arg(className.length()).arg(className)
+               << symbolTemplate.arg(className).arg(40).arg(className.length()).arg(className)
+               ;
+
+    QStringList result;
+    for (int i = 0; i <= 1; ++i) {
+        const QString suffix = QString::fromLatin1("D%1Ev").arg(i);
+        foreach (const QString &candidate, candidates)
+            result << candidate + suffix;
+    }
+
+    return result;
+}
+
+static void parseClassName(const QString &mangledClassName, QString *className, QString *qualifiedClassName)
+{
+    const QString outerClassCandidate = mangledClassName.section(QLatin1String("::"), 0, 0);
+    const QString innerClassCandidate = mangledClassName.section(QLatin1String("::"), 1, 1);
+    const QString innerClassVTableSymbolCandidate = innerClassVTableSymbol(outerClassCandidate, innerClassCandidate);
+    const QString qualifiedInnerClassVTableSymbolCandidate = outerClassCandidate
+                                                             + QLatin1String("::")
+                                                             + innerClassCandidate
+                                                             + QLatin1String("::")
+                                                             + innerClassVTableSymbolCandidate;
+
+    if (mangledClassName == qualifiedInnerClassVTableSymbolCandidate) {
+        *qualifiedClassName = outerClassCandidate + QLatin1String("::") + innerClassCandidate;
+        *className = innerClassCandidate;
+    } else {
+        *qualifiedClassName = *className = outerClassCandidate;
+    }
+}
+
+static bool matchDestructor(const QString &mangledClassName, const QString &symbol)
+{
+    QString className;
+    QString qualifiedClassName;
+    parseClassName(mangledClassName, &className, &qualifiedClassName);
+
+    const QString destructor = qualifiedClassName + QLatin1String("::~") + className;
+    QStringList nonVirtualThunkToDestructorSymbolCandidates = nonVirtualThunkToDestructorSymbols(className);
+
+    if (qualifiedTailMatch(destructor, symbol))
+        return true;
+    foreach (const QString &candidate, nonVirtualThunkToDestructorSymbolCandidates) {
+        if (qualifiedTailMatch(candidate, symbol))
+            return true;
+    }
+
+    return false;
+}
+
 static QStringList normalizedVTable(const QStringList &entry)
 {
     QStringList normalized;
+
+    // Extract the class name from lines like these:
+    //     QObject::_ZTV7QObject: 14u entries
+    QString className = entry.at(1).section(QLatin1Char(' '), 0, 0);
+    className.chop(1);
 
     for (int i = 2; i < entry.count(); ++i) {
         const QString line = entry.at(i).simplified();
@@ -86,6 +165,11 @@ static QStringList normalizedVTable(const QStringList &entry)
 
         if (sym.startsWith(QLatin1String("& ")))
             sym.remove(1, 1);
+
+        // Clear the entry for destructors, as starting with 4.9, gcc intentionally stores null
+        // pointers in the vtable for the destructors of abstract classes.
+        if (matchDestructor(className, sym))
+            sym = QLatin1String("0");
 
         if (sym.startsWith(QLatin1String("-0")) || sym.startsWith(QLatin1String("0"))) {
             if (sym.endsWith('u'))
