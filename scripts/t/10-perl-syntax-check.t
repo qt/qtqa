@@ -44,6 +44,14 @@ sub should_skip
         return "$filename: VMware VIX module not available";
     }
 
+    if ($^O eq "MSWin32") {
+        if ($output =~ m{^Can't locate AnyEvent/HTTPD}) {
+            return "$filename: AnyEvent/HTTPD module not available on Windows";
+        } elsif ($output =~ m{^Base class package "Log::Dispatch::Email" is empty}) {
+            return "$filename: Log::Dispatch::Email module not available on Windows";
+        }
+    }
+
     # Win32-specific scripts will fail syntax check when not on Win32.
     if ($^O ne "MSWin32" && $output =~ m{^Can't locate Win32}) {
         return "$filename: script looks Win32-specific and this is not Win32";
