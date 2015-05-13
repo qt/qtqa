@@ -55,6 +55,44 @@ static QString compiler()
 #endif
 }
 
+bool compilerVersion(const QString &compiler, QString *output, Version *version, QString *errorMessage)
+{
+    *version = Version(-1, -1);
+    output->clear();
+
+#ifndef QT_NO_PROCESS
+    // Run compiler to obtain version information.
+    QProcess proc;
+    proc.start(compiler, QStringList(QLatin1String("--version")), QIODevice::ReadOnly);
+    if (!proc.waitForStarted()) {
+        *errorMessage = QLatin1String("Cannot launch: ") + compiler + QLatin1String(": ") + proc.errorString();
+        return false;
+    }
+    if (!proc.waitForFinished()) {
+        proc.kill();
+        *errorMessage = compiler + QLatin1String(" did not terminate.");
+        return false;
+    }
+    *output = QString::fromLocal8Bit(proc.readAllStandardOutput());
+
+    // Extract version from last token of first line ("g++ (Ubuntu 4.8.2-19ubuntu1) 4.8.2 [build (prerelease)]\n...")
+    QRegExp versionPattern(QLatin1String("^[^(]+\\([^)]+\\) (\\d+)\\.(\\d+)\\.\\d+.*$"));
+    Q_ASSERT(versionPattern.isValid());
+    if (!versionPattern.exactMatch(*output)) {
+        *errorMessage = compiler + QLatin1String(" produced unexpected output: \"")
+            + *output + QLatin1String("\", matching up to ") + QString::number(versionPattern.matchedLength());
+        return false;
+    }
+    version->first = versionPattern.cap(1).toInt();
+    version->second = versionPattern.cap(2).toInt();
+    return true;
+#else // !QT_NO_PROCESS
+    Q_UNUSED(compiler)
+    *errorMessage = QLatin1String("Platform does not support QProcess");
+    return false;
+#endif
+}
+
 static QStringList compilerArguments(const QString &compiler, const QStringList &incPaths)
 {
     Q_UNUSED(compiler)
@@ -283,21 +321,9 @@ void tst_Bic::initTestCase()
         QTest::newRow(keys.at(i).toLatin1()) << keys.at(i);
 
     // Run compiler to obtain version information.
-    QProcess proc;
-    proc.start(m_compiler, QStringList(QLatin1String("--version")), QIODevice::ReadOnly);
-    QVERIFY2(proc.waitForStarted(),
-             qPrintable(QLatin1String("Cannot launch: ") + m_compiler + QLatin1String(": ") + proc.errorString()));
-    QVERIFY(proc.waitForFinished());
-    const QString output = QString::fromLocal8Bit(proc.readAllStandardOutput());
-
-    // Extract version from last token of first line ("g++ (Ubuntu 4.8.2-19ubuntu1) 4.8.2 [build (prerelease)]\n...")
-    QRegExp versionPattern(QLatin1String("^[^(]+\\([^)]+\\) (\\d+)\\.(\\d+)\\.\\d+.*$"));
-    QVERIFY2(versionPattern.isValid(), qPrintable(versionPattern.errorString()));
-    QVERIFY2(versionPattern.exactMatch(output),
-             qPrintable(QString::number(versionPattern.matchedLength()) + QLatin1String(": ") + output));
-    QCOMPARE(versionPattern.captureCount(), 2);
-    m_compilerVersion.first = versionPattern.cap(1).toInt();
-    m_compilerVersion.second = versionPattern.cap(2).toInt();
+    QString output;
+    QString errorMessage;
+    QVERIFY2(compilerVersion(m_compiler, &output, &m_compilerVersion, &errorMessage), qPrintable(errorMessage));
 
     m_fileSuffix = fileSuffix(m_compiler, m_compilerVersion);
 
