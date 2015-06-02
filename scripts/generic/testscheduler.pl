@@ -222,11 +222,13 @@ sub debug
     return unless $self->{ debug };
 
     my @to_print;
-    given (ref($to_print)) {
-        when ('CODE')  { @to_print = $to_print->(); }
-        when ('ARRAY') { @to_print = @{$to_print}; }
-        default        { @to_print = ($to_print); }
-    };
+    if (ref($to_print) == 'CODE') {
+        @to_print = $to_print->();
+    } elsif (ref($to_print) == 'ARRAY') {
+        @to_print = @{$to_print};
+    } else {
+        @to_print = ($to_print);
+    }
 
     my $message = __PACKAGE__ . ": debug: @to_print";
     if ($message !~ m{\n\z}) {
