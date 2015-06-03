@@ -109,7 +109,7 @@ Readonly my $RE => {
     core_backtrace    => qr{
 \QQtQA::App::TestRunner: ============================== backtrace follows: ==============================\E \n
 (?:QtQA::App::TestRunner: [^\n]+ \n)*
-\QQtQA::App::TestRunner: Program terminated with signal 11, Segmentation fault.\E                           \n
+\QQtQA::App::TestRunner: Program terminated with signal \E(?:11|SIGSEGV)\Q, Segmentation fault.\E                           \n
 (?:QtQA::App::TestRunner: [^\n]+ \n)*
 \QQtQA::App::TestRunner: ================================================================================\E \n
     }xms,
