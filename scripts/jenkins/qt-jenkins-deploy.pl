@@ -340,6 +340,10 @@ Contains information whether we want to update staging repository
 
 Contains information whether we want to update prodcution repository
 
+=item create_maintenance_tool_resource_file
+
+Contains information wheater maintenance tool resource file is created or not
+
 =item extra_module_doc_build_qt_dependency_package_uri
 
 Contains information whether extra module needs libs outside essentials package
@@ -680,6 +684,7 @@ sub desired_job_xml
             release_description_file => eval { $self->cfg( "job.$name", 'release_description_file' ) } || q{},
             do_update_staging_repository => eval { $self->cfg( "job.$name", 'do_update_staging_repository' ) } || q{},
             do_update_production_repository => eval { $self->cfg( "job.$name", 'do_update_production_repository' ) } || q{},
+            create_maintenance_tool_resource_file => eval { $self->cfg( "job.$name", 'create_maintenance_tool_resource_file' ) } || q{},
             extra_module_doc_build_qt_dependency_package_uri => eval { $self->cfg( "job.$name", 'extra_module_doc_build_qt_dependency_package_uri' ) } || q{},
             build_combination => eval { $self->cfg( "job.$name", 'build_combination' ) } || q{},
             gerrit_project => $gerrit_project,
