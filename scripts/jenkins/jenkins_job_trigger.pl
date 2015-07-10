@@ -194,7 +194,7 @@ __END__
 
 =head1 NAME
 
-Script to execute job and fait for its result in remote jenkins.
+Script to execute job and wait for its result in remote jenkins.
  If run without options, it will try to trigger dummy project on dev-ci.
 
 =head1 SYNOPSIS
@@ -245,6 +245,6 @@ Print more logs.
 
 =head1 DESCRIPTION
 
-Script to execute job and fait for its result in remote jenkins.
+Script to execute job and wait for its result in remote jenkins.
 
 =cut
