@@ -256,6 +256,51 @@ tst_Bic::tst_Bic()
     bic.addBlacklistedClass(QLatin1String("QAccessibleActionInterface"));
     bic.addBlacklistedClass(QLatin1String("QAccessibleImageInterface"));
 
+    // Accidentally made public in 5.4.0, all in separate headers that don't start with q and look out of place
+    const char *accessibilityClasses[] = {
+        "QAccessibleAbstractScrollArea",
+        "QAccessibleAbstractSlider",
+        "QAccessibleAbstractSpinBox",
+        "QAccessibleButton",
+        "QAccessibleCalendarWidget",
+        "QAccessibleComboBox",
+        "QAccessibleDial",
+        "QAccessibleDialogButtonBox",
+        "QAccessibleDisplay",
+        "QAccessibleDockWidget",
+        "QAccessibleDoubleSpinBox",
+        "QAccessibleGroupBox"
+        "QAccessibleLineEdit",
+        "QAccessibleMainWindow",
+        "QAccessibleMdiArea",
+        "QAccessibleMdiSubWindow",
+        "QAccessibleMenu",
+        "QAccessibleMenuBar",
+        "QAccessibleMenuItem",
+        "QAccessiblePlainTextEdit",
+        "QAccessibleProgressBar",
+        "QAccessibleScrollArea",
+        "QAccessibleScrollBar",
+        "QAccessibleSlider",
+        "QAccessibleSpinBox",
+        "QAccessibleStackedWidget",
+        "QAccessibleTabBar",
+        "QAccessibleTable",
+        "QAccessibleTableCell",
+        "QAccessibleTableCornerButton",
+        "QAccessibleTableHeaderCell",
+        "QAccessibleTextBrowser",
+        "QAccessibleTextEdit",
+        "QAccessibleTextWidget",
+        "QAccessibleToolBox",
+        "QAccessibleToolButton",
+        "QAccessibleTree",
+        "QAccessibleWindowContainer"
+    };
+    for (uint i = 0; i < sizeof(accessibilityClasses)/sizeof(char*); ++i) {
+        bic.addBlacklistedClass(QLatin1String(accessibilityClasses[i]));
+    }
+
     /* This structure is semi-private and should never shrink */
     bic.addBlacklistedClass(QLatin1String("QVFbHeader"));
 
