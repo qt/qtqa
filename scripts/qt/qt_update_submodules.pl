@@ -94,6 +94,7 @@ sub get_submodule_ref
                 'refs/heads/5.4.2' => 'refs/heads/1.1.2',
                 'refs/heads/5.5' => 'refs/heads/1.2',
                 'refs/heads/5.5.0' => 'refs/heads/1.2.0',
+                'refs/heads/5.5.1' => 'refs/heads/1.2.1',
             }
     );
 
