@@ -155,7 +155,7 @@ class tst_Bic: public QObject
     Q_OBJECT
 
 public:
-    tst_Bic();
+    tst_Bic(const char *appFilePath);
 #ifndef QT_NO_PROCESS
     QBic::Info getCurrentInfo(const QString &libName);
 #endif
@@ -178,13 +178,15 @@ private:
     Version m_compilerVersion;
     QString m_fileSuffix;
     QStringList m_compilerArguments;
+    const char *m_appFilePath;
 };
 
 typedef QPair<QString, QString> QStringPair;
 
-tst_Bic::tst_Bic()
+tst_Bic::tst_Bic(const char *appFilePath)
     : m_compiler(compiler())
     , m_compilerVersion(0, 0)
+    , m_appFilePath(appFilePath)
 {
     bic.addBlacklistedClass(QLatin1String("std::*"));
     bic.addBlacklistedClass(QLatin1String("qIsNull*"));
@@ -323,9 +325,16 @@ tst_Bic::tst_Bic()
 
 void tst_Bic::initTestCase()
 {
+    const char moduleVar[] = "QT_MODULE_TO_TEST";
+#ifndef Q_OS_WIN
+    const char qmake[] = "qmake";
+#else
+    const char qmake[] = "qmake.exe";
+#endif
+
     QWARN("This test needs the correct qmake in PATH, we need it to generate INCPATH for qt modules.");
 
-    qtModuleDir = QDir::cleanPath(QFile::decodeName(qgetenv("QT_MODULE_TO_TEST")));
+    qtModuleDir = QDir::cleanPath(QFile::decodeName(qgetenv(moduleVar)));
     if (qtModuleDir.isEmpty()) {
         QSKIP("$QT_MODULE_TO_TEST is unset - nothing to test.  Set QT_MODULE_TO_TEST to the path "
               "of a Qt module to test.");
@@ -374,7 +383,12 @@ void tst_Bic::initTestCase()
 
     QString message;
     QTextStream str(&message);
-    str << "\nCompiler: " << m_compiler << ' ' << m_compilerVersion.first << '.'
+    str << "\nBinary  : " << m_appFilePath
+        << "\nBuilt   : " << __DATE__
+        << "\nQTDIR   : " << qgetenv("QTDIR")
+        << '\n' << moduleVar << ": " << qtModuleDir
+        << "\nqmake   : " << QStandardPaths::findExecutable(qmake) << '\n'
+        << "\nCompiler: " << m_compiler << ' ' << m_compilerVersion.first << '.'
         << m_compilerVersion.second << '\n' <<  output << "\nArguments: ";
     for (int i = 0; i < m_compilerArguments.size(); ++i) {
         if (i)
@@ -579,6 +593,12 @@ void tst_Bic::sizesAndVTables()
 #endif
 }
 
-QTEST_APPLESS_MAIN(tst_Bic)
+
+int main(int argc, char *argv[])
+{
+    tst_Bic tc(argv[0]);
+    QTEST_SET_MAIN_SOURCE_PATH
+    return QTest::qExec(&tc, argc, argv);
+}
 
 #include "tst_bic.moc"
