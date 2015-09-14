@@ -308,25 +308,25 @@ Contains sha1 for qt5
 
 Contains url to be polled to start specific build flow compilation
 
-=item application_name
+=item module_name
 
-Contains addons application name
+Contains module name e.g. add-on, tech-preview or some other separate qt module not part of qt5.git
 
-=item application_version
+=item module_version
 
-Contains addons application version
+Contains module version
 
-=item application_sha1
+=item module_sha1
 
-Contains addons application sha1
+Contains module sha1
 
-=item git_application_repo
+=item git_module_repo
 
-Contains addons application repository
+Contains module repository
 
-=item git_application_repo_branch
+=item git_module_repo_branch
 
-Contains addons application repository branch
+Contains module repository branch
 
 =item release_description_file
 
@@ -344,9 +344,9 @@ Contains information whether we want to update prodcution repository
 
 Contains information wheater maintenance tool resource file is created or not
 
-=item extra_module_doc_build_qt_dependency_package_uri
+=item module_doc_build_qt_dependency_package_uri
 
-Contains information whether extra module needs libs outside essentials package
+Contains information whether module needs libs outside essentials package
 
 =item build_combination
 
@@ -676,16 +676,16 @@ sub desired_job_xml
             build_flow => eval { $self->cfg( "job.$name", 'build_flow' ) } || q{},
             qt5sha1 => eval { $self->cfg( "job.$name", 'qt5sha1' ) } || q{},
             url_trigger => eval { $self->cfg( "job.$name", 'url_trigger' ) } || q{},
-            application_name => eval { $self->cfg( "job.$name", 'application_name' ) } || q{},
-            application_version => eval { $self->cfg( "job.$name", 'application_version' ) } || q{},
-            application_sha1 => eval { $self->cfg( "job.$name", 'application_sha1' ) } || q{},
-            git_application_repo => eval { $self->cfg( "job.$name", 'git_application_repo' ) } || q{},
-            git_application_repo_branch => eval { $self->cfg( "job.$name", 'git_application_repo_branch' ) } || q{},
+            module_name => eval { $self->cfg( "job.$name", 'module_name' ) } || q{},
+            module_version => eval { $self->cfg( "job.$name", 'module_version' ) } || q{},
+            module_sha1 => eval { $self->cfg( "job.$name", 'module_sha1' ) } || q{},
+            git_module_repo => eval { $self->cfg( "job.$name", 'git_module_repo' ) } || q{},
+            git_module_repo_branch => eval { $self->cfg( "job.$name", 'git_module_repo_branch' ) } || q{},
             release_description_file => eval { $self->cfg( "job.$name", 'release_description_file' ) } || q{},
             do_update_staging_repository => eval { $self->cfg( "job.$name", 'do_update_staging_repository' ) } || q{},
             do_update_production_repository => eval { $self->cfg( "job.$name", 'do_update_production_repository' ) } || q{},
             create_maintenance_tool_resource_file => eval { $self->cfg( "job.$name", 'create_maintenance_tool_resource_file' ) } || q{},
-            extra_module_doc_build_qt_dependency_package_uri => eval { $self->cfg( "job.$name", 'extra_module_doc_build_qt_dependency_package_uri' ) } || q{},
+            module_doc_build_qt_dependency_package_uri => eval { $self->cfg( "job.$name", 'module_doc_build_qt_dependency_package_uri' ) } || q{},
             build_combination => eval { $self->cfg( "job.$name", 'build_combination' ) } || q{},
             gerrit_project => $gerrit_project,
             testconfig_project => eval { $self->cfg( "job.$name", 'testconfig_project' ) } // $name,
