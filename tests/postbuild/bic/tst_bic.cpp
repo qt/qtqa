@@ -271,7 +271,7 @@ tst_Bic::tst_Bic(const char *appFilePath)
         "QAccessibleDisplay",
         "QAccessibleDockWidget",
         "QAccessibleDoubleSpinBox",
-        "QAccessibleGroupBox"
+        "QAccessibleGroupBox",
         "QAccessibleLineEdit",
         "QAccessibleMainWindow",
         "QAccessibleMdiArea",
