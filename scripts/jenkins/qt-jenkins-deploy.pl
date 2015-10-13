@@ -719,9 +719,23 @@ sub desired_job_xml
             squish_test_suites => \@squish_test_suites,
             auth_token => eval { $self->cfg( "job.$name", 'auth_token' ) } || q{},
             job_description => eval { $self->cfg( "job.$name", 'job_description' ) } || q{},
+            suffix_labels => eval { $self->cfg( "job.$name", 'suffix_labels' ) } || q{0},
         },
         \$data
     ) || die "job $name: while parsing template: ".$tt->error();
+
+    my $suffix_labels = eval { $self->cfg( "job.$name", 'suffix_labels' ) } || q{0};
+    if ($suffix_labels) {
+        # Add the configurations to the combination filter and after that replace all
+        # instances of the configuration with the suffix of $ini_branch
+        my $ini_branch = eval { $self->cfg( "job.$name", 'template_ini_prefix' ) } // $branch;
+        foreach my $cfg (@configurations) {
+            $data =~ s/<\/combinationFilter>/(cfg == \"$cfg-$ini_branch\") || <\/combinationFilter>/;
+            $data =~ s/\<string\>\Q$cfg\E\<\/string\>/<string>$cfg-$ini_branch<\/string>/g;
+        }
+        # Remove the excess " || " from the end of the combinationFilter string
+        $data =~ s/ \|\| <\/combinationFilter/<\/combinationFilter/;
+    }
 
     chomp $data;
     return $data;
