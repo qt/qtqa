@@ -86,6 +86,7 @@ my %excludedFiles = (
                           qr{^src/extensions/.+\.xml$},
                           qr{^config\.tests/wayland_scanner/scanner-test\.xml$},
                           qr{^examples/wayland/server-buffer/share-buffer\.xml$},
+                          qr{^examples/wayland/custom-extension/protocol/custom\.xml$},
                         ],
 
 );
