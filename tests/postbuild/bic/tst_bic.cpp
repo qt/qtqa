@@ -111,6 +111,7 @@ static QStringList compilerArguments(const QString &compiler, const QStringList 
          << "-o" << "/dev/null"
 #endif
          << "-fdump-class-hierarchy"
+         << "-std=c++11"
          << "-fPIC"; // As of 5.4, "reduce relocations" requires "-fPIC"
     return result;
 }
