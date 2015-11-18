@@ -69,6 +69,7 @@ my @excludedModules = qw{
     qtwebengine
     3rdparty
     qtqa
+    qtapplicationmanager
 };
 
 # If you add to the following lists of regexes, please
