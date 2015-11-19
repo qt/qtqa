@@ -69,7 +69,6 @@ my @excludedModules = qw{
     qtwebengine
     3rdparty
     qtqa
-    qtapplicationmanager
 };
 
 # If you add to the following lists of regexes, please
@@ -277,6 +276,10 @@ sub loadLicense {
     close $fileHandle;
     if (!$foundEndMarker) {
         fail("$licenseFile has no QT_END_LICENSE marker");
+        return 0;
+    }
+    if (exists($licenseTexts{$licenseType})) {
+        fail("$licenseFile re-defines a license of type $licenseType");
         return 0;
     }
 
@@ -517,6 +520,11 @@ sub run
 
     # Treat all header.* files in the root of qtbase as reference license text
     foreach (glob "$qtbase_path/header.*") {
+        loadLicense($_) || return;
+    }
+
+    # Also load all header.* files in the module's root, in case the module has special requirements
+    foreach (glob "$QT_MODULE_TO_TEST/header.*") {
         loadLicense($_) || return;
     }
 
