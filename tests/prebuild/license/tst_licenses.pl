@@ -524,8 +524,10 @@ sub run
     }
 
     # Also load all header.* files in the module's root, in case the module has special requirements
-    foreach (glob "$QT_MODULE_TO_TEST/header.*") {
-        loadLicense($_) || return;
+    if (abs_path($qtbase_path) ne abs_path($QT_MODULE_TO_TEST)) {
+        foreach (glob "$QT_MODULE_TO_TEST/header.*") {
+            loadLicense($_) || return;
+        }
     }
 
     my $numLicenses = keys %licenseTexts;
