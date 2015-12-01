@@ -214,7 +214,7 @@ my @copyrightBlock = (
     qr/\s\bCopyright \(C\) 2[0-9][0-9][0-9].*/,
     qr/\s\bContact: http:\/\/www\.(qt-project\.org|qt\.io)\/.*/,
     qr//,
-    qr/\s\bThis file is (the|part of the)\s*\b(\w*)\b.*/,
+    qr/\s\bThis file is (the|part of)\s*\b(\w*)\b.*/,
     qr//,
 );
 
