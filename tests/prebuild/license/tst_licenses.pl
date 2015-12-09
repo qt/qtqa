@@ -60,6 +60,11 @@ headers.
 
 =cut
 
+# These variables will contain regular expressions read from module
+# specific configuration files.
+my @moduleOptionalFiles;
+my @moduleExcludedFiles;
+
 # These modules are not expected to contain any files that need
 # Qt license headers.  They are entirely excluded from license checking.
 my @excludedModules = qw{
@@ -453,8 +458,8 @@ sub shouldScan
     my $isMandatory = first { $file =~ qr{$_} } @mandatoryFiles;
 
     # Is the file excluded or optional?
-    my $isExcluded = first { $file =~ qr{$_} } @{$excludedFiles{"all"}}, @{$excludedFiles{$moduleName} || []};
-    my $isOptional = first { $file =~ qr{$_} } @{$optionalFiles{"all"}}, @{$optionalFiles{$moduleName} || []};
+    my $isExcluded = first { $file =~ qr{$_} } @{$excludedFiles{"all"}}, @{$excludedFiles{$moduleName} || []}, @moduleExcludedFiles;
+    my $isOptional = first { $file =~ qr{$_} } @{$optionalFiles{"all"}}, @{$optionalFiles{$moduleName} || []}, @moduleOptionalFiles;
 
     return 0 if ($isExcluded);
 
@@ -471,6 +476,27 @@ sub shouldScan
     close $fileHandle;
 
     return grep(/QT_BEGIN_LICENSE/, @lines);
+}
+
+# This function reads line based regular expressions into a list.
+# Comments are ignored.
+sub readRegularExpressionsFromFile
+{
+    my $handle;
+    my @regExList;
+
+    if (open($handle, '<:encoding(UTF-8)', $_[0])) {
+        while (my $row = <$handle>) {
+            chomp $row;
+            # Ignore comments
+            if ($row !~ /^\s*#/ ) {
+                push @regExList, qr{$row};
+            }
+        }
+        close $handle;
+    }
+
+    return @regExList;
 }
 
 sub run
@@ -511,6 +537,9 @@ sub run
         catfile( $QT_MODULE_TO_TEST, 'qtbase' ),        # qt5 case
         catfile( $QT_MODULE_TO_TEST, '../..', 'qt/qtbase' ),  # any other module (qt-labs/someproject)
     );
+
+    @moduleOptionalFiles = readRegularExpressionsFromFile(catfile($QT_MODULE_TO_TEST, ".qt-license-check.optional"));
+    @moduleExcludedFiles = readRegularExpressionsFromFile(catfile($QT_MODULE_TO_TEST, ".qt-license-check.exclude"));
 
     my $qtbase_path = first { -d $_ } @qtbase_paths;
     if (! $qtbase_path) {
