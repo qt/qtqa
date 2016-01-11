@@ -344,6 +344,10 @@ Contains information whether we want to update prodcution repository
 
 Contains information wheater maintenance tool resource file is created or not
 
+=item execute_postbuild_action
+
+If set then execute post build action for the build
+
 =item module_doc_build_qt_dependency_package_uri
 
 Contains information whether module needs libs outside essentials package
@@ -685,6 +689,7 @@ sub desired_job_xml
             do_update_staging_repository => eval { $self->cfg( "job.$name", 'do_update_staging_repository' ) } || q{},
             do_update_production_repository => eval { $self->cfg( "job.$name", 'do_update_production_repository' ) } || q{},
             create_maintenance_tool_resource_file => eval { $self->cfg( "job.$name", 'create_maintenance_tool_resource_file' ) } || q{},
+            execute_postbuild_action => eval { $self->cfg( "job.$name", 'execute_postbuild_action' ) } || q{},
             module_doc_build_qt_dependency_package_uri => eval { $self->cfg( "job.$name", 'module_doc_build_qt_dependency_package_uri' ) } || q{},
             build_combination => eval { $self->cfg( "job.$name", 'build_combination' ) } || q{},
             gerrit_project => $gerrit_project,
