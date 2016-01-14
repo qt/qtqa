@@ -388,21 +388,37 @@ sub checkLicense
             if (/^\Q$beginDelimiter\E$licenseEndMarker\Q$endDelimiter\E/) {
                 # We've got all the license text, does it match the reference?
                 my @referenceText = @{$licenseTexts{$licenseType}};
-                if ($#text != $#referenceText) {
+                my $hasOldText = exists($licenseTexts{"$licenseType-OLD"});
+                my @oldReferenceText;
+                if ($hasOldText) {
+                    @oldReferenceText = @{$licenseTexts{"$licenseType-OLD"}};
+                }
+                if ($#text != $#referenceText && $#text != $#oldReferenceText) {
                     fail("License text and reference text have different number of lines in $shortfilename");
                     return 0;
                 }
+                my $useOldText = 0;
                 my $n = 0;
                 while ($n <= $#text) {
                     if ($text[$n] ne $referenceText[$n]) {
-                        fail("Mismatch in license text in $shortfilename\n".
-                             "    Actual: $text[$n]\n".
-                             "  Expected: $referenceText[$n]");
-                        return 0;
+                        if (!$useOldText && $hasOldText) {
+                            $useOldText = 1;
+                            $n = -1; # restart comparing from the first line
+                            @referenceText = @oldReferenceText;
+                        } else {
+                            fail("Mismatch in license text in $shortfilename\n".
+                                 "    Actual: $text[$n]\n".
+                                 "  Expected: $referenceText[$n]");
+                            return 0;
+                        }
                     }
                     $n++;
                 }
                 $matchedLicenses++;
+
+                if ($useOldText) {
+                    print("Old license being used for $shortfilename.\n");
+                }
 
                 # Reset to begin searching for another license header
                 $inLicenseText = 0;
