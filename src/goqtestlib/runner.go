@@ -36,7 +36,7 @@
 ** $QT_END_LICENSE$
 **
 ****************************************************************************/
-package testlib
+package goqtestlib
 
 import (
 	"errors"
