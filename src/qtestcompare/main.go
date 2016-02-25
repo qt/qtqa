@@ -61,9 +61,11 @@ func loadTestResult(path string) *goqtestlib.ParsedTestResult {
 }
 
 type MergedTestResult struct {
-	Name     string
-	OldValue *float64
-	NewValue *float64
+	Name                string
+	OldDuration         *float64
+	NewDuration         *float64
+	OldInstructionReads *float64
+	NewInstructionReads *float64
 }
 
 type ByName []MergedTestResult
@@ -74,6 +76,17 @@ func (s ByName) Swap(i int, j int) {
 }
 func (s ByName) Less(i int, j int) bool {
 	return s[i].Name < s[j].Name
+}
+
+func describeChange(pChange float64) string {
+	pStr := strconv.FormatFloat(pChange, 'f', 2, 64)
+	if pChange > 0 {
+		return fmt.Sprintf("+%s%% FASTER! :)", pStr)
+	} else if pChange < 0 {
+		return fmt.Sprintf("%s%%", pStr)
+	} else {
+		return "more or less the same"
+	}
 }
 
 func main() {
@@ -108,22 +121,26 @@ func main() {
 	// XXX: add a way to specify what type of benchmarkresult to look for.
 	for _, fn := range oldTest.Functions {
 		for _, br := range fn.BenchmarkResults {
+			res := mergedResults[fn.Name]
+			res.Name = fn.Name
 			if br.Metric == "WalltimeMilliseconds" {
-				res := mergedResults[fn.Name]
-				res.Name = fn.Name
-				res.OldValue = &(br.Value)
-				mergedResults[fn.Name] = res
+				res.OldDuration = &(br.Value)
+			} else if br.Metric == "InstructionReads" {
+				res.OldInstructionReads = &(br.Value)
 			}
+			mergedResults[fn.Name] = res
 		}
 	}
 	for _, fn := range newTest.Functions {
 		for _, br := range fn.BenchmarkResults {
+			res := mergedResults[fn.Name]
+			res.Name = fn.Name
 			if br.Metric == "WalltimeMilliseconds" {
-				res := mergedResults[fn.Name]
-				res.Name = fn.Name
-				res.NewValue = &(br.Value)
-				mergedResults[fn.Name] = res
+				res.NewDuration = &(br.Value)
+			} else if br.Metric == "InstructionReads" {
+				res.NewInstructionReads = &(br.Value)
 			}
+			mergedResults[fn.Name] = res
 		}
 	}
 
@@ -146,31 +163,43 @@ func main() {
 		row := []string{}
 		row = append(row, mr.Name)
 
-		if mr.OldValue != nil {
-			row = append(row, strconv.FormatFloat(*mr.OldValue, 'f', 2, 64))
-		} else {
-			row = append(row, "-")
-		}
+		if mr.OldInstructionReads != nil && mr.NewInstructionReads != nil {
+			pChange := (*mr.NewInstructionReads - *mr.OldInstructionReads) / *mr.OldInstructionReads
+			totalPChange += pChange
+			row = append(row, strconv.FormatFloat(*mr.OldInstructionReads, 'f', 2, 64)+" instr")
+			row = append(row, strconv.FormatFloat(*mr.NewInstructionReads, 'f', 2, 64)+" instr")
+			row = append(row, describeChange(pChange))
 
-		if mr.NewValue != nil {
-			row = append(row, strconv.FormatFloat(*mr.NewValue, 'f', 2, 64))
+		} else if mr.OldDuration != nil && mr.NewDuration != nil {
+			pChange := (*mr.NewDuration - *mr.OldDuration) / *mr.OldDuration
+			totalPChange += pChange
+			row = append(row, strconv.FormatFloat(*mr.OldDuration, 'f', 2, 64)+" ms")
+			row = append(row, strconv.FormatFloat(*mr.NewDuration, 'f', 2, 64)+" ms")
+			row = append(row, describeChange(pChange))
 		} else {
-			row = append(row, "-")
-		}
+			// the comparison can't be made because either the data types are
+			// differing between the two runs, or we're missing a test in one
+			// run.
+			//
+			// try find something to display for old and new. fall back to "-"
+			// if we can't.
+			ostr := "-"
+			nstr := "-"
 
-		if mr.OldValue != nil && mr.NewValue != nil {
-			pChange := (*mr.NewValue - *mr.OldValue) / *mr.OldValue
-			pStr := strconv.FormatFloat(pChange, 'f', 2, 64)
-			if pChange > 0 {
-				row = append(row, fmt.Sprintf("+%s%% FASTER! :)", pStr))
-			} else if pChange < 0 {
-				row = append(row, fmt.Sprintf("%s%%", pStr))
-			} else {
-				row = append(row, "more or less the same")
+			if mr.OldDuration != nil {
+				ostr = strconv.FormatFloat(*mr.OldDuration, 'f', 2, 64) + " ms"
+			} else if mr.OldInstructionReads != nil {
+				ostr = strconv.FormatFloat(*mr.OldInstructionReads, 'f', 2, 64) + " instr"
 			}
 
-			totalPChange += pChange
-		} else {
+			if mr.NewDuration != nil {
+				nstr = strconv.FormatFloat(*mr.NewDuration, 'f', 2, 64) + " ms"
+			} else if mr.NewInstructionReads != nil {
+				nstr = strconv.FormatFloat(*mr.NewInstructionReads, 'f', 2, 64) + " instr"
+			}
+
+			row = append(row, ostr)
+			row = append(row, nstr)
 			row = append(row, "-")
 		}
 
