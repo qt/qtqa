@@ -81,9 +81,9 @@ func (s ByName) Less(i int, j int) bool {
 func describeChange(pChange float64) string {
 	pStr := strconv.FormatFloat(pChange, 'f', 2, 64)
 	if pChange > 0 {
-		return fmt.Sprintf("+%s%% FASTER! :)", pStr)
+		return fmt.Sprintf("+%s%%", pStr)
 	} else if pChange < 0 {
-		return fmt.Sprintf("%s%%", pStr)
+		return fmt.Sprintf("%s%% FASTER! :)", pStr)
 	} else {
 		return "more or less the same"
 	}
@@ -164,14 +164,14 @@ func main() {
 		row = append(row, mr.Name)
 
 		if mr.OldInstructionReads != nil && mr.NewInstructionReads != nil {
-			pChange := (*mr.NewInstructionReads - *mr.OldInstructionReads) / *mr.OldInstructionReads
+			pChange := (*mr.NewInstructionReads - *mr.OldInstructionReads) / *mr.OldInstructionReads * 100
 			totalPChange += pChange
 			row = append(row, strconv.FormatFloat(*mr.OldInstructionReads, 'f', 2, 64)+" instr")
 			row = append(row, strconv.FormatFloat(*mr.NewInstructionReads, 'f', 2, 64)+" instr")
 			row = append(row, describeChange(pChange))
 
 		} else if mr.OldDuration != nil && mr.NewDuration != nil {
-			pChange := (*mr.NewDuration - *mr.OldDuration) / *mr.OldDuration
+			pChange := (*mr.NewDuration - *mr.OldDuration) / *mr.OldDuration * 100
 			totalPChange += pChange
 			row = append(row, strconv.FormatFloat(*mr.OldDuration, 'f', 2, 64)+" ms")
 			row = append(row, strconv.FormatFloat(*mr.NewDuration, 'f', 2, 64)+" ms")
@@ -209,9 +209,9 @@ func main() {
 	verdict := ""
 	totalPStr := strconv.FormatFloat(totalPChange, 'f', 2, 64)
 	if totalPChange > 0 {
-		verdict = fmt.Sprintf("+%s%% :)", totalPStr)
+		verdict = fmt.Sprintf("+%s%% :(", totalPStr)
 	} else if totalPChange < 0 {
-		verdict = fmt.Sprintf("%s%% :(", totalPStr)
+		verdict = fmt.Sprintf("%s%% :)", totalPStr)
 	} else {
 		verdict = "more or less the same"
 	}
