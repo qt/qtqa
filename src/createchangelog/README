@@ -1,0 +1,23 @@
+
+This little tool faciliates the creation of change log files for Qt modules. It is written in golang and
+can be downloaded and installed using
+
+    go get code.qt.io/qt/qtqa.git/src/createchangelog
+
+
+If you are not familiar with go and GOPATH and would just like to "use the damn thing", then you can cheat
+and run
+
+    GOPATH=$PWD go get code.qt.io/qt/qtqa.git/src/createchangelog
+
+in a directory of your choice, which will place the binary into $PWD/bin.
+
+With the binary in place, you can use it like this:
+
+    1. Change into a directory that contains a git clone of the module you'd like to create a change log for.
+    2. Make sure you have the release branch checked out that you'd like to create the file for.
+    3. Run the createchangelog tool from there.
+    4. The tool will parse .qmake.conf to determine the version of the upcoming release and it will use "git tag -l" to
+       determine the previous release, in order to look through the git commits between the previous release and HEAD.
+    5. The proposed template output of the new change log file is printed to standard output, from which you can redirect
+       it to a file and edit it accordingly.
