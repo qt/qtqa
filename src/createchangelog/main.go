@@ -197,6 +197,18 @@ func extractChangeLog(commitMessage string) (entry changeLogEntry) {
 			entry.text = entry.text + " " + trimmedLine
 		}
 	}
+
+	if entry.text != "" {
+		for scanner.Scan() {
+			trimmedLine := strings.TrimSpace(scanner.Text())
+			if !strings.HasPrefix(strings.ToLower(trimmedLine), "task-number:") {
+				continue
+			}
+			entry.text = "[" + strings.TrimSpace(trimmedLine[len("task-number:"):]) + "] " + entry.text
+			break
+		}
+	}
+
 	return
 }
 

@@ -42,3 +42,19 @@ more text here
 	}
 
 }
+
+func TestTaskExtraction(t *testing.T) {
+	commitText := `
+Some text here
+
+    [ChangeLog] Blah
+
+Task-Number: QTBUG-1234
+`
+
+	entry := extractChangeLog(commitText)
+
+	if entry.text != "[QTBUG-1234] Blah" {
+		t.Fatalf("Unexpected text extracted: %s", entry.text)
+	}
+}
