@@ -84,11 +84,11 @@ func testResultsEqual(left *ParsedTestResult, right *ParsedTestResult) bool {
 }
 
 func makeTestRunner(t *testing.T, outputToProduce ...*ParsedTestResult) RunFunction {
-	return func() error {
+	return func(extraArgs []string) error {
 		option := outputOption{}
 		flagSet := flag.NewFlagSet("testlibflagset", flag.PanicOnError)
 		flagSet.Var(&option, "o", "output specifier")
-		if err := flagSet.Parse(strings.Split(os.Getenv("TESTARGS"), " ")); err != nil {
+		if err := flagSet.Parse(extraArgs); err != nil {
 			return err
 		}
 
@@ -263,7 +263,7 @@ func TestFailingOnceWithTagTestResult(t *testing.T) {
 }
 
 func TestFailingNonTestLibTest(t *testing.T) {
-	runner := func() error {
+	runner := func([]string) error {
 		// simulate "make check" failing, but we did not write a results .xml file
 		return &exec.ExitError{}
 	}

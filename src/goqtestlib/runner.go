@@ -54,7 +54,7 @@ const (
 
 // RunFunction is used by GenerateTestResult to run unit tests in the current environment. In
 // the agent this usually means running "make check".
-type RunFunction func() error
+type RunFunction func(extraArgs []string) error
 
 // GenerateTestResult sets up the environment for QTestLib style testing and calls the runner function for
 // to produce the test results. The repetitionsOnFailure allows for a failing test function to fail once
@@ -75,10 +75,7 @@ func GenerateTestResult(name string, resultsDirectory string, repetitionsOnFailu
 
 	os.Setenv("QT_CI_RESULTS_PATH", testResult.PathToResultsXML)
 
-	os.Setenv("TESTARGS", fmt.Sprintf("-o %s,xml -o -,txt", testResult.PathToResultsXML))
-	defer os.Setenv("TESTARGS", "")
-
-	err = runner()
+	err = runner([]string{"-o", testResult.PathToResultsXML + ",xml", "-o", "-,txt"})
 
 	os.Setenv("QT_CI_RESULTS_PATH", "")
 
@@ -106,8 +103,7 @@ func GenerateTestResult(name string, resultsDirectory string, repetitionsOnFailu
 
 			for _, testFunction := range failingFunctions {
 				for i := 0; i < repetitionsOnFailure; i++ {
-					os.Setenv("TESTARGS", testFunction)
-					if err = runner(); err != nil {
+					if err = runner([]string{testFunction}); err != nil {
 						return nil, err
 					}
 				}

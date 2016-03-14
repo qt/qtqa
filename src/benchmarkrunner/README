@@ -1,0 +1,12 @@
+
+This little tool allows for running a series of benchmarks and collecting their results in one .zip archive,
+for use with qtestcompare.
+
+Usage:
+
+    (1) Change to the directory from where you'd like to run benchmarks recursively (such as tests/benchmarks)
+    (2) Run benchmarkrunner - this will in turn result in a call to "make benchmark" to recursively run the benchmark programs.
+
+
+You can pass --output-file /path/to/archive.zip to store the results in a particular location. If you'd like to pass options
+to qtestlib - such as "-callgrind" - then you can pass those after the parameters, i.e. `benchmarkrunner --output-file /somewhere.zip -- -callgrind`
