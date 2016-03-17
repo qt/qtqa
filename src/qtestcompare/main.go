@@ -40,14 +40,15 @@
 package main
 
 import (
-	"code.qt.io/qt/qtqa.git/src/goqtestlib"
 	"flag"
 	"fmt"
-	"github.com/olekukonko/tablewriter"
 	"log"
 	"os"
 	"sort"
 	"strconv"
+
+	"code.qt.io/qt/qtqa.git/src/goqtestlib"
+	"github.com/olekukonko/tablewriter"
 )
 
 func loadTestResult(path string) *goqtestlib.ParsedTestResult {
