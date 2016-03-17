@@ -90,24 +90,7 @@ func describeChange(pChange float64) string {
 	}
 }
 
-func main() {
-	var nf = flag.String("new", "", "the changed XML result to compare against")
-	var of = flag.String("old", "", "the baseline XML result to compare against")
-	flag.Parse()
-
-	nxml := *nf
-	oxml := *of
-
-	if len(nxml) == 0 {
-		log.Fatalf("no new provided - nothing to compare")
-		return
-	}
-
-	if len(oxml) == 0 {
-		log.Fatalf("no old provided - nothing to compare against")
-		return
-	}
-
+func compareSingleTestRuns(oxml string, nxml string) {
 	oldTest := loadTestResult(oxml)
 	newTest := loadTestResult(nxml)
 
@@ -219,5 +202,25 @@ func main() {
 
 	table.SetFooter([]string{newTest.Name, "", "", verdict})
 	table.Render()
+}
 
+func main() {
+	var nf = flag.String("new", "", "the changed XML result to compare against")
+	var of = flag.String("old", "", "the baseline XML result to compare against")
+	flag.Parse()
+
+	nxml := *nf
+	oxml := *of
+
+	if len(nxml) == 0 {
+		log.Fatalf("no new provided - nothing to compare")
+		return
+	}
+
+	if len(oxml) == 0 {
+		log.Fatalf("no old provided - nothing to compare against")
+		return
+	}
+
+	compareSingleTestRuns(oxml, nxml)
 }
