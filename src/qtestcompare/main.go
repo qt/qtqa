@@ -40,8 +40,12 @@
 package main
 
 import (
+	"archive/zip"
+	"encoding/xml"
 	"flag"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"log"
 	"os"
 	"sort"
@@ -90,54 +94,52 @@ func describeChange(pChange float64) string {
 	}
 }
 
-func compareSingleTestRuns(oxml string, nxml string) {
-	oldTest := loadTestResult(oxml)
-	newTest := loadTestResult(nxml)
+type MergedTestResults map[string]MergedTestResult
 
-	if oldTest.Name != newTest.Name {
-		log.Fatalf("I can't compare two totally different things (old: %s, new: %s)", oldTest.Name, newTest.Name)
-		return
-	}
-
-	// merge the test functions into a singular representation.
-	mergedResults := map[string]MergedTestResult{}
-
+func (results *MergedTestResults) addOldTestCase(prefix string, testCase *goqtestlib.ParsedTestResult) {
 	// XXX: add a way to specify what type of benchmarkresult to look for.
-	for _, fn := range oldTest.Functions {
+	for _, fn := range testCase.Functions {
+		qualifiedName := prefix + fn.Name
 		for _, br := range fn.BenchmarkResults {
-			res := mergedResults[fn.Name]
-			res.Name = fn.Name
+			res := (*results)[qualifiedName]
+			res.Name = qualifiedName
 			if br.Metric == "WalltimeMilliseconds" {
 				res.OldDuration = &(br.Value)
 			} else if br.Metric == "InstructionReads" {
 				res.OldInstructionReads = &(br.Value)
 			}
-			mergedResults[fn.Name] = res
+			(*results)[qualifiedName] = res
 		}
 	}
-	for _, fn := range newTest.Functions {
+}
+
+func (results *MergedTestResults) addNewTestCase(prefix string, testCase *goqtestlib.ParsedTestResult) {
+	for _, fn := range testCase.Functions {
+		qualifiedName := prefix + fn.Name
 		for _, br := range fn.BenchmarkResults {
-			res := mergedResults[fn.Name]
-			res.Name = fn.Name
+			res := (*results)[qualifiedName]
+			res.Name = qualifiedName
 			if br.Metric == "WalltimeMilliseconds" {
 				res.NewDuration = &(br.Value)
 			} else if br.Metric == "InstructionReads" {
 				res.NewInstructionReads = &(br.Value)
 			}
-			mergedResults[fn.Name] = res
+			(*results)[qualifiedName] = res
 		}
 	}
+}
 
+func (results *MergedTestResults) compare(output io.Writer) {
 	// convert mergedResults to a slice, and sort it for stable results.
 	sortedResults := []MergedTestResult{}
 
-	for _, mr := range mergedResults {
+	for _, mr := range *results {
 		sortedResults = append(sortedResults, mr)
 	}
 
 	sort.Sort(ByName(sortedResults))
 
-	table := tablewriter.NewWriter(os.Stdout)
+	table := tablewriter.NewWriter(output)
 	table.SetHeader([]string{"Test", "From", "To", "Details"})
 	table.SetBorder(false)
 
@@ -200,27 +202,132 @@ func compareSingleTestRuns(oxml string, nxml string) {
 		verdict = "more or less the same"
 	}
 
-	table.SetFooter([]string{newTest.Name, "", "", verdict})
+	table.SetFooter([]string{"Overall result", "", "", verdict})
 	table.Render()
+
+}
+
+func compareSingleTestRuns(oxml string, nxml string) {
+	oldTest := loadTestResult(oxml)
+	newTest := loadTestResult(nxml)
+
+	if oldTest.Name != newTest.Name {
+		log.Fatalf("I can't compare two totally different things (old: %s, new: %s)", oldTest.Name, newTest.Name)
+		return
+	}
+
+	// merge the test functions into a singular representation.
+	mergedResults := MergedTestResults{}
+	prefix := ""
+	mergedResults.addOldTestCase(prefix, oldTest)
+	mergedResults.addNewTestCase(prefix, newTest)
+
+	mergedResults.compare(os.Stdout)
+}
+
+func unmarshalTestResult(reader io.ReadCloser) (*goqtestlib.ParsedTestResult, error) {
+	defer reader.Close()
+	xmlContents, err := ioutil.ReadAll(reader)
+	if err != nil {
+		return nil, fmt.Errorf("Error reading results xml file: %s", err)
+	}
+
+	testCase := &goqtestlib.ParsedTestResult{}
+	if err = xml.Unmarshal(xmlContents, &testCase); err != nil {
+		return nil, fmt.Errorf("Error unmarshalling testlib xml output: %s", err)
+	}
+	return testCase, nil
+}
+
+type testArchive struct {
+	reader *zip.ReadCloser
+}
+
+func openTestArchive(path string) (*testArchive, error) {
+	reader, err := zip.OpenReader(path)
+	return &testArchive{reader}, err
+}
+
+func (archive *testArchive) forEachTestCase(callback func(path string, testCase *goqtestlib.ParsedTestResult) error) error {
+	for _, f := range archive.reader.File {
+		reader, err := f.Open()
+		if err != nil {
+			log.Fatalf("Error opening entry in zip archive %s: %s", f.Name, err)
+		}
+		result, err := unmarshalTestResult(reader)
+		if err != nil {
+			log.Fatalf("Error unpacking test result for %s from zip archive: %s", f.Name, err)
+		}
+		if err := callback(f.Name, result); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (archive *testArchive) Close() error {
+	return archive.reader.Close()
+}
+
+func compareArchivedTestRuns(oarch string, narch string) {
+	fmt.Printf("Comparing zipped runs %s vs %s\n", oarch, narch)
+
+	or, err := openTestArchive(oarch)
+	if err != nil {
+		log.Fatalf("Can't open old archive: %s\n", err)
+	}
+	defer or.Close()
+
+	nr, err := openTestArchive(narch)
+	if err != nil {
+		log.Fatalf("Can't open new archive: %s\n", err)
+	}
+	defer nr.Close()
+
+	// this is a map of xml to result, so e.g:
+	// qml/binding.xml -> result.
+	mergedResults := MergedTestResults{}
+
+	or.forEachTestCase(func(path string, testCase *goqtestlib.ParsedTestResult) error {
+		mergedResults.addOldTestCase(path+"/", testCase)
+		return nil
+	})
+	nr.forEachTestCase(func(path string, testCase *goqtestlib.ParsedTestResult) error {
+		mergedResults.addNewTestCase(path+"/", testCase)
+		return nil
+	})
+
+	mergedResults.compare(os.Stdout)
 }
 
 func main() {
 	var nf = flag.String("new", "", "the changed XML result to compare against")
 	var of = flag.String("old", "", "the baseline XML result to compare against")
+
+	var na = flag.String("newarchive", "", "the changed archived results to compare against")
+	var oa = flag.String("oldarchive", "", "the baseline archived results to compare against")
 	flag.Parse()
 
 	nxml := *nf
 	oxml := *of
 
-	if len(nxml) == 0 {
-		log.Fatalf("no new provided - nothing to compare")
+	narch := *na
+	oarch := *oa
+
+	hasNewFile := len(nxml) > 0
+	hasOldFile := len(oxml) > 0
+
+	hasNewArch := len(narch) > 0
+	hasOldArch := len(oarch) > 0
+
+	if (!hasNewFile || !hasOldFile) && (!hasNewArch || !hasOldArch) {
+		log.Fatalf("You need to provide either -new & -old, or -newarchive & -oldarchive.")
 		return
 	}
 
-	if len(oxml) == 0 {
-		log.Fatalf("no old provided - nothing to compare against")
-		return
+	if hasNewFile && hasOldFile {
+		compareSingleTestRuns(oxml, nxml)
+	} else {
+		compareArchivedTestRuns(oarch, narch)
 	}
-
-	compareSingleTestRuns(oxml, nxml)
 }
