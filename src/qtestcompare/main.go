@@ -101,14 +101,18 @@ func (results *MergedTestResults) addOldTestCase(prefix string, testCase *goqtes
 	for _, fn := range testCase.Functions {
 		qualifiedName := prefix + fn.Name
 		for _, br := range fn.BenchmarkResults {
-			res := (*results)[qualifiedName]
-			res.Name = qualifiedName
+			nameWithTag := qualifiedName
+			if br.Tag != "" {
+				nameWithTag += ":" + br.Tag
+			}
+			res := (*results)[nameWithTag]
+			res.Name = nameWithTag
 			if br.Metric == "WalltimeMilliseconds" {
 				res.OldDuration = &(br.Value)
 			} else if br.Metric == "InstructionReads" {
 				res.OldInstructionReads = &(br.Value)
 			}
-			(*results)[qualifiedName] = res
+			(*results)[nameWithTag] = res
 		}
 	}
 }
@@ -117,14 +121,18 @@ func (results *MergedTestResults) addNewTestCase(prefix string, testCase *goqtes
 	for _, fn := range testCase.Functions {
 		qualifiedName := prefix + fn.Name
 		for _, br := range fn.BenchmarkResults {
-			res := (*results)[qualifiedName]
-			res.Name = qualifiedName
+			nameWithTag := qualifiedName
+			if br.Tag != "" {
+				nameWithTag += ":" + br.Tag
+			}
+			res := (*results)[nameWithTag]
+			res.Name = nameWithTag
 			if br.Metric == "WalltimeMilliseconds" {
 				res.NewDuration = &(br.Value)
 			} else if br.Metric == "InstructionReads" {
 				res.NewInstructionReads = &(br.Value)
 			}
-			(*results)[qualifiedName] = res
+			(*results)[nameWithTag] = res
 		}
 	}
 }
