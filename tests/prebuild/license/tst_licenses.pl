@@ -122,8 +122,6 @@ my %optionalFiles = (
                           # These are two-line wrappers around perl programs.
                           qr{^bin/elf2e32_qtwrapper\.bat$},
                           qr{^bin/patch_capabilities\.bat$},
-                          # Wrappers around non-Qt headers
-                          qr{^mkspecs/common/symbian/header-wrappers/},
                           # These three are for assemblers that don't allow comments
                           qr{^src/corelib/arch/i386/qatomic_i386\.s$},
                           qr{^src/corelib/arch/vxworks/qatomic_ppc\.s$},
