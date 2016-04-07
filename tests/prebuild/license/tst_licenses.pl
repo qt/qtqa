@@ -209,8 +209,8 @@ my $moduleName;
 # string delimiter at the beginning of the line.
 # Delimiters we're likely to see in Qt are '*' (C/C++/qdoc), ';' (assembly),
 # '!' (SPARC assembly), ':' (batch files), '#' (shell/perl scripts),
-# '--' (flex/bison), '.\"' (man page source).
-my $leadingDelimiter = qr/^(\s*[\*!;:#\-\.\\\"]+)/;
+# '--' (flex/bison), '.\"' (man page source), '\'' (visual basic script)
+my $leadingDelimiter = qr/^(\s*[\*!;:#\-\.\\\"']+)/;
 
 # These lines appear before the legal text in each license header.
 # Where these are embedded in literals in a perl script, the @ in the
