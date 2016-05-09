@@ -148,6 +148,7 @@ func (results *MergedTestResults) compare(output io.Writer) {
 	sort.Sort(ByName(sortedResults))
 
 	table := tablewriter.NewWriter(output)
+	table.SetAutoFormatHeaders(false)
 	table.SetHeader([]string{"Test", "From", "To", "Details"})
 	table.SetBorder(false)
 
