@@ -107,10 +107,11 @@ func (results *MergedTestResults) addOldTestCase(prefix string, testCase *goqtes
 			}
 			res := (*results)[nameWithTag]
 			res.Name = nameWithTag
+			val := br.Value
 			if br.Metric == "WalltimeMilliseconds" {
-				res.OldDuration = &(br.Value)
+				res.OldDuration = &val
 			} else if br.Metric == "InstructionReads" {
-				res.OldInstructionReads = &(br.Value)
+				res.OldInstructionReads = &val
 			}
 			(*results)[nameWithTag] = res
 		}
@@ -127,10 +128,11 @@ func (results *MergedTestResults) addNewTestCase(prefix string, testCase *goqtes
 			}
 			res := (*results)[nameWithTag]
 			res.Name = nameWithTag
+			val := br.Value
 			if br.Metric == "WalltimeMilliseconds" {
-				res.NewDuration = &(br.Value)
+				res.NewDuration = &val
 			} else if br.Metric == "InstructionReads" {
-				res.NewInstructionReads = &(br.Value)
+				res.NewInstructionReads = &val
 			}
 			(*results)[nameWithTag] = res
 		}
