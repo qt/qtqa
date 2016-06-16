@@ -157,6 +157,8 @@ my %optionalFiles = (
                           qr{^src/tools/uic/qclass_lib_map\.h$},
                           # This is a copy of a Google Android tool with a fix.
                           qr{^mkspecs/features/data/android/dx\.bat$},
+                          # This is a short source that is preprocessed only
+                          qr{^mkspecs/features/data/macros\.cpp$},
                         ],
     "qtconnectivity" => [
                           # These directories contain generated files
