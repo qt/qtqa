@@ -67,6 +67,7 @@ public:
     };
 
     void addBlacklistedClass(const QString &wildcard);
+    void addBlacklistedClass(const QRegExp &expression);
     void removeBlacklistedClass(const QString &wildcard);
     bool isBlacklisted(const QString &className) const;
 

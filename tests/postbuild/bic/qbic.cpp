@@ -42,6 +42,11 @@ void QBic::addBlacklistedClass(const QString &wildcard)
     blackList.append(QRegExp(wildcard, Qt::CaseSensitive, QRegExp::Wildcard));
 }
 
+void QBic::addBlacklistedClass(const QRegExp &expression)
+{
+    blackList.append(expression);
+}
+
 void QBic::removeBlacklistedClass(const QString &wildcard)
 {
     blackList.removeAll(QRegExp(wildcard, Qt::CaseSensitive, QRegExp::Wildcard));

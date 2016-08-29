@@ -193,6 +193,7 @@ tst_Bic::tst_Bic(const char *appFilePath)
     bic.addBlacklistedClass(QLatin1String("qIsNull*"));
     bic.addBlacklistedClass(QLatin1String("_*"));
     bic.addBlacklistedClass(QLatin1String("<anonymous*"));
+    bic.addBlacklistedClass(QRegExp(".+::lambda[0-9]+"));
 
     /* some system stuff we don't care for */
     bic.addBlacklistedClass(QLatin1String("drand"));
