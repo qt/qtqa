@@ -193,7 +193,6 @@ tst_Bic::tst_Bic(const char *appFilePath)
     bic.addBlacklistedClass(QLatin1String("qIsNull*"));
     bic.addBlacklistedClass(QLatin1String("_*"));
     bic.addBlacklistedClass(QLatin1String("<anonymous*"));
-    bic.addBlacklistedClass(QRegExp(".+::lambda[0-9]+"));
 
     /* some system stuff we don't care for */
     bic.addBlacklistedClass(QLatin1String("drand"));
@@ -230,6 +229,9 @@ tst_Bic::tst_Bic(const char *appFilePath)
     bic.addBlacklistedClass(QLatin1String("QFileEngine"));
     bic.addBlacklistedClass(QLatin1String("QFileEngineHandler"));
     bic.addBlacklistedClass(QLatin1String("QFlags<QFileEngine::FileFlag>"));
+
+    /* QTest::toString lambda error is false positive */
+    bic.addBlacklistedClass(QRegExp(QLatin1String("QTest::toString(const T&) [with T = QUrl]::__lambda0"), Qt::CaseSensitive, QRegExp::FixedString));
 
     /* Private classes */
     bic.addBlacklistedClass(QLatin1String("QBrushData"));
