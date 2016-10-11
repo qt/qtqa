@@ -39,6 +39,7 @@ use utf8;
 use File::Find;
 use File::Basename;
 use File::Spec::Functions;
+use Getopt::Long;
 use Cwd qw( abs_path getcwd );
 use List::Util qw( first );
 use Test::More;
@@ -49,7 +50,9 @@ tst_licenses.pl - verify that source files contain valid license headers
 
 =head1 SYNOPSIS
 
-  perl ./tst_licenses.pl
+  perl ./tst_licenses.pl [OPTION]
+
+  -f Force usage of find() to create the list of instead of git ls-files
 
 This test expects the environment variable QT_MODULE_TO_TEST to contain
 the path to the Qt module to be tested.
@@ -64,6 +67,7 @@ headers.
 # specific configuration files.
 my @moduleOptionalFiles;
 my @moduleExcludedFiles;
+my $optForceFind = 0;
 
 # These modules are not expected to contain any files that need
 # Qt license headers.  They are entirely excluded from license checking.
@@ -602,7 +606,7 @@ sub run
     #
 
     my @filesToScan;
-    if (-d "$QT_MODULE_TO_TEST/.git") {
+    if (!$optForceFind && -d "$QT_MODULE_TO_TEST/.git") {
         # We're scanning a git repo, only examine files that git knows
         my $oldpwd = getcwd();
         if (!chdir $QT_MODULE_TO_TEST) {
@@ -645,6 +649,10 @@ sub run
         }
     }
 
+}
+
+if (!GetOptions('f' => \$optForceFind)) {
+    exit (1);
 }
 
 run();
