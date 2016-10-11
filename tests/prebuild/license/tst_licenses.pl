@@ -579,6 +579,11 @@ sub run
 
     my $qtbase_path = first { -d $_ } @qtbase_paths;
     if (! $qtbase_path) {
+        my $output = `qmake -query QT_INSTALL_PREFIX/src`;
+        chomp($output);
+        $qtbase_path = $output if -d $output;
+    }
+    if (! $qtbase_path) {
         fail("Cannot find qtbase module, looked at: @qtbase_paths");
         return;
     }
