@@ -255,6 +255,7 @@ my $licenseEndMarker   = qr/\s\\{0,2}\$QT_END_LICENSE\\{0,2}\$/;
 # into the %licenseTexts map.
 #
 my %licenseTexts;   # Map from license name to the associated legal text
+my %licenseFiles;   # Map from license name to the file defining it for reporting errors
 
 sub loadLicense {
     my $licenseFile = shift;
@@ -303,12 +304,14 @@ sub loadLicense {
         fail("$licenseFile has no QT_END_LICENSE marker");
         return 0;
     }
-    if (exists($licenseTexts{$licenseType})) {
-        fail("$licenseFile re-defines a license of type $licenseType");
+    my $existingDefinition = $licenseFiles{$licenseType};
+    if (defined($existingDefinition)) {
+        fail("$licenseFile re-defines a license of type $licenseType originally defined in $existingDefinition");
         return 0;
     }
 
     $licenseTexts{$licenseType} = \@licenseText;
+    $licenseFiles{$licenseType} = $licenseFile;
     return 1;
 }
 
@@ -414,7 +417,8 @@ sub checkLicense
                     @oldReferenceText = @{$licenseTexts{"$licenseType-OLD"}};
                 }
                 if ($#text != $#referenceText && $#text != $#oldReferenceText) {
-                    fail("License text and reference text have different number of lines in $shortfilename");
+                    fail('License text (' . $#text . ') and reference text (' . $licenseType . ', '
+                         . $#referenceText . ') have different number of lines in ' . $shortfilename);
                     return 0;
                 }
                 my $useOldText = 0;
