@@ -93,7 +93,15 @@ my %excludedFiles = (
                           qr{^examples/wayland/server-buffer/share-buffer\.xml$},
                           qr{^examples/wayland/custom-extension/protocol/custom\.xml$},
                         ],
-
+    'pyside-setup'   => [ # foreign repositories
+                          qr{^sources/pyside2-examples/.*$},
+                          qr{^sources/pyside2-tools/.*$},
+                          qr{^wiki/.*$},
+                          qr{^sources/shiboken2/.*\.1}, # Man pages
+                          qr{^sources/shiboken2/ext/sparsehash/google.*}, # External
+                          qr{^sources/shiboken2/ApiExtractor/parser/rxx_allocator.h$}, # KDevelop
+                          qr{^sources/pyside2/doc/.*\.py$} # Sphinx
+                        ]
 );
 
 # The following regex patterns designate directories and files for which
@@ -166,6 +174,16 @@ my %optionalFiles = (
                           # This directory is a copy of a 3rdparty library
                           qr{^src/assistant/lib/fulltextsearch/},
                         ],
+    'pyside-setup'   => [
+                          qr{docs/conf.py},
+                          qr{docs/make.bat},
+                          qr{checklibs.py},
+                          qr{ez_setup.py},
+                          qr{popenasync.py},
+                          qr{qtinfo.py},
+                          qr{sources/patchelf/elf.h},
+                          qr{utils.py}
+                        ]
 );
 
 # Unless specifically excluded, all files matching these patterns are
