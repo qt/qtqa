@@ -78,6 +78,7 @@ my @excludedModules = qw{
     qtwebengine
     3rdparty
     qtqa
+    pyside-setup
 };
 
 # If you add to the following lists of regexes, please
