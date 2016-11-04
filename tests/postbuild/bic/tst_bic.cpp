@@ -247,6 +247,7 @@ tst_Bic::tst_Bic(const char *appFilePath)
     bic.addBlacklistedClass(QLatin1String("QGLFunctionsPrivate"));
     bic.addBlacklistedClass(QLatin1String("QDebug::Stream"));
     bic.addBlacklistedClass(QLatin1String("QtPrivate::StreamStateSaver"));
+    bic.addBlacklistedClass(QLatin1String("QtPrivate::big_"));
 
     /* Jambi-related classes in Designer */
     bic.addBlacklistedClass(QLatin1String("QDesignerLanguageExtension"));
