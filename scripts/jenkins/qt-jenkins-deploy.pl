@@ -377,6 +377,10 @@ Authorization token to be used when triggering the build from other scripts
 
 Description for the job.
 
+=item test_script
+
+Test script that is run in shell/batch without Squish
+
 =back
 
 =item [node.<node_basename>]
@@ -725,6 +729,7 @@ sub desired_job_xml
             auth_token => eval { $self->cfg( "job.$name", 'auth_token' ) } || q{},
             job_description => eval { $self->cfg( "job.$name", 'job_description' ) } || q{},
             suffix_labels => eval { $self->cfg( "job.$name", 'suffix_labels' ) } || q{0},
+            test_script => eval { $self->cfg( "job.$name", 'test_script' ) } || q{},
         },
         \$data
     ) || die "job $name: while parsing template: ".$tt->error();
