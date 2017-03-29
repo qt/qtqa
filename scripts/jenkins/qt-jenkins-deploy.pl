@@ -340,6 +340,10 @@ Contains information whether we want to update staging repository
 
 Contains information whether we want to update prodcution repository
 
+=item force_version_number_increase
+
+Contains information whether we want to force version number increase for an online repository build
+
 =item create_maintenance_tool_resource_file
 
 Contains information wheater maintenance tool resource file is created or not
@@ -692,6 +696,7 @@ sub desired_job_xml
             release_description_file => eval { $self->cfg( "job.$name", 'release_description_file' ) } || q{},
             do_update_staging_repository => eval { $self->cfg( "job.$name", 'do_update_staging_repository' ) } || q{},
             do_update_production_repository => eval { $self->cfg( "job.$name", 'do_update_production_repository' ) } || q{},
+            force_version_number_increase => eval { $self->cfg( "job.$name", 'force_version_number_increase' ) } || q{},
             create_maintenance_tool_resource_file => eval { $self->cfg( "job.$name", 'create_maintenance_tool_resource_file' ) } || q{},
             execute_postbuild_action => eval { $self->cfg( "job.$name", 'execute_postbuild_action' ) } || q{},
             module_doc_build_qt_dependency_package_uri => eval { $self->cfg( "job.$name", 'module_doc_build_qt_dependency_package_uri' ) } || q{},
