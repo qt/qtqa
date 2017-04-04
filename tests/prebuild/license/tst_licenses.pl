@@ -42,6 +42,7 @@ use File::Spec::Functions;
 use Getopt::Long;
 use Cwd qw( abs_path getcwd );
 use List::Util qw( first );
+use Pod::Usage;
 use Test::More;
 
 =head1 NAME
@@ -52,7 +53,8 @@ tst_licenses.pl - verify that source files contain valid license headers
 
   perl ./tst_licenses.pl [OPTION]
 
-  -f Force usage of find() to create the list of instead of git ls-files
+  -f   Force use of find() to create the list of files instead of git ls-files
+  -h|? Display this help
 
 This test expects the environment variable QT_MODULE_TO_TEST to contain
 the path to the Qt module to be tested.
@@ -68,6 +70,7 @@ headers.
 my @moduleOptionalFiles;
 my @moduleExcludedFiles;
 my $optForceFind = 0;
+my $optHelp = 0;
 
 # These modules are not expected to contain any files that need
 # Qt license headers.  They are entirely excluded from license checking.
@@ -660,12 +663,10 @@ sub run
             checkLicense($_);
         }
     }
-
 }
 
-if (!GetOptions('f' => \$optForceFind)) {
-    exit (1);
-}
+GetOptions('f' => \$optForceFind, "help|?" => \$optHelp) or pod2usage(2);
+pod2usage(0) if $optHelp;
 
 run();
 done_testing();
