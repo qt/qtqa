@@ -322,6 +322,20 @@ sub loadLicense {
 }
 
 #
+# Format error message about line mismatch
+#
+
+sub msgMismatch
+{
+    my ($filename, $actual, $reference, $licenseType, $line) = @_;
+    return "Mismatch in license text in\n" . $filename . "\n"
+        . "    Actual: '" . $actual . "'\n"
+        . "  Expected: '" . $reference . "'\n"
+        . '   License: ' . $licenseType . ' (' . $licenseFiles{$licenseType} . ':'
+        . ($line + 1) . ')';
+}
+
+#
 # Check whether the nominated file has a valid license header with legal text
 # that matches one of the reference licenses.
 #
@@ -417,28 +431,43 @@ sub checkLicense
             if (/^\Q$beginDelimiter\E$licenseEndMarker\Q$endDelimiter\E/) {
                 # We've got all the license text, does it match the reference?
                 my @referenceText = @{$licenseTexts{$licenseType}};
-                my $hasOldText = exists($licenseTexts{"$licenseType-OLD"});
+                my $oldLicenseType = $licenseType . '-OLD';
+                my $hasOldText = exists($licenseTexts{$oldLicenseType});
                 my @oldReferenceText;
                 if ($hasOldText) {
-                    @oldReferenceText = @{$licenseTexts{"$licenseType-OLD"}};
-                }
-                if ($#text != $#referenceText && $#text != $#oldReferenceText) {
-                    fail('License text (' . $#text . ') and reference text (' . $licenseType . ', '
-                         . $#referenceText . ') have different number of lines in ' . $shortfilename);
-                    return 0;
+                    @oldReferenceText = @{$licenseTexts{$oldLicenseType}};
                 }
                 my $useOldText = 0;
+                if ($#text != $#referenceText) {
+                    my $message = 'License text (' . $#text . ') and reference text ('
+                        . $licenseType . ', ' . $#referenceText . ') have different number of lines in '
+                        . $shortfilename;
+                    if ($#oldReferenceText == 0) {
+                        fail($message);
+                        return 0;
+                    } elsif ($#text != $#oldReferenceText) {
+                        fail($message . ' and it does not match ' . $oldLicenseType . ', either (' . $#oldReferenceText . ')');
+                        return 0;
+                    } else {
+                        print($message . '. Comparing to old license ' . $oldLicenseType . "\n");
+                        $useOldText = 1;
+                        @referenceText = @oldReferenceText;
+                    }
+                }
+
                 my $n = 0;
                 while ($n <= $#text) {
                     if ($text[$n] ne $referenceText[$n]) {
                         if (!$useOldText && $hasOldText) {
+                            print('License text does not match ' . $licenseType . ' due to: '
+                                  . msgMismatch($shortfilename, $text[$n], $referenceText[$n],
+                                                $licenseType, $n) . "\n");
                             $useOldText = 1;
                             $n = -1; # restart comparing from the first line
                             @referenceText = @oldReferenceText;
                         } else {
-                            fail("Mismatch in license text in $shortfilename\n".
-                                 "    Actual: $text[$n]\n".
-                                 "  Expected: $referenceText[$n]");
+                            fail(msgMismatch($shortfilename, $text[$n], $referenceText[$n],
+                                 $useOldText ? $oldLicenseType : $licenseType, $n));
                             return 0;
                         }
                     }
@@ -447,7 +476,7 @@ sub checkLicense
                 $matchedLicenses++;
 
                 if ($useOldText) {
-                    print("Old license being used for $shortfilename.\n");
+                    print('Old license ' . $oldLicenseType . ' being used for ' . $shortfilename . ".\n");
                 }
 
                 # Reset to begin searching for another license header
