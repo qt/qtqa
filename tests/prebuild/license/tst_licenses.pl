@@ -78,7 +78,7 @@ my @moduleExcludedFiles;
 my $optForceFind = 0;
 my $optForceTest = 0;
 my $optHelp = 0;
-my $optModuleName = 0;
+my $optModuleName;
 
 # These modules are not expected to contain any files that need
 # Qt license headers.  They are entirely excluded from license checking.
