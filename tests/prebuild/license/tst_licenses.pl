@@ -53,8 +53,14 @@ tst_licenses.pl - verify that source files contain valid license headers
 
   perl ./tst_licenses.pl [OPTION]
 
-  -f   Force use of find() to create the list of files instead of git ls-files
-  -h|? Display this help
+  -f              Force use of find() to create the list of files instead of
+                  git ls-files
+  -h|?            Display this help
+  -m [MODULENAME] Use the module name given instead of the base name of the
+                  path specified by QT_MODULE_TO_TEST. This is useful if the
+                  repository is checked out under a different directory.
+  -t              Run the test despite the module being listed in
+                  @excludedModules.
 
 This test expects the environment variable QT_MODULE_TO_TEST to contain
 the path to the Qt module to be tested.
@@ -70,7 +76,9 @@ headers.
 my @moduleOptionalFiles;
 my @moduleExcludedFiles;
 my $optForceFind = 0;
+my $optForceTest = 0;
 my $optHelp = 0;
+my $optModuleName = 0;
 
 # These modules are not expected to contain any files that need
 # Qt license headers.  They are entirely excluded from license checking.
@@ -594,10 +602,10 @@ sub run
     $QT_MODULE_TO_TEST = abs_path($QT_MODULE_TO_TEST);
 
     # Get module name without the preceding path
-    $moduleName = basename ($QT_MODULE_TO_TEST);
+    $moduleName = defined($optModuleName) ? $optModuleName : basename($QT_MODULE_TO_TEST);
 
     # Skip the test (and return success) if we don't want to scan this module
-    if (grep { $_ eq $moduleName } @excludedModules) {
+    if ($optForceTest == 0 && grep { $_ eq $moduleName } @excludedModules) {
         plan skip_all => "$moduleName is excluded from license checks";
         return;
     }
@@ -694,7 +702,8 @@ sub run
     }
 }
 
-GetOptions('f' => \$optForceFind, "help|?" => \$optHelp) or pod2usage(2);
+GetOptions('f' => \$optForceFind, "help|?" => \$optHelp, 'm:s' => \$optModuleName,
+           't' => \$optForceTest) or pod2usage(2);
 pod2usage(0) if $optHelp;
 
 run();
