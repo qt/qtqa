@@ -83,6 +83,18 @@ QHash<QString, QString> qt_tests_shared_global_get_modules(const QString &config
     return modules;
 }
 
+QByteArray qt_tests_shared_global_get_modules_pro_lines(const QHash<QString, QString> &modules)
+{
+    QByteArray result;
+    foreach (QString moduleName, modules.values()) {
+        QByteArray module = moduleName.toLatin1();
+        result += "qtHaveModule(" + module + ") {\n" +
+                  "    QT += " + module + "\n" +
+                  "}\n";
+    }
+    return result;
+}
+
 QStringList qt_tests_shared_global_get_include_paths(const QString &workDir, QHash<QString, QString> &modules)
 {
     QString proFile = workDir + "/global.pro";
@@ -97,8 +109,8 @@ QStringList qt_tests_shared_global_get_include_paths(const QString &workDir, QHa
         return incPaths;
     }
 
-    QByteArray proLine = "QT += " + QStringList(modules.values()).join(" ").toLatin1() + "\n";
-    file.write(proLine);
+    QByteArray proLines = qt_tests_shared_global_get_modules_pro_lines(modules);
+    file.write(proLines);
     file.flush();
     file.close();
 
