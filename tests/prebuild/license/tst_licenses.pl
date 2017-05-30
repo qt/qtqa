@@ -77,15 +77,15 @@ my $optModuleName;
 
 # These modules are not expected to contain any files that need
 # Qt license headers.  They are entirely excluded from license checking.
-my @excludedModules = qw{
-    qtrepotools
-    qtwebkit
-    test262
-    qtwebengine
-    3rdparty
-    qtqa
-    pyside-setup
-};
+my %excludedModules = (
+    'qtrepotools' => [],
+    'qtwebkit' => [],
+    'test262' => [],
+    'qtwebengine' => [],
+    '3rdparty' => [],
+    'qtqa' => [],
+    'pyside-setup' => ['5.6']
+);
 
 # If you add to the following lists of regexes, please
 # make the patterns as specific as possible to avoid excluding more files
@@ -265,6 +265,16 @@ my $licenseEndMarker   = qr/\s\\{0,2}\$QT_END_LICENSE\\{0,2}\$/;
 #
 my %licenseTexts;   # Map from license name to the associated legal text
 my %licenseFiles;   # Map from license name to the file defining it for reporting errors
+
+sub gitBranch
+{
+    my $cmd = 'git "--git-dir=' . $QT_MODULE_TO_TEST . '/.git" branch';
+    for my $line (split(/\n/, `$cmd`)) {
+        chomp($line);
+        return $1 if $line =~ /^\*\s+(.*)$/;
+    }
+    return '';
+}
 
 sub loadLicense {
     my $licenseFile = shift;
@@ -600,9 +610,23 @@ sub run
     $moduleName = defined($optModuleName) ? $optModuleName : basename($QT_MODULE_TO_TEST);
 
     # Skip the test (and return success) if we don't want to scan this module
-    if ($optForceTest == 0 && grep { $_ eq $moduleName } @excludedModules) {
-        plan skip_all => "$moduleName is excluded from license checks";
-        return;
+
+    if ($optForceTest == 0) {
+        my $excludedBranches = $excludedModules{$moduleName};
+        if (defined($excludedBranches)) {
+            if (scalar(@$excludedBranches) > 0) {
+                my $branch = gitBranch();
+                my $quotedBranch = quotemeta($branch);
+                if ($branch ne '' && grep(/$quotedBranch/, @$excludedBranches)) {
+                    plan skip_all => 'Branch ' . $branch . ' of ' . $moduleName
+                                     . ' is excluded from license checks';
+                    return;
+                }
+            } else {
+                plan skip_all => $moduleName . ' is excluded from license checks';
+                return;
+            }
+        }
     }
 
     #
