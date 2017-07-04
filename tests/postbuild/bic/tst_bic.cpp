@@ -239,6 +239,7 @@ tst_Bic::tst_Bic(const char *appFilePath)
     bic.addBlacklistedClass(QLatin1String("QS60Style"));
     bic.addBlacklistedClass(QLatin1String("QPointerBase"));
     bic.addBlacklistedClass(QLatin1String("QOpenGLFunctionsPrivate"));
+    bic.addBlacklistedClass(QLatin1String("QOpenGLExtraFunctionsPrivate::Functions"));
     bic.addBlacklistedClass(QLatin1String("QGLFunctionsPrivate"));
     bic.addBlacklistedClass(QLatin1String("QDebug::Stream"));
     bic.addBlacklistedClass(QLatin1String("QtPrivate::StreamStateSaver"));
