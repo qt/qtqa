@@ -314,6 +314,8 @@ tst_Bic::tst_Bic(const char *appFilePath)
 
     /* according to Thiago this is a false positive */
     bic.addBlacklistedClass(QLatin1String("QLoggingCategory::AtomicBools"));
+    bic.addBlacklistedClass(QLatin1String("QOperatingSystemVersion::HighSierra"));
+
 
     /* according to Sean Harmer these are a false positive (qtbase/ea80316f) */
     bic.addBlacklistedClass(QLatin1String("QOpenGLFunctions_1_1_DeprecatedBackend"));
