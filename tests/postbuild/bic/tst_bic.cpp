@@ -371,12 +371,6 @@ void tst_Bic::initTestCase()
     QVERIFY2(incPaths.size() > 0, "Parse INCPATH failed.");
     m_compilerArguments = compilerArguments(m_compiler, incPaths);
 
-    QTest::addColumn<QString>("libName");
-
-    QStringList keys = modules.keys();
-    for (int i = 0; i < keys.size(); ++i)
-        QTest::newRow(keys.at(i).toLatin1()) << keys.at(i);
-
     // Run compiler to obtain version information.
     QString output;
     QString errorMessage;
@@ -422,18 +416,25 @@ void tst_Bic::sizesAndVTables_data()
     if (m_fileSuffix == QLatin1String(noneSuchFileSuffix))
         QSKIP("No reference files found for this platform");
 
+    QTest::addColumn<QString>("libName");
     QTest::addColumn<QString>("oldLib");
     QTest::addColumn<bool>("isPatchRelease");
 
+    const QStringList keys = modules.keys();
     int minor = (QT_VERSION >> 8) & 0xFF;
     int patch = QT_VERSION & 0xFF;
-    for (int i = 0; i <= minor; ++i) {
-        if (i != minor || patch)
-            QTest::newRow("5." + QByteArray::number(i))
-                << (QString(qtModuleDir + "/tests/auto/bic/data/%1.5.")
-                    + QString::number(i)
-                    + QLatin1String(".0.") + m_fileSuffix + QLatin1String(".txt"))
-                << (i == minor && patch);
+    for (int i = 0, end = keys.size(); i < end; i++) {
+        QString key = keys.at(i);
+        for (int i = 0; i <= minor; ++i) {
+            if (i != minor || patch) {
+                QTest::newRow(key.toLatin1() + ":5." + QByteArray::number(i))
+                    << key
+                    << (QString(qtModuleDir + "/tests/auto/bic/data/%1.5.")
+                        + QString::number(i)
+                        + QLatin1String(".0.") + m_fileSuffix + QLatin1String(".txt"))
+                    << (i == minor && patch);
+            }
+        }
     }
 }
 
@@ -510,7 +511,7 @@ void tst_Bic::sizesAndVTables()
     QSKIP("This Qt build does not have QProcess support");
 #else
 
-    QFETCH_GLOBAL(QString, libName);
+    QFETCH(QString, libName);
     QFETCH(QString, oldLib);
     QFETCH(bool, isPatchRelease);
 
