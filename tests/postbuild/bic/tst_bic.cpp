@@ -339,8 +339,8 @@ void tst_Bic::initTestCase()
 
     qtModuleDir = QDir::cleanPath(QFile::decodeName(qgetenv(moduleVar)));
     if (qtModuleDir.isEmpty()) {
-        QSKIP("$QT_MODULE_TO_TEST is unset - nothing to test.  Set QT_MODULE_TO_TEST to the path "
-              "of a Qt module to test.");
+        QSKIP("$QT_MODULE_TO_TEST is unset - nothing to test.  "
+              "Set QT_MODULE_TO_TEST to the absolute path of a Qt module to test.");
     }
     if (m_compiler != QLatin1String("g++")) {
         const QString message = QLatin1String("Support for \"")
