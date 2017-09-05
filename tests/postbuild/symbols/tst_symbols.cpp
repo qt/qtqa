@@ -75,9 +75,11 @@ void tst_Symbols::initTestCase()
         );
     }
 
-    modules = qt_tests_shared_global_get_modules(configFile);
+    QString workDir = qtModuleDir + QStringLiteral("/tests/global");
+    modules = qt_tests_shared_global_get_modules(workDir, configFile);
 
-    QVERIFY2(modules.size() > 0, "Something is wrong in the global config file.");
+    if (!modules.size())
+        QSKIP("No modules found.");
 
     qtLibDir = QLibraryInfo::location( QLibraryInfo::LibrariesPath );
     QFileInfo qtLibDirInfo(qtLibDir);

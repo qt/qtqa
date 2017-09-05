@@ -363,11 +363,12 @@ void tst_Bic::initTestCase()
         );
     }
 
-    modules = qt_tests_shared_global_get_modules(configFile);
+    QString workDir = qtModuleDir + QStringLiteral("/tests/global");
+    modules = qt_tests_shared_global_get_modules(workDir, configFile);
 
-    QVERIFY2(modules.size() > 0, "Something is wrong in the global config file.");
+    if (!modules.size())
+        QSKIP("No modules found.");
 
-    QString workDir = qtModuleDir + "/tests/global";
     incPaths = qt_tests_shared_global_get_include_paths(workDir, modules);
 
     QVERIFY2(incPaths.size() > 0, "Parse INCPATH failed.");

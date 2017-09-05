@@ -34,10 +34,17 @@
 #include <QtTest/QtTest>
 
 QStringList qt_tests_shared_global_get_include_path(const QString &makeFile);
-QHash<QString, QString> qt_tests_shared_global_get_modules(const QString &configFile);
+QHash<QString, QString> qt_tests_shared_global_get_modules(const QString &workDir,
+                                                           const QString &configFile);
 QStringList qt_tests_shared_global_get_include_paths();
 
-QHash<QString, QString> qt_tests_shared_global_get_modules(const QString &configFile)
+QStringList qt_tests_shared_run_qmake(const QString &workDir,
+                                      const QByteArray &proFileConent,
+                                      QStringList(*makeFileParser)(const QString&));
+QStringList qt_tests_shared_global_get_export_modules(const QString &makeFile);
+void qt_tests_shared_filter_module_list(const QString &workDir, QHash<QString, QString> &modules);
+
+QHash<QString, QString> qt_tests_shared_global_get_modules(const QString &workDir, const QString &configFile)
 {
     QHash<QString, QString> modules;
 
@@ -72,6 +79,8 @@ QHash<QString, QString> qt_tests_shared_global_get_modules(const QString &config
 
     file.close();
 
+    qt_tests_shared_filter_module_list(workDir, modules);
+
     qDebug() << "modules keys:" << modules.keys();
     qDebug() << "modules values:" << modules.values();
 
@@ -85,33 +94,56 @@ QByteArray qt_tests_shared_global_get_modules_pro_lines(const QHash<QString, QSt
         QByteArray module = moduleName.toLatin1();
         result += "qtHaveModule(" + module + ") {\n" +
                   "    QT += " + module + "\n" +
+                  "    MODULES += " + module + "\n" +
                   "}\n";
     }
+    result += "QMAKE_EXTRA_VARIABLES += MODULES\n";
     return result;
 }
 
-QStringList qt_tests_shared_global_get_include_paths(const QString &workDir, QHash<QString, QString> &modules)
+QStringList qt_tests_shared_global_get_include_paths(const QString &workDir,
+                                                     QHash<QString, QString> &modules)
+{
+    return qt_tests_shared_run_qmake(workDir,
+                                     qt_tests_shared_global_get_modules_pro_lines(modules),
+                                     &qt_tests_shared_global_get_include_path);
+}
+
+void qt_tests_shared_filter_module_list(const QString &workDir, QHash<QString, QString> &modules)
+{
+    const QStringList result = qt_tests_shared_run_qmake(workDir,
+                                                         qt_tests_shared_global_get_modules_pro_lines(modules),
+                                                         &qt_tests_shared_global_get_export_modules);
+    const QStringList keys = modules.keys();
+    for (const QString &key : keys) {
+        if (!result.contains(modules[key]))
+            modules.remove(key);
+    }
+}
+
+QStringList qt_tests_shared_run_qmake(const QString &workDir,
+                                      const QByteArray &proFileContent,
+                                      QStringList(*makeFileParser)(const QString&))
 {
     QString proFile = workDir + "/global.pro";
     QString makeFile = workDir + "/Makefile";
 
-    QStringList incPaths;
+    QStringList result;
 
 #ifndef QT_NO_PROCESS
     QFile file(proFile);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
         QWARN("Can't open the pro file for global.");
-        return incPaths;
+        return result;
     }
 
-    QByteArray proLines = qt_tests_shared_global_get_modules_pro_lines(modules);
-    file.write(proLines);
+    file.write(proFileContent);
     file.flush();
     file.close();
 
     if (!QDir::setCurrent(workDir)) {
         QWARN("Change working dir failed.");
-        return incPaths;
+        return result;
     }
 
     QString qmakeApp = "qmake";
@@ -124,20 +156,20 @@ QStringList qt_tests_shared_global_get_include_paths(const QString &workDir, QHa
     proc.start(qmakeApp, qmakeArgs, QIODevice::ReadOnly);
     if (!proc.waitForFinished(6000000)) {
         qWarning() << qmakeApp << qmakeArgs << "in" << workDir << "didn't finish" << proc.errorString();
-        return incPaths;
+        return result;
     }
     if (proc.exitCode() != 0) {
         qWarning() << qmakeApp << qmakeArgs << "in" << workDir << "returned with" << proc.exitCode();
         qDebug() << proc.readAllStandardError();
-        return incPaths;
+        return result;
     }
 
     QFile::remove(proFile);
 
-    incPaths = qt_tests_shared_global_get_include_path(makeFile);
+    result = makeFileParser(makeFile);
 #ifdef Q_OS_WIN
-    if (incPaths.isEmpty())
-        incPaths = qt_tests_shared_global_get_include_path(makeFile + QLatin1String(".Release"));
+    if (result.isEmpty())
+        result = makeFileParser(makeFile + QLatin1String(".Release"));
 #endif
 
     QFile::remove(makeFile);
@@ -145,7 +177,7 @@ QStringList qt_tests_shared_global_get_include_paths(const QString &workDir, QHa
     Q_UNUSED(modules);
 #endif // QT_NO_PROCESS
 
-    return incPaths;
+    return result;
 }
 
 QStringList qt_tests_shared_global_get_include_path(const QString &makeFile)
@@ -175,6 +207,23 @@ QStringList qt_tests_shared_global_get_include_path(const QString &makeFile)
         }
     }
 
+    return QStringList();
+}
+
+QStringList qt_tests_shared_global_get_export_modules(const QString &makeFile)
+{
+    QFile file(makeFile);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+        return QStringList();
+    QTextStream in(&file);
+    while (!in.atEnd()) {
+        QString line = in.readLine();
+        int index = line.indexOf('=');
+        if (index > 13 && line.startsWith(QLatin1String("EXPORT_MODULES"))) {
+            QString relatives = line.mid(index + 1);
+            return relatives.split(QChar(' '), QString::SkipEmptyParts);
+        }
+    }
     return QStringList();
 }
 
