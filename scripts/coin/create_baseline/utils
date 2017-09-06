@@ -1,0 +1,61 @@
+#!/bin/bash -e
+########### Description #############
+
+# utility functions and variables shared with all baseline scripts
+# to use the utility functions, the line
+# . utils
+# must be added in the beginning of the baseline script file
+
+########### Variables #############
+
+rootdir=$HOME/baseline-testing  # destination for coin source code and working directory
+repodir=$rootdir/tqtc-coin-ci  # coin source code destination directory
+vmbuilder_ip=10.212.3.36  # vmbuilder ip where the test server should be run
+webserver_port_default=20402  # the port where coin web front-end can be accessed
+
+########### Functions #############
+
+check_network_interface() {
+# verify
+# 1) webserver is run on the right server address
+# 2) webserver port environment variable is set to avoid fallback to production port (8080)
+# 3) webserver port is set to a fixed number
+ if [[ "$(hostname -I)" != *"$vmbuilder_ip"* ]]; then
+   echo "ERROR: Test server has to be run on the vmbuilder server!"
+   exit 2;
+ fi
+ if [ $QTCI_WEBSERVER_PORT != $webserver_port_default ]; then
+  # to verify that other users can see the integration test progress, we make sure
+  # to always use the same test server http address
+  echo "ERROR: \$QTCI_WEBSEVER_PORT must be set to" $webserver_port_default
+  exit 2
+ fi
+}
+
+ask_user_to_exec() {
+ # prompts user before executing arguments enclosed within quotes
+ # $1 ~ Message to be displayed in the beginning of prompt, eg. "Execute this function?"
+ # $2: ~ Arguments to be executed, eg. "make -j1"
+ # options:
+ # Y,y - Continues executing the given arguments
+ # N,n - Will set skip variable to 1 without executing the arguments
+ # Q,q - Will terminate the bash session without executing the arguments
+ args=${@:2} # executed arguments, only
+ while true; do
+    read -p "$1" yn
+    case $yn in
+        [Yy]* ) ${args[@]}; break;;
+        [Nn]* ) skip=1; break;;
+        [Qq]* ) exit 0; break;;
+        * ) echo "Please answer (y)es, (n)o or (q)uit.";;
+    esac
+ done
+}
+
+is_user_vmbuilder() {
+ # make sure that we do not accidentially try to run the script as vmbuilder
+ if [[ "$USER" == "vmbuilder" ]]; then
+  echo "ERROR: Do not try to execute webserver as vmbuilder user!"
+  exit 2
+ fi
+}

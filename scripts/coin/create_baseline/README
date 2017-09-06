@@ -1,0 +1,53 @@
+# Coin Baseline Test -scripts #
+
+This folder contains convenience scripts to create and test production
+baselines of tqtc-coin-ci repository.
+
+Summary:
+  1) Create production baseline
+     - Repository qtqa/tqtc-coin-ci production branch HEAD is checked
+       out followed by git merge origin/master
+  2) Test production baseline
+     - Run repository auto-tests with make citest
+     - Schedule integration tests with run_builds.py cli
+
+If tests are successful, the user should amend the commit with test
+results in baseline directory
+
+ ~/baseline-testing/tqtc-coin-ci
+
+and push the new production baseline to qtqa/tqtc-coin-ci repository.
+
+NOTE: If any of the tests in step 2 fail, this should be mentioned
+in the commit message of the merge
+
+## Create Production Baseline ##
+
+The script "create_baseline" will create a new production baseline by merging
+master HEAD or specified commit into production branch.
+
+To create baseline from master HEAD:
+   ./create_baseline
+
+To create baseline from specific commit:
+   ./create_baseline {commit sha1 or ref}
+
+## Test Production Baseline ##
+
+After the baseline has been created, you may continue with testing
+   ./test_baseline
+
+## Push Production Merge ##
+
+If all the tests are successul, you may push the changes to remote
+repository (requires merge privileges in Gerrit).
+
+Before pushing the commit, you should update the commit message with test results:
+   git commit --amend
+
+Push merge commit to remote production branch:
+   git push username@codereview.qt-project.qt.io:/qtqa/tqtc-coin-ci HEAD:refs/for/production
+
+## TODO ##
+- Add lock file to prevent pushing untested changes
+- Add argument parser
