@@ -6,8 +6,4 @@ HEADERS += qbic.h ../global.h
 
 QT = core testlib
 
-wince*:{
-    DEFINES += SRCDIR=\\\"\\\"
-} else {
-    DEFINES += SRCDIR=\\\"$$PWD/\\\"
-}
+DEFINES += SRCDIR=\\\"$$PWD/\\\"

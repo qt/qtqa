@@ -5,9 +5,6 @@ SUBDIRS += \
     symbols \
     guiapplauncher
 
-# This test is not valid for Windows CE
-wince*: SUBDIRS -= guiapplauncher
-
 # This test is not valid for UIKit/WinRT (no QProcess)
 uikit|winrt: SUBDIRS -= headers guiapplauncher
 
