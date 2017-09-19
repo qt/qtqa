@@ -81,7 +81,7 @@ my %excludedModules = (
     'qtrepotools' => [],
     'qtwebkit' => [],
     'test262' => [],
-    'qtwebengine' => [],
+    'qtwebengine' => ['5.6'],
     '3rdparty' => [],
     'qtqa' => [],
     'pyside-setup' => ['5.6']
@@ -191,6 +191,14 @@ my %optionalFiles = (
                           qr{^src/assistant/clucene/},
                           # This directory is a copy of a 3rdparty library
                           qr{^src/assistant/lib/fulltextsearch/},
+                        ],
+    "qtwebengine"    => [
+                          # Small code snippet, under LICENSE.Chromium copyright
+                          qr{^src/core/common/qt_messages\.(h|cpp)$},
+                          # Copy of tool in Chromium, under LICENSE.Chromium copyright
+                          qr{^src/tools/qwebengine_convert_dict/main\.cpp$},
+                          # Documentation that origins from Webkit (and is therefore LGPL)
+                          qr{_lgpl.qdoc$},
                         ],
     'pyside-setup'   => [
                           qr{docs/conf.py},
