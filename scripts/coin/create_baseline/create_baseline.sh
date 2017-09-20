@@ -78,8 +78,8 @@ echo "Changed working directory:" $(pwd)
 
 # save current branch state that can be restored later
 git branch -f old_state
-# checkout current production head and update git refs
-git checkout production && git fetch
+# checkout current production head, update git refs and perform hard reset to discard local changes
+git checkout production && git fetch && git reset --hard origin/production
 
 ask_user_to_exec "Do you want to discard old cache/untracked files/binaries and remake the project from scratch? " "clean_install"
 
