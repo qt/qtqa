@@ -1,5 +1,5 @@
 #!/bin/bash -e
 src/run_builds.py --license-check
-src/run_builds.py --branch dev --modules qt/qtbase qt/qtmultimedia
-src/run_builds.py --branch 5.9 --modules qt/qtbase qt/qtmultimedia
+src/run_builds.py --branch dev --modules qt/qtmultimedia
+src/run_builds.py --branch 5.9 --modules qt/qtmultimedia
 src/run_builds.py --branch 5.6 --modules pyside/pyside-setup

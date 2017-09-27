@@ -53,8 +53,17 @@ clean_install() {
  git reset --hard origin/production && git clean -xdf -f
 }
 
-clone_tqtc_coin_ci() {
+clone_coin_repo() {
  git clone -b production ssh://codereview.qt-project.org:29418/qtqa/tqtc-coin-ci $1
+ scp citest@$vmbuilder_ip:hooks/pre-push $1/.git/hooks/ && chmod +x $1/.git/hooks/pre-push
+}
+
+amend_and_push_to_gerrit() {
+ # append the commit with the change-id footer
+ git commit --amend --no-edit
+ # unlock the local repository and attempt git push
+ gitdir=$(git rev-parse --git-dir)
+ chmod -x $gitdir/hooks/pre-push && git push origin HEAD:refs/for/production && chmod +x $gitdir/hooks/pre-push
 }
 
 ########### Main #############
@@ -67,17 +76,15 @@ if [ ! -z "$1" ]; then
 fi
 
 # if local coin repo does not exist, clone it from git
-if [[ ! -d $repodir ]]; then
+if [ ! -d $repodir/.git ]; then
  echo "Local coin repository $repodir does not exist. Cloning from git.."
- mkdir -p $repodir
- clone_tqtc_coin_ci $repodir
+ mkdir -p $rootdir
+ clone_coin_repo $repodir
 fi
 
 cd $repodir
 echo "Changed working directory:" $(pwd)
 
-# save current branch state that can be restored later
-git branch -f old_state
 # checkout current production head, update git refs and perform hard reset to discard local changes
 git checkout production && git fetch && git reset --hard origin/production
 
@@ -86,13 +93,8 @@ ask_user_to_exec "Do you want to discard old cache/untracked files/binaries and 
 # merge master into production
 commit_old=$(git rev-parse HEAD)
 if [ ! -z "$master_commit_id" ]; then
- if git branch -r --contains $master_commit_id | grep -q 'master'; then
-  echo "Merging commit" $master_commit_id $suffix_text "from origin/master into production..."
-  git merge "$master_commit_id" -m "$(cat $commit_template_file)" --no-edit
- else
-  echo "Remote-tracking (master) branch has no commit: $master_commit_id !"
-  exit 2
- fi
+ echo "Merging commit" $master_commit_id $suffix_text "from origin/master into production..."
+ git merge "$master_commit_id" -m "$(cat $commit_template_file)" --no-edit
 else
  master_commit_id=$(git rev-parse origin/master)
  suffix_text="(HEAD)"
@@ -106,22 +108,23 @@ fi
 
 merge_tip_commit=$(git log --no-merges -1)
 merge_tip_commit_short=$(git log --no-merges -1 --oneline)
-echo -e "\nCommits added on top of the previous successful merge:\n"
-git log origin/production..HEAD --no-merges --decorate --oneline
-echo -e "\n******** PRODUCTION MERGE TIP COMMIT *******\n$(git log --no-merges -1)\n***********************************\n"
 
 # display commits that were added on top of the current production
-if [[ ! -z "$skip" ]]; then
+if [ ! -z "$skip" ]; then
  gitdir=$(git rev-parse --git-dir)
  scp -p -P 29418 codereview.qt-project.org:hooks/commit-msg .git/hooks/
  git submodule update --init --checkout secrets
  echo -e "\nProduction baseline has been created in $workdir/$repo"
- git log -1 --merges
 else
- skip=
- git reset --hard old_state -q
- git branch -D old_state
  exit 2
 fi
+
+# ask user if change should be pushed to gerrit
+echo -e "\nMerged commits origin/production..HEAD:"
+git log origin/production..HEAD --no-merges --decorate --oneline
+echo ""
+git log -1
+ask_user_to_exec "Push merge to $(git config --get remote.origin.url) [HEAD:refs/for/production] ? " "amend_and_push_to_gerrit"
+echo ""
 
 echo "To continue testing the baseline, run script" $test_script

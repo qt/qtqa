@@ -58,11 +58,10 @@ fi
 cd $repodir
 . env/bin/activate
 
-ask_user_to_exec "Run make citests? " "make citest"
-
 # schedule integrations
-
 ask_user_to_exec "This will terminate any active Coin sessions. Do you want to continue? " "exec_builds"
+
+# display browser link
 if [ ! -z $skip ]; then
  if [ ! -z $localmode ]; then
   webserver_ip=localhost
