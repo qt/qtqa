@@ -59,3 +59,17 @@ is_user_vmbuilder() {
   exit 2
  fi
 }
+
+function display_webserver_link() {
+  if [ "$1" == "local" ]; then
+   webserver_ip=localhost
+  else
+   webserver_ip=$vmbuilder_ip
+  fi
+  if [ -z $QTCI_WEBSERVER_PORT ]; then
+   webserver_port=8080
+  else
+   webserver_port=$QTCI_WEBSERVER_PORT
+  fi
+  echo "To see Coin status on your browser, open link:" http://$webserver_ip:$webserver_port/coin
+}

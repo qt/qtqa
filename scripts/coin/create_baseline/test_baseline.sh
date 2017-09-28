@@ -34,7 +34,7 @@
 
 . utils
 basepath=$(dirname $(readlink -f test_baseline.sh))  # absolute script path
-localmode=
+mode=remote
 
 ########### Functions #############
 
@@ -47,12 +47,13 @@ function exec_builds() {
 
 ########### Main #############
 
-if [ "$1" == "local" ]; then
- localmode=1
-else
- # if the script is run on the production server, verify user/network information
+if [ ! "$1" == "local" ]; then
+ mode="remote"
+ # if the script is run in non-local mode, verify user/network information
  is_user_vmbuilder
  check_network_interface
+else
+ mode="local"
 fi
 
 cd $repodir
@@ -62,16 +63,4 @@ cd $repodir
 ask_user_to_exec "This will terminate any active Coin sessions. Do you want to continue? " "exec_builds"
 
 # display browser link
-if [ ! -z $skip ]; then
- if [ ! -z $localmode ]; then
-  webserver_ip=localhost
- else
-  webserver_ip=$vmbuilder_ip
- fi
- if [ -z $QTCI_WEBSERVER_PORT ]; then
-  webserver_port=8080
- else
-  webserver_port=$QTCI_WEBSERVER_PORT
- fi
- echo "To see Coin status on your browser, open link:" http://$webserver_ip:$webserver_port/coin
-fi
+display_webserver_link $mode

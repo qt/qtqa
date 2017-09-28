@@ -90,22 +90,25 @@ git checkout production && git fetch && git reset --hard origin/production
 
 ask_user_to_exec "Do you want to discard old cache/untracked files/binaries and remake the project from scratch? " "clean_install"
 
-# merge master into production
-commit_old=$(git rev-parse HEAD)
-if [ ! -z "$master_commit_id" ]; then
- echo "Merging commit" $master_commit_id $suffix_text "from origin/master into production..."
- git merge "$master_commit_id" -m "$(cat $commit_template_file)" --no-edit
+# merge master into production branch
+if [ -z "$master_commit_id" ]; then
+ echo "Merging origin/master to production..."
+ git merge origin/master --no-edit
 else
- master_commit_id=$(git rev-parse origin/master)
- suffix_text="(HEAD)"
- git merge origin/master -m "$(cat $commit_template_file)" --no-edit
+ echo "Merging $master_commit to production..."
+ git merge "$master_commit_id" --no-edit
 fi
+
+# amend commit message
+commit_msg="$(cat $commit_template_file && echo "" && cat $basepath/schedules/run_builds | egrep -v '(^#.*|^$)')"
+git commit --amend -m "$commit_msg"
 
 if [ ! -f env/bin/activate ]; then
  # creating coin binaries and webui
  make -j1
 fi
 
+git commit --amend -m "$commit_msg"
 merge_tip_commit=$(git log --no-merges -1)
 merge_tip_commit_short=$(git log --no-merges -1 --oneline)
 
