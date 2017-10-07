@@ -5,8 +5,7 @@ SUBDIRS += \
     symbols \
     guiapplauncher
 
-# This test is not valid for UIKit/WinRT (no QProcess)
-uikit|winrt: SUBDIRS -= headers guiapplauncher
+!qtConfig(process): SUBDIRS -= headers guiapplauncher
 
 # This test is only valid on linux
 !linux: SUBDIRS -= symbols
