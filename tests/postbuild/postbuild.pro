@@ -5,7 +5,11 @@ SUBDIRS += \
     symbols \
     guiapplauncher
 
-!qtConfig(process): SUBDIRS -= headers guiapplauncher
+defined(qtConfig, test) {  # true since qt 5.8
+    !qtConfig(process): SUBDIRS -= headers guiapplauncher
+} else {
+    uikit|winrt: SUBDIRS -= headers guiapplauncher
+}
 
 # This test is only valid on linux
 !linux: SUBDIRS -= symbols
