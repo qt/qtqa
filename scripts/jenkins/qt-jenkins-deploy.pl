@@ -380,6 +380,10 @@ Description for the job.
 
 Test script that is run in shell/batch without Squish
 
+=item cores
+
+Number of cores to be requested for a job, defaults to 2.
+
 =back
 
 =item [node.<node_basename>]
@@ -730,6 +734,7 @@ sub desired_job_xml
             job_description => eval { $self->cfg( "job.$name", 'job_description' ) } || q{},
             suffix_labels => eval { $self->cfg( "job.$name", 'suffix_labels' ) } || q{0},
             test_script => eval { $self->cfg( "job.$name", 'test_script' ) } || q{},
+            cores => eval { $self->cfg( "job.$name", 'cores' ) } || q{2},
         },
         \$data
     ) || die "job $name: while parsing template: ".$tt->error();
