@@ -11,6 +11,7 @@
 rootdir=$HOME/baseline-testing  # destination for coin source code and working directory
 repodir=$rootdir/tqtc-coin-ci  # coin source code destination directory
 vmbuilder_ip=10.212.3.36  # vmbuilder ip where the test server should be run
+webserver_port=$QT_CI_WEBSERVER_PORT  # coin webserver port
 webserver_port_default=20402  # the port where coin web front-end can be accessed
 
 ########### Functions #############
@@ -24,10 +25,10 @@ check_network_interface() {
    echo "ERROR: Test server has to be run on the vmbuilder server!"
    exit 2;
  fi
- if [ $QTCI_WEBSERVER_PORT != $webserver_port_default ]; then
+ if [[ $webserver_port != $webserver_port_default ]]; then
   # to verify that other users can see the integration test progress, we make sure
   # to always use the same test server http address
-  echo "ERROR: \$QTCI_WEBSEVER_PORT must be set to" $webserver_port_default
+  echo "ERROR: \$webserver_port must be set to" $webserver_port_default
   exit 2
  fi
 }
@@ -66,10 +67,8 @@ function display_webserver_link() {
   else
    webserver_ip=$vmbuilder_ip
   fi
-  if [ -z $QTCI_WEBSERVER_PORT ]; then
+  if [ -z $webserver_port ]; then
    webserver_port=8080
-  else
-   webserver_port=$QTCI_WEBSERVER_PORT
   fi
   echo "To see Coin status on your browser, open link:" http://$webserver_ip:$webserver_port/coin
 }
