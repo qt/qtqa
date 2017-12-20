@@ -2,4 +2,4 @@
 src/run_builds.py --license-check
 src/run_builds.py --license-check --branch 5.9
 src/run_builds.py --license-check --branch 5.10
-src/run_builds.py --branch 5.6 --modules pyside/pyside-setup
+src/run_builds.py --branch 5.6 --modules pyside/pyside-setup --product-version 5.6
