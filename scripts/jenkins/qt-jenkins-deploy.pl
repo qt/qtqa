@@ -156,6 +156,12 @@ The default is derived from the first portion of the job name;
 for example, a job name of "QtBase_master_Integration" results
 in "qt/qtbase".
 
+=item custom_repository
+
+Custom repository if needed.
+
+Defaults to empty.
+
 =item testconfig_project
 
 Project name used for the qtqa/testconfig repository
@@ -734,6 +740,7 @@ sub desired_job_xml
             job_description => eval { $self->cfg( "job.$name", 'job_description' ) } || q{},
             suffix_labels => eval { $self->cfg( "job.$name", 'suffix_labels' ) } || q{0},
             test_script => eval { $self->cfg( "job.$name", 'test_script' ) } || q{},
+            custom_repository => eval { $self->cfg( "job.$name", 'custom_repository' ) } // 0,
             cores => eval { $self->cfg( "job.$name", 'cores' ) } || q{2},
         },
         \$data
