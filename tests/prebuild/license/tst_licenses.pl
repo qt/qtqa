@@ -105,6 +105,8 @@ my %excludedFiles = (
                           qr{^examples/wayland/custom-extension/protocol/custom\.xml$},
                         ],
     'pyside-setup'   => [ # foreign repositories
+                          qr{^examples/widgets/animation/easing/ui_form.py$},
+                          qr{^examples/xmlpatterns/schema/ui_schema.py$},
                           qr{^sources/pyside2-examples/.*$},
                           qr{^sources/pyside2-tools/.*$},
                           qr{^wiki/.*$},
