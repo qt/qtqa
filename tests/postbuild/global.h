@@ -115,7 +115,8 @@ void qt_tests_shared_filter_module_list(const QString &workDir, QHash<QString, Q
                                                          qt_tests_shared_global_get_modules_pro_lines(modules),
                                                          &qt_tests_shared_global_get_export_modules);
     const QStringList keys = modules.keys();
-    for (const QString &key : keys) {
+    for (int i = 0; i < keys.size(); ++i) {
+        const QString key = keys.at(i);
         if (!result.contains(modules[key]))
             modules.remove(key);
     }
