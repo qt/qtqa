@@ -272,6 +272,22 @@ Qt version number, used in packaging.
 
 Qt license type (commercial/opensource), used in packaging.
 
+=item prod_addr
+
+Production server address
+
+=item prod_srv_repo_base_path
+
+Production server repository base path
+
+=item prod_srv_repo_pending_area_dir
+
+Production server directory for updated repository content
+
+=item repo_staging_server_test_repo_dist_work
+
+Production server temporary directory for online repository update process
+
 =item artifacts_download_url
 
 The url where to download the build artifacts, typically via http.
@@ -732,6 +748,10 @@ sub desired_job_xml
             configurations => \@configurations,
             qt_version => eval { $self->cfg( "job.$name", 'qt_version' ) } || q{},
             qt_license => eval { $self->cfg( "job.$name", 'qt_license' ) } || q{},
+            prod_addr => eval { $self->cfg( "job.$name", 'prod_addr' ) } || q{},
+            prod_srv_repo_base_path => eval { $self->cfg( "job.$name", 'prod_srv_repo_base_path' ) } || q{},
+            prod_srv_repo_pending_area_dir => eval { $self->cfg( "job.$name", 'prod_srv_repo_pending_area_dir' ) } || q{},
+            repo_staging_server_test_repo_dist_work => eval { $self->cfg( "job.$name", 'repo_staging_server_test_repo_dist_work' ) } || q{},
             artifacts_download_url => eval { $self->cfg( "job.$name", 'artifacts_download_url' ) } || q{},
             artifacts_upload_host => eval { $self->cfg( "job.$name", 'artifacts_upload_host' ) } || q{},
             artifacts_upload_path => eval { $self->cfg( "job.$name", 'artifacts_upload_path' ) } || q{},
