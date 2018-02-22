@@ -151,6 +151,9 @@ my %optionalFiles = (
                           qr{^src/corelib/io/qurltlds_p\.h$},
                           # This is a 3rdparty file
                           qr{^src/corelib/global/qtypetraits\.h$},
+                          # These are generated files
+                          qr{^src/corelib/tools/qsimd_x86\.cpp$},
+                          qr{^src/corelib/tools/qsimd_x86_p\.h$},
                           # This is a 3rdparty file
                           qr{^src/gui/text/qharfbuzz_copy_p\.h$},
                           # These are 3rdparty files (copy of Khronos GL headers)
