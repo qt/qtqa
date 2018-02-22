@@ -143,10 +143,6 @@ my %optionalFiles = (
                           # These are two-line wrappers around perl programs.
                           qr{^bin/elf2e32_qtwrapper\.bat$},
                           qr{^bin/patch_capabilities\.bat$},
-                          # These three are for assemblers that don't allow comments
-                          qr{^src/corelib/arch/i386/qatomic_i386\.s$},
-                          qr{^src/corelib/arch/vxworks/qatomic_ppc\.s$},
-                          qr{^src/corelib/arch/x86_64/qatomic_sun\.s$},
                           # This is a 3rdparty file
                           qr{^src/corelib/io/qurltlds_p\.h$},
                           # This is a 3rdparty file
