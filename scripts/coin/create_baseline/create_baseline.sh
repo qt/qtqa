@@ -58,14 +58,6 @@ clone_coin_repo() {
  scp citest@$vmbuilder_ip:hooks/pre-push $1/.git/hooks/ && chmod +x $1/.git/hooks/pre-push
 }
 
-amend_and_push_to_gerrit() {
- # append the commit with the change-id footer
- git commit --amend --no-edit
- # unlock the local repository and attempt git push
- gitdir=$(git rev-parse --git-dir)
- chmod -x $gitdir/hooks/pre-push && git push origin HEAD:refs/for/production && chmod +x $gitdir/hooks/pre-push
-}
-
 ########### Main #############
 
 is_user_vmbuilder
@@ -122,12 +114,12 @@ else
  exit 2
 fi
 
-# ask user if change should be pushed to gerrit
-echo -e "\nMerged commits origin/production..HEAD:"
+echo -e "\nMerge log:"
 git log origin/production..HEAD --no-merges --decorate --oneline
-echo ""
-git log -1
-ask_user_to_exec "Push merge to $(git config --get remote.origin.url) [HEAD:refs/for/production] ? " "amend_and_push_to_gerrit"
-echo ""
+# append the commit with the change-id footer
+git commit --amend --no-edit
+# unlock the local repository and attempt git push
+git push origin HEAD:refs/for/production
 
+echo ""
 echo "To continue testing the baseline, run script" $test_script
