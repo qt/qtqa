@@ -12,7 +12,7 @@ rootdir=$HOME/baseline-testing  # destination for coin source code and working d
 repodir=$rootdir/tqtc-coin-ci  # coin source code destination directory
 vmbuilder_ip=10.212.3.36  # vmbuilder ip where the test server should be run
 webserver_port=$QT_CI_WEBSERVER_PORT  # coin webserver port
-webserver_port_default=20402  # the port where coin web front-end can be accessed
+webserver_port_default=8090  # the port where coin web front-end can be accessed
 
 ########### Functions #############
 
