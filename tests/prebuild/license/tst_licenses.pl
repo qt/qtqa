@@ -97,6 +97,10 @@ my %excludedModules = (
 # license headers are not checked at all.  Valid uses of this should be
 # very rare - use %optionalFiles where possible.
 my %excludedFiles = (
+    "all"            => [
+                          # Do not scan the header templates themselves
+                          qr{^header\.[\w-]*$},
+                        ],
     "qtwayland"      => [
                           # XML files for protocol
                           qr{^src/extensions/.+\.xml$},
