@@ -410,6 +410,14 @@ Number of cores to be requested for a job, defaults to 2.
 
 IRC channel to notify
 
+=item pip_path
+
+Path to Qt for Python wheels.
+
+=item python_version
+
+Python version to be used. Version 2 used as default.
+
 =back
 
 =item [node.<node_basename>]
@@ -767,6 +775,8 @@ sub desired_job_xml
             custom_repository => eval { $self->cfg( "job.$name", 'custom_repository' ) } // 0,
             cores => eval { $self->cfg( "job.$name", 'cores' ) } || q{2},
             irc_channel => eval { $self->cfg( "job.$name", 'irc_channel' ) } || q{},
+            pip_path => eval { $self->cfg( "job.$name", 'pip_path' ) } || q{},
+            python_version => eval { $self->cfg( "job.$name", 'python_version' ) } || q{2},
         },
         \$data
     ) || die "job $name: while parsing template: ".$tt->error();
