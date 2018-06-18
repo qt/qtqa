@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 #############################################################################
 ##
-## Copyright (C) 2017 The Qt Company Ltd.
+## Copyright (C) 2019 The Qt Company Ltd.
 ## Contact: https://www.qt.io/licensing/
 ##
 ## This file is part of the Quality Assurance module of the Qt Toolkit.
@@ -102,12 +102,11 @@ use LWP::UserAgent        qw(                     );
 use Pod::Usage            qw( pod2usage           );
 
 # URL from which cpanminus can be downloaded.
-# Note that http://cpanmin.us, as recommended by the docs, is not a good idea;
-# it redirects to an https:// site and this requires more modules to be
-# installed to handle the SSL.
-my $HTTP_CPANMINUS =
-    'http://cpansearch.perl.org/src/MIYAGAWA/App-cpanminus-1.4005/bin/cpanm';
+# Note that https://cpanmin.us, as recommended by the docs, is not the best option
+# as it is always the newest version.
 
+my $HTTPS_CPANMINUS =
+    'https://fastapi.metacpan.org/source/MIYAGAWA/App-cpanminus-1.7044/lib/App/cpanminus/fatscript.pm';
 my $WINDOWS = ($OSNAME =~ m{win32}i);
 
 #====================== perl stuff ============================================
@@ -149,6 +148,7 @@ sub all_required_cpan_modules
         AnyEvent
         AnyEvent::HTTP
         AnyEvent::Util
+        App::cpanminus
         Capture::Tiny
         Class::Data::Inheritable
         Class::Factory::Util
@@ -232,11 +232,6 @@ sub all_required_cpan_modules
     # Avoid https://rt.cpan.org/Public/Bug/Display.html?id=53064
     $out{ 'File::chdir' } = '0.1005';
 
-    # Some modules cannot be installed with particularly old cpanm;
-    # force at least this version. However, note that, on Windows, a too recent
-    # version will hit https://github.com/miyagawa/cpanminus/issues/169
-    $out{ 'App::cpanminus' } = $WINDOWS ? '1.4008' : '1.5018';
-
     return %out;
 }
 
@@ -315,21 +310,12 @@ sub install_cpanminus
 
     my ($tempfh, $tempfilename) = tempfile( 'qtqa-cpanminus.XXXXXX', TMPDIR => 1 );
 
-    my $response = LWP::UserAgent->new( )->get( $HTTP_CPANMINUS );
+    my $response = LWP::UserAgent->new( )->get( $HTTPS_CPANMINUS );
 
-    die "get $HTTP_CPANMINUS: ".$response->as_string if (!$response->is_success);
+    die "get $HTTPS_CPANMINUS: ".$response->as_string if (!$response->is_success);
 
     $tempfh->print( $response->decoded_content );
     close( $tempfh ) || die "close $tempfilename: $OS_ERROR";
-
-    my $to_install =
-        # On Windows, due to bug https://github.com/miyagawa/cpanminus/issues/169 ,
-        # we use this older version of cpanminus; all other platforms may use latest
-        # available version
-        $WINDOWS
-            ? 'http://search.cpan.org/CPAN/authors/id/M/MI/MIYAGAWA/App-cpanminus-1.4008.tar.gz'
-            : 'App::cpanminus'
-    ;
 
     my @cmd = (
         'perl',
@@ -339,7 +325,7 @@ sub install_cpanminus
         '--mirror',       # www.cpan.org is having too many problems
         'http://cpan.metacpan.org',
         '--reinstall',    # install in that prefix even if already installed somewhere else
-        $to_install,      # name or URL of the module to install
+        'App::cpanminus', # name or URL of the module to install
     );
 
     print "+ @cmd\n";
