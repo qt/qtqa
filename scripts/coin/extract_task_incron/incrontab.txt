@@ -1,0 +1,1 @@
+/srv/jenkins_data/replicated_integrations/storage IN_CREATE,IN_NO_LOOP tar -xvf $@/$# -C $@
