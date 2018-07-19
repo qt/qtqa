@@ -47,12 +47,6 @@ remove_dir() {
  rm -rf $1
 }
 
-clean_install() {
- echo "Git reset production branch to HEAD to discard untracked changes / local commits."
- # reset source/git files and clean all caches and untracked files
- git reset --hard origin/production && git clean -xdf -f
-}
-
 clone_coin_repo() {
  git clone -b production ssh://codereview.qt-project.org:29418/qtqa/tqtc-coin-ci $1
  scp citest@$vmbuilder_ip:hooks/pre-push $1/.git/hooks/ && chmod +x $1/.git/hooks/pre-push
@@ -79,8 +73,6 @@ echo "Changed working directory:" $(pwd)
 
 # checkout current production head, update git refs and perform hard reset to discard local changes
 git checkout production && git fetch && git reset --hard origin/production
-
-ask_user_to_exec "Do you want to discard old cache/untracked files/binaries and remake the project from scratch? " "clean_install"
 
 # merge master into production branch
 if [ -z "$master_commit_id" ]; then
