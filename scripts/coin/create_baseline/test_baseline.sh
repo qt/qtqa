@@ -56,11 +56,16 @@ else
  mode="local"
 fi
 
+# schedule integrations
 cd $repodir
 . env/bin/activate
-
-# schedule integrations
-ask_user_to_exec "This will terminate any active Coin sessions. Do you want to continue? " "exec_builds"
+exec_builds
 
 # display browser link
 display_webserver_link $mode
+
+cat << EOF
+If test are successful, you may push the production merge to gerrit:
+ cd $repodir
+ git push origin HEAD:refs/for/production%r=aapo.keskimolo@qt.io,r=tony.sarajarvi@qt.io,r=simo.falt@qt.io
+EOF

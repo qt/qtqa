@@ -100,7 +100,6 @@ if [ ! -f env/bin/activate ]; then
  make -j1
 fi
 
-git commit --amend -m "$commit_msg"
 merge_tip_commit=$(git log --no-merges -1)
 merge_tip_commit_short=$(git log --no-merges -1 --oneline)
 
@@ -116,10 +115,6 @@ fi
 
 echo -e "\nMerge log:"
 git log origin/production..HEAD --no-merges --decorate --oneline
-# append the commit with the change-id footer
-git commit --amend --no-edit
-# unlock the local repository and attempt git push
-git push origin HEAD:refs/for/production
 
 echo ""
 echo "To continue testing the baseline, run script" $test_script
