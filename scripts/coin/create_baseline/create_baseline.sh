@@ -108,5 +108,9 @@ fi
 echo -e "\nMerge log:"
 git log origin/production..HEAD --no-merges --decorate --oneline
 
+changelog=~/product_baseline_$(date +"%Y%m%d").log
+git log origin/production..HEAD --no-merges > $changelog
+echo "Changelog saved:" $changelog
+
 echo ""
 echo "To continue testing the baseline, run script" $test_script
