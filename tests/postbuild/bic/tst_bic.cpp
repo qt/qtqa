@@ -105,7 +105,11 @@ static QStringList compilerArguments(const QString &compiler, const QStringList 
 #if !defined(Q_OS_AIX) && !defined(Q_OS_WIN)
          << "-o" << "/dev/null"
 #endif
+#if __GNUC__ >= 8
+         << "-fdump-lang-class"
+#else
          << "-fdump-class-hierarchy"
+#endif
          << "-std=c++11"
          << "-fPIC"; // As of 5.4, "reduce relocations" requires "-fPIC"
     return result;
