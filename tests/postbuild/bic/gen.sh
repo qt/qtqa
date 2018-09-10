@@ -44,9 +44,9 @@ fi
 GCC_MAJOR=`echo '__GNUC__' | gcc -E - | tail -1`
 
 if [ $GCC_MAJOR -ge 8 ]; then
-DUMP_CMDLINE = -fdump-lang-class
+    DUMP_CMDLINE=-fdump-lang-class
 else
-DUMP_CMDLINE = -fdump-class-hierarchy
+    DUMP_CMDLINE=-fdump-class-hierarchy
 fi
 
 for module in $modules; do
