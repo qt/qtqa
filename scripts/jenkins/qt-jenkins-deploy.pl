@@ -390,6 +390,10 @@ Test script that is run in shell/batch without Squish
 
 Number of cores to be requested for a job, defaults to 2.
 
+=item irc_channel
+
+IRC channel to notify
+
 =back
 
 =item [node.<node_basename>]
@@ -742,6 +746,7 @@ sub desired_job_xml
             test_script => eval { $self->cfg( "job.$name", 'test_script' ) } || q{},
             custom_repository => eval { $self->cfg( "job.$name", 'custom_repository' ) } // 0,
             cores => eval { $self->cfg( "job.$name", 'cores' ) } || q{2},
+            irc_channel => eval { $self->cfg( "job.$name", 'irc_channel' ) } || q{},
         },
         \$data
     ) || die "job $name: while parsing template: ".$tt->error();
