@@ -418,6 +418,22 @@ Path to Qt for Python wheels.
 
 Python version to be used. Version 2 used as default.
 
+=item ts_product
+
+Product name when logging test data to Squish Team Server.
+
+=item ts_labels
+
+Labels for the job data sent to Squish Team Server.
+
+=item ts_batch
+
+Batch info string for the data sent to Squish Team Server.
+
+=item ts_enabled
+
+Whether to enable sending logs to Squish Team Server.
+
 =back
 
 =item [node.<node_basename>]
@@ -777,6 +793,10 @@ sub desired_job_xml
             irc_channel => eval { $self->cfg( "job.$name", 'irc_channel' ) } || q{},
             pip_path => eval { $self->cfg( "job.$name", 'pip_path' ) } || q{},
             python_version => eval { $self->cfg( "job.$name", 'python_version' ) } || q{2},
+            ts_product => eval { $self->cfg( "job.$name", 'ts_product' ) } || q{},
+            ts_labels => eval { $self->cfg( "job.$name", 'ts_labels' ) } || q{},
+            ts_batch => eval { $self->cfg( "job.$name", 'ts_batch' ) } || q{},
+            ts_enabled => eval { $self->cfg( "job.$name", 'ts_enabled' ) } || q{},
         },
         \$data
     ) || die "job $name: while parsing template: ".$tt->error();
