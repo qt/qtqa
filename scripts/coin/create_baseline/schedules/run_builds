@@ -1,3 +1,3 @@
 #!/bin/bash -e
-src/run_builds.py --modules qt/qtbase --branch dev --license-check
-src/run_builds.py --modules qt/qt5 --branch dev
+pipenv run src/run_builds.py --projects qt/qt5 --branch dev --license-check --user citest
+pipenv run src/run_builds.py --projects qt/qt5 --branch dev --keep-going-on-failure --user citest

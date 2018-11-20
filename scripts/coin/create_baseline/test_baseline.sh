@@ -58,7 +58,6 @@ fi
 
 # schedule integrations
 cd $repodir
-. env/bin/activate
 exec_builds
 
 # display browser link
