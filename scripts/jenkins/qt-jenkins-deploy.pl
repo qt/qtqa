@@ -434,6 +434,10 @@ Batch info string for the data sent to Squish Team Server.
 
 Whether to enable sending logs to Squish Team Server.
 
+=item qt_creator
+
+QtCreator version preview/released.
+
 =back
 
 =item [node.<node_basename>]
@@ -797,6 +801,7 @@ sub desired_job_xml
             ts_labels => eval { $self->cfg( "job.$name", 'ts_labels' ) } || q{},
             ts_batch => eval { $self->cfg( "job.$name", 'ts_batch' ) } || q{},
             ts_enabled => eval { $self->cfg( "job.$name", 'ts_enabled' ) } || q{},
+            qt_creator => eval { $self->cfg( "job.$name", 'qt_creator' ) } || q{},
         },
         \$data
     ) || die "job $name: while parsing template: ".$tt->error();
