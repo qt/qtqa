@@ -88,7 +88,7 @@ func detectCurrentQtVersionFromQMakeConf() (*version.Version, error) {
 		return nil, fmt.Errorf("Error opening .qmake.conf - are you in the right directory?")
 	}
 
-	moduleVersionRegExp := regexp.MustCompile(`\s*MODULE_VERSION\s*=\s*(` + version.VersionRegexpRaw + `).*`)
+	moduleVersionRegExp := regexp.MustCompile(`\s*MODULE_VERSION\s*=\s*([0-9\.]*).*`)
 
 	scanner := bufio.NewScanner(qmakeConfFile)
 	for scanner.Scan() {
