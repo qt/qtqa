@@ -15,6 +15,7 @@ import (
 
 	"github.com/hashicorp/go-version"
 	"github.com/eidolon/wordwrap"
+	"github.com/andygrunwald/go-jira"
 )
 
 type commandWithCapturedOutput struct {
@@ -245,10 +246,19 @@ func extractBugFix(commitMessage string) (entry changeLogEntry) {
 	}
 
 	if taskNumber != "" {
+		wrapper := wordwrap.Wrapper(70, false)
 		entry.text = "[" + taskNumber + "] " + summary
 		if description != "" {
-			wrapper := wordwrap.Wrapper(70, false)
 			entry.text += "\n" + wordwrap.Indent(wrapper(description), "   ", false)
+		}
+		jiraClient, _ := jira.NewClient(nil, "https://bugreports.qt.io/")
+		issue, _, err := jiraClient.Issue.Get(taskNumber, nil)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "%s: %s\n", taskNumber, err.Error())
+			return
+		}
+		if (issue != nil) {
+			entry.text += "\n" + wordwrap.Indent(wrapper("The bug was: " + issue.Fields.Summary), "   ", false)
 		}
 	} else {
 		entry.text = ""
