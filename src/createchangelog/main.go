@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/go-version"
+	"github.com/eidolon/wordwrap"
 )
 
 type commandWithCapturedOutput struct {
@@ -210,6 +211,48 @@ func extractChangeLog(commitMessage string) (entry changeLogEntry) {
 		}
 	}
 
+	return
+}
+
+func extractBugFix(commitMessage string) (entry changeLogEntry) {
+	scanner := bufio.NewScanner(bytes.NewBufferString(commitMessage))
+	blankLineCount := 0
+	taskNumber := ""
+	summary := ""
+	description := ""
+
+	for scanner.Scan() {
+		trimmedLine := strings.TrimSpace(scanner.Text())
+
+		if (blankLineCount == 1 && strings.Contains(trimmedLine, "tst_")) {
+			entry.text = ""
+			break
+		} else if strings.HasPrefix(trimmedLine, "Reviewed-by:") {
+			break
+		} else if strings.HasPrefix(strings.ToLower(trimmedLine), "task-number:") {
+			taskNumber = strings.TrimSpace(trimmedLine[len("task-number:"):])
+			break
+		} else if strings.HasPrefix(strings.ToLower(trimmedLine), "fixes:") {
+			taskNumber = strings.TrimSpace(trimmedLine[len("fixes:"):])
+			break
+		} else if (trimmedLine == "") {
+			blankLineCount += 1
+		} else if blankLineCount == 1 {
+			summary = trimmedLine
+		} else if blankLineCount > 1 {
+			description += trimmedLine + " "
+		}
+	}
+
+	if taskNumber != "" {
+		entry.text = "[" + taskNumber + "] " + summary
+		if description != "" {
+			wrapper := wordwrap.Wrapper(70, false)
+			entry.text += "\n" + wordwrap.Indent(wrapper(description), "   ", false)
+		}
+	} else {
+		entry.text = ""
+	}
 	return
 }
 
@@ -462,12 +505,17 @@ func appMain() error {
 		}
 		entry := extractChangeLog(commit)
 		if entry.text == "" {
+			entry := extractBugFix(commit)
+			if entry.text != "" {
+				fmt.Printf(" - %s\n", entry.text)
+			}
 			continue
 		}
 		//log.Println(commitSha1, entry.groups, entry.text)
 		changes.append(entry)
 	}
 
+	fmt.Println()
 	changes.print()
 	return nil
 }
