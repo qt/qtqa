@@ -288,6 +288,14 @@ Production server directory for updated repository content
 
 Production server temporary directory for online repository update process
 
+=item cores
+
+Number of cores in virtual machine
+
+=item repositories
+
+repository sources to be copied into virtual machine
+
 =item artifacts_download_url
 
 The url where to download the build artifacts, typically via http.
@@ -780,6 +788,8 @@ sub desired_job_xml
             prod_srv_repo_base_path => eval { $self->cfg( "job.$name", 'prod_srv_repo_base_path' ) } || q{},
             prod_srv_repo_pending_area_dir => eval { $self->cfg( "job.$name", 'prod_srv_repo_pending_area_dir' ) } || q{},
             repo_staging_server_test_repo_dist_work => eval { $self->cfg( "job.$name", 'repo_staging_server_test_repo_dist_work' ) } || q{},
+            cores => eval { $self->cfg( "job.$name", 'cores' ) } || q{},
+            repositories => eval { $self->cfg( "job.$name", 'repositories' ) } || q{},
             artifacts_download_url => eval { $self->cfg( "job.$name", 'artifacts_download_url' ) } || q{},
             artifacts_upload_host => eval { $self->cfg( "job.$name", 'artifacts_upload_host' ) } || q{},
             artifacts_upload_path => eval { $self->cfg( "job.$name", 'artifacts_upload_path' ) } || q{},
