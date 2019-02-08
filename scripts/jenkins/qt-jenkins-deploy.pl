@@ -296,6 +296,10 @@ Number of cores in virtual machine
 
 repository sources to be copied into virtual machine
 
+=item label_with_branch
+
+Information if branch is added into label
+
 =item artifacts_download_url
 
 The url where to download the build artifacts, typically via http.
@@ -790,6 +794,7 @@ sub desired_job_xml
             repo_staging_server_test_repo_dist_work => eval { $self->cfg( "job.$name", 'repo_staging_server_test_repo_dist_work' ) } || q{},
             cores => eval { $self->cfg( "job.$name", 'cores' ) } || q{},
             repositories => eval { $self->cfg( "job.$name", 'repositories' ) } || q{},
+            label_with_branch => eval { $self->cfg( "job.$name", 'label_with_branch' ) } || q{},
             artifacts_download_url => eval { $self->cfg( "job.$name", 'artifacts_download_url' ) } || q{},
             artifacts_upload_host => eval { $self->cfg( "job.$name", 'artifacts_upload_host' ) } || q{},
             artifacts_upload_path => eval { $self->cfg( "job.$name", 'artifacts_upload_path' ) } || q{},
