@@ -263,3 +263,5 @@ _Inline/
 
 # Generated static plugin import sources
 *_plugin_import.cpp
+
+src/createchangelog/createchangelog

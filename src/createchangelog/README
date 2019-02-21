@@ -1,16 +1,8 @@
 
 This little tool faciliates the creation of change log files for Qt modules. It is written in golang and
-can be downloaded and installed using
+can be built by running
 
-    go get code.qt.io/qt/qtqa.git/src/createchangelog
-
-
-If you are not familiar with go and GOPATH and would just like to "use the damn thing", then you can cheat
-and run
-
-    GOPATH=$PWD go get code.qt.io/qt/qtqa.git/src/createchangelog
-
-in a directory of your choice, which will place the binary into $PWD/bin.
+    go build
 
 With the binary in place, you can use it like this:
 
