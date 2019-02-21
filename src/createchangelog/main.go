@@ -298,7 +298,7 @@ const minorVersionHeader = `Qt {{.CurrentVersion.Major}}.{{.CurrentVersion.Minor
 over the {{.LastVersion.Major}}.{{.LastVersion.Minor}}.x series. For more details, refer to the online documentation
 included in this distribution. The documentation is also available online:
 
-  http://qt-project.org/doc/qt-{{.CurrentVersion.Major}}
+  https://doc.qt.io/qt-{{.CurrentVersion.Major}}/index.html
 
 The Qt version {{.CurrentVersion.Major}}.{{.CurrentVersion.Minor}} series is binary compatible with the {{.LastVersion.Major}}.{{.LastVersion.Minor}}.x series.
 Applications compiled for {{.LastVersion.Major}}.{{.LastVersion.Minor}} will continue to run with {{.CurrentVersion.Major}}.{{.CurrentVersion.Minor}}.
@@ -306,7 +306,7 @@ Applications compiled for {{.LastVersion.Major}}.{{.LastVersion.Minor}} will con
 Some of the changes listed in this file include issue tracking numbers
 corresponding to tasks in the Qt Bug Tracker:
 
-  http://bugreports.qt-project.org/
+  https://bugreports.qt.io/
 
 Each of these identifiers can be entered in the bug tracker to obtain more
 information about a particular change.
@@ -327,7 +327,7 @@ compatibility (source and binary) with Qt {{.LastVersion.Major}}.{{.LastVersion.
 For more details, refer to the online documentation included in this
 distribution. The documentation is also available online:
 
-  http://qt-project.org/doc/qt-{{.CurrentVersion.Major}}.{{.CurrentVersion.Minor}}
+  https://doc.qt.io/qt-{{.CurrentVersion.Major}}.{{.CurrentVersion.Minor}}/index.html
 
 The Qt version {{.CurrentVersion.Major}}.{{.CurrentVersion.Minor}} series is binary compatible with the {{.PreviousMinorVersion.Major}}.{{.PreviousMinorVersion.Minor}}.x series.
 Applications compiled for {{.PreviousMinorVersion.Major}}.{{.PreviousMinorVersion.Minor}} will continue to run with {{.CurrentVersion.Major}}.{{.CurrentVersion.Minor}}.
@@ -335,7 +335,7 @@ Applications compiled for {{.PreviousMinorVersion.Major}}.{{.PreviousMinorVersio
 Some of the changes listed in this file include issue tracking numbers
 corresponding to tasks in the Qt Bug Tracker:
 
-  http://bugreports.qt-project.org/
+  https://bugreports.qt.io/
 
 Each of these identifiers can be entered in the bug tracker to obtain more
 information about a particular change.
