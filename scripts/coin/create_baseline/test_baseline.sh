@@ -36,15 +36,6 @@
 basepath=$(dirname $(readlink -f test_baseline.sh))  # absolute script path
 mode=remote
 
-########### Functions #############
-
-function exec_builds() {
- ./run_ci -r --tmux-no-attach
- sleep 2
- echo "Scheduled builds:"
- /bin/bash -x $basepath/schedules/run_builds
-}
-
 ########### Main #############
 
 if [ ! "$1" == "local" ]; then
@@ -56,14 +47,18 @@ else
  mode="local"
 fi
 
-# schedule integrations
 cd $repodir
-exec_builds
+./run_ci -m "Rebuilding..."
+sleep 2
+git clean -xdff
+make
+./run_ci -r --skip-make --tmux-no-attach
+echo "Scheduling builds..."
+/bin/bash -x $basepath/schedules/run_builds
 
-# display browser link
 display_webserver_link $mode
 
-cat << EOF
+cat << -EOF
 If test are successful, you may push the production merge to gerrit:
  cd $repodir
  git push origin HEAD:refs/for/production%r=aapo.keskimolo@qt.io,r=tony.sarajarvi@qt.io,r=simo.falt@qt.io

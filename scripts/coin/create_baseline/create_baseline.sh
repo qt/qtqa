@@ -28,10 +28,6 @@
 #############################################################################
 
 # This script will clone coin repository and build its binaries.
-#
-# Usage:
-# ./create_baseline
-# ./create_baseline {commit-id}
 
 ########### Variables #############
 
@@ -41,25 +37,9 @@ commit_template_file=$basepath/commit-msg-template
 test_script=$basepath/test_baseline.sh
 workdir=$repodir
 
-########### Functions #############
-
-remove_dir() {
- rm -rf $1
-}
-
-clone_coin_repo() {
- git clone -b production ssh://codereview.qt-project.org:29418/qtqa/tqtc-coin-ci $1
- scp citest@$vmbuilder_ip:hooks/pre-push $1/.git/hooks/ && chmod +x $1/.git/hooks/pre-push
-}
-
 ########### Main #############
 
 is_user_vmbuilder
-
-if [ ! -z "$1" ]; then
- master_commit_id=$1
- echo "Merging master commit-id:" $master_commit_id "into production"
-fi
 
 # if local coin repo does not exist, clone it from git
 if [ ! -d $repodir/.git ]; then
@@ -68,46 +48,29 @@ if [ ! -d $repodir/.git ]; then
  clone_coin_repo $repodir
 fi
 
+# merge master branch into production
 cd $repodir
-echo "Changed working directory:" $(pwd)
+git checkout production 1>/dev/null
+git fetch 1>/dev/null
+git reset --hard origin/production 1>/dev/null
+git merge origin/master --no-edit 1>/dev/null
 
-# checkout current production head, update git refs and perform hard reset to discard local changes
-git checkout production
-git fetch
-git reset --hard origin/production
-
-# merge master into production branch
-if [ -z "$master_commit_id" ]; then
- echo "Merging origin/master to production..."
- git merge origin/master --no-edit
-else
- echo "Merging $master_commit to production..."
- git merge "$master_commit_id" --no-edit
-fi
-
-# amend commit message
+# amend commit template
 commit_msg="$(cat $commit_template_file && echo "" && cat $basepath/schedules/run_builds | egrep -v '(^#.*|^$)')"
 git commit --amend -m "$commit_msg"
 
-merge_tip_commit=$(git log --no-merges -1)
-merge_tip_commit_short=$(git log --no-merges -1 --oneline)
-
-# display commits that were added on top of the current production
-if [ ! -z "$skip" ]; then
- gitdir=$(git rev-parse --git-dir)
- scp -p -P 29418 codereview.qt-project.org:hooks/commit-msg .git/hooks/
- git submodule update --init --checkout secrets
- echo -e "\nProduction baseline has been created in $workdir/$repo"
-else
- exit 2
-fi
-
-echo -e "\nMerge log:"
-git log origin/production..HEAD --no-merges --decorate --oneline
-
+# create change log
 changelog=~/product_baseline_$(date +"%Y%m%d").log
 git log origin/production..HEAD --no-merges > $changelog
-echo "Changelog saved:" $changelog
 
-echo ""
-echo "To continue testing the baseline, run script" $test_script
+# print log
+git log origin/production..HEAD --no-merges --decorate --oneline
+
+cat <<EOF
+
+Changelog: $changelog
+
+To continue testing baseline, execute:
+ $test_script
+
+EOF
