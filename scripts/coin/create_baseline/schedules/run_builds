@@ -1,3 +1,2 @@
 #!/bin/bash -e
-pipenv run src/run_builds.py --projects qt/qt5 --branch dev --license-check --user citest
 pipenv run src/run_builds.py --projects qt/qt5 --branch dev --keep-going-on-failure --user citest
