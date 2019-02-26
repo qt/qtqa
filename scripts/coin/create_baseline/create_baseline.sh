@@ -72,7 +72,9 @@ cd $repodir
 echo "Changed working directory:" $(pwd)
 
 # checkout current production head, update git refs and perform hard reset to discard local changes
-git checkout production && git fetch && git reset --hard origin/production
+git checkout production
+git fetch
+git reset --hard origin/production
 
 # merge master into production branch
 if [ -z "$master_commit_id" ]; then
