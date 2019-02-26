@@ -89,11 +89,6 @@ fi
 commit_msg="$(cat $commit_template_file && echo "" && cat $basepath/schedules/run_builds | egrep -v '(^#.*|^$)')"
 git commit --amend -m "$commit_msg"
 
-if [ ! -f env/bin/activate ]; then
- # creating coin binaries and webui
- make -j1
-fi
-
 merge_tip_commit=$(git log --no-merges -1)
 merge_tip_commit_short=$(git log --no-merges -1 --oneline)
 
