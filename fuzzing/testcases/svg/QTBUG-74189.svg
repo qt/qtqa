@@ -1,0 +1,1 @@
+<svg><linearGradient id="a" xlink:href="b"/><linearGradient id="b" xlink:href="c"/><linearGradient id="c" xlink:href="a"/><rect fill="url(#c)"/></svg>
