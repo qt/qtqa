@@ -58,7 +58,7 @@ echo "Scheduling builds..."
 
 display_webserver_link $mode
 
-cat << -EOF
+cat <<EOF
 If test are successful, you may push the production merge to gerrit:
  cd $repodir
  git push origin HEAD:refs/for/production%r=aapo.keskimolo@qt.io,r=tony.sarajarvi@qt.io,r=simo.falt@qt.io
