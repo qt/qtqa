@@ -53,7 +53,7 @@ cd $repodir
 git checkout production 1>/dev/null
 git fetch 1>/dev/null
 git reset --hard origin/production 1>/dev/null
-git merge origin/master --no-edit 1>/dev/null
+git merge origin/master --no-ff --no-edit 1>/dev/null
 
 # amend commit template
 commit_msg="$(cat $commit_template_file && echo "" && cat $basepath/schedules/run_builds | egrep -v '(^#.*|^$)')"
