@@ -1,0 +1,6 @@
+Host codereview.qt-project.org
+    Port 29418
+    ServerAliveInterval 240
+    Ciphers +aes256-cbc
+    User qt_ci_bot
+    IdentityFile ~/jira-bug-closer/jira_gerrit_bot_id_rsa

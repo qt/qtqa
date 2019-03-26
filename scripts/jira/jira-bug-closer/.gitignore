@@ -1,0 +1,8 @@
+# our copy of relevant repos
+git_repos
+
+.coverage
+.mypy_cache
+.pytest_cache
+.vscode
+htmlcov
