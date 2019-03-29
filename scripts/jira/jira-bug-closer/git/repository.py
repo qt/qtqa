@@ -80,7 +80,7 @@ class Change:
         self.since = since
 
     def __repr__(self) -> str:
-        return "<Change(repository='%s', branch='%s', before='%s', after='%s', since='%s')>" % (self.repository, self.branch, self.before, self.after, self.since)
+        return f"<Change(repository='{self.repository}', branch='{self.branch}', before='{self.before}', after='{self.after}', since='{self.since}')>"
 
 
 class FixedByTag:
@@ -98,7 +98,7 @@ class FixedByTag:
         return self.__dict__ == other.__dict__
 
     def __repr__(self) -> str:
-        return "<FixedByTag(repository='%s', branch='%s', version='%s', sha1='%s', author='%s', fixes=%s, task_numbers=%s, subject='%s')>" % (self.repository, self.branch, self.version, self.sha1, self.author, self.fixes, self.task_numbers, self.subject)
+        return f"<FixedByTag(repository='{self.repository}', branch='{self.branch}', version='{self.version}', sha1='{self.sha1}', author='{self.author}', fixes={self.fixes}, task_numbers={self.task_numbers}, subject='{self.subject}')>"
 
     def __hash__(self) -> int:
         return hash(self.__dict__.values())
