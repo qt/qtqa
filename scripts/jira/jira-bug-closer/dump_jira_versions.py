@@ -33,18 +33,22 @@ from config import Config
 from jiracloser import JiraCloser
 
 
+""" Debugging helper to test the other code when working on these scripts. """
+
+
 def print_versions(version_list: List[Tuple[LooseVersion, str, bool]]) -> None:
     print("    {name:35}{description:35}{released}".format(name="Version", description="Stuff", released="Released", width=30))
     for version in version_list:
         print("    {name:35}{description:35}{released}".format(name=version[0].vstring, description=version[1], released=str(version[2]), width=30))
 
 
-config = Config('test')
-j = JiraCloser(config)
-print("Fix versions for QTBUG:")
-issue = j.jira_client.issue('QTBUG-1')
-print_versions(j._jira_version_list(issue))
+if __name__ == "__main__":
+    config = Config('test')
+    j = JiraCloser(config)
+    print("Fix versions for QTBUG:")
+    issue = j.jira_client.issue('QTBUG-1')
+    print_versions(j._jira_version_list(issue))
 
-print("Fix versions for QTCREATORBUG:")
-issue = j.jira_client.issue('QTCREATORBUG-1')
-print_versions(j._jira_version_list(issue))
+    print("Fix versions for QTCREATORBUG:")
+    issue = j.jira_client.issue('QTCREATORBUG-1')
+    print_versions(j._jira_version_list(issue))
