@@ -1,6 +1,6 @@
 # JIRA bot to close issues
 
-Listen to gerrit events and close corresponding JIRA tasks when there is a fixes tag in the commit message.
+Listen to gerrit events and close corresponding JIRA tasks when there is a "Fixes:" footer in the commit message.
 
 ## Prerequisites and building
 
@@ -9,7 +9,7 @@ Run `make` to install dependencies.
 
 ## Connecting to a JIRA account using OAuth
 
-* Generate a private/public rsa certificate pair (`jiracloser.pem`, `jiracloser.pub`)
+* Generate a private/public rsa certificate pair (`jiracloser.pem`, `jiracloser.pub`) in the root directory (next to this readme file).
   * See for example https://www.madboa.com/geek/openssl/#key-rsa
 
 * Log in to JIRA as admin.
@@ -20,7 +20,7 @@ Run `make` to install dependencies.
     * Type: Generic
     * Service Provider Name: Qt JIRA bot (anything goes)
     * Consumer key: jira-gerrit-bot-oauth-consumer
-    * Shared Secret: 8aG2#dwV24$e9J43@s8b
+    * Shared Secret: 8aG2#dwV24$e9J43@s8b  # this is actually unused, put some random garbage here to make sure
     * Request Token URL: https://www.qt.io
     * Access token URL: https://www.qt.io
     * Authorize URL: https://www.qt.io
