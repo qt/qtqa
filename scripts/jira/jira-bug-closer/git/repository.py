@@ -41,7 +41,7 @@ log = logger('repository')
 
 repo_base = 'ssh://codereview.qt-project.org:29418/'
 file_path = os.path.dirname(os.path.abspath(__file__))
-working_dir = os.path.abspath(os.path.join(file_path, '../git_repos'))
+working_dir = os.path.abspath(os.path.join(file_path, '..', 'git_repos'))
 Path(working_dir).mkdir(parents=True, exist_ok=True)
 
 

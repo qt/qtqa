@@ -39,7 +39,7 @@ class Config:
     def __init__(self, section: str) -> None:
         self.section = section
         self.file_path = os.path.dirname(os.path.abspath(__file__))
-        config_path = os.path.abspath(os.path.join(self.file_path, "../config.ini"))
+        config_path = os.path.abspath(os.path.join(self.file_path, "..", "config.ini"))
         self.config = ConfigParser()
         self.config.read(config_path)
 
