@@ -38,16 +38,8 @@ log = logger('test')
 
 # make sure we have a checkout, otherwise this fails
 loop = asyncio.get_event_loop()
-repo = Repository('qt/qtbase')
-loop.run_until_complete(repo._check_repo())
-repo = Repository('qt/qtdeclarative')
-loop.run_until_complete(repo._check_repo())
-repo = Repository('qt/qtdatavis3d')
-loop.run_until_complete(repo._check_repo())
-repo = Repository('yocto/meta-qt5')
-loop.run_until_complete(repo._check_repo())
-repo = Repository('qt/tqtc-qt5')
-loop.run_until_complete(repo._check_repo())
+for repo_name in ('qt/qtbase', 'qt/qtdeclarative', 'qt/qtdatavis3d', 'yocto/meta-qt5', 'qt/tqtc-qt5'):
+    loop.run_until_complete(Repository(repo_name)._check_repo())
 
 
 dev_branch_version = "5.14.0"
