@@ -46,6 +46,8 @@ repo = Repository('qt/qtdatavis3d')
 loop.run_until_complete(repo._check_repo())
 repo = Repository('yocto/meta-qt5')
 loop.run_until_complete(repo._check_repo())
+repo = Repository('qt/tqtc-qt5')
+loop.run_until_complete(repo._check_repo())
 
 
 @pytest.mark.parametrize("branch,expected,branches,tags", [
