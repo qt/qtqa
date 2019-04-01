@@ -50,6 +50,9 @@ repo = Repository('qt/tqtc-qt5')
 loop.run_until_complete(repo._check_repo())
 
 
+dev_branch_version = "5.14.0"
+
+
 @pytest.mark.parametrize("branch,expected,branches,tags", [
     ('dev', '5.12.0',
      ['5.10', '5.11', '5.11.0', '5.11.1', 'dev'],
@@ -88,53 +91,53 @@ async def test_versions(branch: str, expected: str, branches: List[str], tags: L
 @pytest.mark.parametrize("change,expected", [
     (
         Change(repository='qt/qtbase', branch='dev', before='128a6eec065dfe683e6d776183d63908ca02e8f', after='b0085dbeeac47d0ce566750d93f1b1f865d07cd'),
-        [FixedByTag(repository='qt/qtbase', branch='dev', version='5.13.0',
+        [FixedByTag(repository='qt/qtbase', branch='dev', version=dev_branch_version,
                     sha1='bd0279c4173eb627d432d9a05411bbc725240d4e', task_numbers=["QTBUG-69548"], fixes=[],
                     author='Kai Koehne', subject='Logging: Accept .ini files written by QSettings')],
     ),
     (
         Change(repository='qt/qtbase', branch='dev', before='0bb760260eb055f813247bf9ef06e372cac219d3', after='b0085dbeeac47d0ce566750d93f1b1f865d07cd'),
-        [FixedByTag(repository='qt/qtbase', branch='dev', version='5.13.0',
+        [FixedByTag(repository='qt/qtbase', branch='dev', version=dev_branch_version,
                     sha1='bd0279c4173eb627d432d9a05411bbc725240d4e', task_numbers=["QTBUG-69548"], fixes=[],
                     author='Kai Koehne', subject='Logging: Accept .ini files written by QSettings'),
 
-         FixedByTag(repository='qt/qtbase', branch='dev', version='5.13.0', sha1='8a450f570b8dc40f61a68db0ca5eb69a7a97272c', author='Robbert Proost',
+         FixedByTag(repository='qt/qtbase', branch='dev', version=dev_branch_version, sha1='8a450f570b8dc40f61a68db0ca5eb69a7a97272c', author='Robbert Proost',
                     subject='QUrl: Support IPv6 addresses with zone id', fixes=[], task_numbers=["QTBUG-25550"]),
-         FixedByTag(repository='qt/qtbase', branch='dev', version='5.13.0', sha1='3f80783b1188afdf032571b48bc47a160d6dccf6', author='Ryan Chu',
+         FixedByTag(repository='qt/qtbase', branch='dev', version=dev_branch_version, sha1='3f80783b1188afdf032571b48bc47a160d6dccf6', author='Ryan Chu',
                     subject='Rework QNetworkReply tests to use docker-based test servers', fixes=[], task_numbers=["QTQAINFRA-1686"])]
     ),
     (
         Change(repository='qt/qtbase', branch='refs/heads/dev', before='ed7f86cb077d33d0dd9e646af28e3f57c160b570', after='458b0ba8e04349a0a7ca82598a5bf7472991ebc8'),
         [
-            FixedByTag(repository='qt/qtbase', branch='dev', version='5.13.0', sha1='823acb069d92b68b36f1b2bb59575bb0595275b4', author='Tor Arne Vestbø', fixes=[], task_numbers=["QTBUG-63572"], subject='macOS: Don\'t call [NSOpenGLContext update] for every frame'),
-            FixedByTag(repository='qt/qtbase', branch='dev', version='5.13.0', sha1='491e427bb2d3cafccbb26d2ca3b7e128d786a564', author='Thiago Macieira', fixes=[], task_numbers=["QTBUG-69800"], subject='QTimer: Add const to some singleShot methods'),
-            FixedByTag(repository='qt/qtbase', branch='dev', version='5.13.0', sha1='ca14151a0cdd3bc5fa364b2816bcd3b51af4bf3d', author='Mitch Curtis', fixes=[], task_numbers=["QTBUG-69492"], subject='tst_qspinbox: include actual emission count in failure message'),
-            FixedByTag(repository='qt/qtbase', branch='dev', version='5.13.0', sha1='58e3e32adf227e91771fa421f2657f758ef1411b', author='Mitch Curtis', fixes=[], task_numbers=["QTBUG-69492"], subject='tst_qdatetimeedit: hide testWidget when creating widgets on the stack'),
-            FixedByTag(repository='qt/qtbase', branch='dev', version='5.13.0', sha1='64a560d977a0a511ef541d6116d82e7b5c911a92', author='Thiago Macieira', fixes=[], task_numbers=["QTBUG-69744"], subject='QObject: do allow setProperty() to change the type of the property'),
-            FixedByTag(repository='qt/qtbase', branch='dev', version='5.13.0', sha1='c6cca0f492717582cb113f3d62e97f554798cf14', author='Paul Wicking', fixes=[], task_numbers=["QTBUG-58420"], subject='Doc: Update out-of-date image in QColorDialog documentation'),
-            FixedByTag(repository='qt/qtbase', branch='dev', version='5.13.0', sha1='6953e513f9034b98a48d83b67afd671f1ee33aeb', author='Paul Wicking', fixes=[], task_numbers=["QTBUG-56077"], subject='Doc: Clean up Qt::ApplicationAttribute docs'),
-            FixedByTag(repository='qt/qtbase', branch='dev', version='5.13.0', sha1='87704611151af78cfef17ae518c40bfb49c7b934', author='Paul Wicking', fixes=[], task_numbers=["QTBUG-63248"], subject='Doc: Update really old screenshot in Sliders Example'),
-            FixedByTag(repository='qt/qtbase', branch='dev', version='5.13.0', sha1='ae289884db05cbaac71156983974eebfb9b59730', author='Paul Wicking', fixes=[], task_numbers=["QTBUG-62072"], subject='Doc: Fix wrong link in QFont documentation'),
-            FixedByTag(repository='qt/qtbase', branch='dev', version='5.13.0', sha1='cdf154e65a3137597f62880361c407e368aae0d6', author='Allan Sandfeld Jensen', fixes=[], task_numbers=["QTBUG-69724"], subject='Optimize blits of any compatible formats'),
-            FixedByTag(repository='qt/qtbase', branch='dev', version='5.13.0', sha1='d2d59e77d5e16bc79ddfed37f4f29d1dcd9b92a7', author='Paul Wicking', fixes=[], task_numbers=["QTBUG-53856"], subject='Doc: Increase precision in description of convenience typedefs'),
-            FixedByTag(repository='qt/qtbase', branch='dev', version='5.13.0', sha1='1c8f9eb79da837db8e37cf6348de459088c3a20e', author='Allan Sandfeld Jensen', fixes=[], task_numbers=["QTBUG-69724"], subject='Add missing optimization for loading RGB32 to RGBA64 using NEON'),
-            FixedByTag(repository='qt/qtbase', branch='dev', version='5.13.0', sha1='66be5445e64b54bf60069dfee5dd918459e3deed', author='Friedemann Kleint', fixes=[], task_numbers=["QTBUG-53717"], subject='Windows: Implement Qt::WindowStaysOnBottomHint'),
-            FixedByTag(repository='qt/qtbase', branch='dev', version='5.13.0', sha1='f0ff73f631093b11c77d8d6fb548acfe8eb62583', author='Joerg Bornemann', fixes=[], task_numbers=["QTBUG-67905"], subject='QProcess::startDetached: Fix behavior change on Windows'),
-            FixedByTag(repository='qt/qtbase', branch='dev', version='5.13.0', sha1='8c4207dddf9b2af0767de2ef0a10652612d462a5', author='Eirik Aavitsland', fixes=[], task_numbers=["QTBUG-69449"], subject='Fix crash in qppmhandler for certain malformed image files'),
-            FixedByTag(repository='qt/qtbase', branch='dev', version='5.13.0', sha1='81910b5f3cfb8c8b0c009913d62dacff4e73bc3b', author='Timur Pocheptsov', fixes=[], task_numbers=["QTBUG-69677"], subject='SecureTransport - disable lock on sleep for the custom keychain'),
-            FixedByTag(repository='qt/qtbase', branch='dev', version='5.13.0', sha1='db738cbaf1ba7a4886f7869db16dbb9107a8e65e', author='Ales Erjavec', fixes=[], task_numbers=["QTBUG-69404", "QTBUG-30116"], subject='QCommonStylePrivate::viewItemSize: Fix text width bounds calculation'),
-            FixedByTag(repository='qt/qtbase', branch='dev', version='5.13.0', sha1='780dc2291bc0e114bab8b9ccd8706708f6b47270', author='Kai Koehne', fixes=[], task_numbers=["QTBUG-67443"], subject='Fix builds with some MinGW distributions'),
-            FixedByTag(repository='qt/qtbase', branch='dev', version='5.13.0', sha1='c5af04cf8aa7bf2fbeaaf2a40f169fe8c17239f1', author='Błażej Szczygieł', fixes=[], task_numbers=["QTBUG-61948"], subject='HiDPI: Fix calculating window mask from pixmap on drag and drop'),
-            FixedByTag(repository='qt/qtbase', branch='dev', version='5.13.0', sha1='4126de887799c61793bf1f9efc8b7ac7b66c8b32', author='Gabriel de Dietrich', fixes=[], task_numbers=["QTBUG-69496"], subject='QCocoaMenuLoader - ensure that ensureAppMenuInMenu indeed, ensures'),
-            FixedByTag(repository='qt/qtbase', branch='dev', version='5.13.0', sha1='6f87926df55edb119e5eeb53c3beac135fdf72e2', author='Gatis Paeglis', fixes=[], task_numbers=["QTBUG-68501", "QTBUG-69628"], subject='xcb: partly revert 3bc0f1724ae49c2fd7e6d7bcb650350d20d12246'),
-            FixedByTag(repository='qt/qtbase', branch='dev', version='5.13.0', sha1='0dfdf23d05d09cbffcec4021c9cbebfb6eeddfa7', author='Paul Wicking', fixes=[], task_numbers=["QTBUG-59487"], subject='Doc: Synchronize documentation with code snippet'),
-            FixedByTag(repository='qt/qtbase', branch='dev', version='5.13.0', sha1='46fc3d3729df9e81e42f87c46907d6eb81a0c669', author='Friedemann Kleint', fixes=[], task_numbers=["QTBUG-69637"], subject='Windows QPA: Fix override cursor being cleared when crossing window borders'),
-            FixedByTag(repository='qt/qtbase', branch='dev', version='5.13.0', sha1='e386cd03d12e401b9e3945602e9621a86009fa11', author='Paul Wicking', fixes=[], task_numbers=["QTBUG-68109"], subject='Doc: Remove reference to QTestEvent'),
-            FixedByTag(repository='qt/qtbase', branch='dev', version='5.13.0', sha1='341d967068516ff850227f718eaff46530cd97c2', author='Paul Wicking', fixes=[], task_numbers=["QTBUG-69678"], subject='Doc: Fix broken links after page rename'),
-            FixedByTag(repository='qt/qtbase', branch='dev', version='5.13.0', sha1='6a1c26b08a56cd71315fcbbf2743c32072d806d2', author='Paul Wicking', fixes=[], task_numbers=["QTBUG-69483"], subject='Doc: Update signals and slots introduction page'),
-            FixedByTag(repository='qt/qtbase', branch='dev', version='5.13.0', sha1='9a30a8f4fc19a90835e4d1032f9ab753ff3b2ae6', author='Edward Welbourne', fixes=[], task_numbers=["QTBUG-23307"], subject='Link from QLocale to where date-time formats are explained'),
-            FixedByTag(repository='qt/qtbase', branch='dev', version='5.13.0', sha1='2dfa41e0eac65f5772ec61364f9afd0ce49fecc7', author='Mårten Nordheim', fixes=[], task_numbers=["QTBUG-65960"], subject='Return to eventloop after emitting encrypted'),
-            FixedByTag(repository='qt/qtbase', branch='dev', version='5.13.0', sha1='f43e947dc405b6a2324656f631c804db8e8dec3d', author='Jüri Valdmann', fixes=[], task_numbers=["QTBUG-69626"], subject='QJsonDocument: Make emptyObject an object')
+            FixedByTag(repository='qt/qtbase', branch='dev', version=dev_branch_version, sha1='823acb069d92b68b36f1b2bb59575bb0595275b4', author='Tor Arne Vestbø', fixes=[], task_numbers=["QTBUG-63572"], subject='macOS: Don\'t call [NSOpenGLContext update] for every frame'),
+            FixedByTag(repository='qt/qtbase', branch='dev', version=dev_branch_version, sha1='491e427bb2d3cafccbb26d2ca3b7e128d786a564', author='Thiago Macieira', fixes=[], task_numbers=["QTBUG-69800"], subject='QTimer: Add const to some singleShot methods'),
+            FixedByTag(repository='qt/qtbase', branch='dev', version=dev_branch_version, sha1='ca14151a0cdd3bc5fa364b2816bcd3b51af4bf3d', author='Mitch Curtis', fixes=[], task_numbers=["QTBUG-69492"], subject='tst_qspinbox: include actual emission count in failure message'),
+            FixedByTag(repository='qt/qtbase', branch='dev', version=dev_branch_version, sha1='58e3e32adf227e91771fa421f2657f758ef1411b', author='Mitch Curtis', fixes=[], task_numbers=["QTBUG-69492"], subject='tst_qdatetimeedit: hide testWidget when creating widgets on the stack'),
+            FixedByTag(repository='qt/qtbase', branch='dev', version=dev_branch_version, sha1='64a560d977a0a511ef541d6116d82e7b5c911a92', author='Thiago Macieira', fixes=[], task_numbers=["QTBUG-69744"], subject='QObject: do allow setProperty() to change the type of the property'),
+            FixedByTag(repository='qt/qtbase', branch='dev', version=dev_branch_version, sha1='c6cca0f492717582cb113f3d62e97f554798cf14', author='Paul Wicking', fixes=[], task_numbers=["QTBUG-58420"], subject='Doc: Update out-of-date image in QColorDialog documentation'),
+            FixedByTag(repository='qt/qtbase', branch='dev', version=dev_branch_version, sha1='6953e513f9034b98a48d83b67afd671f1ee33aeb', author='Paul Wicking', fixes=[], task_numbers=["QTBUG-56077"], subject='Doc: Clean up Qt::ApplicationAttribute docs'),
+            FixedByTag(repository='qt/qtbase', branch='dev', version=dev_branch_version, sha1='87704611151af78cfef17ae518c40bfb49c7b934', author='Paul Wicking', fixes=[], task_numbers=["QTBUG-63248"], subject='Doc: Update really old screenshot in Sliders Example'),
+            FixedByTag(repository='qt/qtbase', branch='dev', version=dev_branch_version, sha1='ae289884db05cbaac71156983974eebfb9b59730', author='Paul Wicking', fixes=[], task_numbers=["QTBUG-62072"], subject='Doc: Fix wrong link in QFont documentation'),
+            FixedByTag(repository='qt/qtbase', branch='dev', version=dev_branch_version, sha1='cdf154e65a3137597f62880361c407e368aae0d6', author='Allan Sandfeld Jensen', fixes=[], task_numbers=["QTBUG-69724"], subject='Optimize blits of any compatible formats'),
+            FixedByTag(repository='qt/qtbase', branch='dev', version=dev_branch_version, sha1='d2d59e77d5e16bc79ddfed37f4f29d1dcd9b92a7', author='Paul Wicking', fixes=[], task_numbers=["QTBUG-53856"], subject='Doc: Increase precision in description of convenience typedefs'),
+            FixedByTag(repository='qt/qtbase', branch='dev', version=dev_branch_version, sha1='1c8f9eb79da837db8e37cf6348de459088c3a20e', author='Allan Sandfeld Jensen', fixes=[], task_numbers=["QTBUG-69724"], subject='Add missing optimization for loading RGB32 to RGBA64 using NEON'),
+            FixedByTag(repository='qt/qtbase', branch='dev', version=dev_branch_version, sha1='66be5445e64b54bf60069dfee5dd918459e3deed', author='Friedemann Kleint', fixes=[], task_numbers=["QTBUG-53717"], subject='Windows: Implement Qt::WindowStaysOnBottomHint'),
+            FixedByTag(repository='qt/qtbase', branch='dev', version=dev_branch_version, sha1='f0ff73f631093b11c77d8d6fb548acfe8eb62583', author='Joerg Bornemann', fixes=[], task_numbers=["QTBUG-67905"], subject='QProcess::startDetached: Fix behavior change on Windows'),
+            FixedByTag(repository='qt/qtbase', branch='dev', version=dev_branch_version, sha1='8c4207dddf9b2af0767de2ef0a10652612d462a5', author='Eirik Aavitsland', fixes=[], task_numbers=["QTBUG-69449"], subject='Fix crash in qppmhandler for certain malformed image files'),
+            FixedByTag(repository='qt/qtbase', branch='dev', version=dev_branch_version, sha1='81910b5f3cfb8c8b0c009913d62dacff4e73bc3b', author='Timur Pocheptsov', fixes=[], task_numbers=["QTBUG-69677"], subject='SecureTransport - disable lock on sleep for the custom keychain'),
+            FixedByTag(repository='qt/qtbase', branch='dev', version=dev_branch_version, sha1='db738cbaf1ba7a4886f7869db16dbb9107a8e65e', author='Ales Erjavec', fixes=[], task_numbers=["QTBUG-69404", "QTBUG-30116"], subject='QCommonStylePrivate::viewItemSize: Fix text width bounds calculation'),
+            FixedByTag(repository='qt/qtbase', branch='dev', version=dev_branch_version, sha1='780dc2291bc0e114bab8b9ccd8706708f6b47270', author='Kai Koehne', fixes=[], task_numbers=["QTBUG-67443"], subject='Fix builds with some MinGW distributions'),
+            FixedByTag(repository='qt/qtbase', branch='dev', version=dev_branch_version, sha1='c5af04cf8aa7bf2fbeaaf2a40f169fe8c17239f1', author='Błażej Szczygieł', fixes=[], task_numbers=["QTBUG-61948"], subject='HiDPI: Fix calculating window mask from pixmap on drag and drop'),
+            FixedByTag(repository='qt/qtbase', branch='dev', version=dev_branch_version, sha1='4126de887799c61793bf1f9efc8b7ac7b66c8b32', author='Gabriel de Dietrich', fixes=[], task_numbers=["QTBUG-69496"], subject='QCocoaMenuLoader - ensure that ensureAppMenuInMenu indeed, ensures'),
+            FixedByTag(repository='qt/qtbase', branch='dev', version=dev_branch_version, sha1='6f87926df55edb119e5eeb53c3beac135fdf72e2', author='Gatis Paeglis', fixes=[], task_numbers=["QTBUG-68501", "QTBUG-69628"], subject='xcb: partly revert 3bc0f1724ae49c2fd7e6d7bcb650350d20d12246'),
+            FixedByTag(repository='qt/qtbase', branch='dev', version=dev_branch_version, sha1='0dfdf23d05d09cbffcec4021c9cbebfb6eeddfa7', author='Paul Wicking', fixes=[], task_numbers=["QTBUG-59487"], subject='Doc: Synchronize documentation with code snippet'),
+            FixedByTag(repository='qt/qtbase', branch='dev', version=dev_branch_version, sha1='46fc3d3729df9e81e42f87c46907d6eb81a0c669', author='Friedemann Kleint', fixes=[], task_numbers=["QTBUG-69637"], subject='Windows QPA: Fix override cursor being cleared when crossing window borders'),
+            FixedByTag(repository='qt/qtbase', branch='dev', version=dev_branch_version, sha1='e386cd03d12e401b9e3945602e9621a86009fa11', author='Paul Wicking', fixes=[], task_numbers=["QTBUG-68109"], subject='Doc: Remove reference to QTestEvent'),
+            FixedByTag(repository='qt/qtbase', branch='dev', version=dev_branch_version, sha1='341d967068516ff850227f718eaff46530cd97c2', author='Paul Wicking', fixes=[], task_numbers=["QTBUG-69678"], subject='Doc: Fix broken links after page rename'),
+            FixedByTag(repository='qt/qtbase', branch='dev', version=dev_branch_version, sha1='6a1c26b08a56cd71315fcbbf2743c32072d806d2', author='Paul Wicking', fixes=[], task_numbers=["QTBUG-69483"], subject='Doc: Update signals and slots introduction page'),
+            FixedByTag(repository='qt/qtbase', branch='dev', version=dev_branch_version, sha1='9a30a8f4fc19a90835e4d1032f9ab753ff3b2ae6', author='Edward Welbourne', fixes=[], task_numbers=["QTBUG-23307"], subject='Link from QLocale to where date-time formats are explained'),
+            FixedByTag(repository='qt/qtbase', branch='dev', version=dev_branch_version, sha1='2dfa41e0eac65f5772ec61364f9afd0ce49fecc7', author='Mårten Nordheim', fixes=[], task_numbers=["QTBUG-65960"], subject='Return to eventloop after emitting encrypted'),
+            FixedByTag(repository='qt/qtbase', branch='dev', version=dev_branch_version, sha1='f43e947dc405b6a2324656f631c804db8e8dec3d', author='Jüri Valdmann', fixes=[], task_numbers=["QTBUG-69626"], subject='QJsonDocument: Make emptyObject an object')
         ],
     ),
     (
