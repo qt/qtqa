@@ -55,7 +55,13 @@ def test_close_issue():
     fix = FixedByTag(repository='foo/bar', branch='dev', version='5.13.0',
                      sha1='bd0279c4173eb627d432d9a05411bbc725240d4e', task_numbers=[], fixes=['CON-5'],
                      author='Some One', subject='Close a test issue')
-    j._update_issue_with_retry(fix, issue_key, True)
+    j._update_issue_with_retry(fix, issue_key, fixes=True)
+
+    # This issue was re-opened, by default we will only post a comment but not re-open it again
+    issue = j.jira_client.issue(issue_key)
+    assert issue.fields.status.name == 'Open'
+
+    j._update_issue_with_retry(fix, issue_key, fixes=True, ignore_reopened=True)
 
     issue = j.jira_client.issue(issue_key)
     assert issue.fields.status.name == 'Closed'
@@ -72,7 +78,7 @@ def test_close_issue():
     # Assign to bot and start work
     assert j.jira_client.assign_issue(issue.key, assignee='qtgerritbot')
     j.jira_client.transition_issue(issue_key, transition='Start Work')
-    j._update_issue_with_retry(fix, issue_key, True)
+    j._update_issue_with_retry(fix, issue_key, True, ignore_reopened=True)
     issue = j.jira_client.issue(issue_key)
     assert issue.fields.status.name == 'Closed'
     assert issue.fields.resolution.name == 'Done'
@@ -94,7 +100,7 @@ def test_close_issue():
     issue = j.jira_client.issue(issue_key)
     assert len(issue.fields.fixVersions) == 1
 
-    j._update_issue_with_retry(fix, issue_key, True)
+    j._update_issue_with_retry(fix, issue_key, True, ignore_reopened=True)
     issue = j.jira_client.issue(issue_key)
     assert issue.fields.status.name == 'Closed'
     assert issue.fields.resolution.name == 'Done'

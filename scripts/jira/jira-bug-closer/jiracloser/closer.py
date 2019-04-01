@@ -179,7 +179,18 @@ class JiraCloser:
         changes.append('%s (%s/%s)' % (fix.sha1, fix.repository, fix.branch))
         return {'customfield_10142': ' '.join(changes)}
 
-    def _close_issue(self, issue: jira.Issue, fields: Dict[str, Any]) -> None:
+    @staticmethod
+    def _is_reopened(issue: jira.Issue):
+        for change in issue.changelog.histories:
+            for item in change.items:
+                if item.toString == 'Open' and item.fromString == 'Closed':
+                    return True
+        return False
+
+    def _close_issue(self, issue: jira.Issue, fields: Dict[str, Any], ignore_reopened: bool) -> None:
+        if not ignore_reopened and JiraCloser._is_reopened(issue):
+            self.jira_client.add_comment(issue, 'A change related to this issue was integrated. This issue was re-opened before, the bot will not close this issue, please close it manually when applicable.')
+            return
         if issue.fields.status.name == 'In Progress':
             fields.update({'resolution': {'name': 'Done'}})
             self.jira_client.transition_issue(issue.key, transition='Fixed', fields=fields)
@@ -189,9 +200,9 @@ class JiraCloser:
             fields.update({'resolution': {'name': 'Done'}})
             self.jira_client.transition_issue(issue.key, transition='Close', fields=fields)
 
-    def _update_issue(self, fix: FixedByTag, issue_key: str, fixes: bool) -> None:
+    def _update_issue(self, fix: FixedByTag, issue_key: str, fixes: bool, ignore_reopened: bool=False) -> None:
         try:
-            issue = self.jira_client.issue(issue_key)
+            issue = self.jira_client.issue(issue_key, expand='changelog')
             version_id = None
             if fixes:
                 # get the fix version to update
@@ -199,7 +210,7 @@ class JiraCloser:
                 # get changes in the form of sha1 and repo + branch
                 extra_fields.update(self._get_change_sha1_field(issue, fix))
                 # close the issue
-                self._close_issue(issue, extra_fields)
+                self._close_issue(issue, extra_fields, ignore_reopened=ignore_reopened)
 
             if self.config.add_comment_to_issues:
                 comment = comment_template.substitute(sha1=fix.sha1, repository=fix.repository, branch=fix.branch, fix_version=fix.version or 'unknown version', version_id=version_id or 'unknown version', subject=fix.subject)
@@ -214,11 +225,11 @@ class JiraCloser:
             else:
                 raise e
 
-    def _update_issue_with_retry(self, fix: FixedByTag, issue_key: str, fixes: bool) -> None:
+    def _update_issue_with_retry(self, fix: FixedByTag, issue_key: str, fixes: bool, ignore_reopened: bool=False) -> None:
         for attempt in range(5):
             sleep(attempt)  # wait for up to 4 seconds, try 5 times
             try:
-                self._update_issue(fix, issue_key, fixes)
+                self._update_issue(fix, issue_key, fixes, ignore_reopened)
                 break
             except jira.exceptions.JIRAError as e:
                 if e.status_code == 500:
