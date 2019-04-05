@@ -31,7 +31,7 @@
 Description=Jira Issue Closer - Monitor Gerrit and close JIRA issues
 
 [Service]
-ExecStart=/usr/bin/make -C /home/jirabot/jira-bug-closer production
+ExecStart=/usr/bin/make -C /home/jirabot/qtqa/scripts/jira/jira-bug-closer production
 Restart=always
 User=jirabot
 
