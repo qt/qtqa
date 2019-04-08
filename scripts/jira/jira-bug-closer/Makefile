@@ -1,4 +1,4 @@
-PIPENV := /usr/bin/env pipenv
+PIPENV := ~/.local/bin/pipenv
 
 first:
 	$(PIPENV) install
