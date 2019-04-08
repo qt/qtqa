@@ -188,17 +188,18 @@ class JiraCloser:
         return False
 
     def _close_issue(self, issue: jira.Issue, fields: Dict[str, Any], ignore_reopened: bool) -> None:
+        if issue.fields.status.name == 'Closed':
+            issue.update(fields=fields)
+            return
         if not ignore_reopened and JiraCloser._is_reopened(issue):
             self.jira_client.add_comment(issue, 'A change related to this issue was integrated. This issue was re-opened before, the bot will not close this issue, please close it manually when applicable.')
             return
         if issue.fields.status.name == 'In Progress':
             fields.update({'resolution': {'name': 'Done'}})
             self.jira_client.transition_issue(issue.key, transition='Fixed', fields=fields)
-        elif issue.fields.status.name == 'Closed':
-            issue.update(fields=fields)
-        else:
-            fields.update({'resolution': {'name': 'Done'}})
-            self.jira_client.transition_issue(issue.key, transition='Close', fields=fields)
+            return
+        fields.update({'resolution': {'name': 'Done'}})
+        self.jira_client.transition_issue(issue.key, transition='Close', fields=fields)
 
     def _update_issue(self, fix: FixedByTag, issue_key: str, fixes: bool, ignore_reopened: bool=False) -> None:
         try:
