@@ -180,7 +180,7 @@ class JiraCloser:
         return {'customfield_10142': ' '.join(changes)}
 
     @staticmethod
-    def _is_reopened(issue: jira.Issue):
+    def _is_reopened(issue: jira.Issue) -> bool:
         for change in issue.changelog.histories:
             for item in change.items:
                 if item.toString == 'Open' and item.fromString == 'Closed':
