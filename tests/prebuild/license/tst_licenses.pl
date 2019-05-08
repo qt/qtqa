@@ -108,10 +108,11 @@ my %excludedFiles = (
                           qr{^examples/wayland/server-buffer/share-buffer\.xml$},
                           qr{^examples/wayland/custom-extension/protocol/custom\.xml$},
                         ],
-    'pyside-setup'   => [ # foreign repositories
-                          qr{^examples/widgets/animation/easing/ui_form.py$},
+    'pyside-setup'   => [ qr{^examples/widgets/animation/easing/ui_form.py$},
                           qr{^examples/xmlpatterns/schema/ui_schema.py$},
                           qr{^examples/charts/chartthemes/ui_themewidget.py$},
+                          qr{^examples/sql/books/ui_bookwindow.py$},
+                          qr{^examples/sql/books/rc_books.py$},
                           qr{^examples/widgets/draganddrop/draggabletext/draggabletext_rc.py$},
                           qr{^examples/widgets/painting/basicdrawing/basicdrawing_rc.py$},
                           qr{^examples/widgets/richtext/syntaxhighlighter/syntaxhighlighter_rc.py$},
@@ -128,12 +129,8 @@ my %excludedFiles = (
                           qr{^examples/widgets/mainwindows/application/application_rc.py$},
                           qr{^examples/opengl/textures/textures_rc.py$},
                           qr{^examples/xmlpatterns/schema/schema_rc.py$},
-                          qr{^sources/pyside2-examples/.*$},
+                          qr{^sources/shiboken2/.*\.1}, # Man pages (removed in 5.13)
                           qr{^sources/pyside2-tools/.*$},
-                          qr{^wiki/.*$},
-                          qr{^sources/shiboken2/.*\.1}, # Man pages
-                          qr{^sources/shiboken2/ext/sparsehash/google.*}, # External
-                          qr{^sources/shiboken2/ApiExtractor/parser/rxx_allocator.h$}, # KDevelop
                           qr{^sources/pyside2/doc/.*\.py$} # Sphinx
                         ]
 );
