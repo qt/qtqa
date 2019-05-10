@@ -517,6 +517,9 @@ void tst_Bic::sizesAndVTables()
 #elif defined(QT_NO_PROCESS)
     QSKIP("This Qt build does not have QProcess support");
 #else
+#if QT_VERSION == QT_VERSION_CHECK(6, 0, 0)
+    QSKIP("Qt 6.0.0 needs no binary compatibility check.");
+#endif
 
     QFETCH(QString, libName);
     QFETCH(QString, oldLib);
