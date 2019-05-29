@@ -418,6 +418,10 @@ Test script that is run in shell/batch without Squish
 
 Number of cores to be requested for a job, defaults to 2.
 
+=item installer_type
+
+Type of Qt installer to use in RTA test. Online/Offline/Monolite/Pyside.
+
 =item irc_channel
 
 IRC channel to notify
@@ -810,6 +814,7 @@ sub desired_job_xml
             custom_repository => eval { $self->cfg( "job.$name", 'custom_repository' ) } // 0,
             cores => eval { $self->cfg( "job.$name", 'cores' ) } || q{2},
             irc_channel => eval { $self->cfg( "job.$name", 'irc_channel' ) } || q{},
+            installer_type => eval { $self->cfg( "job.$name", 'installer_type' ) } || q{},
             pip_path => eval { $self->cfg( "job.$name", 'pip_path' ) } || q{},
             python_version => eval { $self->cfg( "job.$name", 'python_version' ) } || q{2},
             ts_product => eval { $self->cfg( "job.$name", 'ts_product' ) } || q{},
