@@ -315,7 +315,8 @@ tst_Bic::tst_Bic(const char *appFilePath)
 
     /* Those structures have a version field that allows extension */
     bic.addBlacklistedClass(QLatin1String("QDeclarativePrivate::RegisterType"));
-    bic.addBlacklistedClass(QLatin1String("QDeclarativePrivate::RegisterSingletonType"));
+    bic.addBlacklistedClass(QLatin1String("QQmlPrivate::RegisterType"));
+    bic.addBlacklistedClass(QLatin1String("QQmlPrivate::RegisterSingletonType"));
 
     /* according to Thiago this is a false positive */
     bic.addBlacklistedClass(QLatin1String("QLoggingCategory::AtomicBools"));
