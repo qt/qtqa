@@ -313,8 +313,9 @@ tst_Bic::tst_Bic(const char *appFilePath)
     /* This structure is semi-private and should never shrink */
     bic.addBlacklistedClass(QLatin1String("QVFbHeader"));
 
-    /* This structure has a version field that allows extension */
+    /* Those structures have a version field that allows extension */
     bic.addBlacklistedClass(QLatin1String("QDeclarativePrivate::RegisterType"));
+    bic.addBlacklistedClass(QLatin1String("QDeclarativePrivate::RegisterSingletonType"));
 
     /* according to Thiago this is a false positive */
     bic.addBlacklistedClass(QLatin1String("QLoggingCategory::AtomicBools"));
