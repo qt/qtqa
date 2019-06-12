@@ -45,9 +45,7 @@ prefix_re = re.compile(r'^agent:[\d :/]+\w+\.go:\d+: ')
 # Match QTestlib output
 start_test_re = re.compile(r'^\*{9} Start testing of \w+ \*{9}$')
 end_test_re = re.compile(r'Totals: \d+ passed, (\d+) failed, \d+ skipped, \d+ blacklisted, \d+ms')
-
-# Patterns for errors of common (g++, MSVC, Python)
-compiler_errors = (": error: ", ": error C", 'ERROR')
+make_error_re = re.compile(r'make\[.*Error \d+$')
 
 def read_file(file_name):
     """
@@ -75,6 +73,16 @@ def zcat(file_name):
         print("ERROR: command 'zcat' not found")
         sys.exit(-1)
     return lines
+
+
+def is_compile_error(line):
+    """
+    Return whether a line is an error from one of the common compilers
+    (g++, MSVC, Python) or from make
+    """
+    if any(e in line for e in (": error: ", ": error C", 'ERROR')):
+        return True
+    return make_error_re.match(line)
 
 
 def print_failed_test(lines, start, end):
@@ -115,7 +123,7 @@ def parse(lines):
             within_configure_tests = True
         elif start_test_re.match(line):
             test_start_line = i
-        elif any(e in line for e in compiler_errors):
+        elif is_compile_error(line):
             start = max(0, i - 10)
             sys.stdout.write('\n{}: '.format(start))
             for e in range(start, i + 1):
