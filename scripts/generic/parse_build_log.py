@@ -47,6 +47,7 @@ start_test_re = re.compile(r'^\*{9} Start testing of \w+ \*{9}$')
 end_test_re = re.compile(r'Totals: \d+ passed, (\d+) failed, \d+ skipped, \d+ blacklisted, \d+ms')
 make_error_re = re.compile(r'make\[.*Error \d+$')
 
+
 def read_file(file_name):
     """
     Read a text file into a list of of chopped lines.
@@ -64,7 +65,7 @@ def zcat(file_name):
 
     try:
         std_out = subprocess.Popen(['zcat', file_name],
-                                   universal_newlines = 1,
+                                   universal_newlines=1,
                                    stdout=subprocess.PIPE).stdout
         for line in std_out.readlines():
             lines.append(prefix_re.sub('', line.rstrip()))
@@ -119,7 +120,8 @@ def parse(lines):
                 if fails:
                     print_failed_test(lines, test_start_line, i)
                 test_start_line = -1
-        elif line == 'Running configuration tests...': # Do not report errors within configuration tests
+        # Do not report errors within configuration tests
+        elif line == 'Running configuration tests...':
             within_configure_tests = True
         elif start_test_re.match(line):
             test_start_line = i
@@ -127,7 +129,7 @@ def parse(lines):
             start = max(0, i - 10)
             sys.stdout.write('\n{}: '.format(start))
             for e in range(start, i + 1):
-               print(lines[e])
+                print(lines[e])
 
 
 if __name__ == '__main__':
@@ -138,5 +140,6 @@ if __name__ == '__main__':
         print(usage)
         sys.exit(-1)
     file_name = sys.argv[1]
+
     lines = zcat(file_name) if file_name.endswith('.gz') else read_file(file_name)
     parse(lines)
