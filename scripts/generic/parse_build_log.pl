@@ -29,6 +29,9 @@
 
 package QtQA::App::ParseBuildLog;
 
+# Note: As of 20.6.2019 (Coin 1.1), this script is no longer in use
+# It should only be used as a reference for COIN-16
+
 use 5.010;
 use strict;
 use warnings;
