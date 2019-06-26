@@ -64,7 +64,7 @@ class Bot:
         event = self.parser.parse(data)
         log.debug(event)
         log.debug("Raw data: >>>%s<<<", data)
-        if event and event.type == 'ref-updated' and 'staging' not in event.branch:
+        if event and event.is_branch_update():
             log.info(event)
             await self.update_project(event.project)
 

@@ -46,6 +46,15 @@ class GerritEvent:
     def __repr__(self) -> str:
         return "<GerritEvent '%s': '%s' '%s'>" % (self.type, self.project, self.branch)
 
+    def is_branch_update(self) -> bool:
+        if self.type != 'ref-updated':
+            return False
+        if 'staging' in self.branch:
+            return False
+        if self.branch.startswith('refs/changes/'):
+            return False
+        return True
+
 
 class GerritStreamParser:
     def parse(self, data: str) -> Optional[GerritEvent]:
@@ -53,7 +62,7 @@ class GerritStreamParser:
             event = json.loads(data)
         except json.decoder.JSONDecodeError:
             log.exception('Invalid JSON: "%s"', data)
-            return None
+            return GerritEvent(type='invalid', project='', branch='')
         eventType = event.get('type')
         if eventType in ('comment-added', 'change-abandoned', 'change-deferred', 'change-merged', 'change-restored',
                          'draft-published', 'merge-failed', 'patchset-created', 'reviewer-added'):
@@ -61,4 +70,4 @@ class GerritStreamParser:
         if eventType in ('ref-updated',):
             return GerritEvent(type=eventType, project=event['refUpdate']['project'], branch=event['refUpdate']['refName'])
         log.warning('unhandled event type in gerrit ssh stream: "%s" data: "%s"', eventType, data)
-        return None
+        return GerritEvent(type='invalid', project='', branch='')
