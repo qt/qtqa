@@ -66,6 +66,8 @@ class GerritStreamParser:
         if eventType in ('comment-added', 'change-abandoned', 'change-deferred', 'change-merged', 'change-restored',
                          'draft-published', 'merge-failed', 'patchset-created', 'reviewer-added'):
             return GerritEvent(type=eventType, project=event['change']['project'], branch=event['change']['branch'])
+        if eventType in ('ref-replication-scheduled', 'ref-replicated', 'ref-replication-done'):
+            return GerritEvent(type=eventType, project=event['project'], branch=event['ref'])
         if eventType in ('ref-updated',):
             return GerritEvent(type=eventType, project=event['refUpdate']['project'], branch=event['refUpdate']['refName'])
         log.warning('unhandled event type in gerrit ssh stream: "%s" data: "%s"', eventType, data)
