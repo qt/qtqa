@@ -28,7 +28,6 @@
 #############################################################################
 
 import json
-from typing import Optional
 from logger import logger
 
 log = logger(name="gerrit_stream_parser")
@@ -57,7 +56,7 @@ class GerritEvent:
 
 
 class GerritStreamParser:
-    def parse(self, data: str) -> Optional[GerritEvent]:
+    def parse(self, data: str) -> GerritEvent:
         try:
             event = json.loads(data)
         except json.decoder.JSONDecodeError:

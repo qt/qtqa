@@ -62,9 +62,8 @@ class Bot:
 
     async def event_handler(self, data: str) -> None:
         event = self.parser.parse(data)
-        log.debug(event)
-        log.debug("Raw data: >>>%s<<<", data)
-        if event and event.is_branch_update():
+        log.debug(f"Gerrit Event: {event} - raw data: >>>{data}<<<")
+        if event.is_branch_update():
             log.info(event)
             await self.update_project(event.project)
 
