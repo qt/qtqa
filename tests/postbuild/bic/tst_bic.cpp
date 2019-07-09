@@ -430,15 +430,34 @@ void tst_Bic::sizesAndVTables_data()
     QTest::addColumn<bool>("isPatchRelease");
 
     const QStringList keys = modules.keys();
-    int minor = (QT_VERSION >> 8) & 0xFF;
-    int patch = QT_VERSION & 0xFF;
+    int major = QT_VERSION_MAJOR;
+    int minor = QT_VERSION_MINOR;
+    int patch = QT_VERSION_PATCH;
+
+    QFile qmakeConf(qtModuleDir + "/.qmake.conf");
+    if (qmakeConf.open(QIODevice::ReadOnly)) {
+        const QString contents = QString::fromUtf8(qmakeConf.readAll());
+        qmakeConf.close();
+        QRegularExpression versionRegExp("MODULE_VERSION\\s*=\\s*(\\d+)\\.(\\d+)\\.(\\d+)");
+        QRegularExpressionMatch match = versionRegExp.match(contents);
+        if (match.hasMatch()) {
+            major = match.captured(1).toInt();
+            minor = match.captured(2).toInt();
+            patch = match.captured(3).toInt();
+            qDebug() << "Detected module version major:" << major << "minor:" << minor << "patch:" << patch;
+        }
+    }
+
+
     for (int i = 0, end = keys.size(); i < end; i++) {
         QString key = keys.at(i);
         for (int i = 0; i <= minor; ++i) {
             if (i != minor || patch) {
                 QTest::newRow(key.toLatin1() + ":5." + QByteArray::number(i))
                     << key
-                    << (QString(qtModuleDir + "/tests/auto/bic/data/%1.5.")
+                    << (QString(qtModuleDir + "/tests/auto/bic/data/%1.")
+                        + QString::number(major)
+                        + QLatin1Char('.')
                         + QString::number(i)
                         + QLatin1String(".0.") + m_fileSuffix + QLatin1String(".txt"))
                     << (i == minor && patch);
@@ -519,10 +538,6 @@ void tst_Bic::sizesAndVTables()
 #elif defined(QT_NO_PROCESS)
     QSKIP("This Qt build does not have QProcess support");
 #else
-#if QT_VERSION == QT_VERSION_CHECK(6, 0, 0)
-    QSKIP("Qt 6.0.0 needs no binary compatibility check.");
-#endif
-
     QFETCH(QString, libName);
     QFETCH(QString, oldLib);
     QFETCH(bool, isPatchRelease);
