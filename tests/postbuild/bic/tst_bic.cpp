@@ -448,6 +448,9 @@ void tst_Bic::sizesAndVTables_data()
         }
     }
 
+    if (minor == 0) {
+        QSKIP("This is the first minor release in the major series, there is no binary compatibility reference data by definition.");
+    }
 
     for (int i = 0, end = keys.size(); i < end; i++) {
         QString key = keys.at(i);
