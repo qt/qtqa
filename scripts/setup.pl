@@ -175,6 +175,7 @@ sub all_required_cpan_modules
         Lingua::EN::Numbers
         List::Compare
         List::MoreUtils
+        local::lib
         Params::Validate
         Perl::Critic
         QMake::Project
@@ -421,39 +422,6 @@ sub run_cpan
     return $out;
 }
 
-# Import the local::lib module into the current process or exit.
-#
-# Importing local::lib ensure the selected prefix exists and is
-# available for use by the current process and all subprocesses.
-#
-# This is equivalent to `use local::lib', except that it will give
-# a helpful failure message if local::lib is not available.
-#
-sub do_local_lib
-{
-    my ($self) = @_;
-
-    my $prefix = $self->{locallib};
-    eval { require local::lib; local::lib->import($prefix) };
-    if (!$EVAL_ERROR) {
-        return;
-    }
-
-    print STDERR
-        "$EVAL_ERROR\n\nI need you to manually install the local::lib module "
-       ."before I can proceed.  This module allows me to easily set up a perl "
-       ."prefix under $prefix.\n";
-
-    # This hint may be helpful to some :)
-    if (-e "/etc/debian_version") {
-        print STDERR
-            "\nOn Debian and Ubuntu, this module is available from the "
-           ."`liblocal-lib-perl' package.\n";
-    }
-
-    exit 1;
-}
-
 # Try hard to ensure all CPAN modules returned from all_required_cpan_modules
 # are installed.  The cpan command may be run several times.
 #
@@ -462,9 +430,6 @@ sub do_local_lib
 sub ensure_complete_cpan
 {
     my $self = shift;
-
-    # We expect everything under a local::lib
-    $self->do_local_lib;
 
     return $self->try_hard_to_install(
         name        =>  "CPAN",
