@@ -28,9 +28,9 @@
 #############################################################################
 
 import json
-from logger import logger
+from logger import get_logger
 
-log = logger(name="gerrit_stream_parser")
+log = get_logger(name="gerrit_stream_parser")
 
 
 class GerritEvent:

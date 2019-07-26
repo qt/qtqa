@@ -30,11 +30,11 @@
 import asyncio
 import pytest
 from typing import List
-from git import Repository, Change, FixedByTag
-from logger import logger
+from git import Repository, ChangeRange, FixedByTag
+from logger import get_logger
 from git.repository import Version
 
-log = logger('test')
+log = get_logger('test')
 
 # make sure we have a checkout, otherwise this fails
 loop = asyncio.get_event_loop()
@@ -82,13 +82,13 @@ async def test_versions(branch: str, expected: str, branches: List[str], tags: L
 
 @pytest.mark.parametrize("change,expected", [
     (
-        Change(repository='qt/qtbase', branch='dev', before='128a6eec065dfe683e6d776183d63908ca02e8f', after='b0085dbeeac47d0ce566750d93f1b1f865d07cd'),
+        ChangeRange(repository='qt/qtbase', branch='dev', before='128a6eec065dfe683e6d776183d63908ca02e8f', after='b0085dbeeac47d0ce566750d93f1b1f865d07cd'),
         [FixedByTag(repository='qt/qtbase', branch='dev', version=dev_branch_version,
                     sha1='bd0279c4173eb627d432d9a05411bbc725240d4e', task_numbers=["QTBUG-69548"], fixes=[],
                     author='Kai Koehne', subject='Logging: Accept .ini files written by QSettings')],
     ),
     (
-        Change(repository='qt/qtbase', branch='dev', before='0bb760260eb055f813247bf9ef06e372cac219d3', after='b0085dbeeac47d0ce566750d93f1b1f865d07cd'),
+        ChangeRange(repository='qt/qtbase', branch='dev', before='0bb760260eb055f813247bf9ef06e372cac219d3', after='b0085dbeeac47d0ce566750d93f1b1f865d07cd'),
         [FixedByTag(repository='qt/qtbase', branch='dev', version=dev_branch_version,
                     sha1='bd0279c4173eb627d432d9a05411bbc725240d4e', task_numbers=["QTBUG-69548"], fixes=[],
                     author='Kai Koehne', subject='Logging: Accept .ini files written by QSettings'),
@@ -99,7 +99,7 @@ async def test_versions(branch: str, expected: str, branches: List[str], tags: L
                     subject='Rework QNetworkReply tests to use docker-based test servers', fixes=[], task_numbers=["QTQAINFRA-1686"])]
     ),
     (
-        Change(repository='qt/qtbase', branch='refs/heads/dev', before='ed7f86cb077d33d0dd9e646af28e3f57c160b570', after='458b0ba8e04349a0a7ca82598a5bf7472991ebc8'),
+        ChangeRange(repository='qt/qtbase', branch='refs/heads/dev', before='ed7f86cb077d33d0dd9e646af28e3f57c160b570', after='458b0ba8e04349a0a7ca82598a5bf7472991ebc8'),
         [
             FixedByTag(repository='qt/qtbase', branch='dev', version=dev_branch_version, sha1='823acb069d92b68b36f1b2bb59575bb0595275b4', author='Tor Arne Vestbø', fixes=[], task_numbers=["QTBUG-63572"], subject='macOS: Don\'t call [NSOpenGLContext update] for every frame'),
             FixedByTag(repository='qt/qtbase', branch='dev', version=dev_branch_version, sha1='491e427bb2d3cafccbb26d2ca3b7e128d786a564', author='Thiago Macieira', fixes=[], task_numbers=["QTBUG-69800"], subject='QTimer: Add const to some singleShot methods'),
@@ -135,50 +135,50 @@ async def test_versions(branch: str, expected: str, branches: List[str], tags: L
     (
         # There is a commit with a line "Fixes:" which doesn't have any bug number since it's part of the normal commit message.
         # Should not trigger anything here.
-        Change(repository='yocto/meta-qt5', branch='refs/heads/upstream/jansa/master', before='4587cc3b2b8707ed71eb15b9a0a460d76099606e', after='a563a6f0e7f4bbbadf8b0d85b06f63878e6142c2'),
+        ChangeRange(repository='yocto/meta-qt5', branch='refs/heads/upstream/jansa/master', before='4587cc3b2b8707ed71eb15b9a0a460d76099606e', after='a563a6f0e7f4bbbadf8b0d85b06f63878e6142c2'),
         []
     ),
     (
         # test that a newly created branch works (before will be None), using the very first commits of the dev branch
-        Change(repository='qt/qtbase', branch='dev', before=None, after='07bed9a211115c56bfa63983b0502f691f19f789'),
+        ChangeRange(repository='qt/qtbase', branch='dev', before=None, after='07bed9a211115c56bfa63983b0502f691f19f789'),
         []
     ),
     (
         # The first commit has broken encoding in the author name, check that we don't crash on that
-        Change(repository='qt/qtdatavis3d', branch='refs/heads/5.11.2', before=None, after='7997c3aca1d6e03dd31e145d70a7a40df17e5330'),
+        ChangeRange(repository='qt/qtdatavis3d', branch='refs/heads/5.11.2', before=None, after='7997c3aca1d6e03dd31e145d70a7a40df17e5330'),
         []
     ),
     (
         # This has a long Fixes: random comment line, skip it
-        Change(repository='qt/qtlocation-mapboxgl', branch='upstream/12268-android-collator-wrapper', before='d9e4c61923813b61ffccb6439d0fd3e9993a1a05', after='7e51e52f0cabd909557b763f10e90ac0444e90a1'),
+        ChangeRange(repository='qt/qtlocation-mapboxgl', branch='upstream/12268-android-collator-wrapper', before='d9e4c61923813b61ffccb6439d0fd3e9993a1a05', after='7e51e52f0cabd909557b763f10e90ac0444e90a1'),
         []
     ),
     (
         # Invalid version number: tqtc/5.12
-        Change(repository='qt/tqtc-qt5', branch='refs/heads/tqtc/5.12', before='33276c1719d2623dff6aec11e1f3dc1cb0e45847', after='bc644fd6c9b4ef409efc5a4378420c3aca2d07b8'),
+        ChangeRange(repository='qt/tqtc-qt5', branch='refs/heads/tqtc/5.12', before='33276c1719d2623dff6aec11e1f3dc1cb0e45847', after='bc644fd6c9b4ef409efc5a4378420c3aca2d07b8'),
         [
             FixedByTag(repository='qt/tqtc-qt5', branch='tqtc/5.12', version=None, sha1='bb6a91d5d4c684e8a97feca61449b41628afaefa', author='Joni Jantti', fixes=[], task_numbers=['QTQAINFRA-2103'], subject='Provisioning: PyPFD2')
         ]
     ),
     (
-        Change(repository='qt/qtdeclarative', branch='refs/heads/5.12.0', before='920f50731a8fe7507aece1318c9e91f3f12b525e', after='9e9acff340032bd4ec5ee6fbd1b13cd51e14ca3d'),
+        ChangeRange(repository='qt/qtdeclarative', branch='refs/heads/5.12.0', before='920f50731a8fe7507aece1318c9e91f3f12b525e', after='9e9acff340032bd4ec5ee6fbd1b13cd51e14ca3d'),
         [
             FixedByTag(repository='qt/qtdeclarative', branch='5.12.0', version='5.12.0', sha1='9e9acff340032bd4ec5ee6fbd1b13cd51e14ca3d', author='Shawn Rutledge', fixes=['QTBUG-70258'], task_numbers=[], subject='MultiPointTouchArea: capture the mouse position on press')
         ]
     ),
     (
-        Change(repository='qt/qtlocation-mapboxgl', branch='refs/heads/upstream/user-location-delegate-method', before='246be964f2e222118643bacac1a70c2692f2bdec', after='04add9801e557b06c08189659c4fbb8bdc7d235b'),
+        ChangeRange(repository='qt/qtlocation-mapboxgl', branch='refs/heads/upstream/user-location-delegate-method', before='246be964f2e222118643bacac1a70c2692f2bdec', after='04add9801e557b06c08189659c4fbb8bdc7d235b'),
         []
     ),
     (
-        Change(repository='qt/qtdeclarative', branch='refs/heads/5.13.0', before='722fd8b86e7c3b5d6e4c3382f2710e4d3bfed3ec~', after='722fd8b86e7c3b5d6e4c3382f2710e4d3bfed3ec'),
+        ChangeRange(repository='qt/qtdeclarative', branch='refs/heads/5.13.0', before='722fd8b86e7c3b5d6e4c3382f2710e4d3bfed3ec~', after='722fd8b86e7c3b5d6e4c3382f2710e4d3bfed3ec'),
         [
             FixedByTag(repository='qt/qtdeclarative', branch='5.13.0', version='5.13.0', sha1='722fd8b86e7c3b5d6e4c3382f2710e4d3bfed3ec', author='Allan Sandfeld Jensen', fixes=['QTBUG-32525', 'QTBUG-70748'], task_numbers=[], subject='Render inline custom text objects'),
         ]
     ),
 ])
 @pytest.mark.asyncio
-async def test_parsing(event_loop, change: Change, expected: List[FixedByTag]):
+async def test_parsing(event_loop, change: ChangeRange, expected: List[FixedByTag]):
     async with Repository(change.repository) as repo:
         fixes = await repo.parse_commit_messages(change)
         change.__repr__()

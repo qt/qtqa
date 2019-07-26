@@ -29,14 +29,14 @@
 import asyncio
 from typing import Optional
 from gerrit import GerritStreamEvents, GerritStreamParser
-from logger import logger
+from logger import get_logger
 from git import Repository
 from jiracloser import JiraCloser
 from config import Config
 from .args import Args
 
 
-log = logger("bot")
+log = get_logger("bot")
 
 
 class Bot:

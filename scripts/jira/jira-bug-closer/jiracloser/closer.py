@@ -36,7 +36,7 @@ from config import Config
 from git import FixedByTag
 from logger import logger
 
-log = logger('jira')
+log = logger.get_logger('jira')
 
 comment_template = Template(
     """A change related to this issue (sha1 '$sha1') was integrated in '$repository' in the '$branch' branch.

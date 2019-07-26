@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
 
-__all__ = ["logger"]
+from .logger import get_logger
 
-from .logger import logger
+__all__ = ["get_logger"]

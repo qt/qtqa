@@ -28,80 +28,21 @@
 #############################################################################
 
 import asyncio
-from distutils.version import StrictVersion
 import fcntl
 import os
 from pathlib import Path
 import re
 from typing import Any, Dict, List, Optional, Tuple
+from .version import Version, ChangeRange, FixedByTag
 
-from logger import logger
-log = logger('repository')
+from logger import get_logger
+log = get_logger('repository')
 
 
 repo_base = 'ssh://codereview.qt-project.org:29418/'
 file_path = os.path.dirname(os.path.abspath(__file__))
 working_dir = os.path.abspath(os.path.join(file_path, '..', 'git_repos'))
 Path(working_dir).mkdir(parents=True, exist_ok=True)
-
-
-class Version(StrictVersion):
-    def __init__(self, version_string: str) -> None:
-        super().__init__(version_string)
-        self.original_version_string = version_string
-
-    def __lt__(self, other: Any) -> Any:
-        """ Compare versions taking the original_version_string into account.
-
-            There are some cases where the default comparison is not good enough: we want 5.12.0 > 5.12,
-            otherwise changes going into 5.12 while 5.12.0 exists will end up in 5.12.0 instead of 5.12.1. """
-        if super().__eq__(other):
-            return self.original_version_string < other.original_version_string
-        return super().__lt__(other)
-
-    def __eq__(self, other: Any) -> Any:
-        return self.original_version_string == other.original_version_string
-
-    def __gt__(self, other: Any) -> Any:
-        if super().__eq__(other):
-            return self.original_version_string > other.original_version_string
-        return super().__gt__(other)
-
-    def __repr__(self) -> str:
-        return self.original_version_string + " - " + super().__repr__()
-
-
-class Change:
-    def __init__(self, repository: str, branch: str, before: Optional[str], after: str, since: Optional[str] = None) -> None:
-        self.repository = repository
-        self.branch = branch
-        self.before = before
-        self.after = after
-        self.since = since
-
-    def __repr__(self) -> str:
-        return f"<Change(repository='{self.repository}', branch='{self.branch}', before='{self.before}', after='{self.after}', since='{self.since}')>"
-
-
-class FixedByTag:
-    def __init__(self, repository: str, branch: str, sha1: str, author: str, subject: str, version: Optional[str], task_numbers: List[str], fixes: List[str]) -> None:
-        self.repository = repository
-        self.branch = branch
-        self.sha1 = sha1
-        self.author = author
-        self.subject = subject
-        self.version = version  # Can be None in case we failed to guess it. E.g. wip/foobar does not result in anything.
-        self.task_numbers = task_numbers
-        self.fixes = fixes
-
-    def __eq__(self, other: object) -> bool:
-        return self.__dict__ == other.__dict__
-
-    def __repr__(self) -> str:
-        return f"<FixedByTag(repository='{self.repository}', branch='{self.branch}', version='{self.version}', sha1='{self.sha1}', author='{self.author}', fixes={self.fixes}, task_numbers={self.task_numbers}, subject='{self.subject}')>"
-
-    def __hash__(self) -> int:
-        return hash(self.__dict__.values())
 
 
 class Repository:
@@ -166,7 +107,7 @@ class Repository:
             d[sha1_ref[1]] = sha1_ref[0]
         return d
 
-    async def new_changes(self, since: Optional[str] = None) -> List[Change]:
+    async def new_changes(self, since: Optional[str] = None) -> List[ChangeRange]:
         # git show-ref --heads
         # git fetch origin +refs/heads/*:refs/heads/* --prune
         # git show-ref --heads
@@ -178,13 +119,13 @@ class Repository:
         after = self._show_ref_output_to_dict(await self._git_show_ref())
         log.debug('after %s', after)
 
-        changes: List[Change] = []
+        changes: List[ChangeRange] = []
         for branch, sha1 in after.items():
             if since:
                 # We ignore recent changes and only take since into account
-                changes.append(Change(repository=self.name, branch=branch, before=None, after=sha1, since=since))
+                changes.append(ChangeRange(repository=self.name, branch=branch, before=None, after=sha1, since=since))
             elif before.get(branch) != sha1:
-                changes.append(Change(repository=self.name, branch=branch, before=before.get(branch), after=sha1, since=None))
+                changes.append(ChangeRange(repository=self.name, branch=branch, before=before.get(branch), after=sha1, since=None))
         return changes
 
     def get_task_number_and_fixes(self, body: str) -> Tuple[List[str], List[str]]:
@@ -272,7 +213,7 @@ class Repository:
         log.error("Could not determine version for ref: '%s' (branches: %s, tags: %s)", ref, branches, tags)
         return None
 
-    async def parse_commit_messages(self, change: Change) -> List[FixedByTag]:
+    async def parse_commit_messages(self, change: ChangeRange) -> List[FixedByTag]:
         format_options = {
             "id": "%H",
             "author_name": "%an",

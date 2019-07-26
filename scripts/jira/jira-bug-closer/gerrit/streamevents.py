@@ -31,8 +31,8 @@ import asyncio
 import asyncssh  # type: ignore
 import os
 from typing import Any, Callable, Coroutine, List
-from logger import logger
-log = logger("gerrit_stream")
+from logger import get_logger
+log = get_logger("gerrit_stream")
 
 codereview = "codereview.qt-project.org"
 port = 29418

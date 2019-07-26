@@ -28,10 +28,10 @@
 
 from config import Config
 from jiracloser import JiraCloser
-from logger import logger
+from logger import get_logger
 from git import FixedByTag
 
-log = logger('test')
+log = get_logger('test')
 
 
 def test_close_issue():

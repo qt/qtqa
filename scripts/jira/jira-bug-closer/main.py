@@ -28,10 +28,10 @@
 #############################################################################
 
 from bot import Bot
-from logger import logger
+from logger import get_logger
 
 
-log = logger("main")
+log = get_logger("main")
 
 
 if __name__ == "__main__":

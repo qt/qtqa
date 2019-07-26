@@ -33,7 +33,7 @@ import logging
 level = logging.INFO
 
 
-def logger(name: str) -> logging.Logger:
+def get_logger(name: str) -> logging.Logger:
     log = logging.getLogger(name)
     log.setLevel(level)
     log_format = "%(asctime)s %(filename)s:%(lineno)d %(levelname)s %(message)s"

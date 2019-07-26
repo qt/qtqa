@@ -31,8 +31,8 @@ from typing import Dict
 from configparser import ConfigParser
 
 
-from logger import logger
-log = logger('config')
+from logger import get_logger
+log = get_logger('config')
 
 
 class Config:
