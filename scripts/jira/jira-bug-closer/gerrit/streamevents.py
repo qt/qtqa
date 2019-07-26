@@ -28,7 +28,7 @@
 #############################################################################
 
 import asyncio
-import asyncssh
+import asyncssh  # type: ignore
 import os
 from typing import Any, Callable, Coroutine, List
 from logger import logger

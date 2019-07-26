@@ -27,7 +27,7 @@
 ##
 #############################################################################
 
-import coloredlogs
+import coloredlogs  # type: ignore
 import logging
 
 level = logging.INFO
