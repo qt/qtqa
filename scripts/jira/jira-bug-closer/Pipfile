@@ -19,5 +19,3 @@ mypy = "*"
 "flake8" = "*"
 pytest-asyncio = "*"
 
-[requires]
-python_version = "3.6"
