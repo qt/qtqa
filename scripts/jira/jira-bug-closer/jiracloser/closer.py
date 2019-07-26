@@ -201,7 +201,7 @@ class JiraCloser:
         fields.update({'resolution': {'name': 'Done'}})
         self.jira_client.transition_issue(issue.key, transition='Close', fields=fields)
 
-    def _update_issue(self, fix: FixedByTag, issue_key: str, fixes: bool, ignore_reopened: bool=False) -> None:
+    def _update_issue(self, fix: FixedByTag, issue_key: str, fixes: bool, ignore_reopened: bool = False) -> None:
         try:
             issue = self.jira_client.issue(issue_key, expand='changelog')
             version_id = None
@@ -226,7 +226,7 @@ class JiraCloser:
             else:
                 raise e
 
-    def _update_issue_with_retry(self, fix: FixedByTag, issue_key: str, fixes: bool, ignore_reopened: bool=False) -> None:
+    def _update_issue_with_retry(self, fix: FixedByTag, issue_key: str, fixes: bool, ignore_reopened: bool = False) -> None:
         for attempt in range(5):
             sleep(attempt)  # wait for up to 4 seconds, try 5 times
             try:
