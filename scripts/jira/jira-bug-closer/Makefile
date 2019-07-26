@@ -3,6 +3,9 @@ PIPENV := ~/.local/bin/pipenv
 first:
 	$(PIPENV) install
 
+install_dev_dependencies:
+	$(PIPENV) install --dev
+
 run:
 	$(PIPENV) run ./main.py
 
