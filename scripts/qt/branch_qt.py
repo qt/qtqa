@@ -345,9 +345,16 @@ def parse_args() -> argparse.Namespace:
                         choices=["branch", "sync", "merge", "bump"],
                         required=True,
                         help=dedent("""\
-                                    branch - start soft branching
+                                    branch - start soft branching: create the "to" branch based on the "from" branch
+                                        branch_qt.py -m branch --from 5.12 --to 5.12.4
+                                            Now 5.12.4 will exist, based on 5.12.
                                     sync - intermediate sync, to update a branch during soft-branching
+                                        branch_qt.py -m sync --from 5.12 --to 5.12.4
+                                            Move the new branch fast-forward, assuming only 5.12 has new commits.
+                                            Not yet implemented.
                                     merge - down-merge
+                                        branch_qt.py -m merge --from 5.12 --to 5.12.4
+                                            Merges 5.12 into 5.12.4.
                                     bump - version bump, to move from 5.12.3 to 5.12.4:
                                         branch_qt.py -m bump --from 5.12 --to 5.12.4"""))
     parser.add_argument("--from", "-f", required=True,
