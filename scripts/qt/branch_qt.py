@@ -234,21 +234,19 @@ class QtBranching:
         return repo
 
     def branch_repo(self, repo: git.Repo) -> None:
-        if repo.name in skipped_submodules:
-            log.info(f"Skipping {repo.name} (not branched)")
-            return
-        if not repo.module_exists():
-            log.info(f"Skipping {repo.name} (no checkout, presumably ignored)")
+        repo_name = os.path.basename(repo.working_dir)
+        if repo_name in skipped_submodules:
+            log.info(f"Skipping {repo_name} (not branched)")
             return
 
-        log.info(f"Module: {repo.name} ({repo.path}) - creating branch '{self.toBranch}' from '{self.fromBranch}'")
+        log.info(f"Module: {repo_name} ({repo.working_dir}) - creating branch '{self.toBranch}' from '{self.fromBranch}'")
         if not self.pretend:
             repo.remotes['gerrit'].fetch()
         self.subprocess_or_pretend(f"git push -q gerrit gerrit/{self.fromBranch}:refs/heads/{self.toBranch}".split())
 
         # We do not want to add the extra repos in .gitmodules
-        if not repo.name in (repo for repo.split('/')[-1] in extra_repositories):
-            self.subprocess_or_pretend(f"git config -f ../.gitmodules submodule.{repo.name}.branch {self.toBranch}".split())
+        if not repo_name in (extra_repo.split('/')[-1] for extra_repo in extra_repositories):
+            self.subprocess_or_pretend(f"git config -f ../.gitmodules submodule.{repo_name}.branch {self.toBranch}".split())
 
     def merge_repo(self, repo: git.Repo) -> None:
         log.info(f"Merge: {repo.working_dir}")
@@ -266,8 +264,9 @@ class QtBranching:
         with open(qmake_conf_file_name, mode='r', encoding='utf-8') as qmake_conf:
             qmake_conf_content = qmake_conf.read()
         match = re.search(r'^MODULE_VERSION *= *([0-9\.]+)\b.*', qmake_conf_content, flags=re.MULTILINE)
+        repo_name = os.path.basename(repo.working_dir)
         if not match:
-            log.warning(f"could not read version in {repo.name}")
+            log.warning(f"could not read version in {repo_name}")
             return
         version = match.group(1)
         qmake_conf_content = re.sub(
@@ -277,7 +276,6 @@ class QtBranching:
         with open(qmake_conf_file_name, mode='w', encoding='utf-8') as qmake_conf:
             qmake_conf.write(qmake_conf_content)
 
-        repo_name = os.path.basename(repo.working_dir)
         log.info(f"bump {repo_name} from {version} to {self.toBranch}")
 
         files = [qmake_conf_file_name]
