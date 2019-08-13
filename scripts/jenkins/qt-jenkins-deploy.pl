@@ -333,6 +333,10 @@ Contains the information about the build flow e.g. 5.4.1
 
 Contains sha1 for qt5
 
+=item use_create_nodes_and_vms
+
+Set to '1' if vm-cloner is to be used instead of default cloner
+
 =item url_trigger
 
 Contains url to be polled to start specific build flow compilation
@@ -782,6 +786,7 @@ sub desired_job_xml
             pretend => eval { $self->cfg( "job.$name", 'pretend' ) } // 0,
             poll_cron => eval { $self->cfg( "job.$name", 'poll_cron' ) } || q{},
             on_demand => eval { $self->cfg( "job.$name", 'on_demand' ) } // 0,
+            use_create_nodes_and_vms => eval { $self->cfg( "job.$name", 'use_create_nodes_and_vms' ) } // 0,
             template_ini_prefix => eval { $self->cfg( "job.$name", 'template_ini_prefix' ) } // $branch,
             trigger_cron => eval { $self->cfg( "job.$name", 'trigger_cron' ) } || q{},
             publish_xunit => eval { $self->cfg( "job.$name", 'publish_xunit' ) } || q{0},
