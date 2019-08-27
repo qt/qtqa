@@ -250,14 +250,19 @@ class QtBranching:
 
     def merge_repo(self, repo: git.Repo) -> None:
         log.info(f"Merge: {repo.working_dir}")
+        push_merge = lambda: self.subprocess_or_pretend(f'git push gerrit {self.toBranch}:{self.toBranch}'.split(), check=True)
         self.checkout_and_pull_branch(repo, self.toBranch)
         try:
             subprocess.run(f'git merge --ff-only --quiet gerrit/{self.fromBranch}'.split(), check=True, stderr=subprocess.PIPE)
+            push_merge()
         except subprocess.CalledProcessError:
             # The merge was not fast forward, try again
-            log.info(f"  Attempting non ff merge for {repo.working_dir}")
-            subprocess.run(['git', 'merge', f'gerrit/{self.fromBranch}', '--quiet', '-m', f'Merge {self.fromBranch} into {self.toBranch}'], check=True)
-        self.subprocess_or_pretend(f'git push gerrit {self.toBranch}:{self.toBranch}'.split(), check=True)
+            try:
+                log.info(f"  Attempting non ff merge for {repo.working_dir}")
+                subprocess.run(['git', 'merge', f'gerrit/{self.fromBranch}', '--quiet', '-m', f'Merge {self.fromBranch} into {self.toBranch}'], check=True)
+                push_merge()
+            except subprocess.CalledProcessError:
+                log.warning(f"  Merge had conflicts. {repo.working_dir} needs to be merged manually!")
 
     def version_bump_repo(self, repo: git.Repo) -> None:
         qmake_conf_file_name = '.qmake.conf'
