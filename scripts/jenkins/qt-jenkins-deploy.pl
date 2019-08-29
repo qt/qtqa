@@ -272,6 +272,10 @@ Qt version number, used in packaging.
 
 Qt license type (commercial/opensource), used in packaging.
 
+=item build_type
+
+Used for assigning build jobs to dedicated label.
+
 =item prod_addr
 
 Production server address
@@ -797,6 +801,7 @@ sub desired_job_xml
             configurations => \@configurations,
             qt_version => eval { $self->cfg( "job.$name", 'qt_version' ) } || q{},
             qt_license => eval { $self->cfg( "job.$name", 'qt_license' ) } || q{},
+            build_type => eval { $self->cfg( "job.$name", 'build_type' ) } || q{},
             prod_addr => eval { $self->cfg( "job.$name", 'prod_addr' ) } || q{},
             prod_srv_repo_base_path => eval { $self->cfg( "job.$name", 'prod_srv_repo_base_path' ) } || q{},
             prod_srv_repo_pending_area_dir => eval { $self->cfg( "job.$name", 'prod_srv_repo_pending_area_dir' ) } || q{},
