@@ -229,8 +229,10 @@ func pushAndStageChange(repoPath string, branch string, commitID OID, summary st
 	if summary != "" {
 		reviewArgs = append(reviewArgs, "-m", escapeGerritMessage(summary))
 	}
-	// Pass in sanity review, since the sanity bot runs only after a delay and thus the commit will get refused.
-	reviewArgs = append(reviewArgs, "--code-review", "2", "--sanity-review", "1")
+	if !manualStage {
+		// Pass in sanity review, since the sanity bot runs only after a delay and thus the commit will get refused.
+		reviewArgs = append(reviewArgs, "--code-review", "2", "--sanity-review", "1")
+	}
 
 	updateCommand, err := gerritSSHCommand(*pushURL, reviewArgs...)
 	if err != nil {
