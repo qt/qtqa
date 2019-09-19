@@ -196,7 +196,7 @@ def checkResult():
                     lastLine = line.strip()[line.strip().rfind(
                         "description: \"") + 1:-1]
             with open(commentfile, "w") as comment_file:
-                comment_file.write(lastLine)
+                comment_file.write(lastLine if lastLine else "Okay")
             if lastLine:
                 print(f"Check Result found mismatches.")
                 return 1  # Some mismatches were found
@@ -338,6 +338,16 @@ def build(directory, module, sha, testType):
                                   stderr=configure_log, universal_newlines=True, shell=isWindowsOS)
             if proc.returncode:
                 print(f"{hr} ERROR Configuring {module}. Failing build {hr}")
+                if os.path.exists("config.summary"):
+                    print(f"{hhr} Dumping Configure Summary {hhr}")
+                    with open("config.summary") as configSummary:
+                        print(configSummary.read())
+                    print(f"{hhr} End of Configure Summary {hhr}")
+                else:
+                    print(f"{hhr} Dumping Configure log tail {hhr}")
+                    with open("configure.out") as configure_log_readback:
+                        print("\n".join(configure_log_readback.readlines()[:-20]))
+                    print(f"{hhr} End of Configure log tail {hhr}")
                 exit(proc.returncode)
     else:
         print("Running qmake...")
@@ -350,6 +360,10 @@ def build(directory, module, sha, testType):
                               stderr=build_log, universal_newlines=True, shell=isWindowsOS)
         if proc.returncode:
             print(f"{hr} ERROR Building {module}. Failing build {hr}")
+            print(f"{hhr} Dumping Build log tail {hhr}")
+            with open("build.out") as build_log_readback:
+                print("\n".join(build_log_readback.readlines()[:-20]))
+            print(f"{hhr} End of Build log tail {hhr}")
             exit(proc.returncode)
 
         print(f"Running Make Install for {module}/{testType}...")
@@ -621,7 +635,7 @@ new baselines to Lancelot.")
             resultsData = parseResults(
                 f"{testBaseDir}/{module}/{testDir}/results.xml")
             formattedResults = json.dumps(resultsData, indent=2)
-            print(f"Results:\n{formattedResults}")
+            print(f"Results:\n{formattedResults if formattedResults else 'ALL PASS'}")
             print(f"Dumping results to {out}\n")
             output_file.write(
                 formattedResults if formattedResults else "ALL PASS")
