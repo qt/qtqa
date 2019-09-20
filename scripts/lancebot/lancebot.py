@@ -84,19 +84,23 @@ outputfile = f"{workspace}/output.txt"
 buildCores = os.environ.get(
     "BUILD_CORES") if os.environ.get("BUILD_CORES") else str(os.cpu_count())
 VSDevEnv = os.environ.get("VS_DEV_ENV")
-flexBisonDir = f"{thisScriptDir}/../lancelot/flex_bison"  # Windows only
-lancelotConfigureOpts = [os.environ.get("LANCELOT_CONFIGURE_OPTIONS")] if os.environ.get(
+flexBisonDir = os.environ.get("FLEX_BISON_DIR") if os.environ.get(
+    "FLEX_BISON_DIR") else os.path.normpath(f"{workspace}/flex_bison")  # Windows only
+JOMPath = os.environ.get("JOM_PATH") if os.environ.get(
+    "JOM_PATH") else f"{workspace}/JOM/jom.exe"  # Windows only
+defaultLancelotConfigureOpts = [os.environ.get("LANCELOT_CONFIGURE_OPTIONS")] if os.environ.get(
     "LANCELOT_CONFIGURE_OPTIONS") else []
 
 try:
-    temp = lancelotConfigureOpts[0].split(" ")
+    temp = defaultLancelotConfigureOpts[0].split(" ")
     if temp.find(" ") > -1:
-        lancelotConfigureOpts = temp
+        defaultLancelotConfigureOpts = temp
         temp = ""
 except Exception:
     pass
 
-compiler = f"{thisScriptDir}/../JOM/jom.exe" if isWindowsOS else "make"
+
+compiler = "make"  # Windows will set this to JOM
 defaultPATH = os.environ.get("PATH")
 # Used for title headers to make logs more human readable.
 hr = "#######################"
@@ -104,6 +108,8 @@ hhr = "###########"
 
 
 def setWindowsEnv():
+    global compiler
+
     print("Configuring Windows environment variables...")
     os.environ["PATH"] = defaultPATH
     # runs the vsDevCmd file from the visual studio installation
@@ -118,8 +124,25 @@ def setWindowsEnv():
             continue
         os.environ[k] = v
 
-    if os.path.exists(flexBisonDir):
-        os.environ["PATH"] += (";" + flexBisonDir).replace("/", "\\")
+    if os.path.lexists(flexBisonDir):
+        os.environ["PATH"] += (";" + os.path.normpath(flexBisonDir))
+    if os.path.lexists(JOMPath):
+        os.environ["PATH"] += (";" + os.path.dirname(os.path.normpath(JOMPath)))
+
+    compiler = shutil.which("jom.exe")
+    if compiler:
+        print(f"Found JOM at {compiler}")
+    else:
+        print(f"{hr} ERROR: JOM NOT FOUND ON SYSTEM. ABORTING... {hr}")
+        print("See README.md for more information on how to specify a JOM location.")
+        exit(1)
+
+    flex = shutil.which("flex.exe")
+    bison = shutil.which("bison.exe")
+    if not flex or not bison:
+        print(f"{hr} ERROR: FLEX OR BISON NOT FOUND ON SYSTEM. ABORTING... {hr}")
+        print("See README.md for more information on how to acquire flex bison.")
+        exit(1)
 
 
 # catch for deleting files to try a less clean way of forcing deletion.
@@ -152,7 +175,7 @@ def version_gt(branch: str, reference: str):
 
 def setConfigureOptions():
     extraopts = []
-    global lancelotConfigureOpts
+    lancelotConfigureOpts = defaultLancelotConfigureOpts
 
     if version_gt(branch, "5.8"):
         extraopts.extend(["-no-feature-sql", "-no-feature-vnc"])
@@ -183,7 +206,7 @@ def setConfigureOptions():
             "-no-linuxfb"
         ])
 
-    return
+    return lancelotConfigureOpts
 
 
 def checkResult():
@@ -322,7 +345,7 @@ def build(directory, module, sha, testType):
         applyPatches(module, "no-commit")
 
     if (module == "qtbase"):
-        setConfigureOptions()
+        lancelotConfigureOpts = setConfigureOptions()
         if isWindowsOS:
             configurecmd = ["configure.bat"]
         else:
@@ -346,7 +369,7 @@ def build(directory, module, sha, testType):
                 else:
                     print(f"{hhr} Dumping Configure log tail {hhr}")
                     with open("configure.out") as configure_log_readback:
-                        print("\n".join(configure_log_readback.readlines()[:-20]))
+                        print("\n".join(configure_log_readback.readlines()[-20:]))
                     print(f"{hhr} End of Configure log tail {hhr}")
                 exit(proc.returncode)
     else:
@@ -362,7 +385,7 @@ def build(directory, module, sha, testType):
             print(f"{hr} ERROR Building {module}. Failing build {hr}")
             print(f"{hhr} Dumping Build log tail {hhr}")
             with open("build.out") as build_log_readback:
-                print("\n".join(build_log_readback.readlines()[:-20]))
+                print("\n".join(build_log_readback.readlines()[-20:]))
             print(f"{hhr} End of Build log tail {hhr}")
             exit(proc.returncode)
 
@@ -476,6 +499,7 @@ def parseResults(file: str):
     testFunctionsXML = []
     testNames = []
     testFailures = {}
+    testCount = 0
 
     try:
         xmldoc = minidom.parse(file)
@@ -485,6 +509,7 @@ def parseResults(file: str):
             testNames.append(item.attributes['name'].value)
             incidentsXML = item.getElementsByTagName('Incident')
             for incident in incidentsXML:
+                testCount += 1
                 if incident.attributes['type'].value == 'fail':
                     testFailures[item.attributes['name'].value].append(
                         {
@@ -499,7 +524,7 @@ def parseResults(file: str):
         if len(testFailures[name]) == 0:
             del testFailures[name]
 
-    return testFailures
+    return (testFailures, testCount)
 
 
 def runTest(testBaseDir, module, testType):
@@ -632,13 +657,14 @@ new baselines to Lancelot.")
             subprocess.run(
                 commandString, universal_newlines=True, shell=False)
             print("Parsing results.xml...")
-            resultsData = parseResults(
+            resultsData, testCount = parseResults(
                 f"{testBaseDir}/{module}/{testDir}/results.xml")
             formattedResults = json.dumps(resultsData, indent=2)
-            print(f"Results:\n{formattedResults if formattedResults else 'ALL PASS'}")
-            print(f"Dumping results to {out}\n")
             output_file.write(
-                formattedResults if formattedResults else "ALL PASS")
+                formattedResults if resultsData else "ALL PASS")
+            print(f"{testCount} total test cases run.")
+            print(f"Results:\n{formattedResults if resultsData else 'ALL PASS'}")
+            print(f"Dumping results to {out}\n")
 
         if (testType != "ref" and checkResult()):  # ignore mismatches if we're doing ref
             print("Found mismatches on a real test run. Aborting...")
