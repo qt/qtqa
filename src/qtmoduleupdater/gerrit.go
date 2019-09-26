@@ -89,8 +89,12 @@ func gerritSSHCommand(gerritURL url.URL, arguments ...string) (*exec.Cmd, error)
 
 	newArgs := []string{"-oBatchMode=yes", userAtHost, "-p", port}
 	newArgs = append(newArgs, arguments...)
-	ssh := os.Getenv("GIT_SSH")
-	if ssh == "" {
+	ssh := os.Getenv("GIT_SSH_COMMAND")
+	if ssh != "" {
+		commandLine := strings.Split(ssh, " ")
+		ssh = commandLine[0]
+		newArgs = append(commandLine[1:], newArgs...)
+	} else {
 		ssh = "ssh"
 	}
 	log.Printf("Running gerrit ssh command: 'ssh %v'\n", newArgs)

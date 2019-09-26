@@ -35,41 +35,14 @@ import (
 	"os"
 )
 
-func setupEnvironmentForSubmoduleUpdateBot() (cleanupFunction func(), username string, err error) {
-	cleanupFunction = func() {}
-
+func setupEnvironmentForSubmoduleUpdateBot() (username string, err error) {
 	submoduleUpdateBotKeyPath := "submodule_update_bot_key_rsa"
 	if _, err = os.Stat(submoduleUpdateBotKeyPath); os.IsNotExist(err) {
 		err = fmt.Errorf("cannot locate submodule update bot SSH key file. Please copy it from the coin secrets repo into the current directory")
 		return
 	}
 
-	var sshWrapperScript *os.File
-
-	cleanupFunction = func() {
-		if sshWrapperScript != nil {
-			os.Remove(sshWrapperScript.Name())
-		}
-	}
-
-	sshWrapperScript, err = ioutil.TempFile("", "")
-	if err != nil {
-		err = fmt.Errorf("Error creating temporary SSH wrapper script: %s", err)
-		return
-	}
-	if err = sshWrapperScript.Chmod(0700); err != nil {
-		sshWrapperScript.Close()
-		err = fmt.Errorf("Error making temporary SSH wrapper script executable: %s", err)
-		return
-	}
-	sshWrapperScript.Close()
-
-	scriptSource := fmt.Sprintf("#!/bin/sh\nexec ssh -i %s \"$@\"", submoduleUpdateBotKeyPath)
-	if err = ioutil.WriteFile(sshWrapperScript.Name(), []byte(scriptSource), 0700); err != nil {
-		err = fmt.Errorf("Error writing to temporary SSH wrapper script: %s", err)
-		return
-	}
-	os.Setenv("GIT_SSH", sshWrapperScript.Name())
+	os.Setenv("GIT_SSH_COMMAND", fmt.Sprintf("ssh -i %s", submoduleUpdateBotKeyPath))
 	os.Setenv("GIT_SSH_USER", "qt_submodule_update_bot")
 
 	os.Setenv("GIT_AUTHOR_NAME", "Qt Submodule Update Bot")
@@ -110,13 +83,11 @@ func appMain() error {
 
 	var pushUserName string
 	if stageAsBot {
-		var cleaner func()
 		var err error
-		cleaner, pushUserName, err = setupEnvironmentForSubmoduleUpdateBot()
+		pushUserName, err = setupEnvironmentForSubmoduleUpdateBot()
 		if err != nil {
 			return fmt.Errorf("error preparing environment to work as submodule-update user: %s", err)
 		}
-		defer cleaner()
 	}
 
 	batch := &ModuleUpdateBatch{
