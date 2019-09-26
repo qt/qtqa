@@ -189,7 +189,7 @@ func (batch *ModuleUpdateBatch) isDone() bool {
 	return len(batch.Todo) == 0 && len(batch.Pending) == 0
 }
 
-func (batch *ModuleUpdateBatch) PrintSummary() {
+func (batch *ModuleUpdateBatch) printSummary() {
 	fmt.Fprintf(os.Stdout, "Summary of git repository dependency update for target branch %s based off of %s\n", batch.Branch, batch.Product)
 
 	if batch.isDone() {

@@ -134,7 +134,7 @@ func appMain() error {
 	}
 
 	if summaryOnly {
-		batch.PrintSummary()
+		batch.printSummary()
 		return nil
 	}
 
@@ -144,7 +144,7 @@ func appMain() error {
 		return err
 	}
 
-	batch.PrintSummary()
+	batch.printSummary()
 
 	if !batch.isDone() {
 		err = batch.saveState()
