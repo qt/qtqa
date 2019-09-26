@@ -28,12 +28,9 @@
 package main
 
 import (
-	"bytes"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-
-	yaml "gopkg.in/yaml.v2"
 )
 
 func TestModuleYamlMarshalling(t *testing.T) {
@@ -49,12 +46,10 @@ func TestModuleYamlMarshalling(t *testing.T) {
 		Required: true,
 	}
 
-	output := &bytes.Buffer{}
-	encoder := yaml.NewEncoder(output)
-	encoder.Encode(&module)
-	encoder.Close()
-
-	yamlStr := output.String()
+	var yamlStr string
+	var err error
+	yamlStr, err = module.ToString()
+	assert.Nil(t, err, "Conversion to yaml string must succeed")
 
 	assert.Equal(t, `dependencies:
   a:
@@ -84,10 +79,8 @@ func TestProposedUpdateFailsForModulesThatDependOnMoreThanQtBase(t *testing.T) {
 	yamlObject, err := qtSvg.maybePrepareUpdatedDependenciesYaml(availableModules)
 	assert.NotNil(t, yamlObject, "Yaml object must be defined for qtsvg")
 
-	yamlStr := &bytes.Buffer{}
-	encoder := yaml.NewEncoder(yamlStr)
-	encoder.Encode(*yamlObject)
-	encoder.Close()
+	yamlStr, err := yamlObject.ToString()
+	assert.Nil(t, err, "Conversion to yaml string must succeed")
 
 	assert.Nil(t, err, "It should be possible to create a new dependencies.yaml file for qtsvg")
 	assert.NotEqual(t, "", yamlStr, "Yaml string must not be empty for qtsvg")

@@ -86,6 +86,19 @@ func (depMap *YAMLDependenciesMap) MarshalYAML() (interface{}, error) {
 	return result, nil
 }
 
+// ToString Converts the yaml dependencies map into its string representation, for storage
+// in the dependencies.yaml file, for example.
+func (depMap *YAMLDependencies) ToString() (string, error) {
+	output := &bytes.Buffer{}
+	encoder := yaml.NewEncoder(output)
+	if err := encoder.Encode(depMap); err != nil {
+		return "", fmt.Errorf("Error encoding YAML dependencies: %s", err)
+	}
+	encoder.Close()
+
+	return output.String(), nil
+}
+
 //go:generate stringer -type=DependenciesUpdateResultEnum
 
 // DependenciesUpdateResultEnum describes the different states after attempting to update the dependencies.yaml for a module.
@@ -389,12 +402,12 @@ func (module *Module) updateDependenciesForModule(availableModules map[string]*M
 		Path:        "dependencies.yaml",
 	}
 
-	yamlBuffer := &bytes.Buffer{}
-	yamlEncoder := yaml.NewEncoder(yamlBuffer)
-	yamlEncoder.Encode(*yamlObject)
-	yamlEncoder.Close()
+	yamlStr, err := yamlObject.ToString()
+	if err != nil {
+		return dependenciesUpdateResult{}, fmt.Errorf("Internal error encoding yaml to string: %s", err)
+	}
 
-	if err := index.HashObject(updatedIndexEntryForFile, yamlBuffer.Bytes()); err != nil {
+	if err := index.HashObject(updatedIndexEntryForFile, []byte(yamlStr)); err != nil {
 		return dependenciesUpdateResult{}, err
 	}
 
