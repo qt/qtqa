@@ -96,10 +96,16 @@ func removeAllDirectAndIndirectDependencies(allModules *map[string]*Module, modu
 }
 
 func (batch *ModuleUpdateBatch) checkPendingModules() {
+	log.Println("Checking status of pending modules")
 	var newPending []*PendingUpdate
 	for _, pendingUpdate := range batch.Pending {
 		module := pendingUpdate.Module
 		status, err := getGerritChangeStatus(module.RepoPath, module.Branch, pendingUpdate.ChangeID)
+		if err != nil {
+			log.Printf("    status check of %s gave error: %s\n", module.RepoPath, err)
+		} else {
+			log.Printf("    status of %s: %s\n", module.RepoPath, status)
+		}
 		if err != nil || status == "STAGED" || status == "INTEGRATING" || status == "STAGING" {
 			// no change yet
 			newPending = append(newPending, pendingUpdate)
