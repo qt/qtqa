@@ -123,14 +123,14 @@ func appMain() error {
 			return err
 		}
 	} else {
-		os.Remove("state.json")
-
 		if batch.FailedModuleCount == 0 {
 			fmt.Println("Preparing qt5 update")
 			if err = prepareQt5Update(product, batch.Branch, batch.Done, pushUserName, manualStage); err != nil {
 				return fmt.Errorf("error preparing qt5 update: %s", err)
 			}
 		}
+
+		batch.clearState()
 	}
 
 	return nil

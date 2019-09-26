@@ -198,6 +198,10 @@ func (batch *ModuleUpdateBatch) loadState() error {
 	return nil
 }
 
+func (batch *ModuleUpdateBatch) clearState() {
+	os.Remove(batch.stateFileName())
+}
+
 func (batch *ModuleUpdateBatch) isDone() bool {
 	return len(batch.Todo) == 0 && len(batch.Pending) == 0
 }
