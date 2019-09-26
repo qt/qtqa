@@ -246,5 +246,13 @@ func prepareQt5Update(product string, branch string, updatedModules map[string]*
 
 	fmt.Printf("Created new commit for submodule update: %s\n", commitOid)
 
-	return pushAndStageChange(product, branch, commitOid, "Updating all submodules with a new consistent set", pushUserName, manualStage)
+	if err = pushChange(product, branch, commitOid, "Updating all submodules with a new consistent set", pushUserName); err != nil {
+		return fmt.Errorf("Error pushing qt5 change: %s", err)
+	}
+
+	if manualStage {
+		return nil
+	}
+
+	return reviewAndStageChange(product, branch, commitOid, "Updating all submodules with a new consistent set", pushUserName)
 }

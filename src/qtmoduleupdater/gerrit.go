@@ -205,7 +205,7 @@ func escapeGerritMessage(message string) string {
 	return `"` + replacer.Replace(message) + `"`
 }
 
-func pushAndStageChange(repoPath string, branch string, commitID OID, summary string, pushUserName string, manualStage bool) error {
+func pushChange(repoPath string, branch string, commitID OID, summary string, pushUserName string) error {
 	repo, err := OpenRepository(repoPath)
 	if err != nil {
 		return err
@@ -219,9 +219,16 @@ func pushAndStageChange(repoPath string, branch string, commitID OID, summary st
 		pushURL.User = url.User(pushUserName)
 	}
 
-	err = repo.Push(pushURL, commitID, "refs/for/"+branch)
+	return repo.Push(pushURL, commitID, "refs/for/"+branch)
+}
+
+func reviewAndStageChange(repoPath string, branch string, commitID OID, summary string, pushUserName string) error {
+	pushURL, err := RepoURL(repoPath)
 	if err != nil {
 		return err
+	}
+	if pushUserName != "" {
+		pushURL.User = url.User(pushUserName)
 	}
 
 	reviewArgs := []string{"gerrit", "review", string(commitID)}
@@ -229,10 +236,8 @@ func pushAndStageChange(repoPath string, branch string, commitID OID, summary st
 	if summary != "" {
 		reviewArgs = append(reviewArgs, "-m", escapeGerritMessage(summary))
 	}
-	if !manualStage {
-		// Pass in sanity review, since the sanity bot runs only after a delay and thus the commit will get refused.
-		reviewArgs = append(reviewArgs, "--code-review", "2", "--sanity-review", "1")
-	}
+	// Pass in sanity review, since the sanity bot runs only after a delay and thus the commit will get refused.
+	reviewArgs = append(reviewArgs, "--code-review", "2", "--sanity-review", "1")
 
 	updateCommand, err := gerritSSHCommand(*pushURL, reviewArgs...)
 	if err != nil {
@@ -242,10 +247,6 @@ func pushAndStageChange(repoPath string, branch string, commitID OID, summary st
 	updateCommand.Stderr = os.Stderr
 	if err = updateCommand.Run(); err != nil {
 		return err
-	}
-
-	if manualStage {
-		return nil
 	}
 
 	stageArgs := []string{"gerrit-plugin-qt-workflow", "stage", string(commitID)}

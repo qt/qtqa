@@ -66,9 +66,16 @@ func (batch *ModuleUpdateBatch) scheduleUpdates(pushUserName string, manualStage
 			// Nothing to be done, we are waiting for indirect dependencies
 		} else if update.result == DependenciesUpdateUpdateScheduled {
 			// push and stage
-			if err = pushAndStageChange(moduleToUpdate.RepoPath, moduleToUpdate.Branch, update.commitID, update.summary, pushUserName, manualStage); err != nil {
+			if err = pushChange(moduleToUpdate.RepoPath, moduleToUpdate.Branch, update.commitID, update.summary, pushUserName); err != nil {
 				return fmt.Errorf("error pushing change upate: %s", err)
 			}
+
+			if !manualStage {
+				if err = reviewAndStageChange(moduleToUpdate.RepoPath, moduleToUpdate.Branch, update.commitID, update.summary, pushUserName); err != nil {
+					return fmt.Errorf("error pushing change upate: %s", err)
+				}
+			}
+
 			batch.Pending = append(batch.Pending, &PendingUpdate{moduleToUpdate, update.changeID})
 			delete(batch.Todo, moduleToUpdate.RepoPath)
 		} else {
