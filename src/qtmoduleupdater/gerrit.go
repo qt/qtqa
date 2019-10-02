@@ -72,11 +72,6 @@ type GerritChangeOrStats struct {
 }
 
 func gerritSSHCommand(gerritURL url.URL, arguments ...string) (*exec.Cmd, error) {
-	user := os.Getenv("GIT_SSH_USER")
-	if user != "" {
-		gerritURL.User = url.User(user)
-	}
-
 	host, port, err := net.SplitHostPort(gerritURL.Host)
 	if err != nil {
 		return nil, fmt.Errorf("Error splitting host and port from gerrit URL: %s", err)
@@ -102,7 +97,7 @@ func gerritSSHCommand(gerritURL url.URL, arguments ...string) (*exec.Cmd, error)
 }
 
 func getGerritChangeStatus(project string, branch string, changeID string) (status string, err error) {
-	gerritURL, err := RepoURL(project)
+	gerritURL, err := RepoPushURL(project)
 	if err != nil {
 		return "", fmt.Errorf("Error parsing gerrit URL: %s", err)
 	}
@@ -149,7 +144,7 @@ func getGerritChangeStatus(project string, branch string, changeID string) (stat
 }
 
 func getExistingChange(project string, branch string) (gerritChangeID string, changeNumber int, patchSetNr int, err error) {
-	gerritURL, err := RepoURL(project)
+	gerritURL, err := RepoPushURL(project)
 	if err != nil {
 		return "", 0, 0, fmt.Errorf("Error parsing gerrit URL: %s", err)
 	}
@@ -226,14 +221,13 @@ func pushChange(repoPath string, branch string, commitID OID, summary string, pu
 	return repo.Push(pushURL, commitID, "refs/for/"+branch)
 }
 
-func reviewAndStageChange(repoPath string, branch string, commitID OID, summary string, pushUserName string) error {
-	pushURL, err := RepoURL(repoPath)
+func reviewAndStageChange(repoPath string, branch string, commitID OID, summary string) error {
+	pushURL, err := RepoPushURL(repoPath)
 	if err != nil {
 		return err
 	}
-	if pushUserName != "" {
-		pushURL.User = url.User(pushUserName)
-	}
+	// Always review/approve as current user as the bot does not have approval rights.
+	pushURL.User = nil
 
 	reviewArgs := []string{"gerrit", "review", string(commitID)}
 

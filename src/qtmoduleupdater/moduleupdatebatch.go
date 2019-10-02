@@ -71,7 +71,7 @@ func (batch *ModuleUpdateBatch) scheduleUpdates(pushUserName string, manualStage
 			}
 
 			if !manualStage {
-				if err = reviewAndStageChange(moduleToUpdate.RepoPath, moduleToUpdate.Branch, update.commitID, update.summary, pushUserName); err != nil {
+				if err = reviewAndStageChange(moduleToUpdate.RepoPath, moduleToUpdate.Branch, update.commitID, update.summary); err != nil {
 					return fmt.Errorf("error pushing change upate: %s", err)
 				}
 			}

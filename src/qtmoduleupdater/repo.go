@@ -73,7 +73,7 @@ type Repository string
 // OID is a git object identifier, in the form of a SHA1 check-sum.
 type OID string
 
-// RepoURL returns a clone/push/fetch URL for the given project.
+// RepoURL returns a clone/fetch URL for the given project.
 func RepoURL(project string) (*url.URL, error) {
 	gerritConfig := struct {
 		URL  string
@@ -87,6 +87,19 @@ func RepoURL(project string) (*url.URL, error) {
 	repo.Path = "/" + project
 	repo.Scheme = "ssh"
 	return repo, nil
+}
+
+// RepoPushURL returns a URL to use for pusing changes to the project.
+func RepoPushURL(project string) (*url.URL, error) {
+	pushUrl, err := RepoURL(project)
+	if err != nil {
+		return nil, err
+	}
+	user := os.Getenv("GIT_SSH_USER")
+	if user != "" {
+		pushUrl.User = url.User(user)
+	}
+	return pushUrl, nil
 }
 
 // OpenRepository is used to create a new repository wrapper for the specified project.

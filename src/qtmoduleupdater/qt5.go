@@ -254,5 +254,5 @@ func prepareQt5Update(product string, branch string, updatedModules map[string]*
 		return nil
 	}
 
-	return reviewAndStageChange(product, branch, commitOid, "Updating all submodules with a new consistent set", pushUserName)
+	return reviewAndStageChange(product, branch, commitOid, "Updating all submodules with a new consistent set")
 }
