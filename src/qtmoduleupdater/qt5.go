@@ -228,7 +228,7 @@ func prepareQt5Update(product string, branch string, updatedModules map[string]*
 		return fmt.Errorf("could not write index with updated submodule sha1s: %s", err)
 	}
 
-	changeID, _, _, err := getExistingChange(product, branch)
+	changeID, _, _, _, err := getExistingChange(product, branch)
 	if err != nil {
 		return fmt.Errorf("error looking for an existing change while updating submodules: %s", err)
 	}

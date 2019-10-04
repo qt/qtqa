@@ -143,19 +143,19 @@ func getGerritChangeStatus(project string, branch string, changeID string) (stat
 	return status, nil
 }
 
-func getExistingChange(project string, branch string) (gerritChangeID string, changeNumber int, patchSetNr int, err error) {
+func getExistingChange(project string, branch string) (gerritChangeID string, changeNumber int, patchSetNr int, status string, err error) {
 	gerritURL, err := RepoPushURL(project)
 	if err != nil {
-		return "", 0, 0, fmt.Errorf("Error parsing gerrit URL: %s", err)
+		return "", 0, 0, "", fmt.Errorf("Error parsing gerrit URL: %s", err)
 	}
-	queryString := fmt.Sprintf(`project:%s branch:%s status:open owner:self message:{Update dependencies on \'%s\' in %s}`, project, branch, branch, project)
+	queryString := fmt.Sprintf(`project:%s branch:%s NOT(status:merged OR status:abandoned OR status:deferred) owner:self message:{Update dependencies on \'%s\' in %s}`, project, branch, branch, project)
 	cmd, err := gerritSSHCommand(*gerritURL, "gerrit", "query", "--patch-sets", "--format JSON", queryString)
 	if err != nil {
-		return "", 0, 0, err
+		return "", 0, 0, "", err
 	}
 	output, err := cmd.Output()
 	if err != nil {
-		return "", 0, 0, fmt.Errorf("Error running gerrit query command: %s", err)
+		return "", 0, 0, "", fmt.Errorf("Error running gerrit query command: %s", err)
 	}
 
 	var id string
@@ -169,24 +169,25 @@ func getExistingChange(project string, branch string) (gerritChangeID string, ch
 		var field GerritChangeOrStats
 		err = json.Unmarshal([]byte(line), &field)
 		if err != nil {
-			return "", 0, 0, fmt.Errorf("Error reading gerrit json response: %s:%s", err, string(output))
+			return "", 0, 0, "", fmt.Errorf("Error reading gerrit json response: %s:%s", err, string(output))
 		}
 		if field.Type == "stats" {
 			if field.RowCount == 0 {
-				return "", 0, 0, nil
+				return "", 0, 0, "", nil
 			}
 			if field.RowCount != 1 {
-				return "", 0, 0, fmt.Errorf("unexpected row count %v when querying for existing gerrit changes", field.RowCount)
+				return "", 0, 0, "", fmt.Errorf("unexpected row count %v when querying for existing gerrit changes", field.RowCount)
 			}
 			continue
 		}
 
 		if field.Project == project {
 			if id != "" {
-				return "", 0, 0, fmt.Errorf("unexpectedly found multiple changes for submodule updates: Id %s and %s", id, field.ID)
+				return "", 0, 0, "", fmt.Errorf("unexpectedly found multiple changes for submodule updates: Id %s and %s", id, field.ID)
 			}
 			id = field.ID
 			changeNumber = field.Number
+			status = field.Status
 			patchSetNr = 0
 			for _, patchSet := range field.PatchSets {
 				if patchSet.Number > patchSetNr {
@@ -196,7 +197,7 @@ func getExistingChange(project string, branch string) (gerritChangeID string, ch
 			continue
 		}
 	}
-	return id, changeNumber, patchSetNr, nil
+	return id, changeNumber, patchSetNr, status, nil
 }
 
 func escapeGerritMessage(message string) string {

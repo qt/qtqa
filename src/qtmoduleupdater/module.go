@@ -438,13 +438,16 @@ func (module *Module) updateDependenciesForModule(availableModules map[string]*M
 		return dependenciesUpdateResult{}, err
 	}
 
-	changeID, _, _, err := getExistingChange(module.RepoPath, module.Branch)
+	changeID, _, _, status, err := getExistingChange(module.RepoPath, module.Branch)
 	if err != nil {
 		return dependenciesUpdateResult{}, fmt.Errorf("failure to check for existing change id for module %s: %s", module.RepoPath, err)
 	}
 
 	if changeID == "" {
 		changeID = fmt.Sprintf("I%s", newTree)
+	} else if status == "STAGED" || status == "INTEGRATING" || status == "STAGING" {
+		// Assume that this is still work in progress, so try again later.
+		return dependenciesUpdateResult{result: DependenciesUpdateDependencyMissing}, nil
 	}
 
 	message := fmt.Sprintf("Update dependencies on '%s' in %s\n\nChange-Id: %s\n", module.Branch, module.RepoPath, changeID)
