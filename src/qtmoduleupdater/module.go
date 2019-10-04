@@ -390,6 +390,8 @@ func (module *Module) updateDependenciesForModule(availableModules map[string]*M
 	}
 	defer index.Free()
 
+	module.refreshTip()
+
 	err = index.ReadTree(module.Tip)
 	if err != nil {
 		return dependenciesUpdateResult{}, fmt.Errorf("Error populating temporary index from tree: %s", err)
