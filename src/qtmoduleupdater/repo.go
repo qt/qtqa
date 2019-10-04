@@ -91,15 +91,15 @@ func RepoURL(project string) (*url.URL, error) {
 
 // RepoPushURL returns a URL to use for pusing changes to the project.
 func RepoPushURL(project string) (*url.URL, error) {
-	pushUrl, err := RepoURL(project)
+	pushURL, err := RepoURL(project)
 	if err != nil {
 		return nil, err
 	}
 	user := os.Getenv("GIT_SSH_USER")
 	if user != "" {
-		pushUrl.User = url.User(user)
+		pushURL.User = url.User(user)
 	}
-	return pushUrl, nil
+	return pushURL, nil
 }
 
 // OpenRepository is used to create a new repository wrapper for the specified project.
