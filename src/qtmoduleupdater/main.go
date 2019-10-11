@@ -69,6 +69,8 @@ func appMain() error {
 	flag.BoolVar(&summaryOnly, "summarize", false /*default*/, "")
 	verbose := false
 	flag.BoolVar(&verbose, "verbose", false /*default*/, "Enable verbose logging output")
+	autorun := false
+	flag.BoolVar(&autorun, "autorun", false, "Run automatically by reading settings from autorun.json")
 	flag.Parse()
 
 	if !verbose {
@@ -77,8 +79,8 @@ func appMain() error {
 		log.SetOutput(ioutil.Discard)
 	}
 
-	if branch == "" {
-		return fmt.Errorf("missing branch. Please specify -branch=<name of branch>")
+	if autorun {
+		stageAsBot = true
 	}
 
 	gerrit := &gerritInstance{}
@@ -90,6 +92,17 @@ func appMain() error {
 		if err != nil {
 			return fmt.Errorf("error preparing environment to work as submodule-update user: %s", err)
 		}
+	}
+
+	if autorun {
+		autorun := &AutoRunSettings{}
+		autorun.load()
+		autorun.runUpdates(gerrit)
+		return nil
+	}
+
+	if branch == "" {
+		return fmt.Errorf("missing branch. Please specify -branch=<name of branch>")
 	}
 
 	batch, err := newModuleUpdateBatch(product, branch, productRef)

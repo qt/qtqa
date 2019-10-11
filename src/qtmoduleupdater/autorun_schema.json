@@ -1,0 +1,18 @@
+{
+    "title": "qtmoduleupdater auto-run configuration",
+    "type": "object",
+    "properties": {
+        "version": {
+            "type": "integer",
+            "description": "The file format version expected, currently 1."
+        },
+        "branches": {
+            "type": "array",
+            "description": "List of qt5 branches to submit updates to.",
+            "items": {
+                "type": "string"
+            }
+        }
+    },
+    "required": ["version"]
+}
