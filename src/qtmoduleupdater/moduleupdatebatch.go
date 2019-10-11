@@ -53,7 +53,7 @@ type ModuleUpdateBatch struct {
 	FailedModuleCount int
 }
 
-func (batch *ModuleUpdateBatch) scheduleUpdates(pushUserName string, manualStage bool) error {
+func (batch *ModuleUpdateBatch) scheduleUpdates(gerrit *gerritInstance) error {
 	for _, moduleToUpdate := range batch.Todo {
 		update, err := moduleToUpdate.updateDependenciesForModule(batch.Done)
 		if err != nil {
@@ -67,14 +67,12 @@ func (batch *ModuleUpdateBatch) scheduleUpdates(pushUserName string, manualStage
 			// Nothing to be done, we are waiting for indirect dependencies
 		} else if update.result == DependenciesUpdateUpdateScheduled {
 			// push and stage
-			if err = pushChange(moduleToUpdate.RepoPath, moduleToUpdate.Branch, update.commitID, update.summary, pushUserName); err != nil {
+			if err = gerrit.pushChange(moduleToUpdate.RepoPath, moduleToUpdate.Branch, update.commitID, update.summary); err != nil {
 				return fmt.Errorf("error pushing change upate: %s", err)
 			}
 
-			if !manualStage {
-				if err = reviewAndStageChange(moduleToUpdate.RepoPath, moduleToUpdate.Branch, update.commitID, update.summary); err != nil {
-					return fmt.Errorf("error pushing change upate: %s", err)
-				}
+			if err = gerrit.reviewAndStageChange(moduleToUpdate.RepoPath, moduleToUpdate.Branch, update.commitID, update.summary); err != nil {
+				return fmt.Errorf("error pushing change upate: %s", err)
 			}
 
 			batch.Pending = append(batch.Pending, &PendingUpdate{moduleToUpdate, update.changeID})

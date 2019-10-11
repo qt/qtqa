@@ -171,7 +171,7 @@ func getQt5ProductModules(productProject string, branchOrRef string, productFetc
 	return listSubmodules(productRepo, productRepoURL, productHead)
 }
 
-func prepareQt5Update(product string, branch string, updatedModules map[string]*Module, pushUserName string, manualStage bool) error {
+func prepareQt5Update(product string, branch string, updatedModules map[string]*Module, gerrit *gerritInstance) error {
 	productRepoURL, err := RepoURL(product)
 	if err != nil {
 		return fmt.Errorf("Error determining %s repo URL: %s", product, err)
@@ -246,13 +246,9 @@ func prepareQt5Update(product string, branch string, updatedModules map[string]*
 
 	fmt.Printf("Created new commit for submodule update: %s\n", commitOid)
 
-	if err = pushChange(product, branch, commitOid, "Updating all submodules with a new consistent set", pushUserName); err != nil {
+	if err = gerrit.pushChange(product, branch, commitOid, "Updating all submodules with a new consistent set"); err != nil {
 		return fmt.Errorf("Error pushing qt5 change: %s", err)
 	}
 
-	if manualStage {
-		return nil
-	}
-
-	return reviewAndStageChange(product, branch, commitOid, "Updating all submodules with a new consistent set")
+	return gerrit.reviewAndStageChange(product, branch, commitOid, "Updating all submodules with a new consistent set")
 }

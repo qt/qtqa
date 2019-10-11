@@ -81,10 +81,12 @@ func appMain() error {
 		return fmt.Errorf("missing branch. Please specify -branch=<name of branch>")
 	}
 
-	var pushUserName string
+	gerrit := &gerritInstance{}
+	gerrit.disableStaging = manualStage
+
 	if stageAsBot {
 		var err error
-		pushUserName, err = setupEnvironmentForSubmoduleUpdateBot()
+		gerrit.pushUserName, err = setupEnvironmentForSubmoduleUpdateBot()
 		if err != nil {
 			return fmt.Errorf("error preparing environment to work as submodule-update user: %s", err)
 		}
@@ -112,7 +114,7 @@ func appMain() error {
 
 	batch.checkPendingModules()
 
-	if err := batch.scheduleUpdates(pushUserName, manualStage); err != nil {
+	if err := batch.scheduleUpdates(gerrit); err != nil {
 		return err
 	}
 
@@ -126,7 +128,7 @@ func appMain() error {
 	} else {
 		if batch.FailedModuleCount == 0 {
 			fmt.Println("Preparing qt5 update")
-			if err = prepareQt5Update(product, batch.Branch, batch.Done, pushUserName, manualStage); err != nil {
+			if err = prepareQt5Update(product, batch.Branch, batch.Done, gerrit); err != nil {
 				return fmt.Errorf("error preparing qt5 update: %s", err)
 			}
 		}

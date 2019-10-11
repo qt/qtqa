@@ -205,7 +205,12 @@ func escapeGerritMessage(message string) string {
 	return `"` + replacer.Replace(message) + `"`
 }
 
-func pushChange(repoPath string, branch string, commitID OID, summary string, pushUserName string) error {
+type gerritInstance struct {
+	pushUserName   string
+	disableStaging bool
+}
+
+func (instance *gerritInstance) pushChange(repoPath string, branch string, commitID OID, summary string) error {
 	repo, err := OpenRepository(repoPath)
 	if err != nil {
 		return err
@@ -215,14 +220,18 @@ func pushChange(repoPath string, branch string, commitID OID, summary string, pu
 	if err != nil {
 		return err
 	}
-	if pushUserName != "" {
-		pushURL.User = url.User(pushUserName)
+	if instance.pushUserName != "" {
+		pushURL.User = url.User(instance.pushUserName)
 	}
 
 	return repo.Push(pushURL, commitID, "refs/for/"+branch)
 }
 
-func reviewAndStageChange(repoPath string, branch string, commitID OID, summary string) error {
+func (instance *gerritInstance) reviewAndStageChange(repoPath string, branch string, commitID OID, summary string) error {
+	if instance.disableStaging {
+		return nil
+	}
+
 	pushURL, err := RepoPushURL(repoPath)
 	if err != nil {
 		return err
