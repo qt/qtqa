@@ -61,8 +61,8 @@ func appMain() error {
 	flag.BoolVar(&stageAsBot, "stage-as-bot", false /*default*/, "Push changes to Gerrit using the submodule update bot account")
 	var branch string
 	flag.StringVar(&branch, "branch", "", "Branch to update")
-	var fetchRef string
-	flag.StringVar(&fetchRef, "fetch-ref", "", "Git ref in qt5 to use as basis for a new round of updates")
+	var productRef string
+	flag.StringVar(&productRef, "product-ref", "", "Git ref in qt5 to use as basis for a new round of updates")
 	manualStage := false
 	flag.BoolVar(&manualStage, "manual-stage", false /*default*/, "Do not stage changes automatically")
 	summaryOnly := false
@@ -91,14 +91,15 @@ func appMain() error {
 	}
 
 	batch := &ModuleUpdateBatch{
-		Product: product,
-		Branch:  branch,
+		Product:    product,
+		ProductRef: productRef,
+		Branch:     branch,
 	}
 	var err error
 
 	err = batch.loadState()
 	if os.IsNotExist(err) {
-		err = batch.loadTodoList(fetchRef)
+		err = batch.loadTodoList()
 		if err != nil {
 			return err
 		}

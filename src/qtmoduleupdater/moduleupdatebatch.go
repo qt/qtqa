@@ -45,6 +45,7 @@ type PendingUpdate struct {
 // ModuleUpdateBatch is used to serialize and de-serialize the module updating state, used for debugging.
 type ModuleUpdateBatch struct {
 	Product           string
+	ProductRef        string
 	Branch            string
 	Todo              map[string]*Module
 	Done              map[string]*Module
@@ -148,8 +149,8 @@ func loadTodoAndDoneModuleMapFromSubModules(branch string, submodules map[string
 	return todoModules, doneModules, nil
 }
 
-func (batch *ModuleUpdateBatch) loadTodoList(qt5FetchRef string) error {
-	qt5Modules, err := getQt5ProductModules(batch.Product, batch.Branch, qt5FetchRef)
+func (batch *ModuleUpdateBatch) loadTodoList() error {
+	qt5Modules, err := getQt5ProductModules(batch.Product, batch.Branch, batch.ProductRef)
 	if err != nil {
 		return fmt.Errorf("Error listing qt5 product modules: %s", err)
 	}
