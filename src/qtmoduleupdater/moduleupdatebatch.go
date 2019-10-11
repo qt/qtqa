@@ -53,6 +53,24 @@ type ModuleUpdateBatch struct {
 	FailedModuleCount int
 }
 
+func newModuleUpdateBatch(product string, branch string, productRef string) (*ModuleUpdateBatch, error) {
+	batch := &ModuleUpdateBatch{
+		Product:    product,
+		ProductRef: productRef,
+		Branch:     branch,
+	}
+	var err error
+
+	err = batch.loadState()
+	if os.IsNotExist(err) {
+		err = batch.loadTodoList()
+		if err != nil {
+			return nil, err
+		}
+	}
+	return batch, nil
+}
+
 func (batch *ModuleUpdateBatch) scheduleUpdates(gerrit *gerritInstance) error {
 	for _, moduleToUpdate := range batch.Todo {
 		update, err := moduleToUpdate.updateDependenciesForModule(batch.Done)
@@ -240,4 +258,32 @@ func (batch *ModuleUpdateBatch) printSummary() {
 
 	fmt.Println()
 	fmt.Println()
+}
+
+func (batch *ModuleUpdateBatch) runOneIteration(gerrit *gerritInstance) error {
+	batch.checkPendingModules()
+
+	if err := batch.scheduleUpdates(gerrit); err != nil {
+		return err
+	}
+
+	batch.printSummary()
+
+	if !batch.isDone() {
+		err := batch.saveState()
+		if err != nil {
+			return err
+		}
+	} else {
+		if batch.FailedModuleCount == 0 {
+			fmt.Println("Preparing qt5 update")
+			if err := prepareQt5Update(batch.Product, batch.Branch, batch.Done, gerrit); err != nil {
+				return fmt.Errorf("error preparing qt5 update: %s", err)
+			}
+		}
+
+		batch.clearState()
+	}
+
+	return nil
 }

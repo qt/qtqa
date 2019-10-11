@@ -92,19 +92,9 @@ func appMain() error {
 		}
 	}
 
-	batch := &ModuleUpdateBatch{
-		Product:    product,
-		ProductRef: productRef,
-		Branch:     branch,
-	}
-	var err error
-
-	err = batch.loadState()
-	if os.IsNotExist(err) {
-		err = batch.loadTodoList()
-		if err != nil {
-			return err
-		}
+	batch, err := newModuleUpdateBatch(product, branch, productRef)
+	if err != nil {
+		return err
 	}
 
 	if summaryOnly {
@@ -112,31 +102,7 @@ func appMain() error {
 		return nil
 	}
 
-	batch.checkPendingModules()
-
-	if err := batch.scheduleUpdates(gerrit); err != nil {
-		return err
-	}
-
-	batch.printSummary()
-
-	if !batch.isDone() {
-		err = batch.saveState()
-		if err != nil {
-			return err
-		}
-	} else {
-		if batch.FailedModuleCount == 0 {
-			fmt.Println("Preparing qt5 update")
-			if err = prepareQt5Update(product, batch.Branch, batch.Done, gerrit); err != nil {
-				return fmt.Errorf("error preparing qt5 update: %s", err)
-			}
-		}
-
-		batch.clearState()
-	}
-
-	return nil
+	return batch.runOneIteration(gerrit)
 }
 
 func main() {
