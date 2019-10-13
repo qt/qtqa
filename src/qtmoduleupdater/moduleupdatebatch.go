@@ -144,18 +144,12 @@ func loadTodoAndDoneModuleMapFromSubModules(branch string, submodules map[string
 	doneModules := make(map[string]*Module)
 
 	for name, submodule := range submodules {
-		// Erase modules that don't follow the qt5 branching scheme and don't need
-		// dependencies.yaml
-		if submodule.branch == "master" {
-			continue
-		}
-
 		module, err := NewModule(name, branch, submodules)
 		if err != nil {
 			return nil, nil, fmt.Errorf("could not create internal module structure: %s", err)
 		}
 
-		if submodule.repoType == "inherited" || name == "qt/qtbase" {
+		if submodule.repoType == "inherited" || name == "qt/qtbase" || submodule.branch != branch {
 			doneModules[module.RepoPath] = module
 		} else {
 			todoModules[module.RepoPath] = module
