@@ -30,6 +30,8 @@ package main
 import (
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestRepo(t *testing.T) {
@@ -125,6 +127,37 @@ func TestIndex(t *testing.T) {
 	if index.EntryCount() != 21452 {
 		t.Fatalf("Unexpected index entry count %v", index.EntryCount())
 	}
+}
+
+func TestNewIndex(t *testing.T) {
+	repo, err := OpenRepository("qt/qtbase")
+	assert.Nilf(t, err, "Unexpected error opening qtbase repo: %s", err)
+
+	index, err := repo.NewIndex()
+	if err != nil {
+		t.Fatalf("Could not get index.")
+	}
+	defer index.Free()
+
+	sampleContent := []byte("Hello World")
+
+	indexEntry := &IndexEntry{
+		Permissions: "100644",
+		Path:        "test.txt",
+	}
+
+	err = index.HashObject(indexEntry, sampleContent)
+	assert.Nilf(t, err, "should be able to add data to git database: %s", err)
+
+	assert.Equal(t, OID("5e1c309dae7f45e0f39b1bf3ac3cd9db12e7d689"), indexEntry.ID)
+
+	err = index.Add(indexEntry)
+	assert.Nilf(t, err, "should be able to add entry to new index: %s", err)
+
+	tree, err := index.WriteTree()
+	assert.Nilf(t, err, "should be able to write tree: %s", err)
+
+	assert.Equal(t, OID("4f11af3e4e067fc319abd053205f39bc40652f05"), tree)
 }
 
 func TestLog(t *testing.T) {

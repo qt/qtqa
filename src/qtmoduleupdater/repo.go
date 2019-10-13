@@ -280,6 +280,7 @@ type Index struct {
 	file          *os.File
 	repo          Repository
 	cachedEntries []IndexEntry
+	populated     bool
 }
 
 // NewIndex creates a new git index based on a temporary file. Unless you'd like to
@@ -293,6 +294,7 @@ func (repo Repository) NewIndex() (result *Index, err error) {
 	if err != nil {
 		return nil, err
 	}
+	result.populated = false
 	return result, nil
 }
 
@@ -395,15 +397,20 @@ func (idx *Index) ReadTree(tree OID) error {
 	if err != nil {
 		return err
 	}
+	idx.populated = true
 	return idx.updateCachedEntries()
 }
 
 // Add adds a new entry to the index or updates an existing one if already present.
 func (idx *Index) Add(entry *IndexEntry) error {
+	if !idx.populated {
+		os.Remove(idx.file.Name())
+	}
 	_, err := idx.gitCommandWithIndex("update-index", "--add", "--cacheinfo", fmt.Sprintf("%s,%s,%s", entry.Permissions, entry.ID, entry.Path)).Run()
 	if err != nil {
 		return err
 	}
+	idx.populated = true
 	return idx.updateCachedEntries()
 }
 
