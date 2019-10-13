@@ -28,9 +28,11 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"log"
+	"net/url"
 	"os"
 	"strings"
 )
@@ -63,7 +65,7 @@ func newModuleUpdateBatch(product string, branch string, productRef string) (*Mo
 	}
 	var err error
 
-	err = batch.loadState()
+	err = batch.loadStateFromCommit()
 	if os.IsNotExist(err) {
 		err = batch.loadTodoList()
 		if err != nil {
@@ -189,6 +191,136 @@ func (batch *ModuleUpdateBatch) stateFileName() string {
 	return fmt.Sprintf("state_%s_%s.json", sanitizeBranchOrRepo(batch.Product), sanitizeBranchOrRepo(batch.Branch))
 }
 
+func (batch *ModuleUpdateBatch) saveStateAsCommit(gerrit *gerritInstance) error {
+	productRepo, err := OpenRepository(batch.Product)
+	if err != nil {
+		return fmt.Errorf("Error opening product repo: %s", err)
+	}
+
+	index, err := productRepo.NewIndex()
+	if err != nil {
+		return fmt.Errorf("Error creating temporary index for saving batch state: %s", err)
+	}
+	defer index.Free()
+
+	jsonBuffer := &bytes.Buffer{}
+	encoder := json.NewEncoder(jsonBuffer)
+	encoder.SetIndent("", "    ")
+	if err = encoder.Encode(batch); err != nil {
+		return fmt.Errorf("Error serializing module update batch state to json: %s", err)
+	}
+
+	indexEntry := &IndexEntry{
+		Permissions: "100644",
+		Path:        "state.json",
+	}
+
+	if err = index.HashObject(indexEntry, jsonBuffer.Bytes()); err != nil {
+		return fmt.Errorf("Error adding json serialized module update batch state to git database: %s", err)
+	}
+
+	if err = index.Add(indexEntry); err != nil {
+		return fmt.Errorf("Error adding json serialized module update batch state to git index: %s", err)
+	}
+
+	tree, err := index.WriteTree()
+	if err != nil {
+		return fmt.Errorf("Error writing tree object with module update batch state: %s", err)
+	}
+
+	commit, err := productRepo.CommitTree(tree, "Module update batch state")
+	if err != nil {
+		return fmt.Errorf("Error writing commit for module update batch state: %s", err)
+	}
+
+	log.Println("Module state saved as commit", commit)
+
+	pushURL, err := RepoURL(batch.Product)
+	if err != nil {
+		return fmt.Errorf("Error determining %s repo URL: %s", batch.Product, err)
+	}
+
+	if gerrit.pushUserName != "" {
+		pushURL.User = url.User(gerrit.pushUserName)
+	}
+
+	targetRef := "refs/personal/" + pushURL.User.Username() + "/state/" + batch.Branch
+
+	log.Printf("Saving batch state to %s\n", targetRef)
+
+	return productRepo.Push(pushURL, []string{"-f"}, commit, targetRef)
+}
+
+func (batch *ModuleUpdateBatch) loadStateFromCommit() error {
+	productRepo, err := OpenRepository(batch.Product)
+	if err != nil {
+		return fmt.Errorf("Error opening product repo: %s", err)
+	}
+
+	repoURL, err := RepoURL(batch.Product)
+	if err != nil {
+		return fmt.Errorf("Error determining %s repo URL: %s", batch.Product, err)
+	}
+
+	log.Printf("Fetching state.json from personal branch")
+
+	// ### url
+	stateCommit, err := productRepo.Fetch(repoURL, "refs/personal/qt_submodule_update_bot/state/"+batch.Branch)
+	if err != nil {
+		return os.ErrNotExist
+	}
+
+	index, err := productRepo.NewIndex()
+	if err != nil {
+		return fmt.Errorf("Error creating git index when trying to load batch state: %s", err)
+	}
+	defer index.Free()
+
+	if err = index.ReadTree(stateCommit); err != nil {
+		return fmt.Errorf("Error reading tree of state commit %s: %s", stateCommit, err)
+	}
+
+	indexEntry, err := lookupPathIndexEntry(index, "state.json")
+	if err != nil {
+		return fmt.Errorf("Error looking up state.json from index in state commit %s: %s", stateCommit, err)
+	}
+
+	stateJSON, err := productRepo.LookupBlob(indexEntry.ID)
+	if err != nil {
+		return fmt.Errorf("Error reading state json from git db: %s", err)
+	}
+
+	decoder := json.NewDecoder(bytes.NewBuffer(stateJSON))
+	err = decoder.Decode(batch)
+	if err != nil {
+		return fmt.Errorf("Error decoding JSON state file: %s", err)
+	}
+
+	return nil
+}
+
+func (batch *ModuleUpdateBatch) clearStateCommit(gerrit *gerritInstance) error {
+	productRepo, err := OpenRepository(batch.Product)
+	if err != nil {
+		return fmt.Errorf("Error opening product repo: %s", err)
+	}
+
+	pushURL, err := RepoURL(batch.Product)
+	if err != nil {
+		return fmt.Errorf("Error determining %s repo URL: %s", batch.Product, err)
+	}
+
+	if gerrit.pushUserName != "" {
+		pushURL.User = url.User(gerrit.pushUserName)
+	}
+
+	targetRef := "refs/personal/" + pushURL.User.Username() + "/state/" + batch.Branch
+
+	log.Printf("Clearing batch state at %s\n", targetRef)
+
+	return productRepo.Push(pushURL, nil, "", targetRef)
+}
+
 func (batch *ModuleUpdateBatch) saveState() error {
 	fileName := batch.stateFileName()
 	outputFile, err := os.Create(fileName)
@@ -273,7 +405,7 @@ func (batch *ModuleUpdateBatch) runOneIteration(gerrit *gerritInstance) error {
 	batch.printSummary()
 
 	if !batch.isDone() {
-		err := batch.saveState()
+		err := batch.saveStateAsCommit(gerrit)
 		if err != nil {
 			return err
 		}
@@ -285,7 +417,7 @@ func (batch *ModuleUpdateBatch) runOneIteration(gerrit *gerritInstance) error {
 			}
 		}
 
-		batch.clearState()
+		batch.clearStateCommit(gerrit)
 	}
 
 	return nil

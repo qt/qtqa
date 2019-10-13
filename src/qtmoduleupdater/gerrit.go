@@ -224,7 +224,7 @@ func (instance *gerritInstance) pushChange(repoPath string, branch string, commi
 		pushURL.User = url.User(instance.pushUserName)
 	}
 
-	return repo.Push(pushURL, commitID, "refs/for/"+branch)
+	return repo.Push(pushURL, nil, commitID, "refs/for/"+branch)
 }
 
 func (instance *gerritInstance) reviewAndStageChange(repoPath string, branch string, commitID OID, summary string) error {

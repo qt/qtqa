@@ -252,10 +252,12 @@ func (repo Repository) Fetch(url *url.URL, refSpec string) (sha1 OID, err error)
 	return ref, nil
 }
 
-// Push is a wrapper around the git push commit.
-func (repo Repository) Push(url *url.URL, commit OID, targetRef string) error {
+// Push is a wrapper around the git push commit, similar to the Push() function
+// but allowing additional options to be passed to the git push invocation.
+func (repo Repository) Push(url *url.URL, options []string, commit OID, targetRef string) error {
 	refSpec := fmt.Sprintf("%s:%s", commit, targetRef)
-	_, err := repo.gitCommand("push", url.String(), refSpec).Run()
+	options = append(options, url.String(), refSpec)
+	_, err := repo.gitCommand("push", options...).Run()
 	return err
 }
 
