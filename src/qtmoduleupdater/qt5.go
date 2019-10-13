@@ -191,6 +191,7 @@ func prepareQt5Update(product string, branch string, updatedModules map[string]*
 	if err != nil {
 		return err
 	}
+	defer index.Free()
 
 	if err = index.ReadTree(productHead); err != nil {
 		return err
