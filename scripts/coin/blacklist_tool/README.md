@@ -20,6 +20,7 @@
 
 [Optional] `--fastForward <testName>` Runs queries for blacklisted tests as usual, but fast forwards
 the script to the specified test name.
+[Optional] `--printActivePlatforms` Print out active platforms on startup.
 
 #### Optional Environment variables
 `INFLUX_DB_URL` The hostname where the coin database resides. Defaults to 'testresults.qt.io'

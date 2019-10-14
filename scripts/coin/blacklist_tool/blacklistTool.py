@@ -905,23 +905,14 @@ platforms to add.',
         # but have not failed recently and are active platforms in the CI.
         for choice in whitelistPreChecked.get(blAnswer, []):
             if PLATFORM.getIsRootType(blAnswer):
-                if OS.getFamily(choice) not in [OS.getFamily(x) for x in blacklistAnswers]:
+                if choice in [x for x in whitelistChoices]:
                     whitelistChoicesFormatted[whitelistChoicesFormatted.index(
                         {
-                            'name': OS.getFamily(choice)
+                            'name': choice
                         }
                     )] = {
-                        'name': OS.getFamily(choice), 'checked': True
+                        'name': choice, 'checked': True
                     }
-                else:
-                    if choice in [x for x in whitelistChoices]:
-                        whitelistChoicesFormatted[whitelistChoicesFormatted.index(
-                            {
-                                'name': choice
-                            }
-                        )] = {
-                            'name': choice, 'checked': True
-                        }
             else:
                 if choice in [x for x in whitelistChoices]:
                     whitelistChoicesFormatted[whitelistChoicesFormatted.index(
@@ -986,15 +977,15 @@ with \'ci\'. Select any new items to mark with the \'ci\' designation.',
     return blacklistAnswers
 
 
-def appendPartialMatchSkipped(testname: list, blacklistedTestData: dict):
+def appendPartialMatchSkipped(testname: list, blacklistedTestData: dict, failedPlatforms: list):
     partialMatchesSkipped.append(
         {
             "blacklistPath": blacklistedTestData["filePath"],
             "testname": testname[2],
             "matchText": blacklistedTestData["matchText"],
-            "existingBlacklist": '\n            '.join(blacklistedTestData["blacklistSnip"]),
+            "existingBlacklist": '\n            '.join(blacklistedTestData["blacklistSnip"].split("\n")),
             "newBlacklistItems": '\n\
-            '.join(editHelper.generateNewBlacklist(blacklistedTestData)),
+            '.join(editHelper.generateNewBlacklist(blacklistedTestData, failedPlatforms)),
             "testCaseDashboardURL": blacklistedTestData['dashboardURL']
         }
     )
@@ -1132,7 +1123,7 @@ Nothing to do...")
                 if blacklistedTestData["partialMatch"]:
                     # Never overwrite, replace, or edit partial matches in automatic mode.
                     # Just log it and let the user know what was skipped.
-                    appendPartialMatchSkipped(testname, blacklistedTestData)
+                    appendPartialMatchSkipped(testname, blacklistedTestData, failedPlatforms)
                     return
                 else:
                     action = 'edit'
@@ -1151,7 +1142,7 @@ Nothing to do...")
         elif action == "abort":
             if blacklistedTestData["partialMatch"]:
                 # Just log the partial match and let the user know what was skipped.
-                appendPartialMatchSkipped(testname, blacklistedTestData)
+                appendPartialMatchSkipped(testname, blacklistedTestData, failedPlatforms)
             print("\nNothing modified...")
             if args.interactive:
                 input("Press Return to continue...")
@@ -1413,7 +1404,7 @@ def getActivePlatforms() -> list:
 
     result = client.query(
         "SELECT id, target_os, target_os_version, target_compiler FROM workitem where branch = \
-'dev' and time >= now()-7d GROUP BY target_os, target_os_version, target_compiler")
+'dev' and time >= now()-30d GROUP BY target_os, target_os_version, target_compiler")
 
     activeTargets = set()
     # Create a unique set of the recently run platforms
@@ -1453,6 +1444,14 @@ WARN: The following platforms are not present in platformEnums.py,
     =-=-=-=-=-=-=-=-=-=-=-
 
 """)
+    if args.printActivePlatforms:
+        prettyPlatforms = PrettyTable(["OS Type", "OS Version", "Compiler Target"])
+        for platform in sorted(activeTargets):
+            prettyPlatforms.add_row(platform)
+
+        print("All active platforms:")
+        print(prettyPlatforms)
+
     if args.interactive:
         input("Press return to continue...")
     return list(friendlyTargetNames)
@@ -1483,6 +1482,8 @@ if __name__ == "__main__":
                         help='The full path to a checked-out qt5 supermodule or a single submodule')
     parser.add_argument('--fastForward', dest='fastForward',
                         type=str, help='Test Case name to Fast Forward to.')
+    parser.add_argument('--printActivePlatforms', '-p', action='store_true', dest="printActivePlatforms",
+                        help="Print out active COIN platforms on startup")
     args = parser.parse_args()
 
     if args.fastForward:
@@ -1497,10 +1498,12 @@ Please verify that the path is correct: {args.qt5dir}")
 
     # Gather the list of blacklisted tests and their failed configurations from the last 60 days.
     tests = doQuery(moduleValidation['module'])
+
     # Query the most recent integration and see which platforms are currently active in COIN.
     # This is a global that gets used any time we check a given platform type's failing percentage.
     # See editHelper.checkFailingPlatformSaturation()
     activePlatforms = getActivePlatforms()
+
     for testname in tests:
         clear()
         # The test had no failures. See about removing it from the blacklist entirely.
