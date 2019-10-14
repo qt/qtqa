@@ -38,8 +38,10 @@ import (
 // PendingUpdate describes that a module needs an updated dependencies.yaml and we are waiting for the change
 // to succeed/fail
 type PendingUpdate struct {
-	Module   *Module
-	ChangeID string
+	Module              *Module
+	ChangeID            string
+	CommitID            OID
+	IntegrationAttempts int
 }
 
 // ModuleUpdateBatch is used to serialize and de-serialize the module updating state, used for debugging.
@@ -93,7 +95,7 @@ func (batch *ModuleUpdateBatch) scheduleUpdates(gerrit *gerritInstance) error {
 				return fmt.Errorf("error pushing change upate: %s", err)
 			}
 
-			batch.Pending = append(batch.Pending, &PendingUpdate{moduleToUpdate, update.changeID})
+			batch.Pending = append(batch.Pending, &PendingUpdate{moduleToUpdate, update.changeID, update.commitID, 0})
 			delete(batch.Todo, moduleToUpdate.RepoPath)
 		} else {
 			return fmt.Errorf("invalid state returned by updateDependenciesForModule for %s", moduleToUpdate.RepoPath)
@@ -112,7 +114,7 @@ func removeAllDirectAndIndirectDependencies(allModules *map[string]*Module, modu
 	}
 }
 
-func (batch *ModuleUpdateBatch) checkPendingModules() {
+func (batch *ModuleUpdateBatch) checkPendingModules(gerrit *gerritInstance) {
 	log.Println("Checking status of pending modules")
 	var newPending []*PendingUpdate
 	for _, pendingUpdate := range batch.Pending {
@@ -130,8 +132,14 @@ func (batch *ModuleUpdateBatch) checkPendingModules() {
 		} else if status == "MERGED" {
 			module.refreshTip()
 			batch.Done[module.RepoPath] = module
+		} else if status == "OPEN" && len(pendingUpdate.CommitID) > 0 && pendingUpdate.IntegrationAttempts < 3 {
+			log.Printf("    %v integration attempts for %s - trying again\n", pendingUpdate.IntegrationAttempts, module.RepoPath)
+			pendingUpdate.IntegrationAttempts++
+			if err = gerrit.reviewAndStageChange(module.RepoPath, module.Branch, pendingUpdate.CommitID, ""); err != nil {
+				log.Printf("error staging change update: %s -- ignoring though", err)
+			}
 		} else {
-			// Open or abandoned, not sure -- either way an error integrating the update
+			// Abandoned or tried too many times possibly -- either way an error integrating the update
 			removeAllDirectAndIndirectDependencies(&batch.Todo, module.RepoPath)
 			batch.FailedModuleCount++
 		}
@@ -255,7 +263,7 @@ func (batch *ModuleUpdateBatch) printSummary() {
 }
 
 func (batch *ModuleUpdateBatch) runOneIteration(gerrit *gerritInstance) error {
-	batch.checkPendingModules()
+	batch.checkPendingModules(gerrit)
 
 	if err := batch.scheduleUpdates(gerrit); err != nil {
 		return err
