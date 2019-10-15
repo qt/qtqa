@@ -69,6 +69,8 @@ func appMain() error {
 	flag.BoolVar(&summaryOnly, "summarize", false /*default*/, "")
 	verbose := false
 	flag.BoolVar(&verbose, "verbose", false /*default*/, "Enable verbose logging output")
+	reset := false
+	flag.BoolVar(&reset, "reset", false, "Reset the batch update state")
 	autorun := false
 	flag.BoolVar(&autorun, "autorun", false, "Run automatically by reading settings from autorun.json")
 	flag.Parse()
@@ -112,6 +114,11 @@ func appMain() error {
 
 	if summaryOnly {
 		batch.printSummary()
+		return nil
+	}
+
+	if reset {
+		batch.clearStateCommit(gerrit)
 		return nil
 	}
 
