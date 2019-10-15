@@ -132,12 +132,13 @@ func (batch *ModuleUpdateBatch) checkPendingModules(gerrit *gerritInstance) {
 		} else if status == "MERGED" {
 			module.refreshTip()
 			batch.Done[module.RepoPath] = module
-		} else if status == "OPEN" && len(pendingUpdate.CommitID) > 0 && pendingUpdate.IntegrationAttempts < 3 {
+		} else if (status == "NEW" || status == "OPEN") && len(pendingUpdate.CommitID) > 0 && pendingUpdate.IntegrationAttempts < 3 {
 			log.Printf("    %v integration attempts for %s - trying again\n", pendingUpdate.IntegrationAttempts, module.RepoPath)
 			pendingUpdate.IntegrationAttempts++
 			if err = gerrit.reviewAndStageChange(module.RepoPath, module.Branch, pendingUpdate.CommitID, ""); err != nil {
 				log.Printf("error staging change update: %s -- ignoring though", err)
 			}
+			newPending = append(newPending, pendingUpdate)
 		} else {
 			// Abandoned or tried too many times possibly -- either way an error integrating the update
 			removeAllDirectAndIndirectDependencies(&batch.Todo, module.RepoPath)
