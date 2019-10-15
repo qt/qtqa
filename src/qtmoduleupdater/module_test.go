@@ -77,6 +77,7 @@ func TestProposedUpdateFailsForModulesThatDependOnMoreThanQtBase(t *testing.T) {
 	qtSvg, ok := todoMap["qt/qtsvg"]
 	assert.True(t, ok, "qtsvg must be present in the module map")
 	yamlObject, err := qtSvg.maybePrepareUpdatedDependenciesYaml(availableModules)
+	assert.Nil(t, err, "No error expected preparing dependencies.yaml update")
 	assert.NotNil(t, yamlObject, "Yaml object must be defined for qtsvg")
 
 	yamlStr, err := yamlObject.ToString()
