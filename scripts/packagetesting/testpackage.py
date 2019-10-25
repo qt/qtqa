@@ -44,22 +44,14 @@ and run them.
 Supported platforms: Linux, Windows (MSVC/MinGW), Windows UWP
 """
 
-qt_version = [0, 0, 0]
+qt_version = (0, 0, 0)
 qt_mkspec = ''
 qt_examples_path = ''
 make_command = ''
 
 
 def qt_version_less_than(major, minor, patch):
-    if major < qt_version[0]:
-        return True
-    elif major > qt_version[0]:
-        return False
-    if minor < qt_version[1]:
-        return True
-    elif minor > qt_version[1]:
-        return False
-    return patch < qt_version[2]
+    return qt_version < (major, minor, patch)
 
 
 def examples():
@@ -93,8 +85,7 @@ def query_qmake():
         if line.startswith('QMAKE_XSPEC:'):
             qt_mkspec = line[12:]
         elif line.startswith('QT_VERSION:'):
-            for v, version_string in enumerate(line[11:].split('.')):
-                qt_version[v] = int(version_string)
+            qt_version = tuple(int(v) for v in line[11:].split('.'))
         elif line.startswith('QT_INSTALL_EXAMPLES:'):
             qt_examples_path = line[20:]
         else:
