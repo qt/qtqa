@@ -87,11 +87,12 @@ def is_major_minor_patch(version: str) -> bool:
 
 
 class QtBranching:
-    def __init__(self, mode: Mode, fromBranch: str, toBranch: str, pretend: bool) -> None:
+    def __init__(self, mode: Mode, fromBranch: str, toBranch: str, pretend: bool, skip_hooks: bool) -> None:
         self.mode = mode
         self.fromBranch = fromBranch
         self.toBranch = toBranch
         self.pretend = pretend
+        self.skip_hooks = skip_hooks
         log.info(f"{self.mode.name} from '{self.fromBranch}' to '{self.toBranch}'")
 
     def subprocess_or_pretend(self, *args: typing.Any, **kwargs: typing.Any) -> None:
@@ -292,7 +293,7 @@ class QtBranching:
         if not repo.is_dirty():
             log.warning(f"nothing to do for {repo_name}, is the version bump already done?")
             return
-        repo.index.commit("Bump version")
+        repo.index.commit("Bump version", skip_hooks=self.skip_hooks)
         self.push(repo_name, self.fromBranch)
 
     def push(self, project: str, branch: str) -> None:
@@ -368,6 +369,8 @@ def parse_args() -> argparse.Namespace:
                         type=str, dest="toBranch")
     parser.add_argument("--pretend", action="store_true",
                         help="Make the changes to the repositories, but do not push to Gerrit.")
+    parser.add_argument("--skip-hooks", action="store_true",
+                        help="Do not run git commit hooks.")
     return parser.parse_args(sys.argv[1:])
 
 
@@ -389,7 +392,7 @@ if __name__ == "__main__":
         if not args.pretend:
             gerrit_add_pushmaster()
 
-        branching = QtBranching(mode=Mode[args.mode], fromBranch=args.fromBranch, toBranch=args.toBranch, pretend=args.pretend)
+        branching = QtBranching(mode=Mode[args.mode], fromBranch=args.fromBranch, toBranch=args.toBranch, pretend=args.pretend, skip_hooks=args.skip_hooks)
         branching.run()
     finally:
         if not args.pretend:
