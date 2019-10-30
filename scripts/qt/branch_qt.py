@@ -222,6 +222,9 @@ class QtBranching:
             name = path.split('/')[-1]
             repo = git.Repo(name)
             self.checkout_and_pull_branch(repo, branch)
+        except IndexError:
+            log.error(f'Branch {branch} not found in {path}.')
+            return None
         except git.exc.NoSuchPathError:
             log.info(f"Cloning '{path}' into '{name}'")
             try:
