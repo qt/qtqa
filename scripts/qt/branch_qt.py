@@ -85,6 +85,8 @@ def is_major_minor_patch(version: str) -> bool:
     parts = version.split('.')
     return len(parts) == 3 and all(x.isdigit() for x in parts)
 
+def get_repo_name(repo: git.Repo) -> str:
+    return os.path.basename(repo.working_dir)
 
 class QtBranching:
     def __init__(self, mode: Mode, fromBranch: str, toBranch: str, pretend: bool, skip_hooks: bool) -> None:
@@ -241,7 +243,7 @@ class QtBranching:
         return repo
 
     def branch_repo(self, repo: git.Repo) -> None:
-        repo_name = os.path.basename(repo.working_dir)
+        repo_name = get_repo_name(repo)
         if repo_name in skipped_submodules:
             log.info(f"Skipping {repo_name} (not branched)")
             return
@@ -255,40 +257,39 @@ class QtBranching:
         if not repo_name in (extra_repo.split('/')[-1] for extra_repo in extra_repositories):
             self.subprocess_or_pretend(f"git config -f ../.gitmodules submodule.{repo_name}.branch {self.toBranch}".split())
 
-    def push(self):
-        self.subprocess_or_pretend(f'git push gerrit {self.toBranch}:{self.toBranch}'.split(), check=True)
-
     def merge_repo(self, repo: git.Repo) -> None:
-        log.info(f"Merge: {repo.working_dir}")
+        repo_name = get_repo_name(repo)
+        log.info(f"Merge: {repo_name} ({self.fromBranch} -> {self.toBranch})")
 
         self.checkout_and_pull_branch(repo, self.toBranch)
         try:
             subprocess.run(f'git merge --ff-only --quiet gerrit/{self.fromBranch}'.split(), check=True, stderr=subprocess.PIPE)
-            self.push()
+            self.push(repo_name, self.toBranch)
         except subprocess.CalledProcessError:
             # The merge was not fast forward, try again
             try:
-                log.info(f"  Attempting non ff merge for {repo.working_dir}")
+                log.info(f"  Attempting non ff merge for {repo_name}")
                 subprocess.run(['git', 'merge', f'gerrit/{self.fromBranch}', '--quiet', '-m', f'Merge {self.fromBranch} into {self.toBranch}'], check=True)
-                self.push()
+                self.push(repo_name, self.toBranch)
             except subprocess.CalledProcessError:
-                log.warning(f"  Merge had conflicts. {repo.working_dir} needs to be merged manually!")
+                log.warning(f"  Merge had conflicts. {repo_name} needs to be merged manually!")
 
     def sync_repo(self, repo: git.Repo) -> None:
-        log.info(f"Sync: {repo.working_dir} ({self.fromBranch} -> {self.toBranch})")
+        repo_name = get_repo_name(repo)
+        log.info(f"Sync: {repo_name} ({self.fromBranch} -> {self.toBranch})")
         self.checkout_and_pull_branch(repo, self.toBranch)
         try:
             subprocess.run(f'git merge --ff-only --quiet gerrit/{self.fromBranch}'.split(), check=True, stderr=subprocess.PIPE)
-            self.push()
+            self.push(repo_name, self.toBranch)
         except Exception as e:
-            log.exception(f"Could not sync repository: {repo.working_dir}")
+            log.exception(f"Could not sync repository: {repo_name}")
 
     def version_bump_repo(self, repo: git.Repo) -> None:
         qmake_conf_file_name = '.qmake.conf'
         with open(qmake_conf_file_name, mode='r', encoding='utf-8') as qmake_conf:
             qmake_conf_content = qmake_conf.read()
         match = re.search(r'^MODULE_VERSION *= *([0-9\.]+)\b.*', qmake_conf_content, flags=re.MULTILINE)
-        repo_name = os.path.basename(repo.working_dir)
+        repo_name = get_repo_name(repo)
         if not match:
             log.warning(f"could not read version in {repo_name}")
             return
