@@ -375,7 +375,6 @@ def parse_args() -> argparse.Namespace:
                                     sync - intermediate sync, to update a branch during soft-branching
                                         branch_qt.py -m sync --from 5.12 --to 5.12.4
                                             Move the new branch fast-forward, assuming only 5.12 has new commits.
-                                            Not yet implemented.
                                     merge - down-merge
                                         branch_qt.py -m merge --from 5.12 --to 5.12.4
                                             Merges 5.12 into 5.12.4.
