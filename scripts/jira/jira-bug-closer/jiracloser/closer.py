@@ -59,6 +59,13 @@ class JiraCloser:
             version_description = version_data.get('description')
             if not version_description:
                 continue
+            # Remove all spaces and lower-case the version string.
+            # LooseVersion's handling of spaces and upper-case letters is "quirky":
+            # '5.14.0 Beta 1' becomes [5, 14, 0, ' B', 'eta', ' ', 1]
+            # '5.14.0 Beta2' becomes [5, 14, 0, ' B', 'eta', 2].
+            # Comparing these lead to a comparison between the former's second ' '
+            # and the latter's 2, of different types, leading to a TypeError.
+            version_description = version_description.replace(' ', '').lower()
             looseVersion = LooseVersion(version_description)
             # Skip versions that are for example only two digits, e.g. "6.0"
             if len(looseVersion.version) < 3:
