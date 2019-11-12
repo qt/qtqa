@@ -64,7 +64,7 @@ class GerritStreamParser:
             return GerritEvent(type='invalid', project='', branch='')
         eventType = event.get('type')
         if eventType in ('comment-added', 'change-abandoned', 'change-deferred', 'change-merged', 'change-restored',
-                         'draft-published', 'merge-failed', 'patchset-created', 'reviewer-added'):
+                         'draft-published', 'merge-failed', 'patchset-created', 'reviewer-added', 'reviewer-deleted'):
             return GerritEvent(type=eventType, project=event['change']['project'], branch=event['change']['branch'])
         if eventType in ('ref-replication-scheduled', 'ref-replicated', 'ref-replication-done'):
             return GerritEvent(type=eventType, project=event['project'], branch=event['ref'])

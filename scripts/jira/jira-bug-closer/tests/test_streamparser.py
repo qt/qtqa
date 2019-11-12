@@ -117,6 +117,17 @@ from gerrit import GerritStreamParser, GerritEvent
      "refUpdate":{"oldRev":"c060f6e765a2f155b38158f2ed73eac4aad37e02","newRev":"17007265a1fcab2a7325c48d0c509393139d28b7",
      "refName":"refs/staging/dev","project":"qt/qtdeclarative"},"type":"ref-updated","eventCreatedOn":1561535490}""",
      GerritEvent(type='ref-updated', project='qt/qtdeclarative', branch='refs/staging/dev'), False),
+
+    ("""{"reviewer":{"name":"Eike Ziller","email":"eike.ziller@qt.io","username":"con"},"remover":{"name":"Eike Ziller","email":"eike.ziller@qt.io","username":"con"},
+     "approvals":[{"type":"Code-Review","description":"Code-Review","value":"0"},{"type":"Sanity-Review","description":"Sanity-Review","value":"0"}],
+     "comment":"Removed reviewer Eike Ziller.","patchSet":{"number":12,"revision":"cad02d22ea5330f5bb5b28bcddac011abf822a25",
+     "parents":["e3f5912747af1d46178886a0c5eaaddaf6d1a23b"],"ref":"refs/changes/52/275352/12","uploader":{"name":"Simon Hausmann","email":"simon.hausmann@qt.io","username":"shausman"},
+     "createdOn":1571843323,"author":{"name":"Simon Hausmann","email":"simon.hausmann@qt.io","username":"shausman"},"kind":"REWORK","sizeInsertions":2142,"sizeDeletions":-3},
+     "change":{"project":"qt/qtbase","branch":"dev","id":"I77ec9163ba4dace6c4451f5933962ebe1b3b4b14","number":275352,"subject":"WIP: Initial import of the Qt C++ property binding system",
+     "owner":{"name":"Simon Hausmann","email":"simon.hausmann@qt.io","username":"shausman"},"url":"https://codereview.qt-project.org/c/qt/qtbase/+/275352",
+     "commitMessage":"WIP: Initial import of the Qt C++ property binding system\\n\\nTODO:\\n  * complete and polish docs.\\n  * consider diagram to illustrate the dependency chains\\n  * consider debug logging category to print dependencies (with source\\n    location of bindings)\\n\\nChange-Id: I77ec9163ba4dace6c4451f5933962ebe1b3b4b14\\n","createdOn":1569508045,"status":"NEW"},
+     "project":"qt/qtbase","refName":"refs/heads/dev","changeKey":{"id":"I77ec9163ba4dace6c4451f5933962ebe1b3b4b14"},"type":"reviewer-deleted","eventCreatedOn":1573560822}""",
+     GerritEvent(type='reviewer-deleted', project='qt/qtbase', branch='dev'), False),
 ])
 def test_parser(message: str, expected: GerritEvent, is_branch_update: bool):
     parser = GerritStreamParser()
