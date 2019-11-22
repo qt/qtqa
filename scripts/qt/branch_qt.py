@@ -89,12 +89,13 @@ def get_repo_name(repo: git.Repo) -> str:
     return os.path.basename(repo.working_dir)
 
 class QtBranching:
-    def __init__(self, mode: Mode, fromBranch: str, toBranch: str, pretend: bool, skip_hooks: bool) -> None:
+    def __init__(self, mode: Mode, fromBranch: str, toBranch: str, pretend: bool, skip_hooks: bool, repos: typing.Optional[typing.List[str]]) -> None:
         self.mode = mode
         self.fromBranch = fromBranch
         self.toBranch = toBranch
         self.pretend = pretend
         self.skip_hooks = skip_hooks
+        self.repos = repos
         log.info(f"{self.mode.name} from '{self.fromBranch}' to '{self.toBranch}'")
 
     def subprocess_or_pretend(self, *args: typing.Any, **kwargs: typing.Any) -> None:
@@ -107,6 +108,23 @@ class QtBranching:
         self.sanity_check()
         self.init_repository()
 
+        if self.repos:
+            # a list of custom repositories to process, instead of the default (everything)
+            for repo_path in self.repos:
+                self.process_repository(repo_path)
+        else:
+            self.process_qt5_repositories()
+            # Additional repositories that are not part of qt5.git:
+            for repo_path in extra_repositories:
+                self.process_repository(repo_path)
+
+        if self.mode == Mode['branch']:
+            log.info("Adjusting submodule branches in .gitmodules")
+            self.subprocess_or_pretend(['git', 'commit', '-m', 'Adjust submodule branches', '.gitmodules'])
+            # update the new and staging branch
+            self.subprocess_or_pretend(['git', 'push', 'gerrit', f'HEAD:refs/heads/{self.toBranch}', f'HEAD:refs/staging/{self.toBranch}'])
+
+    def process_qt5_repos(self) -> None:
         repo = git.Repo('.')
         for submodule in repo.submodules:
             if submodule.name in skipped_submodules:
@@ -118,21 +136,14 @@ class QtBranching:
             else:
                 log.info(f"SKIPPING {submodule.name}")
 
-        # Additional repositories that are not part of qt5.git:
-        for repo_path in extra_repositories:
-            log.info(f"Extra repository: '{repo_path}'")
-            assert '/' in repo_path, f"Extra repository must be specified with namespace {repo_path}"
-            repo = self.clone_extra_repo(path=repo_path, branch=self.fromBranch)
-            if repo:
-                self.handle_module(repo)
-            else:
-                log.warning(f"Could not handle '{repo_path}'.")
-
-        if self.mode == Mode['branch']:
-            log.info("Adjusting submodule branches in .gitmodules")
-            self.subprocess_or_pretend(['git', 'commit', '-m', 'Adjust submodule branches', '.gitmodules'])
-            # update the new and staging branch
-            self.subprocess_or_pretend(['git', 'push', 'gerrit', f'HEAD:refs/heads/{self.toBranch}', f'HEAD:refs/staging/{self.toBranch}'])
+    def process_repository(self, repo_path: str) -> None:
+        log.info(f"Extra repository: '{repo_path}'")
+        assert '/' in repo_path, f"Extra repository must be specified with namespace {repo_path}"
+        repo = self.clone_extra_repo(path=repo_path, branch=self.fromBranch)
+        if repo:
+            self.handle_module(repo)
+        else:
+            log.warning(f"Could not handle '{repo_path}'.")
 
     def handle_module(self, repo: git.Repo) -> None:
         oldpath = os.path.abspath(os.curdir)
@@ -375,6 +386,8 @@ def parse_args() -> argparse.Namespace:
                         help="Make the changes to the repositories, but do not push to Gerrit.")
     parser.add_argument("--skip-hooks", action="store_true",
                         help="Do not run git commit hooks.")
+    parser.add_argument("--repos", nargs="*",
+                        help="Optional list of repositories (instead of processing all repositories).")
     return parser.parse_args(sys.argv[1:])
 
 
@@ -396,7 +409,7 @@ if __name__ == "__main__":
         if not args.pretend:
             gerrit_add_pushmaster()
 
-        branching = QtBranching(mode=Mode[args.mode], fromBranch=args.fromBranch, toBranch=args.toBranch, pretend=args.pretend, skip_hooks=args.skip_hooks)
+        branching = QtBranching(mode=Mode[args.mode], fromBranch=args.fromBranch, toBranch=args.toBranch, pretend=args.pretend, skip_hooks=args.skip_hooks, repos=args.repos)
         branching.run()
     finally:
         if not args.pretend:
