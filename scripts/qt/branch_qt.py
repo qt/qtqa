@@ -103,20 +103,6 @@ class QtBranching:
         else:
             subprocess.run(*args, **kwargs)
 
-    def is_phase_done(self, repo: git.Repo) -> bool:
-        """Test if some part of the process has already been run for a repository.
-
-           This script adds a config section where the state is tracked.
-        """
-        config = repo.config_reader()
-        state = str(config.get_value(f'qtbranching "{self.toBranch}"', 'done'))
-        return state == self.mode.name
-
-    def write_done_phase(self, repo: git.Repo) -> None:
-        """Set the current phase to done."""
-        config = repo.config_writer()
-        state = config.set_value(f'qtbranching "{self.toBranch}"', 'done', self.mode.name)
-
     def run(self) -> None:
         self.sanity_check()
         self.init_repository()
