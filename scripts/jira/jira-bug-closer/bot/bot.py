@@ -42,7 +42,7 @@ log = get_logger("bot")
 class Bot:
     def __init__(self) -> None:
         self.loop = asyncio.get_event_loop()
-        self.g = GerritStreamEvents()
+        self.gerrit_events = GerritStreamEvents()
         self.parser = GerritStreamParser()
         self.args = Args()
         log.info("Using '%s' configuration", self.args.config_section)
@@ -68,7 +68,7 @@ class Bot:
             await self.update_project(event.project)
 
     async def check_gerrit_projects(self) -> None:
-        projects = await(self.g.list_all_projects())
+        projects = await(self.gerrit_events.list_all_projects())
         # we could parallelize, but we cannot have too many git connections
         # at the same time, and this is not the common case, so do it sequential for now.
         # updates = []
@@ -82,8 +82,8 @@ class Bot:
         while True:
             try:
                 check_projects_on_startup = asyncio.ensure_future(self.check_gerrit_projects())
-                self.g.setDataCallback(self.event_handler)
-                run_monitor = asyncio.ensure_future(self.g.run())
+                self.gerrit_events.setDataCallback(self.event_handler)
+                run_monitor = asyncio.ensure_future(self.gerrit_events.run())
                 self.loop.run_until_complete(asyncio.gather(check_projects_on_startup, run_monitor))
             except Exception as exc:
                 log.exception('Caught exception: ' + str(exc))
