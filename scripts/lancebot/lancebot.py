@@ -495,7 +495,7 @@ Build SHA: {buildSHA}\nHEAD SHA: {headSHA}")
     storeSha(refBaseDir, module, "build", headSHA)
 
 
-def parseResults(file: str):
+def parseResults(file: str) -> ():
     testFunctionsXML = []
     testNames = []
     testFailures = {}
@@ -516,7 +516,9 @@ def parseResults(file: str):
                             "file": incident.childNodes[1].firstChild.nodeValue,
                             "description": incident.childNodes[3].firstChild.nodeValue
                         })
-
+    except FileNotFoundError:
+        print(f"ERROR: No results file found. It's most likely that the test executable failed to complete.\n    file tried: {file}")
+        return (False, False, "File Not Found")
     except Exception as e:
         print(e)
 
@@ -524,7 +526,7 @@ def parseResults(file: str):
         if len(testFailures[name]) == 0:
             del testFailures[name]
 
-    return (testFailures, testCount)
+    return (testFailures, testCount, False)
 
 
 def runTest(testBaseDir, module, testType):
@@ -657,8 +659,14 @@ new baselines to Lancelot.")
             subprocess.run(
                 commandString, universal_newlines=True, shell=False)
             print("Parsing results.xml...")
-            resultsData, testCount = parseResults(
+            resultsData, testCount, error = parseResults(
                 f"{testBaseDir}/{module}/{testDir}/results.xml")
+            if error:
+                break
+            elif not testCount:
+                print("ERROR: Test executable ran, but no test cases were executed!")
+                break
+
             formattedResults = json.dumps(resultsData, indent=2)
             output_file.write(
                 formattedResults if resultsData else "ALL PASS")
