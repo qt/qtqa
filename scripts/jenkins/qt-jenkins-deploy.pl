@@ -276,6 +276,10 @@ Qt license type (commercial/opensource), used in packaging.
 
 Used for assigning build jobs to dedicated label.
 
+=item notarize
+
+Enable (yes) or disable (no) notarization.
+
 =item prod_addr
 
 Production server address
@@ -802,6 +806,7 @@ sub desired_job_xml
             qt_version => eval { $self->cfg( "job.$name", 'qt_version' ) } || q{},
             qt_license => eval { $self->cfg( "job.$name", 'qt_license' ) } || q{},
             build_type => eval { $self->cfg( "job.$name", 'build_type' ) } || q{},
+            notarize => eval { $self->cfg( "job.$name", 'notarize' ) } || q{},
             prod_addr => eval { $self->cfg( "job.$name", 'prod_addr' ) } || q{},
             prod_srv_repo_base_path => eval { $self->cfg( "job.$name", 'prod_srv_repo_base_path' ) } || q{},
             prod_srv_repo_pending_area_dir => eval { $self->cfg( "job.$name", 'prod_srv_repo_pending_area_dir' ) } || q{},
