@@ -29,10 +29,12 @@
 
 import asyncio
 import pytest
+import os
 from typing import List
 from git import Repository, ChangeRange, FixedByTag
 from logger import get_logger
 from git.repository import Version
+from config import Config
 
 log = get_logger('test')
 
@@ -208,3 +210,15 @@ def test_version_class(versions: List[Version], sorted_versions: List[Version]):
     assert Version("5.12") <= Version("5.12.0")
     assert Version("5.12.0") >= Version("5.12")
     assert Version("5.12.0") != Version("5.12")
+
+def test_have_secrets():
+    dir_name = os.path.join(os.path.dirname(os.path.abspath(__file__)))
+    assert os.path.exists(os.path.join(dir_name, "../jira_gerrit_bot_id_rsa"))
+
+    config = Config()
+    oauth = config.get_oauth_data("production")
+    assert oauth.access_token != "get_this_by_running_oauth_dance.py"
+    assert oauth.token_secret != "get_this_by_running_oauth_dance.py"
+    assert oauth.key_cert
+    assert os.path.exists(os.path.join(dir_name, "..", f"{oauth.key_cert_file}.pem"))
+    assert os.path.exists(os.path.join(dir_name, "..", f"{oauth.key_cert_file}.pub"))

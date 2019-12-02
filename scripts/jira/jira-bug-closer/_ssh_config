@@ -3,4 +3,4 @@ Host codereview.qt-project.org
     ServerAliveInterval 240
     Ciphers +aes256-cbc
     User qt_ci_bot
-    IdentityFile ~/jira-bug-closer/jira_gerrit_bot_id_rsa
+    IdentityFile ~/qtqa/scripts/jira/jira-bug-closer/jira_gerrit_bot_id_rsa
