@@ -86,9 +86,13 @@ class Repository:
     async def _git_fetch_heads(self) -> None:
         log.info("git fetch '%s'", self.name)
         command = self.git_command("fetch origin +refs/heads/*:refs/heads/* --prune")
-        process = await asyncio.create_subprocess_exec(*command.split(), stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.DEVNULL)
+        process = await asyncio.create_subprocess_exec(*command.split(), stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.PIPE)
         # wait for the process to finish
         await asyncio.wait_for(process.communicate(), 180)
+        if process.returncode:
+            if process.stderr:
+                log.error(f"Error when fetching heads!\n{process.stderr}\n")
+
 
     async def _git_show_ref(self, tags: bool = False) -> str:
         refType = '--tags' if tags else '--heads'
