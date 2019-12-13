@@ -48,7 +48,10 @@ Supported platforms: Linux, Windows (MSVC/MinGW), Windows UWP
 qt_version = (0, 0, 0)
 qt_mkspec = ''
 qt_examples_path = ''
+qt_install_bins = ''
 make_command = ''
+PATH = os.environ.get('PATH')
+deploy_test_path = '' # path with qt_install_bins removed
 
 
 class Deployment(Enum):
@@ -83,6 +86,20 @@ def example_command(binary):
     return [binary]
 
 
+def normalize_path(p):
+    return os.path.normcase(os.path.normpath(p))
+
+
+def build_deploy_test_path():
+    """Build a path with qt_install_bins removed for testing the deployed binary"""
+    path_sep = ':' if sys.platform != 'win32' else ';'
+    result = []
+    for p in PATH.split(path_sep):
+        if normalize_path(p) != qt_install_bins:
+            result.append(p)
+    return path_sep.join(result)
+
+
 def qt_version_less_than(major, minor, patch):
     return qt_version < (major, minor, patch)
 
@@ -113,7 +130,8 @@ def determine_make_command(mkspec):
 
 def query_qmake():
     """Run a qmake query to obtain version, mkspec and path"""
-    global make_command, qt_examples_path, qt_mkspec, qt_version
+    global make_command, qt_examples_path, qt_install_bins, qt_mkspec
+    global qt_version
     for line in run_process_output(['qmake', '-query']):
         print_line = True
         if line.startswith('QMAKE_XSPEC:'):
@@ -121,7 +139,9 @@ def query_qmake():
         elif line.startswith('QT_VERSION:'):
             qt_version = tuple(int(v) for v in line[11:].split('.'))
         elif line.startswith('QT_INSTALL_EXAMPLES:'):
-            qt_examples_path = line[20:]
+            qt_examples_path = normalize_path(line[20:])
+        elif line.startswith('QT_INSTALL_BINS:'):
+            qt_install_bins = normalize_path(line[16:])
         else:
             print_line = False
         if print_line:
@@ -176,13 +196,15 @@ def run_example(example, test_deployment):
 
         if do_deploy:
             execute(deploy_tool_command(binary))
+            os.environ['PATH'] = deploy_test_path
 
         execute(example_command(binary))
         result = True
         print('#### ok {} #####'.format(name))
     except Exception as e:
         print('#### FAIL {} #####'.format(name), e)
-
+    finally:
+        os.environ['PATH'] = PATH
     os.chdir('..')
     return result
 
@@ -192,6 +214,7 @@ if __name__ == "__main__":
         raise Exception('This script requires Python 3')
 
     query_qmake()
+    deploy_test_path = build_deploy_test_path()
     print('#### Found Qt {}.{}.{}, "{}", examples at {}'.format(
           qt_version[0], qt_version[1], qt_version[2],
           qt_mkspec, qt_examples_path))
