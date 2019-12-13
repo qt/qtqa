@@ -28,6 +28,7 @@
 # ############################################################################
 
 
+from enum import Enum
 import os
 import subprocess
 import sys
@@ -50,6 +51,38 @@ qt_examples_path = ''
 make_command = ''
 
 
+class Deployment(Enum):
+    NO_DEPLOYMENT = 1
+    """The platform supports deployment, for example Win32, macOS"""
+    DEPLOYMENT_SUPPORTED = 2
+    """The platform requires deployment, for example WinRT"""
+    DEPLOYMENT_REQUIRED = 3
+
+
+def deployment():
+    """Returns whether the platform requires/supports deployment"""
+    if qt_mkspec.startswith('winrt'):
+        return Deployment.DEPLOYMENT_REQUIRED
+    if qt_mkspec.startswith('win32'):
+        return Deployment.DEPLOYMENT_SUPPORTED
+    return Deployment.NO_DEPLOYMENT
+
+
+def deploy_tool_command(binary):
+    """Returns the command to deploy an example"""
+    if qt_mkspec.startswith('win32') or qt_mkspec.startswith('winrt'):
+        return ['windeployqt', '--no-translations', binary]
+    return []
+
+
+def example_command(binary):
+    """Returns the command to launch an example"""
+    if qt_mkspec.startswith('winrt'):
+        return ['winrtrunner', '--profile', 'appx', '--device', '0',
+                '--wait', '0', '--start', binary]
+    return [binary]
+
+
 def qt_version_less_than(major, minor, patch):
     return qt_version < (major, minor, patch)
 
@@ -57,7 +90,8 @@ def qt_version_less_than(major, minor, patch):
 def examples():
     """Compile a list of examples to be tested"""
     global qt_mkspec
-    result = ['charts/qmlchart', 'multimedia/declarative-camera']
+    result = ['widgets/mainwindows/mdi', 'charts/qmlchart',
+              'multimedia/declarative-camera']
     if not qt_mkspec.startswith('winrt'):
         result.append('sensors/sensor_explorer')
     if qt_version_less_than(5, 12, 0):
@@ -115,7 +149,7 @@ def run_process_output(args):
     return result
 
 
-def run_example(example):
+def run_example(example, test_deployment):
     """Build and run an example"""
     global qt_mkspec
     name = os.path.basename(example)
@@ -125,7 +159,7 @@ def run_example(example):
     os.chdir(name)
     try:
         execute(['qmake', 'CONFIG+=console',
-                os.path.join(qt_examples_path, example)])
+                 os.path.join(qt_examples_path, example)])
         execute(make_command)
 
         binary = name if not name == 'mapviewer' else 'qml_location_mapviewer'
@@ -137,12 +171,13 @@ def run_example(example):
                 binary = os.path.join('release', binary)
         binary = os.path.join(os.getcwd(), binary)
 
-        if qt_mkspec.startswith('winrt'):
-            execute(['windeployqt', '--no-translations', binary])
-            execute(['winrtrunner', '--profile', 'appx', '--device', '0',
-                     '--wait', '0', '--start', binary])
-        else:
-            execute([binary])
+        do_deploy = (deployment() == Deployment.DEPLOYMENT_REQUIRED
+                     or (test_deployment and deployment() != Deployment.NO_DEPLOYMENT))
+
+        if do_deploy:
+            execute(deploy_tool_command(binary))
+
+        execute(example_command(binary))
         result = True
         print('#### ok {} #####'.format(name))
     except Exception as e:
@@ -168,7 +203,11 @@ if __name__ == "__main__":
     temp_dir = tempfile.mkdtemp(prefix='qtpkgtest{}{}{}'.format(
                                 qt_version[0], qt_version[1], qt_version[2]))
     os.chdir(temp_dir)
-    error_count = sum(1 for ex in examples() if not run_example(ex))
+    error_count = 0
+    for index, example in enumerate(examples()):
+        if not run_example(example, index == 0):
+            error_count = error_count + 1
     os.chdir(current_dir)
     shutil.rmtree(temp_dir)
     print('#### Done ({} errors) #####'.format(error_count))
+    sys.exit(error_count)
