@@ -113,7 +113,8 @@ def examples():
         result.append('sensors/sensor_explorer')
     if qt_version_less_than(5, 12, 0):
         result.append('quick/demos/stocqt')
-    result.extend(['location/mapviewer', 'quickcontrols/extras/gallery'])
+    result.extend(['location/mapviewer', 'quickcontrols/extras/gallery',
+                   'quickcontrols2/gallery'])
     if not qt_mkspec.startswith('winrt') and qt_mkspec != 'win32-g++':
         result.append('webengine/quicknanobrowser')
     return result
@@ -173,10 +174,14 @@ def run_example(example, test_deployment):
     """Build and run an example"""
     global qt_mkspec
     name = os.path.basename(example)
+    # Disambiguate identical directory names of for example QQC1/2 'gallery'
+    dir_name = name
+    while os.path.exists(dir_name):
+        dir_name += '_1'
     result = False
     print('#### Running {} #####'.format(name))
-    os.mkdir(name)
-    os.chdir(name)
+    os.mkdir(dir_name)
+    os.chdir(dir_name)
     try:
         execute(['qmake', 'CONFIG+=console',
                  os.path.join(qt_examples_path, example)])
