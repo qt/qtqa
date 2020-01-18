@@ -36,8 +36,9 @@ import (
 
 // AutoRunSettings is used to read autorun.json.
 type AutoRunSettings struct {
-	Version  int      `json:"version"`
-	Branches []string `json:"branches"`
+	Version     int               `json:"version"`
+	Branches    []string          `json:"branches"`
+	ProductRefs map[string]string `json:"productRefs"`
 }
 
 func (settings *AutoRunSettings) load() error {
@@ -59,7 +60,11 @@ func (settings *AutoRunSettings) runUpdates(gerrit *gerritInstance) {
 	// I'm keeping the product out of the file
 	product := "qt/qt5"
 	for _, branch := range settings.Branches {
-		batch, err := newModuleUpdateBatch(product, branch, "")
+		productRef := ""
+		if specificProductRef, ok := settings.ProductRefs[branch]; ok {
+			productRef = specificProductRef
+		}
+		batch, err := newModuleUpdateBatch(product, branch, productRef)
 		if err != nil {
 			fmt.Printf("Error loading update batch state for %s/%s: %s\n", product, branch, err)
 			continue

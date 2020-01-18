@@ -1,5 +1,8 @@
 {
     "$schema": "./autorun_schema.json",
     "version": 1,
-    "branches": ["dev"]
+    "branches": ["dev"],
+    "productRefs": {
+        "dev": "refs/changes/50/286350/5"
+    }
 }

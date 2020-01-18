@@ -98,7 +98,9 @@ func appMain() error {
 
 	if autorun {
 		autorun := &AutoRunSettings{}
-		autorun.load()
+		if err := autorun.load(); err != nil {
+			return err
+		}
 		autorun.runUpdates(gerrit)
 		return nil
 	}

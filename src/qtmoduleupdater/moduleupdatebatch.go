@@ -171,6 +171,7 @@ func loadTodoAndDoneModuleMapFromSubModules(branch string, submodules map[string
 }
 
 func (batch *ModuleUpdateBatch) loadTodoList() error {
+	log.Printf("Fetching %s modules from %s %s\n", batch.Product, batch.Branch, batch.ProductRef)
 	qt5Modules, err := getQt5ProductModules(batch.Product, batch.Branch, batch.ProductRef)
 	if err != nil {
 		return fmt.Errorf("Error listing qt5 product modules: %s", err)
