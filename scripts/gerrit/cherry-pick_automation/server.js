@@ -42,7 +42,7 @@ const EventEmitter = require("events");
 const requestIp = require("request-ip");
 const net = require("net");
 const uuidv1 = require("uuid/v1");
-const emailClient = require("./emailClient");
+const postgreSQLClient = require("./postgreSQLClient");
 const toolbox = require("./toolbox");
 const config = require("./config.json");
 
@@ -124,6 +124,12 @@ class webhookListener extends EventEmitter {
       `'${toolbox.encodeJSONtoBase64(req)}'`,
       `'${toolbox.encodeJSONtoBase64({})}'`
     ];
+    postgreSQLClient.insert("processing_queue", columns, rowdata, function(
+      changes
+    ) {
+      // Ready to begin processing the merged change.
+      _this.emit("newRequestStored", req.uuid);
+    });
   }
 
   // Set up a server and start listening on a given port.

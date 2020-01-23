@@ -320,7 +320,9 @@ exports.validateBranch = function(project, branch, callback) {
 // Query gerrit for the existing reviewers on a change.
 exports.getChangeReviewers = function(fullChangeID, callback) {
   axios
-    .get(`https://${gerritURL}:${gerritPort}/changes/${fullChangeID}/reviewers/`)
+    .get(
+      `https://${gerritURL}:${gerritPort}/changes/${fullChangeID}/reviewers/`
+    )
     .then(function(response) {
       // Execute callback with the target branch head SHA1 of that branch
       let reviewerlist = [];
@@ -374,4 +376,39 @@ function setChangeReviewers(fullChangeID, reviewers, callback) {
   reviewers.forEach(postReviewer);
 
   callback(failedItems);
+}
+
+exports.copyChangeReviewers = copyChangeReviewers;
+function copyChangeReviewers(fromChangeID, toChangeID, callback) {
+  getChangeReviewers(fromChangeID, function(success, reviewerlist) {
+    if (success) {
+      setChangeReviewers(toChangeID, reviewerlist, function(failedItems) {
+        if (failedItems) {
+          _this.gerritCommentHandler(
+            toChangeID,
+            undefined,
+            `Failed to add some reviewers to this change: ${JSON.stringify(
+              failedItems,
+              undefined,
+              "\n"
+            )}\nYou may want to add these reviewers manually.`,
+            "OWNER"
+          );
+        }
+        if (callback) {
+          callback(true, failedItems);
+        }
+      });
+    } else {
+      _this.gerritCommentHandler(
+        toChangeID,
+        undefined,
+        `INFO: Failed to add any reviewers to this change automatically.`,
+        "OWNER"
+      );
+      if (callback) {
+        callback(false, []);
+      }
+    }
+  });
 }

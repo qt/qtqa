@@ -131,8 +131,8 @@ function decrementPickCountRemaining(uuid, callback) {
 // Add a status update for an inbound request's cherry-pick job to the queue.
 // This needs to be under a lockout since individual cherrypicks are part of
 // a larger base64 encoded blob under the parent inbound request.
-exports.queueCherryPickStateUpdate = queueCherryPickStateUpdate;
-function queueCherryPickStateUpdate(
+exports.addToCherryPickStateUpdateQueue = addToCherryPickStateUpdateQueue;
+function addToCherryPickStateUpdateQueue(
   parentUuid,
   branchData,
   newState,
@@ -201,7 +201,7 @@ function setDBSubState(uuid, branchdata, state, callback) {
           },
           callback,
           // Call the queue function when complete to check for further updates to process
-          queueCherryPickStateUpdate
+          addToCherryPickStateUpdateQueue
         );
       } else {
         console.trace(
