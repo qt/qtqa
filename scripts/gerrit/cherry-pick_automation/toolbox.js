@@ -39,7 +39,53 @@
 
 exports.id = "toolbox";
 
-// Helper methods for encoding and decoding JSON objects for storage in a database.
+let dbSubStatusUpdateQueue = [];
+let dbUpdateLockout = false;
+
+// Parse the commit message and return a raw list of branches to pick to.
+exports.findPickToBranches = function(message) {
+  let matches = message.match(/^(Pick-to:(\ +\d\.\d+)+)+/gm);
+  let branchSet = new Set();
+  if (matches) {
+    matches.forEach(function(match) {
+      let parsedMatch = match.split(":");
+      parsedMatch = parsedMatch[1].split(" ");
+      parsedMatch.forEach(function(submatch) {
+        if (submatch) {
+          branchSet.add(submatch);
+        }
+      });
+    });
+  }
+  return branchSet;
+};
+
+// Add a status update for an inbound request's cherry-pick job to the queue.
+// This needs to be under a lockout since individual cherrypicks are part of
+// a larger base64 encoded blob under the parent inbound request.
+exports.queueCherryPickStateUpdate = queueCherryPickStateUpdate;
+function queueCherryPickStateUpdate(
+  parentUuid,
+  branchData,
+  newState,
+  callback,
+  unlock = false
+) {
+  if (parentUuid && branchData && newState) {
+    dbSubStatusUpdateQueue.push([parentUuid, branchData, newState, callback]);
+  }
+  if (!dbUpdateLockout || unlock) {
+    dbUpdateLockout = true;
+    if (dbSubStatusUpdateQueue.length > 0) {
+      args = dbSubStatusUpdateQueue.shift();
+      setDBSubState.apply(this, args);
+    } else {
+      dbUpdateLockout = false;
+    }
+  }
+}
+
+//Helper methods for encoding and decoding JSON objects for storage in a database.
 exports.decodeBase64toJSON = decodeBase64toJSON;
 function decodeBase64toJSON(base64string) {
   return JSON.parse(Buffer.from(base64string, "base64").toString("utf8"));
