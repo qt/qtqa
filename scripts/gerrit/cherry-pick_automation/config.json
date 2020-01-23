@@ -1,0 +1,11 @@
+{
+    "WEBHOOK_PORT": 8083,
+    "GERRIT_IPV4": "54.194.93.196",
+    "GERRIT_IPV6": "",
+    "GERRIT_URL": "codereview.qt-project.org",
+    "GERRIT_PORT": 443,
+    "GERRIT_USER": "",
+    "GERRIT_PASS": "",
+    "SMTP_SERVER": "smtp.intra.qt.io",
+    "SMTP_PORT": 25
+}
