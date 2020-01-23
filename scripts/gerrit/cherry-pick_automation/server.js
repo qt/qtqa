@@ -42,6 +42,7 @@ const EventEmitter = require("events");
 const requestIp = require("request-ip");
 const net = require("net");
 const uuidv1 = require("uuid/v1");
+const emailClient = require("./emailClient");
 const toolbox = require("./toolbox");
 const config = require("./config.json");
 
@@ -54,6 +55,7 @@ const config = require("./config.json");
 let webhookPort = config.WEBHOOK_PORT;
 let gerritIPv4 = config.GERRIT_IPV4;
 let gerritIPv6 = config.GERRIT_IPV6;
+let adminEmail = config.ADMIN_EMAIL;
 
 // Prefer environment variable if set.
 if (process.env.WEBHOOK_PORT) {
@@ -65,6 +67,10 @@ if (process.env.GERRIT_IPV4) {
 
 if (process.env.GERRIT_IPV6) {
   gerritIPv6 = process.env.GERRIT_IPV6;
+}
+
+if (process.env.ADMIN_EMAIL) {
+  adminEmail = process.env.ADMIN_EMAIL;
 }
 
 class webhookListener extends EventEmitter {
@@ -133,6 +139,12 @@ class webhookListener extends EventEmitter {
         // or fixed if there's a bug.
         console.log(
           "Syntax error in input. The incoming request may be broken!"
+        );
+        emailClient.genericSendEmail(
+          adminEmail,
+          "Cherry-pick bot: Error in received webhook",
+          undefined, // Don't bother assembling an HTML body for this debug message.
+          err.message + "\n\n" + err.body
         );
         res.sendStatus(400);
       } else {

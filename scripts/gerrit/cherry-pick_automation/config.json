@@ -6,6 +6,8 @@
     "GERRIT_PORT": 443,
     "GERRIT_USER": "",
     "GERRIT_PASS": "",
-    "SMTP_SERVER": "smtp.intra.qt.io",
-    "SMTP_PORT": 25
+    "ADMIN_EMAIL": "",
+    "EMAIL_SENDER": "\"Cherry-Pick Bot\" <cherrypickbot@qt.io>",
+    "SES_ACCESS_KEY_ID": "",
+    "SES_SECRET_ACCESS_KEY": ""
 }

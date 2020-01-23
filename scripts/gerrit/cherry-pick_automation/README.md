@@ -54,7 +54,10 @@ on Windows.
 #### Installation
 1. `npm install` in the project directory
 
-#### General configuration options (config.json)
+#### General configuration options
+Configuration set via config.json OR environment variables
+
+**Note:** Environment variables override configuration in config.json
 1. `WEBHOOK_PORT` Port to listen on for gerrit webhook events. `Default: 8083`
 2. `GERRIT_IPV4` IPv4 address of the gerrit server. Set this or the IPv6 address
 to whitelist incoming requests. `Default: 54.194.93.196`
@@ -67,9 +70,15 @@ to whitelist incoming requests. `Default: ''`
 gerrit's REST API. `Default: ''`
 7. `GERRIT_PASS` Basic Authentication password gerrit REST API user.
 `Default: ''`
-8. `SMTP_SERVER` The anonymous email server to connect to for bot mails.
-This is separate from gerrit. `Default: smtp.intra.qt.io`
-9. `SMTP_PORT` Port to connect to the email server on. `Default:25`
+8. `SES_ACCESS_KEY_ID`: The access key ID for connecting with an Amazon SES email
+client. `Default: ''`
+9. `SES_SECRET_ACCESS_KEY` The access key secret for connecting with an Amazon
+SES email client. `Default: ''`
+10. `ADMIN_EMAIL` Email address where critical debug messages are sent.
+`Default: ''`
+11. `EMAIL_SENDER` Email address from which critial debug messages are sent.
+Note the formatting of the default sender.
+`Default: '\"Cherry-Pick Bot\" <cherrypickbot@qt.io>'`
 
 #### PostgreSQL database configuration (postgreSQLconfig.json)
 1. `user` Databse username with read/write access `Default: "postgres"`
