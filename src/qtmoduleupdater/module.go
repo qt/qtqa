@@ -193,34 +193,31 @@ func NewModule(moduleName string, branch string, qt5Modules map[string]*submodul
 		return nil, fmt.Errorf("could not fetch repo tip %s of %s: %s", headRef, moduleName, err)
 	}
 
-	yamlDependencies, _ := readDependenciesYAML(repoPath, repo, moduleTipCommit)
-	if yamlDependencies == nil {
-		yamlDependencies = &YAMLDependencies{}
-		yamlDependencies.Dependencies = make(map[string]*YAMLModule)
+	yamlDependencies := &YAMLDependencies{}
+	yamlDependencies.Dependencies = make(map[string]*YAMLModule)
 
-		subModule, ok := qt5Modules[moduleName]
-		if !ok {
-			return nil, fmt.Errorf("could not find %s in .gitmodules in qt5.git", moduleName)
-		}
-
-		populateDependencies := func(required bool, dependencies []string) {
-			for _, dependency := range dependencies {
-				_, knownModule := qt5Modules[dependency]
-				if !required && !knownModule {
-					continue
-				}
-
-				var yamlModule YAMLModule
-				yamlModule.Required = required
-				yamlModule.Ref = string(subModule.headCommit)
-
-				yamlDependencies.Dependencies[dependency] = &yamlModule
-			}
-		}
-
-		populateDependencies(true, subModule.requiredDependencies)
-		populateDependencies(false, subModule.optionalDependencies)
+	subModule, ok := qt5Modules[moduleName]
+	if !ok {
+		return nil, fmt.Errorf("could not find %s in .gitmodules in qt5.git", moduleName)
 	}
+
+	populateDependencies := func(required bool, dependencies []string) {
+		for _, dependency := range dependencies {
+			_, knownModule := qt5Modules[dependency]
+			if !required && !knownModule {
+				continue
+			}
+
+			var yamlModule YAMLModule
+			yamlModule.Required = required
+			yamlModule.Ref = string(subModule.headCommit)
+
+			yamlDependencies.Dependencies[dependency] = &yamlModule
+		}
+	}
+
+	populateDependencies(true, subModule.requiredDependencies)
+	populateDependencies(false, subModule.optionalDependencies)
 
 	result := &Module{}
 	result.RepoPath = repoPath
