@@ -171,7 +171,7 @@ func getQt5ProductModules(productProject string, branchOrRef string, productFetc
 	return listSubmodules(productRepo, productRepoURL, productHead)
 }
 
-func prepareQt5Update(product string, branch string, updatedModules map[string]*Module, gerrit *gerritInstance) error {
+func prepareQt5Update(product string, branch string, productFetchRef string, updatedModules map[string]*Module, gerrit *gerritInstance) error {
 	productRepoURL, err := RepoURL(product)
 	if err != nil {
 		return fmt.Errorf("Error determining %s repo URL: %s", product, err)
@@ -182,7 +182,7 @@ func prepareQt5Update(product string, branch string, updatedModules map[string]*
 		return fmt.Errorf("Error opening product repo: %s", err)
 	}
 
-	productHead, err := productRepo.Fetch(productRepoURL, "refs/heads/"+branch)
+	productHead, err := productRepo.Fetch(productRepoURL, productFetchRef)
 	if err != nil {
 		return err
 	}
