@@ -679,6 +679,51 @@ class Selector(object): # Select interesting changes, discard boring.
                     return tokens[:-size]
                 yield test, purge
 
+            # QVariant::value<> -> qvariant_cast<>
+            # expr.value<type>() -> qvariant_cast<type>(expr) or
+            # expr->value<type>() -> qvariant_cast<type>(*expr)
+            # This code is only adequate for simple expr and type: and
+            # is only relevant to bodies of inlines or macros, not in
+            # the APIs we're reviewing.
+            swap = (('value', '<', None, '>', '(', ')'),
+                    ('qvariant_cast', '<', None, '>', '(', None, ')'))
+            def find(tokens, sought=swap[1]):
+                start = 0
+                try:
+                    while start + len(sought) < len(tokens):
+                        last = match = tokens.index(sought[0], start)
+                        if tokens[match + 1] == sought[1]:
+                            try:
+                                close = tokens.index(sought[3], match + 2)
+                                if tokens[close + 1] == sought[4]:
+                                    last = tokens.index(sought[6], close + 2)
+                                    yield (match, close, last)
+                            except ValueError:
+                                pass
+                        start = last + 1
+                except ValueError:
+                    pass
+            def test(tokens, seek=find):
+                # If we have any matches say yes:
+                for triad in seek(tokens):
+                    return True
+                return False
+            def edit(tokens, replace=swap[0], seek=find):
+                for match, mid, end in seek(tokens):
+                    cast = tuple(tokens[match + 2 : mid])
+                    if tokens[mid + 2] == '*':
+                        dot, obj = '->', tokens[mid + 3 : end]
+                    else:
+                        dot, obj = '.', tokens[mid + 2 : end]
+                    yield match, end + 1, tuple(obj) + (dot,) + replace[:2] + cast + replace[3:]
+            def purge(tokens, work=edit):
+                edits = list(work(tokens))
+                while edits:
+                    start, stop, replace = edits.pop()
+                    tokens[start : stop] = replace
+                return tokens
+            yield test, purge
+
             # Complications (involving optional tokens or tokens with
             # alternate forms) should go after all others, to avoid
             # needlessly exercising them:
