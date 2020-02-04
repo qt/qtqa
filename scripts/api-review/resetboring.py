@@ -623,6 +623,12 @@ class Selector(object): # Select interesting changes, discard boring.
             for pair in (('Q_QDOC', 'Q_CLANG_QDOC'),
                          ('Q_DECL_FINAL', 'final'),
                          ('Q_DECL_CONSTEXPR', 'constexpr'),
+                         ('QT_HAS_BUILTIN', '__has_builtin'),
+                         ('QT_HAS_FEATURE', '__has_feature'),
+                         ('QT_HAS_ATTRIBUTE', '__has_attribute'),
+                         ('QT_HAS_CPP_ATTRIBUTE', '__has_cpp_attribute'),
+                         ('QT_HAS_INCLUDE', '__has_include'),
+                         ('QT_HAS_INCLUDE_NEXT', '__has_include_next'),
                          ):
                 def test(words, k=pair[1]):
                     return k in words
