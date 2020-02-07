@@ -47,11 +47,11 @@ jsonSql.setDialect("postgresql");
 
 // Use DATABASE_URL environment variable if set. (Heroku environments)
 // Otherwise, continue to use the config file.
-if (process.env.DATABASE_URL){
+if (process.env.DATABASE_URL) {
   config = {
     connectionString: process.env.DATABASE_URL,
     ssl: true
-  }
+  };
 }
 const pool = new Pool(config);
 

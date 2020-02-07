@@ -70,7 +70,7 @@ exports.generateCherryPick = generateCherryPick;
 function generateCherryPick(changeJSON, parent, destinationBranch, callback) {
   const changeIDPos = changeJSON.change.commitMessage.lastIndexOf("Change-Id:");
   const newCommitMessage = changeJSON.change.commitMessage
-    .slice(0, changeIDPos - 1)
+    .slice(0, changeIDPos)
     .concat(`Cherry-picked from branch: ${changeJSON.change.branch}\n\n`)
     .concat(changeJSON.change.commitMessage.slice(changeIDPos))
     .replace(/^(Pick-to:(\ +\d\.\d+)+)+/gm, "");
@@ -93,7 +93,7 @@ function generateCherryPick(changeJSON, parent, destinationBranch, callback) {
     .then(function(response) {
       // Send an update with only the branch before trying to parse the raw response.
       // If the parse is bad, then at least we stored a status with the branch.
-      toolbox.queueCherryPickStateUpdate(
+      toolbox.addToCherryPickStateUpdateQueue(
         changeJSON.uuid,
         {
           branch: destinationBranch
@@ -101,7 +101,7 @@ function generateCherryPick(changeJSON, parent, destinationBranch, callback) {
         "pickCreated"
       );
       parsedResponse = JSON.parse(response.data.slice(4));
-      toolbox.queueCherryPickStateUpdate(
+      toolbox.addToCherryPickStateUpdateQueue(
         changeJSON.uuid,
         {
           branch: destinationBranch,
@@ -212,12 +212,10 @@ function stageCherryPick(parentUuid, cherrypickJSON, callback) {
         // that falls out of the range of 2xx
 
         // Call this a permenant failure for staging. Ask the owner to handle it.
-        postGerritpostGerritComment(
-          cherrypickJSON.id,
-          undefined,
-          `Failed to automatically stage this cherry-pick! Please review.\nReason: ${error.response.data}`
-        );
-        callback(false, error.response);
+        callback(false, {
+          status: error.response.status,
+          data: error.response.data
+        });
       } else if (error.request) {
         // The request was made but no response was received. Retry it later.
         callback(false, "retry");
@@ -318,7 +316,8 @@ exports.validateBranch = function(project, branch, callback) {
 };
 
 // Query gerrit for the existing reviewers on a change.
-exports.getChangeReviewers = function(fullChangeID, callback) {
+exports.getChangeReviewers = getChangeReviewers;
+function getChangeReviewers(fullChangeID, callback) {
   axios
     .get(
       `https://${gerritURL}:${gerritPort}/changes/${fullChangeID}/reviewers/`
@@ -326,21 +325,23 @@ exports.getChangeReviewers = function(fullChangeID, callback) {
     .then(function(response) {
       // Execute callback with the target branch head SHA1 of that branch
       let reviewerlist = [];
-      response.body.forEach(function(item) {
-        // Only add reviewers that have an email, as those are the only
-        // ones that we can add to another change.
+      JSON.parse(response.data.slice(4)).forEach(function(item) {
+        // Email as user ID is preferred. If unavailable, use the bare username.
         if (item.email) {
           reviewerlist.push(item.email);
+        } else if (item.username) {
+          reviewerlist.push(item.username);
         }
       });
       callback(true, reviewerlist);
     })
     .catch(function(error) {
+      console.trace(error);
       // Some kind of error occurred. Have the caller take some action to
       // alert the owner that they need to add reviewers manually.
       callback(false, "manual");
     });
-};
+}
 
 // Add new reviewers to a change.
 exports.setChangeReviewers = setChangeReviewers;
@@ -383,29 +384,11 @@ function copyChangeReviewers(fromChangeID, toChangeID, callback) {
   getChangeReviewers(fromChangeID, function(success, reviewerlist) {
     if (success) {
       setChangeReviewers(toChangeID, reviewerlist, function(failedItems) {
-        if (failedItems) {
-          _this.gerritCommentHandler(
-            toChangeID,
-            undefined,
-            `Failed to add some reviewers to this change: ${JSON.stringify(
-              failedItems,
-              undefined,
-              "\n"
-            )}\nYou may want to add these reviewers manually.`,
-            "OWNER"
-          );
-        }
         if (callback) {
           callback(true, failedItems);
         }
       });
     } else {
-      _this.gerritCommentHandler(
-        toChangeID,
-        undefined,
-        `INFO: Failed to add any reviewers to this change automatically.`,
-        "OWNER"
-      );
       if (callback) {
         callback(false, []);
       }

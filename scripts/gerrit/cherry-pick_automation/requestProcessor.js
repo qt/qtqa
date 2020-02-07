@@ -215,12 +215,31 @@ class requestProcessor extends EventEmitter {
       gerritTools.copyChangeReviewers(
         parentJSON.fullChangeID,
         cherrypickJSON.id,
-        function() {
+        function(success, failedItems) {
           _this.gerritCommentHandler(
             cherrypickJSON.id,
             undefined,
             `INFO: This cherry-pick from your recently merged change on ${parentJSON.branch} has merge conflicts.\nPlease review.`
           );
+          if (success && failedItems.length > 0) {
+            _this.gerritCommentHandler(
+              cherrypickJSON.id,
+              undefined,
+              `INFO: Some reviewers were not successfully added to this change. You may wish to add them manually.\n ${JSON.stringify(
+                failedItems,
+                undefined,
+                "\n"
+              )}`,
+              "OWNER"
+            );
+          } else if (!success) {
+            _this.gerritCommentHandler(
+              cherrypickJSON.id,
+              undefined,
+              `INFO: Reviewers were unable to be automatically added to this change. Please add reviewers manually.`,
+              "OWNER"
+            );
+          }
           // We're done with this one since it now needs human review.
           toolbox.addToCherryPickStateUpdateQueue(
             parentJSON.uuid,
@@ -339,11 +358,11 @@ class requestProcessor extends EventEmitter {
           "OWNER"
         );
         toolbox.addToCherryPickStateUpdateQueue(
-          parentUuid,
+          parentJSON.uuid,
           {
             branch: cherrypickJSON.branch,
-            statusDetail: data.response ? data.response.data : error.message,
-            statusCode: error.response ? error.response.status : ""
+            statusDetail: data.data ? data.data : data.message,
+            statusCode: data.status ? data.status : ""
           },
           "stageFailed",
           toolbox.decrementPickCountRemaining(parentJSON.uuid)

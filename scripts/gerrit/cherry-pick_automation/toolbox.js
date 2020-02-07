@@ -167,7 +167,7 @@ function encodeJSONtoBase64(json) {
 // Execute an update statement for cherrypick branch statuses.
 // This action *must* be semaphored since data about cherry pick branches is kept
 // in a JSON blob within a single cell on a given row for an origin revision.
-// Use the queueCherryPickStateUpdate() function to queue updates.
+// Use the addToCherryPickStateUpdateQueue() function to queue updates.
 function setDBSubState(uuid, branchdata, state, callback) {
   postgreSQLClient.query(
     "processing_queue",
