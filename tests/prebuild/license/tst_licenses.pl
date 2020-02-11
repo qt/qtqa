@@ -113,6 +113,7 @@ my %excludedFiles = (
                           qr{^examples/charts/chartthemes/ui_themewidget.py$},
                           qr{^examples/sql/books/ui_bookwindow.py$},
                           qr{^examples/sql/books/rc_books.py$},
+                          qr{^examples/webchannel/standalone/ui_dialog.py$},
                           qr{^examples/widgets/draganddrop/draggabletext/draggabletext_rc.py$},
                           qr{^examples/widgets/painting/basicdrawing/basicdrawing_rc.py$},
                           qr{^examples/widgets/richtext/syntaxhighlighter/syntaxhighlighter_rc.py$},
