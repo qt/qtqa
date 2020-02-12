@@ -317,6 +317,7 @@ tst_Bic::tst_Bic(const char *appFilePath)
     bic.addBlacklistedClass(QLatin1String("QDeclarativePrivate::RegisterType"));
     bic.addBlacklistedClass(QLatin1String("QQmlPrivate::RegisterType"));
     bic.addBlacklistedClass(QLatin1String("QQmlPrivate::RegisterSingletonType"));
+    bic.addBlacklistedClass(QLatin1String("QQmlPrivate::RegisterInterface"));
 
     /* according to Thiago this is a false positive */
     bic.addBlacklistedClass(QLatin1String("QLoggingCategory::AtomicBools"));
