@@ -222,7 +222,11 @@ QStringList qt_tests_shared_global_get_export_modules(const QString &makeFile)
         int index = line.indexOf('=');
         if (index > 13 && line.startsWith(QLatin1String("EXPORT_MODULES"))) {
             QString relatives = line.mid(index + 1);
+#if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
+            return relatives.split(QChar(' '), Qt::SkipEmptyParts);
+#else
             return relatives.split(QChar(' '), QString::SkipEmptyParts);
+#endif
         }
     }
     return QStringList();
