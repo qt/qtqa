@@ -55,9 +55,9 @@ class retryProcessor extends EventEmitter {
       "retry_queue",
       ["uuid", "retryaction", "args"],
       [
-        `'${retryUuid}'`,
-        `'${retryAction}'`,
-        `'${toolbox.encodeJSONtoBase64(args)}'`
+        retryUuid,
+        retryAction,
+        toolbox.encodeJSONtoBase64(args)
       ],
       function() {
         console.log(`Retry ${retryAction} registered for ${retryUuid}`);

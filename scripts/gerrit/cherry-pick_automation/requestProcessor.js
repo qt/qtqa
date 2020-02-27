@@ -94,16 +94,60 @@ class requestProcessor extends EventEmitter {
             success,
             data
           ) {});
+          // The change has a Pick-to label with at least one branch.
+          // Next, determine if it's part of a relation chain and handle
+          // it as a member of that chain.
+          _this.emit("determineProcessingPath", incoming, branches);
         }
-
-        branches.forEach(function(branch) {
-          _this.emit("validateBranch", incoming, branch);
-        });
       }
     });
   }
 
-  validateBranch(incoming, branch) {
+  determineProcessingPath(incoming, branches) {
+    // Determine if the change is part of a relation chain.
+    // Hand it off to the [relationChainManager] if it is.
+    let _this = this;
+    gerritTools.queryRelated(incoming.fullChangeID, function(success, data) {
+      if (success && data.length > 0) {
+        // Update the request in the database with the relation chain.
+        // Pass it to the relation chain manager once the database finishes.
+        incoming["relatedChanges"] = data;
+        toolbox.updateBaseChangeJSON(incoming.uuid, incoming, function() {
+          _this.emit("processAsRelatedChange", incoming, branches);
+        });
+      } else if (success) {
+        // Pass this down the normal pipeline and just pick the branches
+        _this.emit("processAsSingleChange", incoming, branches);
+      } else if (data == "retry") {
+        // Failed to query for related changes, schedule a retry
+        _this.retryProcessor.addRetryJob("determineProcessingPath", [
+          incoming,
+          branches
+        ]);
+      } else {
+        // A non-timeout failure occurred when querying gerrit. This should not happen.
+        console.trace(
+          `Permanently failed to query the relation chain for ${incoming.fullChangeID}.`
+        );
+        const message = `An unknown error occurred processing cherry picks for this change. Please create cherry picks manually.`;
+        const notifyScope = "OWNER";
+        _this.gerritCommentHandler(
+          incoming.fullChangeID,
+          undefined,
+          message,
+          notifyScope
+        );
+        emailClient.genericSendEmail(
+          config.ADMIN_EMAIL,
+          `Cherry-pick bot: Error in querying for related changes [${incoming.fullChangeID}]`,
+          undefined,
+          JSON.stringify(data, undefined, 4)
+        );
+      }
+    });
+  }
+
+  validateBranch(incoming, branch, responseSignal) {
     // For each branch found, validate it and kick off the next process.
     let _this = this;
     gerritTools.validateBranch(incoming.change.project, branch, function(
@@ -111,9 +155,13 @@ class requestProcessor extends EventEmitter {
       data
     ) {
       if (success) {
-        _this.emit("validBranchReadyForPick", incoming, branch, data);
+        _this.emit(responseSignal, incoming, branch, data);
       } else if (data == "retry") {
-        _this.retryProcessor.addRetryJob("validateBranch", [incoming, branch]);
+        _this.retryProcessor.addRetryJob("validateBranch", [
+          incoming,
+          branch,
+          responseSignal
+        ]);
       } else {
         console.trace(`Branch validation failed for ${branch}.`);
         const message = `Failed to cherry pick to ${branch}.\nReason: ${branch} is invalid.`;
@@ -128,14 +176,290 @@ class requestProcessor extends EventEmitter {
           incoming.uuid,
           { branch: branch },
           "done_invalidBranch",
-          toolbox.decrementPickCountRemaining(incoming.uuid)
+          () => {toolbox.decrementPickCountRemaining(incoming.uuid)}
         );
       }
     });
   }
 
+  // From the current change, determine if the direct parent has a cherry-pick
+  // on the target branch. If it does, call the response signal with its revision
+  verifyParentPickExists(
+    currentJSON,
+    branch,
+    responseSignal,
+    errorSignal,
+    isRetry
+  ) {
+    let _this = this;
+
+    toolbox.addToCherryPickStateUpdateQueue(
+      currentJSON.uuid,
+      { branch: branch },
+      "verifyingParentExists"
+    );
+
+    function fatalError(data) {
+      toolbox.addToCherryPickStateUpdateQueue(
+        currentJSON.uuid,
+        {
+          branch: branch,
+          statusCode: data.statusCode,
+          statusDetail: data.statusDetail
+        },
+        "done_parentValidationFailed",
+        () => {toolbox.decrementPickCountRemaining(currentJSON.uuid)}
+      );
+      _this.gerritCommentHandler(
+        currentJSON.fullChangeID,
+        undefined,
+        `Failed to find this change's parent revision for cherry-picking!\nPlease verify that this change's parent is a valid commit in gerrit and process required cherry-picks manually.`
+      );
+    }
+
+    function retryThis() {
+      toolbox.addToCherryPickStateUpdateQueue(
+        currentJSON.uuid,
+        { branch: branch },
+        "verifyParentRetryWait"
+      );
+      _this.retryProcessor.addRetryJob("verifyParentPickExists", [
+        currentJSON,
+        branch,
+        responseSignal,
+        errorSignal,
+        isRetry
+      ]);
+    }
+
+    gerritTools.queryChange(currentJSON.fullChangeID, function(exists, data) {
+      if (exists) {
+        // Success - Locate the parent revision (SHA) to the current change.
+        gerritTools.queryChange(
+          data.revisions[data.current_revision].commit.parents[0].commit,
+          function(exists, data) {
+            if (exists) {
+              // Success - Found the parent (change ID) of the current change.
+              if (data.status == "ABANDONED") {
+                // The parent change in marked as abandoned. We cannot use it as a
+                // parent for picking. Notify the owner to process the pick manually.
+                toolbox.addToCherryPickStateUpdateQueue(
+                  currentJSON.uuid,
+                  {
+                    branch: branch,
+                    statusDetail: "parentStateInAbandoned"
+                  },
+                  "done_parentValidationFailed",
+                  () => {toolbox.decrementPickCountRemaining(currentJSON.uuid)}
+                );
+                _this.gerritCommentHandler(
+                  currentJSON.fullChangeID,
+                  undefined,
+                  "Unable to pick this change because it's parent is abandoned.\nPlease Cherry-pick this change manually.",
+                  "OWNER"
+                );
+                _this.emit(errorSignal, currentJSON, branch, {
+                  error: data.status,
+                  parentJSON: data,
+                  isRetry: isRetry
+                });
+              } else if (
+                ["NEW", "STAGED", "INTEGRATING"].some(
+                  element => data.status == element
+                )
+              ) {
+                // The parent has not yet been merged.
+                // Fire the error signal with the parent's state.
+                toolbox.addToCherryPickStateUpdateQueue(
+                  currentJSON.uuid,
+                  {
+                    branch: branch
+                  },
+                  "parentNotMergedWait"
+                );
+
+                _this.emit(errorSignal, currentJSON, branch, {
+                  error: data.status,
+                  unmergedChangeID: `${encodeURIComponent(
+                    currentJSON.change.project
+                  )}~${data.branch}~${data.change_id}`,
+                  parentJSON: data,
+                  isRetry: isRetry
+                });
+              } else {
+                // The status of the parent should be MERGED at this point.
+                // Try to see if it was picked to the target branch.
+                let targetPickParent = `${encodeURIComponent(
+                  currentJSON.change.project
+                )}~${branch}~${data.change_id}`;
+                gerritTools.queryChange(targetPickParent, function(
+                  exists,
+                  targetData
+                ) {
+                  if (exists) {
+                    // Success - The target exists and can be set as the parent.
+                    _this.emit(responseSignal, currentJSON, branch, {
+                      target: targetData.current_revision,
+                      isRetry: isRetry
+                    });
+                  } else if (targetData == "retry") {
+                    // Do nothing. This callback function will be called again on retry.
+                    retryThis();
+                  } else {
+                    // The target change ID doesn't exist on the branch specified.
+                    toolbox.addToCherryPickStateUpdateQueue(
+                      currentJSON.uuid,
+                      {
+                        branch: branch
+                      },
+                      "parentMergedNoPick",
+                      function() {
+                        _this.emit(errorSignal, currentJSON, branch, {
+                          error: "notPicked",
+                          parentChangeID: `${encodeURIComponent(
+                            currentJSON.change.project
+                          )}~${data.branch}~${data.change_id}`,
+                          parentJSON: data,
+                          targetPickParent: targetPickParent,
+                          isRetry: isRetry
+                        });
+                      }
+                    );
+                  }
+                });
+              }
+            } else if (data == "retry") {
+              // Do nothing. This callback function will be called again on retry.
+              retryThis();
+            } else {
+              fatalError(data);
+            }
+          }
+        );
+      } else if (data == "retry") {
+        // Do nothing. This callback function will be called again on retry.
+        retryThis();
+      } else {
+        fatalError(data);
+      }
+    });
+  }
+
+  stagingReadyCheck(
+    originalRequestJSON,
+    cherryPickJSON,
+    responseSignal,
+    errorSignal
+  ) {
+    let _this = this;
+
+    function fatalError(data) {
+      toolbox.addToCherryPickStateUpdateQueue(
+        originalRequestJSON.uuid,
+        {
+          branch: branch,
+          statusCode: data.statusCode,
+          statusDetail: data.statusDetail
+        },
+        "done_parentValidationFailed",
+        () => {toolbox.decrementPickCountRemaining(originalRequestJSON.uuid)}
+      );
+      _this.gerritCommentHandler(
+        cherryPickJSON.id,
+        undefined,
+        data.message,
+        "OWNER"
+      );
+    }
+
+    function retryThis() {
+      toolbox.addToCherryPickStateUpdateQueue(
+        originalRequestJSON.uuid,
+        { branch: cherryPickJSON.branch },
+        "verifyParentRetryWait"
+      );
+      _this.retryProcessor.addRetryJob(
+        "relationChain_cherrypickReadyForStage",
+        [originalRequestJSON, cherryPickJSON, responseSignal, errorSignal]
+      );
+    }
+
+    toolbox.addToCherryPickStateUpdateQueue(
+      originalRequestJSON.uuid,
+      { branch: cherryPickJSON.branch },
+      "stageEligibilityCheckStart"
+    );
+
+    gerritTools.queryChange(cherryPickJSON.id, function(success, data) {
+      if (success) {
+        gerritTools.queryChange(
+          data.revisions[data.current_revision].commit.parents[0].commit,
+          function(success, data) {
+            if (success) {
+              if (data.status == "MERGED" || data.status == "STAGED") {
+                toolbox.addToCherryPickStateUpdateQueue(
+                  originalRequestJSON.uuid,
+                  { branch: cherryPickJSON.branch },
+                  "stageEligibilityCheckPassed"
+                );
+                _this.emit(
+                  responseSignal,
+                  originalRequestJSON,
+                  cherryPickJSON,
+                  data.id,
+                  data.status
+                );
+              } else if (data.status == "INTEGRATING" || data.status == "NEW") {
+                toolbox.addToCherryPickStateUpdateQueue(
+                  originalRequestJSON.uuid,
+                  { branch: cherryPickJSON.branch },
+                  "stageEligibilityCheckWaitParent"
+                );
+                _this.emit(
+                  errorSignal,
+                  originalRequestJSON,
+                  cherryPickJSON,
+                  data.id,
+                  data.status
+                );
+              } else {
+                // Uh-oh! The parent is in some other status like ABANDONED! This
+                // is bad, and shouldn't happen, since it was a cherry-pick. It's
+                // possible that the owner abandoned it and created a new patch
+                // to take its place. Call this a fatal error and post a comment.
+                fatalError({
+                  statusCode: data.statusCode,
+                  statusDetail: data.statusDetail,
+                  message: `The parent to this cherry pick is in a state unsuitable for using as a parent for this cherry-pick. Please reparent it and stage it manually.`
+                });
+              }
+            } else if (data == "retry") {
+              retryThis();
+            } else {
+              // We somehow managed to fail querying for the cherry pick we're trying to check...
+              // This should not happen, but could theoretically occur in a race condition.
+              fatalError({
+                statusCode: data.statusCode,
+                statusDetail: data.statusDetail,
+                message: `Cherry-pick bot permanently failed to query the status of this pick's parent. Please stage it manually.`
+              });
+            }
+          }
+        );
+      } else if (data == "retry") {
+        retryThis();
+      } else {
+        fatalError({
+          statusCode: data.statusCode,
+          statusDetail: data.statusDetail,
+          message: `Cherry-pick bot permanently failed to query the status of this pick's parent. Please stage it manually.`
+        });
+      }
+    });
+  }
+
   // Generate a cherry pick and take some action based on the result
-  doCherryPick(incoming, branch, newParentRev) {
+  doCherryPick(incoming, branch, newParentRev, responseSignal) {
     let _this = this;
     console.log(`Validated branch ${branch} is at revision ${newParentRev}`);
     toolbox.addToCherryPickStateUpdateQueue(
@@ -155,7 +479,7 @@ class requestProcessor extends EventEmitter {
           `Successfully created cherry-pick to ${branch}`
         );
         // Result looks okay, let's see what to do next.
-        _this.emit("newCherryPick", incoming, data);
+        _this.emit(responseSignal, incoming, data);
       } else if (data.statusCode) {
         // Failed to cherry pick to target branch. Post a comment on the original change
         // and stop paying attention to this pick.
@@ -167,7 +491,7 @@ class requestProcessor extends EventEmitter {
             statusDetail: data.statusDetail
           },
           "done_pickFailed",
-          toolbox.decrementPickCountRemaining(incoming.uuid)
+          () => {toolbox.decrementPickCountRemaining(incoming.uuid)}
         );
         _this.gerritCommentHandler(
           incoming.fullChangeID,
@@ -184,7 +508,8 @@ class requestProcessor extends EventEmitter {
         _this.retryProcessor.addRetryJob("validBranchReadyForPick", [
           incoming,
           branch,
-          newParentRev
+          newParentRev,
+          responseSignal
         ]);
       } else {
         toolbox.addToCherryPickStateUpdateQueue(
@@ -195,7 +520,7 @@ class requestProcessor extends EventEmitter {
             statusDetail: "Unknown HTTP error. Contact the Administrator."
           },
           "done_pickFailed",
-          toolbox.decrementPickCountRemaining(incoming.uuid)
+          () => {toolbox.decrementPickCountRemaining(incoming.uuid)}
         );
         emailClient.genericSendEmail(
           config.ADMIN_EMAIL,
@@ -209,21 +534,34 @@ class requestProcessor extends EventEmitter {
 
   // For a newly created cherry pick, give codereview +2 and stage if there are no conflicts.
   // Notify the owner and re-add reviewers if there are conflicts.
-  processNewCherryPick(parentJSON, cherrypickJSON) {
+  processNewCherryPick(parentJSON, cherryPickJSON, responseSignal) {
     let _this = this;
-    if (cherrypickJSON.contains_git_conflicts) {
+    if (cherryPickJSON.contains_git_conflicts) {
+      gerritTools.setChangeAssignee(
+        cherryPickJSON,
+        parentJSON.change.owner.email
+          ? parentJSON.change.owner.email
+          : parentJSON.change.owner.username,
+        function(success, data) {
+          if (!success) {
+            console.trace(
+              `Failed to set change assignee "${JSON.stringify(parentJSON.change.owner)}" on ${cherryPickJSON.id}.\nReason: ${JSON.stringify(data)}`
+            );
+          }
+        }
+      );
       gerritTools.copyChangeReviewers(
         parentJSON.fullChangeID,
-        cherrypickJSON.id,
+        cherryPickJSON.id,
         function(success, failedItems) {
           _this.gerritCommentHandler(
-            cherrypickJSON.id,
+            cherryPickJSON.id,
             undefined,
             `INFO: This cherry-pick from your recently merged change on ${parentJSON.branch} has merge conflicts.\nPlease review.`
           );
           if (success && failedItems.length > 0) {
             _this.gerritCommentHandler(
-              cherrypickJSON.id,
+              cherryPickJSON.id,
               undefined,
               `INFO: Some reviewers were not successfully added to this change. You may wish to add them manually.\n ${JSON.stringify(
                 failedItems,
@@ -234,7 +572,7 @@ class requestProcessor extends EventEmitter {
             );
           } else if (!success) {
             _this.gerritCommentHandler(
-              cherrypickJSON.id,
+              cherryPickJSON.id,
               undefined,
               `INFO: Reviewers were unable to be automatically added to this change. Please add reviewers manually.`,
               "OWNER"
@@ -243,25 +581,25 @@ class requestProcessor extends EventEmitter {
           // We're done with this one since it now needs human review.
           toolbox.addToCherryPickStateUpdateQueue(
             parentJSON.uuid,
-            { branch: cherrypickJSON.branch },
+            { branch: cherryPickJSON.branch },
             "done_mergeConflicts",
-            toolbox.decrementPickCountRemaining(parentJSON.uuid)
+            () => {toolbox.decrementPickCountRemaining(parentJSON.uuid)}
           );
         }
       );
     } else {
-      _this.emit("cherryPickDone", parentJSON, cherrypickJSON);
+      _this.emit(responseSignal, parentJSON, cherryPickJSON);
     }
   }
 
-  autoApproveCherryPick(parentJSON, cherrypickJSON) {
+  autoApproveCherryPick(parentJSON, cherryPickJSON, responseSignal) {
     // The resulting cherry pick passed all requirements for automatic merging.
     // Need to +2 the change before staging!!!
     let _this = this;
     const approvalmsg = `This change is being approved because it was automatically cherry-picked from dev and contains no merge conflicts.`;
     gerritTools.setApproval(
       parentJSON.uuid,
-      cherrypickJSON,
+      cherryPickJSON,
       2,
       approvalmsg,
       "NONE",
@@ -270,23 +608,24 @@ class requestProcessor extends EventEmitter {
           toolbox.addToCherryPickStateUpdateQueue(
             parentJSON.uuid,
             {
-              branch: cherrypickJSON.branch
+              branch: cherryPickJSON.branch
             },
             "approvalSet"
           );
-          _this.emit("cherrypickReadyForStage", parentJSON, cherrypickJSON);
+          _this.emit(responseSignal, parentJSON, cherryPickJSON);
         } else if (data == "retry") {
           console.log(
-            `Failed to approve pick ${cherrypickJSON.id} due to a network issue. Retrying in a bit.`
+            `Failed to approve pick ${cherryPickJSON.id} due to a network issue. Retrying in a bit.`
           );
           _this.retryProcessor.addRetryJob("cherryPickDone", [
             parentJSON,
-            cherrypickJSON
+            cherryPickJSON,
+            responseSignal
           ]);
           toolbox.addToCherryPickStateUpdateQueue(
             parentJSON.uuid,
             {
-              branch: cherrypickJSON.branch
+              branch: cherryPickJSON.branch
             },
             "setApprovalRetryWait"
           );
@@ -296,13 +635,26 @@ class requestProcessor extends EventEmitter {
           toolbox.addToCherryPickStateUpdateQueue(
             parentJSON.uuid,
             {
-              branch: cherrypickJSON.branch,
+              branch: cherryPickJSON.branch,
               statusDetail: data ? data : undefined
             },
             "setApprovalFailed"
           );
+          gerritTools.setChangeAssignee(
+            cherryPickJSON,
+            parentJSON.change.owner.email
+              ? parentJSON.change.owner.email
+              : parentJSON.change.owner.username,
+            function(success, data) {
+              if (!success) {
+                console.trace(
+                  `Failed to set change assignee "${JSON.stringify(parentJSON.change.owner)}" on ${cherryPickJSON.id}\nReason: ${JSON.stringify(data)}`
+                );
+              }
+            }
+          );
           _this.gerritCommentHandler(
-            cherrypickJSON.id,
+            cherryPickJSON.id,
             undefined,
             `INFO: The Cherry-Pick bot was unable to automatically approve this change. Please review.\nReason:${
               data
@@ -316,39 +668,54 @@ class requestProcessor extends EventEmitter {
     );
   }
 
-  stageCherryPick(parentJSON, cherrypickJSON) {
+  stageCherryPick(parentJSON, cherryPickJSON, responseSignal) {
     let _this = this;
-    gerritTools.stageCherryPick(parentJSON.uuid, cherrypickJSON, function(
+    gerritTools.stageCherryPick(parentJSON.uuid, cherryPickJSON, function(
       success,
       data
     ) {
       if (success) {
         toolbox.addToCherryPickStateUpdateQueue(
           parentJSON.uuid,
-          { branch: cherrypickJSON.branch },
+          { branch: cherryPickJSON.branch },
           "staged",
-          toolbox.decrementPickCountRemaining(parentJSON.uuid)
+          () => {toolbox.decrementPickCountRemaining(parentJSON.uuid)}
         );
+        _this.emit(responseSignal, true);
       } else if (data == "retry") {
         // Do nothing. This callback function will be called again on retry.
         console.log(
-          `Failed to stage cherry pick ${cherrypickJSON.id} due to a network issue. Retrying in a bit.`
+          `Failed to stage cherry pick ${cherryPickJSON.id} due to a network issue. Retrying in a bit.`
         );
         _this.retryProcessor.addRetryJob("cherrypickReadyForStage", [
           parentJSON,
-          cherrypickJSON
+          cherryPickJSON,
+          responseSignal
         ]);
 
         toolbox.addToCherryPickStateUpdateQueue(
           parentJSON.uuid,
           {
-            branch: cherrypickJSON.branch
+            branch: cherryPickJSON.branch
           },
           "stageFailedRetryWait"
         );
       } else {
+        gerritTools.setChangeAssignee(
+          cherryPickJSON,
+          parentJSON.change.owner.email
+            ? parentJSON.change.owner.email
+            : parentJSON.change.owner.username,
+          function(success, data) {
+            if (!success) {
+              console.trace(
+                `Failed to set change assignee "${JSON.stringify(parentJSON.change.owner)}" on ${cherryPickJSON.id}\nReason: ${JSON.stringify(data)}`
+              );
+            }
+          }
+        );
         _this.gerritCommentHandler(
-          cherrypickJSON.id,
+          cherryPickJSON.id,
           undefined,
           `INFO: The cherry-pick bot failed to automatically stage this change to CI. Please try to stage it manually.\n\nContact gerrit administration if you continue to experience issues.\n\nReason: ${
             data
@@ -360,18 +727,20 @@ class requestProcessor extends EventEmitter {
         toolbox.addToCherryPickStateUpdateQueue(
           parentJSON.uuid,
           {
-            branch: cherrypickJSON.branch,
+            branch: cherryPickJSON.branch,
             statusDetail: data.data ? data.data : data.message,
             statusCode: data.status ? data.status : ""
           },
           "stageFailed",
-          toolbox.decrementPickCountRemaining(parentJSON.uuid)
+          () => {toolbox.decrementPickCountRemaining(parentJSON.uuid)}
         );
+        _this.emit(responseSignal, false, data);
       }
     });
   }
 
   gerritCommentHandler(fullChangeID, revision, message, notifyScope) {
+    let _this = this;
     gerritTools.postGerritComment(
       fullChangeID,
       revision,

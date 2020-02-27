@@ -73,7 +73,8 @@ function generateCherryPick(changeJSON, parent, destinationBranch, callback) {
     .slice(0, changeIDPos)
     .concat(`Cherry-picked from branch: ${changeJSON.change.branch}\n\n`)
     .concat(changeJSON.change.commitMessage.slice(changeIDPos))
-    .replace(/^(Pick-to:(\ +\d\.\d+)+)+/gm, "");
+    .replace(/^(Pick-to:(\ +\d\.\d+)+)+/gm, "")
+    .replace(/^(Reviewed-by:\ (\w.+)$)/gm, "");
   axios({
     method: "post",
     url: `https://${gerritURL}:${gerritPort}/a/changes/${changeJSON.fullChangeID}/revisions/${changeJSON.patchSet.revision}/cherrypick`,
@@ -126,7 +127,7 @@ function generateCherryPick(changeJSON, parent, destinationBranch, callback) {
         // Something unexpected happened in generating the HTTP request itself.
         console.trace(
           `UNKNOWN ERROR posting cherry-pick for ${destinationBranch}:`,
-          error.message
+          error
         );
         callback(false, error.message);
       }
@@ -137,7 +138,7 @@ function generateCherryPick(changeJSON, parent, destinationBranch, callback) {
 exports.setApproval = setApproval;
 function setApproval(
   parentUuid,
-  cherrypickJSON,
+  cherryPickJSON,
   approvalScore,
   message,
   notifyScope,
@@ -145,12 +146,13 @@ function setApproval(
 ) {
   axios({
     method: "post",
-    url: `https://${gerritURL}:${gerritPort}/a/changes/${cherrypickJSON.id}/revisions/current/review`,
+    url: `https://${gerritURL}:${gerritPort}/a/changes/${cherryPickJSON.id}/revisions/current/review`,
     data: {
       message: message ? message : "",
       notify: notifyScope ? notifyScope : "OWNER",
       labels: {
-        "Code-Review": approvalScore
+        "Code-Review": approvalScore,
+        "Sanity-Review": 1
       },
       omit_duplicate_comments: true,
       ready: true
@@ -162,7 +164,7 @@ function setApproval(
   })
     .then(function(response) {
       console.log(
-        `Set approval to "${approvalScore}" on change ${cherrypickJSON.id}`
+        `Set approval to "${approvalScore}" on change ${cherryPickJSON.id}`
       );
       callback(true, undefined);
     })
@@ -171,17 +173,17 @@ function setApproval(
         // The request was made and the server responded with a status code
         // that falls out of the range of 2xx
         console.trace(
-          `Failed to set approval ${approvalScore} on change ${cherrypickJSON.id} Error: ${error.response.status}: ${error.response.data}"`
+          `Failed to set approval ${approvalScore} on change ${cherryPickJSON.id} Error: ${error.response.status}: ${error.response.data}"`
         );
-        callback(false, error.response);
+        callback(false, error.response.status);
       } else if (error.request) {
         // The request was made but no response was received
         callback(false, "retry");
       } else {
         // Something unexpected happened in generating the HTTP request itself.
         console.trace(
-          `UNKNOWN ERROR while setting approval for ${cherrypickJSON.id}:`,
-          error.message
+          `UNKNOWN ERROR while setting approval for ${cherryPickJSON.id}:`,
+          error
         );
         callback(false, error.message);
       }
@@ -192,10 +194,10 @@ function setApproval(
 // NOTE: This requires gerrit to be extended with "gerrit-plugin-qt-workflow"
 // https://codereview.qt-project.org/admin/repos/qtqa/gerrit-plugin-qt-workflow
 exports.stageCherryPick = stageCherryPick;
-function stageCherryPick(parentUuid, cherrypickJSON, callback) {
+function stageCherryPick(parentUuid, cherryPickJSON, callback) {
   axios({
     method: "post",
-    url: `https://${gerritURL}:${gerritPort}/a/changes/${cherrypickJSON.id}/revisions/current/gerrit-plugin-qt-workflow~stage`,
+    url: `https://${gerritURL}:${gerritPort}/a/changes/${cherryPickJSON.id}/revisions/current/gerrit-plugin-qt-workflow~stage`,
     data: {},
     auth: {
       username: gerritUser,
@@ -203,7 +205,7 @@ function stageCherryPick(parentUuid, cherrypickJSON, callback) {
     }
   })
     .then(function(response) {
-      console.log(`Successfully staged "${cherrypickJSON.id}"`);
+      console.log(`Successfully staged "${cherryPickJSON.id}"`);
       callback(true, undefined);
     })
     .catch(function(error) {
@@ -286,9 +288,15 @@ function postGerritComment(
 exports.validateBranch = function(project, branch, callback) {
   axios
     .get(
-      `https://${gerritURL}:${gerritPort}/projects/${encodeURIComponent(
+      `https://${gerritURL}:${gerritPort}/a/projects/${encodeURIComponent(
         project
-      )}/branches/${branch}`
+      )}/branches/${branch}`,
+      {
+        auth: {
+          username: gerritUser,
+          password: gerritPass
+        }
+      }
     )
     .then(function(response) {
       // Execute callback with the target branch head SHA1 of that branch
@@ -315,12 +323,138 @@ exports.validateBranch = function(project, branch, callback) {
     });
 };
 
+// Query gerrit commit for it's relation chain. Returns a list of changes.
+exports.queryRelated = function(fullChangeID, callback) {
+  axios
+    .get(
+      `https://${gerritURL}:${gerritPort}/a/changes/${fullChangeID}/revisions/current/related`,
+      {
+        auth: {
+          username: gerritUser,
+          password: gerritPass
+        }
+      }
+    )
+    .then(function(response) {
+      // Execute callback and return the list of changes
+      callback(true, JSON.parse(response.data.slice(4)).changes);
+    })
+    .catch(function(error) {
+      if (error.response) {
+        // An error here would be unexpected. Changes without related changes
+        // should still return valid JSON with an empty "changes" field
+        callback(false, error.response);
+        console.log(error.response);
+      } else if (error.request) {
+        // Gerrit failed to respond, try again later and resume the process.
+        callback(false, "retry");
+      } else {
+        // Something happened in setting up the request that triggered an Error
+        console.trace(
+          `Error in HTTP request while trying to query for related changes on ${fullChangeID}.`,
+          error.message
+        );
+        callback(false, error.message);
+      }
+    });
+};
+
+// Query gerrit for a change and return it along with the current revision if it exists.
+exports.queryChange = function(fullChangeID, callback) {
+  axios
+    .get(
+      `https://${gerritURL}:${gerritPort}/a/changes/${fullChangeID}/?o=CURRENT_COMMIT&o=CURRENT_REVISION`,
+      {
+        auth: {
+          username: gerritUser,
+          password: gerritPass
+        }
+      }
+    )
+    .then(function(response) {
+      // Execute callback and return the list of changes
+      callback(true, JSON.parse(response.data.slice(4)));
+    })
+    .catch(function(error) {
+      if (error.response) {
+        if (error.response.status == 404) {
+          // Change does not exist.
+          callback(false, { statusCode: 404 });
+        } else {
+          // Some other error was retuned
+          callback(false, {
+            statusCode: error.response.status,
+            statusDetail: error.response.data
+          });
+        }
+      } else if (error.request) {
+        // Gerrit failed to respond, try again later and resume the process.
+        callback(false, "retry");
+      } else {
+        // Something happened in setting up the request that triggered an Error
+        console.trace(
+          `Error in HTTP request while trying to query if change ID ${fullChangeID} exists.`,
+          error.message
+        );
+        callback(false, error.message);
+      }
+    });
+};
+
+// Set the assignee of a change
+exports.setChangeAssignee = setChangeAssignee;
+function setChangeAssignee(changeJSON, newAssignee, callback) {
+  axios({
+    method: "PUT",
+    url: `https://${gerritURL}:${gerritPort}/a/changes/${changeJSON.id}/assignee`,
+    data: {
+      assignee: newAssignee
+    },
+    auth: {
+      username: gerritUser,
+      password: gerritPass
+    }
+  })
+    .then(function(response) {
+      console.log(`Set new assignee "${newAssignee}" on "${changeJSON.id}"`);
+      callback(true, undefined);
+    })
+    .catch(function(error) {
+      if (error.response) {
+        // The request was made and the server responded with a status code
+        // that falls out of the range of 2xx
+
+        // Call this a permenant failure for staging. Ask the owner to handle it.
+        callback(false, {
+          status: error.response.status,
+          data: error.response.data
+        });
+      } else if (error.request) {
+        // The request was made but no response was received. Retry it later.
+        callback(false, "retry");
+      } else {
+        // Something happened in setting up the request that triggered an Error
+        console.trace(
+          "Error in HTTP request while trying to set assignee.",
+          error.message
+        );
+        callback(false, error.message);
+      }
+    });
+}
+
 // Query gerrit for the existing reviewers on a change.
 exports.getChangeReviewers = getChangeReviewers;
 function getChangeReviewers(fullChangeID, callback) {
   axios
     .get(
-      `https://${gerritURL}:${gerritPort}/changes/${fullChangeID}/reviewers/`
+      `https://${gerritURL}:${gerritPort}/a/changes/${fullChangeID}/reviewers/`,
+      {
+        auth: {
+          username: gerritUser,
+          password: gerritPass
+        }
+      }
     )
     .then(function(response) {
       // Execute callback with the target branch head SHA1 of that branch

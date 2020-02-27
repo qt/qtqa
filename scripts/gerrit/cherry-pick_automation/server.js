@@ -58,8 +58,8 @@ let gerritIPv6 = config.GERRIT_IPV6;
 let adminEmail = config.ADMIN_EMAIL;
 
 // Prefer environment variable if set.
-if (process.env.WEBHOOK_PORT) {
-  webhookPort = Number(process.env.WEBHOOK_PORT);
+if (process.env.PORT) {
+  webhookPort = Number(process.env.PORT);
 }
 if (process.env.GERRIT_IPV4) {
   gerritIPv4 = process.env.GERRIT_IPV4;
@@ -74,62 +74,71 @@ if (process.env.ADMIN_EMAIL) {
 }
 
 class webhookListener extends EventEmitter {
-  constructor() {
+  constructor(requestProcessor) {
     super();
+    this.requestProcessor = requestProcessor;
   }
 
-  receiveEvent(req, res) {
+  receiveEvent(req) {
     let _this = this;
-    // Filter requests to only receive from an expected gerrit instance.
-    const clientIp = requestIp.getClientIp(res);
-    if (net.isIPv4(clientIp) && clientIp != gerritIPv4) {
-      res.sendStatus(401);
-      return;
-    } else if (net.isIPv6(clientIp) && clientIp != gerritIPv6) {
-      res.sendStatus(401);
-      return;
-    } else if (!net.isIP(clientIp)) {
-      console.trace(
-        `FATAL: Incoming request appears to have an invalid origin IP.`
-      ); // ERROR, but don't exit.
-      res.sendStatus(500); // Try to send a status anyway.
-      return;
+
+    // Set a unique ID and the full change ID for all inbound requests.
+    req["uuid"] = uuidv1(); // used for tracking and database access.
+    if (req.change) {
+      req["fullChangeID"] = `${encodeURIComponent(req.change.project)}~${
+        req.change.branch
+      }~${req.change.id}`;
     }
 
-    res.sendStatus(200);
-
-    if (req.type != "change-merged") {
-      return;
+    if (req.type == "change-merged") {
+      //Insert the new request into the database for survivability.
+      const columns = [
+        "uuid",
+        "changeid",
+        "state",
+        "revision",
+        "rawjson",
+        "cherrypick_results_json"
+      ];
+      const rowdata = [
+        req.uuid,
+        req.change.id,
+        "new",
+        req.patchSet.revision,
+        toolbox.encodeJSONtoBase64(req),
+        toolbox.encodeJSONtoBase64({})
+      ];
+      postgreSQLClient.insert("processing_queue", columns, rowdata, function(
+        changes
+      ) {
+        // Emit a signal for this merge in case anything is waiting on it.
+        _this.requestProcessor.emit(`merge_${req.fullChangeID}`);
+        // Ready to begin processing the merged change.
+        _this.emit("newRequestStored", req.uuid);
+      });
+    } else if (req.type == "change-abandoned") {
+      // Emit a signal that the change was abandoned in case anything is
+      // waiting on it. We don't need to do any direct processing on
+      // abandoned changes.
+      _this.emit(`abandon_${req.fullChangeID}`);
+    } else if (req.type == "patchset-created") {
+      // Treat all new changes as "cherryPickCreated"
+      // since gerrit doesn't send a separate notification for actual
+      // cherry-picks. This should be harmless since we will only
+      // ever be listening for this signal on change ID's that should
+      // be the direct result of a cherry-pick.
+      if (req.patchSet.number == 1) {
+        _this.requestProcessor.emit(`cherryPickCreated_${req.fullChangeID}`);
+      }
+    } else if (req.type == "change-staged") {
+      // Emit a signal that the change was staged in case anything is
+      // waiting on it.
+      _this.requestProcessor.emit(`staged_${req.fullChangeID}`);
+    } else if (req.type == "change-unstaged") {
+      // Emit a signal that the change was staged in case anything is
+      // waiting on it.
+      _this.requestProcessor.emit(`unstaged_${req.fullChangeID}`);
     }
-
-    req["uuid"] = uuidv1(); // Set a unique ID for this inbound request to make it easier to track.
-    req["fullChangeID"] = `${encodeURIComponent(req.change.project)}~${
-      req.change.branch
-    }~${req.change.id}`;
-
-    //Insert the new request into the database for survivability.
-    const columns = [
-      "uuid",
-      "changeid",
-      "state",
-      "revision",
-      "rawjson",
-      "cherrypick_results_json"
-    ];
-    const rowdata = [
-      `'${req.uuid}'`,
-      `'${req.change.id}'`,
-      `'new'`,
-      `'${req.patchSet.revision}'`,
-      `'${toolbox.encodeJSONtoBase64(req)}'`,
-      `'${toolbox.encodeJSONtoBase64({})}'`
-    ];
-    postgreSQLClient.insert("processing_queue", columns, rowdata, function(
-      changes
-    ) {
-      // Ready to begin processing the merged change.
-      _this.emit("newRequestStored", req.uuid);
-    });
   }
 
   // Set up a server and start listening on a given port.
@@ -137,6 +146,7 @@ class webhookListener extends EventEmitter {
     let _this = this;
     let server = express();
     server.use(express.json()); // Set Express to use JSON parsing by default.
+    server.enable("trust proxy", true);
 
     // Create a custom error handler for Express.
     server.use(function(err, req, res, next) {
@@ -160,16 +170,41 @@ class webhookListener extends EventEmitter {
       }
     });
 
+    function validateOrigin(req, res) {
+      // Filter requests to only receive from an expected gerrit instance.
+      let clientIp =
+        req.headers["x-forwarded-for"] || req.connection.remoteAddress;
+      if (typeof clientIp == Array) {
+        clientIp = clientIp[0];
+      }
+      if (net.isIPv4(clientIp) && clientIp != gerritIPv4) {
+        res.sendStatus(401);
+        return false;
+      } else if (net.isIPv6(clientIp) && clientIp != gerritIPv6) {
+        res.sendStatus(401);
+        return false;
+      } else if (!net.isIP(clientIp)) {
+        console.trace(
+          `FATAL: Incoming request appears to have an invalid origin IP.`
+        ); // ERROR, but don't exit.
+        res.sendStatus(500); // Try to send a status anyway.
+        return false;
+      } else {
+        res.sendStatus(200);
+        return true;
+      }
+    }
+
     // Set up the listening endpoint
     console.log("Starting server.");
-    server.post("/gerrit-events", (req, res) =>
-      _this.emit("newRequest", req.body, res)
-    );
+    server.post("/gerrit-events", (req, res) => {
+      if (validateOrigin(req, res)) {
+        _this.emit("newRequest", req.body);
+      }
+    });
+    server.get("/", (req, res) => res.send("Nothing to see here."));
     server.listen(webhookPort);
-    _this.emit(
-      "serverStarted",
-      `Server started listening on port ${webhookPort}`
-    );
+    _this.emit("serverStarted", `Server started listening on port ${webhookPort}`);
   }
 }
 

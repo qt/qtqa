@@ -75,6 +75,20 @@ function retrieveRequestJSONFromDB(uuid, callback) {
   });
 }
 
+// Update a inbound change's JSON inbound request.
+exports.updateBaseChangeJSON = updateBaseChangeJSON;
+function updateBaseChangeJSON(uuid, rawjson, callback) {
+  postgreSQLClient.update(
+    "processing_queue",
+    "uuid",
+    uuid,
+    {
+      rawjson: encodeJSONtoBase64(rawjson)
+    },
+    callback
+  );
+}
+
 // Set the current state of an inbound request.
 exports.setDBState = setDBState;
 function setDBState(uuid, newState, callback) {

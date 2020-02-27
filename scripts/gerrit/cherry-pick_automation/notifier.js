@@ -42,9 +42,14 @@ const Server = require("./server");
 const server = new Server();
 const RequestProcessor = require("./requestProcessor");
 const requestProcessor = new RequestProcessor();
+server.requestProcessor = requestProcessor;
 const RetryProcessor = require("./retryProcessor");
 const retryProcessor = new RetryProcessor(requestProcessor);
 requestProcessor.retryProcessor = retryProcessor;
+const SingleRequestManager = require("./singleRequestManager");
+const singleRequestManager = new SingleRequestManager(retryProcessor, requestProcessor);
+const RelationChainManager = require("./relationChainManager");
+const relationChainManager = new RelationChainManager(retryProcessor, requestProcessor);
 const postgreSQLClient = require("./postgreSQLClient");
 const onExit = require("node-cleanup");
 
@@ -56,7 +61,7 @@ onExit(function(exitCode, signal) {
 });
 
 // Notifier handles all event requests from worker modules.
-// A worker module should avoid a function from itself or another
+// A worker module should avoid calling a function from itself or another
 // module directly where possible. Instead, it should always send an
 // event to Notifier, which will route the event. The exception to this
 // rule is where a synchronous operation with callback is required. In
@@ -81,32 +86,59 @@ server.on("newRequestStored", uuid => {
   requestProcessor.processMerge(uuid);
 });
 
+// Emitted when an incoming change has been found to have a pick-to header with
+// at least one branch. Before continuing, determine if the change is part of
+// a relation chain and process it accordingly.
+requestProcessor.on("determineProcessingPath", (parentJSON, branches) => {
+  requestProcessor.determineProcessingPath(parentJSON, branches);
+});
+
+// Emitted when a merged change is part of a relation chain.
+requestProcessor.on("processAsSingleChange", (parentJSON, branches) => {
+  singleRequestManager.start(parentJSON, branches);
+});
+
+// Emitted when a merged change is part of a relation chain.
+requestProcessor.on("processAsRelatedChange", (parentJSON, branches) => {
+  relationChainManager.start(parentJSON, branches);
+});
+
 // Emitted when a change-merged event found pick-to branches in the commit message.
-requestProcessor.on("validateBranch", (parentJSON, branch) => {
-  requestProcessor.validateBranch(parentJSON, branch);
+requestProcessor.on("validateBranch", (parentJSON, branch, responseSignal) => {
+  requestProcessor.validateBranch(parentJSON, branch, responseSignal);
+});
+
+// Emitted when a cherry pick is dependent on another cherry pick.
+requestProcessor.on("verifyParentPickExists", (parentJSON, branch, responseSignal, errorSignal) => {
+  requestProcessor.verifyParentPickExists(parentJSON, branch, responseSignal, errorSignal);
 });
 
 // Emitted when a branch has been validated against the merge's project in codereview.
 requestProcessor.on(
   "validBranchReadyForPick",
-  (parentJSON, branch, newParentRev) => {
-    requestProcessor.doCherryPick(parentJSON, branch, newParentRev);
+  (parentJSON, branch, newParentRev, responseSignal) => {
+    requestProcessor.doCherryPick(parentJSON, branch, newParentRev, responseSignal);
   }
 );
 
 // Emitted when a new cherry pick has been generated on codereview.
-requestProcessor.on("newCherryPick", (parentJSON, cherryPickJSON) => {
-  requestProcessor.processNewCherryPick(parentJSON, cherryPickJSON);
+requestProcessor.on("newCherryPick", (parentJSON, cherryPickJSON, responseSignal) => {
+  requestProcessor.processNewCherryPick(parentJSON, cherryPickJSON, responseSignal);
 });
 
 // Emitted when a cherry pick has been validated and has no merge conflicts.
-requestProcessor.on("cherryPickDone", (parentJSON, cherryPickJSON) => {
-  requestProcessor.autoApproveCherryPick(parentJSON, cherryPickJSON);
+requestProcessor.on("cherryPickDone", (parentJSON, cherryPickJSON, responseSignal) => {
+  requestProcessor.autoApproveCherryPick(parentJSON, cherryPickJSON, responseSignal);
+});
+
+// Emitted when a cherry pick needs to stage against a specific parent change.
+requestProcessor.on("stageEligibilityCheck", (originalRequestJSON, cherryPickJSON, responseSignal, errorSignal) => {
+  requestProcessor.stagingReadyCheck(originalRequestJSON, cherryPickJSON, responseSignal, errorSignal);
 });
 
 // Emitted when a cherry pick is approved and ready for automatic staging.
-requestProcessor.on("cherrypickReadyForStage", (parentJSON, cherryPickJSON) => {
-  requestProcessor.stageCherryPick(parentJSON, cherryPickJSON);
+requestProcessor.on("cherrypickReadyForStage", (parentJSON, cherryPickJSON, responseSignal) => {
+  requestProcessor.stageCherryPick(parentJSON, cherryPickJSON, responseSignal);
 });
 
 // Emitted when a comment is requested to be posted to codereview.

@@ -104,10 +104,18 @@ function end() {
 
 exports.insert = insert;
 function insert(table, columns, values, callback) {
-  pool.query(`INSERT INTO ${table}(${columns}) VALUES(${values})`, function(
-    err,
-    data
-  ) {
+  let valuecount_string;
+  if (table == "processing_queue") {
+    valuecount_string = "$1,$2,$3,$4,$5,$6"
+  } else if (table == "retry_queue") {
+    valuecount_string = "$1,$2,$3"
+  }
+  const query = {
+    name: `insert-row-${table}`,
+    text: `INSERT INTO ${table}(${columns}) VALUES(${valuecount_string})`,
+    values: values
+  };
+  pool.query(query, function(err, data) {
     if (err) {
       console.trace(err.message);
     }
@@ -119,20 +127,20 @@ function insert(table, columns, values, callback) {
 
 exports.query = query;
 function query(table, fields, keyName, keyValue, callback) {
-  pool.query(
-    `SELECT ${
-      fields ? fields : "*"
-    } FROM ${table} WHERE ${keyName} = '${keyValue}'`,
-    (err, data) => {
-      if (err) {
-        console.trace(err);
-      }
-      if (callback) {
-        let returndata = data.rows.length == 1 ? data.rows[0] : data.rows;
-        callback(err ? false : true, err ? err : returndata);
-      }
+  const query = {
+    name: `query-${keyName}-${fields}`,
+    text: `SELECT ${fields ? fields : "*"} FROM ${table} WHERE ${keyName} = $1`,
+    values: [keyValue]
+  };
+  pool.query(query, (err, data) => {
+    if (err) {
+      console.trace(err);
     }
-  );
+    if (callback) {
+      let returndata = data.rows.length == 1 ? data.rows[0] : data.rows;
+      callback(err ? false : true, err ? err : returndata);
+    }
+  });
 }
 
 exports.update = update;
@@ -168,19 +176,21 @@ function update(
 
 exports.move = move;
 function move(fromTable, toTable, keyName, keyValue, callback) {
-  pool.query(
-    `INSERT INTO ${toTable} SELECT * FROM ${fromTable} WHERE ${keyName} = '${keyValue}'`,
-    function(err) {
-      if (err) {
-        console.trace(err);
-        callback(false, err);
-      } else {
-        deleteDBEntry(fromTable, keyName, keyValue, function(success, data) {
-          callback(success, data);
-        });
-      }
+  const query = {
+    name: `query-move`,
+    text: `INSERT INTO ${toTable} SELECT * FROM ${fromTable} WHERE ${keyName} = $1`,
+    values: [keyValue]
+  };
+  pool.query(query, function(err) {
+    if (err) {
+      console.trace(err);
+      callback(false, err);
+    } else {
+      deleteDBEntry(fromTable, keyName, keyValue, function(success, data) {
+        callback(success, data);
+      });
     }
-  );
+  });
 }
 
 // Decrement a numeric key and return the new count.
