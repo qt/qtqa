@@ -124,7 +124,7 @@ class QtBranching:
             # update the new and staging branch
             self.subprocess_or_pretend(['git', 'push', 'gerrit', f'HEAD:refs/heads/{self.toBranch}', f'HEAD:refs/staging/{self.toBranch}'])
 
-    def process_qt5_repos(self) -> None:
+    def process_qt5_repositories(self) -> None:
         repo = git.Repo('.')
         for submodule in repo.submodules:
             if submodule.name in skipped_submodules:
