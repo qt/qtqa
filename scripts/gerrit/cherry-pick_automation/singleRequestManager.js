@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 /****************************************************************************
  **
  ** Copyright (C) 2020 The Qt Company Ltd.
@@ -43,7 +44,8 @@ exports.id = "singleRequestManager";
 // When start() is called, the request progresses through branch
 // validation, tries to create a cherry pick, and tries to stage it.
 class singleRequestManager {
-  constructor(retryProcessor, requestProcessor) {
+  constructor(logger, retryProcessor, requestProcessor) {
+    this.logger = logger;
     this.retryProcessor = retryProcessor;
     this.requestProcessor = requestProcessor;
     this.handleValidBranch = this.handleValidBranch.bind(this);
@@ -66,7 +68,11 @@ class singleRequestManager {
 
   start(parentJSON, branches) {
     let _this = this;
-    branches.forEach(function(branch) {
+    _this.logger.log(
+      `Starting SingleRequest Manager process for ${parentJSON.fullChangeID}`,
+      "verbose", parentJSON.uuid
+    );
+    branches.forEach(function (branch) {
       _this.requestProcessor.emit(
         "validateBranch", parentJSON, branch,
         "singleRequest_validBranchReadyForPick"

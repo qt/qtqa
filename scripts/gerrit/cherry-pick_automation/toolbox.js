@@ -39,20 +39,31 @@
 
 exports.id = "toolbox";
 
+const safeJsonStringify = require("safe-json-stringify");
+
 const postgreSQLClient = require("./postgreSQLClient");
+const Logger = require("./logger");
+const logger = new Logger();
 
 let dbSubStatusUpdateQueue = [];
-let dbUpdateLockout = false;
+let dbSubStateUpdateLockout = false;
+let dbListenerCacheUpdateQueue = [];
+let dbListenerCacheUpdateLockout = false;
 
 // Parse the commit message and return a raw list of branches to pick to.
-exports.findPickToBranches = function(message) {
-  let matches = message.match(/^(Pick-to:(\ +\d\.\d+)+)+/gm);
+exports.findPickToBranches = function (requestUuid, message) {
+  let matches = message.match(/^(Pick-to:(?:\s+(?:\d\.\d+\.\d+|\d\.\d+|dev))+)/gm);
+  logger.log(
+    `Regex on branches matched: ${safeJsonStringify(matches)} from input:\n"${message}"`,
+    "debug",
+    requestUuid
+  );
   let branchSet = new Set();
   if (matches) {
-    matches.forEach(function(match) {
+    matches.forEach(function (match) {
       let parsedMatch = match.split(":");
       parsedMatch = parsedMatch[1].split(" ");
-      parsedMatch.forEach(function(submatch) {
+      parsedMatch.forEach(function (submatch) {
         if (submatch)
           branchSet.add(submatch);
       });
@@ -61,13 +72,47 @@ exports.findPickToBranches = function(message) {
   return branchSet;
 };
 
+// Get all database items in the processing_queue with state "processing"
+exports.getAllProcessingRequests = getAllProcessingRequests;
+function getAllProcessingRequests(callback) {
+  postgreSQLClient.query(
+    "processing_queue", "*", "state", "processing", "=",
+    function (success, rows) {
+      // If the query is successful, the rows will be returned.
+      // If it fails for any reason, the error is returned in its place.
+      if (success)
+        callback(true, rows);
+      else
+        callback(false, rows);
+    }
+  );
+}
+
+// Query the database for any listeners that need to be set up.
+// These are listeners that were tied to in-process items, and should
+// be set up again, even if the item is marked as "finished" in the database.
+exports.getCachedListeners = getCachedListeners;
+function getCachedListeners(callback) {
+  postgreSQLClient.query(
+    "processing_queue", "listener_cache", "listener_cache", "", "IS NOT NULL",
+    function (success, rows) {
+      // If the query is successful, the rows will be returned.
+      // If it fails for any reason, the error is returned in its place.
+      callback(success, rows);
+    }
+  );
+}
+
 exports.retrieveRequestJSONFromDB = retrieveRequestJSONFromDB;
 function retrieveRequestJSONFromDB(uuid, callback) {
-  postgreSQLClient.query("processing_queue", "rawjson", "uuid", uuid, function(success, row) {
-    // If the query is successful, the row will be returned.
-    // If it fails for any reason, the error is returned in its place.
-    callback(success, success ? decodeBase64toJSON(row.rawjson) : row);
-  });
+  postgreSQLClient.query(
+    "processing_queue", "rawjson", "uuid", uuid, "=",
+    function (success, rows) {
+      // If the query is successful, the row will be returned.
+      // If it fails for any reason, the error is returned in its place.
+      callback(success, success ? decodeBase64toJSON(rows[0].rawjson) : rows);
+    }
+  );
 }
 
 // Update a inbound change's JSON inbound request.
@@ -82,18 +127,15 @@ function updateBaseChangeJSON(uuid, rawjson, callback) {
 // Set the current state of an inbound request.
 exports.setDBState = setDBState;
 function setDBState(uuid, newState, callback) {
-  postgreSQLClient.update(
-    "processing_queue", "uuid", uuid,
-    { state: newState }, callback
-  );
+  postgreSQLClient.update("processing_queue", "uuid", uuid, { state: newState }, callback);
 }
 
 // Set the count of picks remaining on the inbound request.
 // This count determines when we've done all the work we need
-// to do on an incoming request. When it reaches 0, move it to
-// the finished_requests database.
+// to do on an incoming request.
 exports.setPickCountRemaining = setPickCountRemaining;
 function setPickCountRemaining(uuid, count, callback) {
+  logger.log(`Set pick count to ${count}`, "debug", uuid);
   postgreSQLClient.update(
     "processing_queue", "uuid", uuid,
     { pick_count_remaining: count }, callback
@@ -103,16 +145,15 @@ function setPickCountRemaining(uuid, count, callback) {
 // decrement the remaining count of cherrypicks on an inbound request by 1.
 exports.decrementPickCountRemaining = decrementPickCountRemaining;
 function decrementPickCountRemaining(uuid, callback) {
+  logger.log(`Decrementing pick count.`, "debug", uuid);
   postgreSQLClient.decrement(
     "processing_queue", uuid, "pick_count_remaining",
-    function(success, data) {
+    function (success, data) {
+      logger.log(`New pick count: ${data[0].pick_count_remaining}`, "debug", uuid);
+      if (data[0].pick_count_remaining == 0)
+        setDBState(uuid, "complete");
       if (callback)
         callback(success, data);
-      if (data.pick_count_remaining == 0) {
-        setDBState(uuid, "complete", function() {
-          moveFinishedRequest("processing_queue", "uuid", uuid);
-        });
-      }
     }
   );
 }
@@ -127,6 +168,14 @@ function addToCherryPickStateUpdateQueue(
   parentUuid, branchData, newState,
   callback, unlock = false
 ) {
+  if (unlock) {
+    logger.log(`State update received with unlock=true`, "silly");
+  } else {
+    logger.log(
+      `New state update request: State: ${newState}, Data: ${safeJsonStringify(branchData)}`,
+      "silly", parentUuid
+    );
+  }
   if (parentUuid && branchData && newState)
     dbSubStatusUpdateQueue.push([parentUuid, branchData, newState, callback]);
 
@@ -136,13 +185,55 @@ function addToCherryPickStateUpdateQueue(
   // and processes the next item until the queue is emptied. When the last
   // item has been processed and addToCherryPickStateUpdateQueue() is called
   // with unlock, the queue length will be 0 and the lockout will be removed.
-  if (!dbUpdateLockout || unlock) {
-    dbUpdateLockout = true;
+  if (!dbSubStateUpdateLockout || unlock) {
+    dbSubStateUpdateLockout = true;
     if (dbSubStatusUpdateQueue.length > 0) {
       let args = dbSubStatusUpdateQueue.shift();
       setDBSubState.apply(this, args);
     } else {
-      dbUpdateLockout = false;
+      dbSubStateUpdateLockout = false;
+    }
+  }
+}
+
+// Like addToCherryPickStateUpdateQueue above, listeners are stored in the
+// database as a JSON blob and must be added, removed, and updated
+// synchronously.
+exports.addToListenerCacheUpdateQueue = addToListenerCacheUpdateQueue;
+function addToListenerCacheUpdateQueue(
+  action, source, listenerEvent, timeout, timestamp,
+  messageChangeId, messageOnSetup, messageOnTimeout,
+  emitterEvent, emitterArgs,
+  originalChangeUuid, persistListener, callback, unlock = false
+) {
+  if (unlock) {
+    logger.log(`Listener cache update received with unlock=true`, "silly");
+  } else {
+    logger.log(
+      `New listener cache request: ${safeJsonStringify(arguments)}`,
+      "silly", originalChangeUuid
+    );
+    dbListenerCacheUpdateQueue.push([
+      action, source, listenerEvent, timeout, timestamp, messageChangeId,
+      messageOnSetup, messageOnTimeout,
+      emitterEvent, emitterArgs,
+      originalChangeUuid, persistListener, callback
+    ]);
+  }
+
+  // updateDBListenerCache() calls this queue function is called again with
+  // unlock = true, with no other parameters.
+  // This runs a check for remaining items in the queue and pops
+  // and processes the next item until the queue is emptied. When the last
+  // item has been processed and addToListenerCacheUpdateQueue() is called
+  // with unlock, the queue length will be 0 and the lockout will be removed.
+  if (!dbListenerCacheUpdateLockout || unlock) {
+    dbListenerCacheUpdateLockout = true;
+    if (dbListenerCacheUpdateQueue.length > 0) {
+      let args = dbListenerCacheUpdateQueue.shift();
+      updateDBListenerCache.apply(this, args);
+    } else {
+      dbListenerCacheUpdateLockout = false;
     }
   }
 }
@@ -155,7 +246,131 @@ function decodeBase64toJSON(base64string) {
 
 exports.encodeJSONtoBase64 = encodeJSONtoBase64;
 function encodeJSONtoBase64(json) {
-  return Buffer.from(JSON.stringify(json)).toString("base64");
+  return Buffer.from(safeJsonStringify(json)).toString("base64");
+}
+
+// Set up an event listener on ${source}, which can also be accompanied by
+// a gerrit comment on setup and/or timeout. Listeners are stored in the
+// database until consumed, tied to the original change-merged event
+// that created them. When a listener is triggered or times out, it is
+// removed from the database listener_cache.
+exports.setupListener = setupListener;
+function setupListener(
+  source, listenerEvent, timeout, timestamp, messageChangeId,
+  messageOnSetup, messageOnTimeout,
+  emitterEvent, emitterArgs,
+  originalChangeUuid, persistListener, isRestoredListener
+) {
+  // Check to make sure we don't register the same listener twice.
+  // Event listeners should be unique and never called from different
+  // places in the application, so there's no need to worry about
+  // updating the listener with new data.
+  if (source.eventNames().includes(listenerEvent))
+    return;
+
+  if (!isRestoredListener)
+    logger.log(`Requested listener setup of ${listenerEvent}`, "info", originalChangeUuid);
+
+  // Calculate the timeout value based on the original timestamp passed.
+  // This is required for listeners restored from the database so that
+  // If a server is restarted daily for example, it will not extend a
+  // listener beyond the original intended length.
+  let elapsed = 0;
+  let newTimeout = timeout;
+  if (!timestamp)
+    timestamp = Date.now();
+
+
+  if (isRestoredListener) {
+    elapsed = Date.now() - timestamp;
+    newTimeout -= elapsed;
+    // If the listener has 5000 ms or less remaining, delete it.
+    if (newTimeout < 5000) {
+      logger.log(
+        `Recovered listener is stale: ${
+          listenerEvent}. Not restoring it, and deleting it from the database.`,
+        "warn", originalChangeUuid
+      );
+      addToListenerCacheUpdateQueue(
+        "delete", undefined, listenerEvent, undefined, undefined, undefined,
+        undefined, undefined,
+        undefined, undefined,
+        originalChangeUuid, false
+      );
+      // If the nearly expired listener should post a comment, do so.
+      if (messageOnTimeout) {
+        source.emit(
+          "postGerritComment", originalChangeUuid, messageChangeId, undefined, messageOnTimeout,
+          "OWNER"
+        );
+      }
+      // Do not execute the rest of the listener setup.
+      return;
+    }
+  }
+
+  // Cancel the event listener after ${newTimeout} if timeout is set, since
+  // leaving listeners is a memory leak and a manually processed cherry
+  // pick MAY not retain the same changeID
+  let timeoutHandle;
+  if (listenerEvent && newTimeout) {
+    timeoutHandle = setTimeout(() => {
+      source.removeAllListeners(listenerEvent);
+      // Post a message to gerrit on timeout if set.
+      if (messageOnTimeout) {
+        source.emit(
+          "postGerritComment", originalChangeUuid, messageChangeId, undefined, messageOnTimeout,
+          "OWNER"
+        );
+      }
+    }, newTimeout);
+  }
+
+  // Listen for event only once. The listener is consumed if triggered, and
+  // should also be deleted from the database.
+  if (listenerEvent) {
+    source.once(
+      listenerEvent,
+      function () {
+        clearTimeout(timeoutHandle);
+        setTimeout(function () {
+          source.emit(emitterEvent, ...emitterArgs);
+          addToListenerCacheUpdateQueue(
+            "delete", undefined, listenerEvent, undefined, undefined, undefined,
+            undefined, undefined,
+            undefined, undefined,
+            originalChangeUuid, false
+          );
+        }, 1000);
+      },
+      1000
+    );
+    logger.log(
+      `Set up listener for ${listenerEvent} with remaining timeout ${newTimeout}`,
+      "info", originalChangeUuid
+    );
+  }
+
+  // Don't post the comment if this is a restored listener since
+  // the action would have already been performed when the request
+  // was new.
+  if (messageChangeId && messageOnSetup && !isRestoredListener) {
+    source.emit(
+      "postGerritComment", originalChangeUuid, messageChangeId, undefined, messageOnSetup,
+      "OWNER"
+    );
+  }
+
+  // Add this listener to the database.
+  if (persistListener) {
+    addToListenerCacheUpdateQueue(
+      "add", source.constructor.name, // Pass the class name, not the class object
+      listenerEvent, timeout, timestamp, messageChangeId,
+      messageOnSetup, messageOnTimeout,
+      emitterEvent, emitterArgs,
+      originalChangeUuid, persistListener
+    );
+  }
 }
 
 // Execute an update statement for cherrypick branch statuses.
@@ -165,18 +380,19 @@ function encodeJSONtoBase64(json) {
 // Use the addToCherryPickStateUpdateQueue() function to queue updates.
 function setDBSubState(uuid, branchdata, state, callback) {
   postgreSQLClient.query(
-    "processing_queue", "cherrypick_results_json", "uuid", uuid,
-    function(success, data) {
+    "processing_queue", "cherrypick_results_json", "uuid", uuid, "=",
+    function (success, rows) {
       if (success) {
-        let newdata = decodeBase64toJSON(data.cherrypick_results_json);
+        let newdata = decodeBase64toJSON(rows[0].cherrypick_results_json);
         if (newdata[branchdata.branch] == undefined) {
           newdata[branchdata.branch] = { state: state, targetParentRevision: branchdata.revision };
         } else {
-        // Overwrite the target branch object with any new updates.
+          // Overwrite the target branch object with any new updates.
           for (let [key, value] of Object.entries(branchdata)) {
             if (key != "branch")
               newdata[branchdata.branch][key] = value;
           }
+
           newdata[branchdata.branch]["state"] = state; // obsolete
         }
         newdata = encodeJSONtoBase64(newdata);
@@ -187,17 +403,94 @@ function setDBSubState(uuid, branchdata, state, callback) {
           addToCherryPickStateUpdateQueue
         );
       } else {
-        console.trace(`ERROR: Failed to update sub-state branch ${
-          branchdata.branch} on revision key ${branchdata.revision}. Raw error: ${data}`);
+        logger.log(
+          `ERROR: Failed to update sub-state branch ${
+            branchdata.branch} on revision key ${branchdata.revision}. Raw error: ${rows}`,
+          "error", uuid
+        );
       }
     }
   );
 }
 
-exports.moveFinishedRequest = moveFinishedRequest;
-function moveFinishedRequest(fromTable, keyName, keyValue) {
-  postgreSQLClient.move(fromTable, "finished_requests", keyName, keyValue, function(success, row) {
-    // TODO: Add error handling? This operation is probably fine blind, and
-    // no known race conditions could call this on an invalid uuid.
-  });
+// Update the database with the passed listener data.
+// This should only ever be called by addToListenerCacheUpdateQueue()
+// since database operations on listener_cache should never be done
+// in parallel due to potential data loss.
+function updateDBListenerCache(
+  action, source, listenerEvent, timeout, timestamp, messageChangeId,
+  messageOnSetup, messageOnTimeout,
+  emitterEvent, emitterArgs,
+  originalChangeUuid, persistListener, callback
+) {
+  function doNext() {
+    // call the queue manager again with only unlock. This will pop
+    // the next update in queue if available.
+    logger.log("calling next listener cache update.", "verbose");
+    addToListenerCacheUpdateQueue(
+      undefined, undefined, undefined, undefined, undefined, undefined,
+      undefined, undefined,
+      undefined, undefined,
+      undefined, undefined, undefined, true
+    );
+  }
+
+  postgreSQLClient.query(
+    "processing_queue", "listener_cache", "uuid", originalChangeUuid, "=",
+    (success, data) => {
+      if (success) {
+        let dataJSON;
+        let newData;
+        let rawWrite;
+        // decode the base64 encoded {} object. Create a new one if it
+        // doesn't exist.
+        if (data[0].listener_cache)
+          dataJSON = decodeBase64toJSON(data[0].listener_cache);
+        else
+          dataJSON = {};
+        switch (action) {
+        case "add":
+          dataJSON[listenerEvent] =
+          [
+            source, listenerEvent, timeout, timestamp, messageChangeId,
+            messageOnSetup, messageOnTimeout,
+            emitterEvent, emitterArgs,
+            originalChangeUuid, persistListener
+          ];
+          break;
+        case "delete":
+          delete dataJSON[listenerEvent];
+          if (Object.keys(dataJSON).length === 0 && dataJSON.constructor === Object) {
+            // Deleting the listener caused the list to be empty.
+            // Write a [null] to the database instead of {}.
+            // This keeps things clean and stops the startup procedure
+            // from pulling rows that have empty objects of no listeners.
+            newData = null;
+            rawWrite = true;
+          }
+          break;
+        default:
+          // Just return. The action to perform is bad.
+          // This should never happen.
+          logger.log(
+            `bad Listener action "${action}". Args:\n${
+              safeJsonStringify(arguments, undefined, 2)}`,
+            "error", originalChangeUuid
+          );
+          if (callback)
+            callback(success, data);
+          doNext();
+          return;
+        }
+        if (!rawWrite)
+          newData = encodeJSONtoBase64(dataJSON);
+        postgreSQLClient.update(
+          "processing_queue", "uuid", originalChangeUuid, { listener_cache: newData },
+          doNext
+        );
+      }
+      if (callback)
+        callback(success, data);
+    }
+  );
 }

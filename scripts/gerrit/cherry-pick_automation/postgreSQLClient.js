@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 /****************************************************************************
  **
  ** Copyright (C) 2020 The Qt Company Ltd.
@@ -40,8 +41,11 @@
 exports.id = "postgreSQLClient";
 const { Pool } = require("pg");
 const jsonSql = require("json-sql")();
+const safeJsonStringify = require("safe-json-stringify");
 
 let config = require("./postgreSQLconfig.json");
+const Logger = require("./logger");
+const logger = new Logger();
 
 jsonSql.configure({ namedValues: false });
 jsonSql.setDialect("postgresql");
@@ -51,52 +55,54 @@ jsonSql.setDialect("postgresql");
 if (process.env.DATABASE_URL)
   config = { connectionString: process.env.DATABASE_URL, ssl: true };
 
+
+logger.log(
+  `Connecting to PostgreSQL database with config: ${safeJsonStringify(config)}`,
+  "debug", "DATABASE"
+);
+
 const pool = new Pool(config);
 
 pool.on("error", (err) => {
   // This should be non-critical. The database will clean up idle clients.
-  console.trace("An idle database client has experienced an error", err.stack);
+  logger.log(`An idle database client has experienced an error: ${err.stack}`, "error");
 });
 
 // Create our tables if they don't exist
 pool.query(`CREATE TABLE IF NOT EXISTS processing_queue
             (
-                uuid UUID PRIMARY KEY,
-                changeid TEXT,
-                state TEXT,
-                revision TEXT,
-                rawjson TEXT,
-                cherrypick_results_json TEXT,
-                pick_count_remaining INTEGER
-            )
-          `);
-
-pool.query(`CREATE TABLE IF NOT EXISTS finished_requests
-            (
-                uuid UUID PRIMARY KEY,
-                changeid TEXT,
-                state TEXT,
-                revision TEXT,
-                rawjson TEXT,
-                cherrypick_results_json TEXT,
-                pick_count_remaining INTEGER
+              uuid UUID PRIMARY KEY,
+              changeid TEXT,
+              state TEXT,
+              revision TEXT,
+              rawjson TEXT,
+              cherrypick_results_json TEXT,
+              pick_count_remaining INTEGER,
+              listener_cache TEXT
             )
           `);
 
 pool.query(`CREATE TABLE IF NOT EXISTS retry_queue
             (
-                uuid UUID PRIMARY KEY,
-                retryaction TEXT,
-                args TEXT
+              uuid UUID PRIMARY KEY,
+              retryaction TEXT,
+              args TEXT
             )
           `);
 
 // Exported functions
 exports.end = end;
-function end() {
-  console.log("Waiting for PostgreSQL connections to close...");
-  pool.end(function() {
-    console.log("Database client pool has ended");
+function end(callback) {
+  // Clean up the retry_queue. Restoring processes on next restart
+  // will retry any action that was in-process.
+  logger.log("cleaning up retry table entries...", undefined, "DATABASE");
+  pool.query(`DELETE FROM retry_queue`, (err, data) => {
+    logger.log(`Cleanup result: ${!err}`, undefined, "DATABASE");
+    logger.log("Waiting for PostgreSQL connections to close...", undefined, "DATABASE");
+    pool.end(() => {
+      logger.log("Database client pool has ended", undefined, "DATABASE");
+      callback(true);
+    });
   });
 }
 
@@ -113,28 +119,32 @@ function insert(table, columns, values, callback) {
     text: `INSERT INTO ${table}(${columns}) VALUES(${valuecount_string})`,
     values: values
   };
-  pool.query(query, function(err, data) {
+  logger.log(`Running query: ${safeJsonStringify(query)}`, "silly", "DATABASE");
+  pool.query(query, function (err, data) {
     if (err)
-      console.trace(err.message);
+      logger.log(`Database error: ${err.message}\n${Error().stack}`, "error", "DATABASE");
     if (callback)
       callback(!err, err ? err : data);
   });
 }
 
 exports.query = query;
-function query(table, fields, keyName, keyValue, callback) {
+function query(table, fields, keyName, keyValue, operator, callback) {
   const query = {
     name: `query-${keyName}-${fields}`,
-    text: `SELECT ${fields ? fields : "*"} FROM ${table} WHERE ${keyName} = $1`,
-    values: [keyValue]
+    text: `SELECT ${fields ? fields : "*"} FROM ${table} WHERE ${keyName} ${
+      keyValue ? operator + " $1" : operator
+    }`,
+    values: keyValue ? [keyValue] : undefined
   };
+
+  logger.log(`Running query: ${safeJsonStringify(query)}`, "silly", "DATABASE");
   pool.query(query, (err, data) => {
     if (err)
-      console.trace(err);
-    if (callback) {
-      let returndata = data.rows.length == 1 ? data.rows[0] : data.rows;
-      callback(!err, err ? err : returndata);
-    }
+      logger.log(`Database error: ${err}\nQuery: ${query}\n${Error().stack}`, "error", "DATABASE");
+    if (callback)
+      callback(!err, err ? err : data.rows);
+
   });
 }
 
@@ -146,7 +156,14 @@ function update(table, keyName, keyValue, changes, callback, processNextQueuedUp
     modifier: { ...changes }
   });
 
-  pool.query(sql.query, sql.values, function(err, result) {
+  logger.log(`Running query: ${safeJsonStringify(sql)}`, "silly", "DATABASE");
+  pool.query(sql.query, sql.values, function (err, result) {
+    if (err) {
+      logger.log(
+        `Database error: ${err}\nQuery: ${safeJsonStringify(sql)}\n${Error().stack}`,
+        "error", "DATABASE"
+      );
+    }
     if (callback)
       callback(!err, err ? err : result);
 
@@ -158,37 +175,21 @@ function update(table, keyName, keyValue, changes, callback, processNextQueuedUp
   });
 }
 
-exports.move = move;
-function move(fromTable, toTable, keyName, keyValue, callback) {
-  const query = {
-    name: `query-move`,
-    text: `INSERT INTO ${toTable} SELECT * FROM ${fromTable} WHERE ${keyName} = $1`,
-    values: [keyValue]
-  };
-  pool.query(query, function(err) {
-    if (err) {
-      console.trace(err);
-      callback(false, err);
-    } else {
-      deleteDBEntry(fromTable, keyName, keyValue, callback);
-    }
-  });
-}
-
 // Decrement a numeric key and return the new count.
 exports.decrement = decrement;
 function decrement(table, uuid, keyName, callback) {
-  pool.query(
-    `UPDATE ${table} SET ${keyName} = ${keyName} - 1 WHERE uuid = '${uuid}'`,
-    function(err) {
-      if (err) {
-        console.trace(err);
-        callback(false, err);
-      } else {
-        query(table, ["pick_count_remaining"], "uuid", uuid, callback);
-      }
+  let querystring = `UPDATE ${table} SET ${keyName} = ${keyName} - 1 WHERE uuid = '${uuid}' and ${
+    keyName} > 0`;
+
+  logger.log(`Running query: ${querystring}`, "silly", "DATABASE");
+  pool.query(querystring, function (err) {
+    if (err) {
+      logger.log(`Database error: ${err}\n${Error().stack}`, "error", uuid);
+      callback(false, err);
+    } else {
+      query(table, ["pick_count_remaining"], "uuid", uuid, "=", callback);
     }
-  );
+  });
 }
 
 exports.deleteDBEntry = deleteDBEntry;
@@ -198,9 +199,14 @@ function deleteDBEntry(table, keyName, keyValue, callback) {
     condition: { [keyName]: keyValue }
   });
 
-  pool.query(sql.query, sql.values, function(err) {
-    if (err)
-      console.trace(`An error occurred while running a query: ${JSON.stringify(sql)}`);
+  logger.log(`Running query: ${safeJsonStringify(sql)}`, "silly", "DATABASE");
+  pool.query(sql.query, sql.values, function (err) {
+    if (err) {
+      logger.log(
+        `An error occurred while running a query: ${safeJsonStringify(sql)}`,
+        "error", "DATABASE"
+      );
+    }
     if (callback)
       callback(!err, err ? err : this);
   });

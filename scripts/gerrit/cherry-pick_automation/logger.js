@@ -37,47 +37,71 @@
  **
  ****************************************************************************/
 
-exports.id = "emailClient";
-const nodemailer = require("nodemailer");
-const sesTransport = require("nodemailer-ses-transport");
+exports.id = "logger";
 
-const config = require("./config.json");
-const Logger = require("./logger");
-const logger = new Logger();
+const winston = require("winston");
+const { format } = winston;
+const { combine } = format;
 
-// Set default values with the config file, but prefer environment variable.
-function envOrConfig(ID) {
-  if (process.env[ID])
-    return process.env[ID];
-  return config[ID];
+// New prototype method for string to prepend and postfix color
+// escape control sequences for writing colors to the console.
+String.prototype.color = function (color) {
+  return `${color}${this}\x1b[0m`;
+};
+
+let level = process.env.LOG_LEVEL ? process.env.LOG_LEVEL : "info";
+
+class logger {
+  constructor() {
+    const levels = {
+      error: 0,
+      warn: 1,
+      info: 2,
+      http: 3,
+      verbose: 4,
+      debug: 5,
+      silly: 6
+    };
+
+    this.logger = winston.createLogger({
+      levels: levels,
+      level: level,
+      format: combine(format.colorize(), format.align(), format.simple()),
+      defaultMeta: { service: "user-service" },
+      exitOnError: false,
+      transports: [new winston.transports.Console()]
+    });
+
+    this.logger.log("info", `Log verbosity set to ${level.color("\x1b[38;2;241;241;0m")}`);
+  }
+
+  // Generate a unique color based on the uuid.
+  getUuidColor(uuid) {
+    let uuidInt = parseInt(uuid, 16);
+    if (isNaN(uuidInt))
+      return `\x1b[38;5;202m`;
+    else
+      return `\x1b[38;5;${Math.max(uuidInt % 231, 8)}m`;
+
+  }
+
+  // Log a message to the console. UUID, if passed, will be assigned a unique color.
+  // level defaults to "info" if not set. Level may be set to numeric or string
+  // RFC5424 standards:
+  //   error: 0,
+  //   warn: 1,
+  //   info: 2,
+  //   http: 3,
+  //   verbose: 4,
+  //   debug: 5,
+  //   silly: 6
+  log(message, level, uuid) {
+    if (!uuid)
+      uuid = "SYSTEM";
+    if (!level)
+      level = "info";
+    let color = this.getUuidColor(uuid);
+    this.logger.log(level, `${uuid.slice(0, 8).color(color)} ${message}`);
+  }
 }
-
-let senderAddress = envOrConfig("EMAIL_SENDER");
-
-let SESCREDENTIALS = {
-  accessKeyId: envOrConfig("SES_ACCESS_KEY_ID"),
-  secretAccessKey: envOrConfig("SES_SECRET_ACCESS_KEY")
-};
-
-exports.genericSendEmail = function (to, subject, htmlbody, textbody) {
-  // create reusable transporter
-  let transporter = nodemailer.createTransport(sesTransport({
-    accessKeyId: SESCREDENTIALS.accessKeyId,
-    secretAccessKey: SESCREDENTIALS.secretAccessKey,
-    rateLimit: 5
-  }));
-
-  // setup email data with unicode symbols
-  let mailOptions = {
-    from: senderAddress, // sender address
-    to: to, // list of receivers
-    subject: subject, // Subject line
-    text: textbody, // plain text body
-    html: htmlbody // html body
-  };
-
-  // send mail with defined transport object
-  transporter.sendMail(mailOptions).catch((err) => {
-    logger.log(`Error sending email: ${err}`, "error", "MAILER");
-  });
-};
+module.exports = logger;

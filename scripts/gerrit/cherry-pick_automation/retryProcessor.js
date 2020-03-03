@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 /****************************************************************************
  **
  ** Copyright (C) 2020 The Qt Company Ltd.
@@ -44,21 +45,26 @@ const postgreSQLClient = require("./postgreSQLClient");
 const toolbox = require("./toolbox");
 
 class retryProcessor extends EventEmitter {
-  constructor(requestProcessor) {
+  constructor(logger, requestProcessor) {
     super();
+    this.logger = logger;
     this.requestProcessor = requestProcessor;
   }
 
-  addRetryJob(retryAction, args) {
+  addRetryJob(originalUuid, retryAction, args) {
     let _this = this;
     const retryUuid = uuidv1();
+    _this.logger.log(`Setting up ${retryAction}`, "warn", originalUuid);
     postgreSQLClient.insert(
       "retry_queue", ["uuid", "retryaction", "args"],
       [retryUuid, retryAction, toolbox.encodeJSONtoBase64(args)],
-      function() {
-        console.log(`Retry ${retryAction} registered for ${retryUuid}`);
+      function () {
+        _this.logger.log(
+          `Retry ${retryAction} registered for ${retryUuid}`,
+          "verbose", originalUuid
+        );
         // Call retry in 30 seconds.
-        setTimeout(function() {
+        setTimeout(function () {
           _this.emit("processRetry", retryUuid);
         }, 30000);
       }
@@ -68,19 +74,27 @@ class retryProcessor extends EventEmitter {
   // Process a retry item and call its original callback, which should resume
   // the process where it left off.
   processRetry(uuid, callback) {
-    console.log(`Processing retry event with uuid ${uuid}`);
     let _this = this;
+    _this.logger.log(`Processing retry event with uuid ${uuid}`);
     function deleteRetryRecord() {
-      postgreSQLClient.deleteDBEntry("retry_queue", "uuid", uuid, function(success, data) {});
+      postgreSQLClient.deleteDBEntry("retry_queue", "uuid", uuid, function (success, data) {});
     }
 
-    postgreSQLClient.query("retry_queue", undefined, "uuid", uuid, function(success, row) {
+    postgreSQLClient.query("retry_queue", undefined, "uuid", uuid, "=", function (success, rows) {
       if (success) {
         deleteRetryRecord();
-        let args = toolbox.decodeBase64toJSON(row.args);
-        _this.requestProcessor.emit(row.retryaction, ...args);
+        let args = toolbox.decodeBase64toJSON(rows[0].args);
+        _this.logger.log(
+          `Processing retryRequest "${rows[0].retryAction}" for ${uuid} with args: ${args}`,
+          "debug"
+        );
+        _this.requestProcessor.emit(rows[0].retryaction, ...args);
       } else if (callback) {
-        callback(false, row);
+        _this.logger.log(
+          `Error retrieving retryRequest ${uuid} from the database, ${rows}`,
+          "error"
+        );
+        callback(false, rows);
       } else {
         // This is a silent failure and may leave orphaned jobs.
         // All calls to processRetry should pass a callback for safety.

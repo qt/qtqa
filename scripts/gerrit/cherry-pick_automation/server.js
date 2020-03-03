@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 /****************************************************************************
  **
  ** Copyright (C) 2020 The Qt Company Ltd.
@@ -41,6 +42,7 @@ const express = require("express");
 const EventEmitter = require("events");
 const net = require("net");
 const uuidv1 = require("uuid/v1");
+const portfinder = require("portfinder");
 
 const postgreSQLClient = require("./postgreSQLClient");
 const emailClient = require("./emailClient");
@@ -52,28 +54,28 @@ const config = require("./config.json");
 // Each gerrit repo that needs use of the bot must be configured with a
 // webhook that will send change-merged notifications to this bot.
 
-// Set default values with the config file.
-let webhookPort = config.WEBHOOK_PORT;
-let gerritIPv4 = config.GERRIT_IPV4;
-let gerritIPv6 = config.GERRIT_IPV6;
-let adminEmail = config.ADMIN_EMAIL;
+// Set default values with the config file, but prefer environment variable.
+function envOrConfig(ID) {
+  if (process.env[ID])
+    return process.env[ID];
+  return config[ID];
+}
 
-// Prefer environment variable if set.
+let webhookPort = envOrConfig("WEBHOOK_PORT");
+let gerritIPv4 = envOrConfig("GERRIT_IPV4");
+let gerritIPv6 = envOrConfig("GERRIT_IPV6");
+let adminEmail = envOrConfig("ADMIN_EMAIL");
+
+// Override webhookPort with the PORT environment variable if it's set
+// This is required by Heroku instances, as the app MUST bind to the
+// port set in the PORT environment variable.
 if (process.env.PORT)
   webhookPort = Number(process.env.PORT);
 
-if (process.env.GERRIT_IPV4)
-  gerritIPv4 = process.env.GERRIT_IPV4;
-
-if (process.env.GERRIT_IPV6)
-  gerritIPv6 = process.env.GERRIT_IPV6;
-
-if (process.env.ADMIN_EMAIL)
-  adminEmail = process.env.ADMIN_EMAIL;
-
 class webhookListener extends EventEmitter {
-  constructor(requestProcessor) {
+  constructor(logger, requestProcessor) {
     super();
+    this.logger = logger;
     this.requestProcessor = requestProcessor;
   }
 
@@ -85,6 +87,7 @@ class webhookListener extends EventEmitter {
     if (req.change) {
       req["fullChangeID"] =
         `${encodeURIComponent(req.change.project)}~${req.change.branch}~${req.change.id}`;
+      _this.logger.log(`Event ${req.type} received on ${req.fullChangeID}`, "verbose");
     }
 
     if (req.type == "change-merged") {
@@ -96,7 +99,7 @@ class webhookListener extends EventEmitter {
         req.uuid, req.change.id, "new", req.patchSet.revision,
         toolbox.encodeJSONtoBase64(req), toolbox.encodeJSONtoBase64({})
       ];
-      postgreSQLClient.insert("processing_queue", columns, rowdata, function(changes) {
+      postgreSQLClient.insert("processing_queue", columns, rowdata, function (changes) {
         // Emit a signal for this merge in case anything is waiting on it.
         _this.requestProcessor.emit(`merge_${req.fullChangeID}`);
         // Ready to begin processing the merged change.
@@ -106,7 +109,7 @@ class webhookListener extends EventEmitter {
       // Emit a signal that the change was abandoned in case anything is
       // waiting on it. We don't need to do any direct processing on
       // abandoned changes.
-      _this.emit(`abandon_${req.fullChangeID}`);
+      _this.requestProcessor.emit(`abandon_${req.fullChangeID}`);
     } else if (req.type == "patchset-created") {
       // Treat all new changes as "cherryPickCreated"
       // since gerrit doesn't send a separate notification for actual
@@ -134,11 +137,11 @@ class webhookListener extends EventEmitter {
     server.enable("trust proxy", true);
 
     // Create a custom error handler for Express.
-    server.use(function(err, req, res, next) {
+    server.use(function (err, req, res, next) {
       if (err instanceof SyntaxError) {
         // Send the bad request to gerrit admins so it can either be manually processed
         // or fixed if there's a bug.
-        console.log("Syntax error in input. The incoming request may be broken!");
+        _this.logger.log("Syntax error in input. The incoming request may be broken!", "error");
         emailClient.genericSendEmail(
           adminEmail, "Cherry-pick bot: Error in received webhook",
           undefined, // Don't bother assembling an HTML body for this debug message.
@@ -148,11 +151,15 @@ class webhookListener extends EventEmitter {
       } else {
         // This shouldn't happen as long as we're only receiving JSON formatted webhooks from gerrit
         res.sendStatus(500);
-        console.trace(err);
+        _this.logger.log(err, "error");
       }
     });
 
     function validateOrigin(req, res) {
+      if (process.env.IGNORE_IP_VALIDATE) {
+        res.sendStatus(200);
+        return true;
+      }
       // Filter requests to only receive from an expected gerrit instance.
       let clientIp = req.headers["x-forwarded-for"] || req.connection.remoteAddress;
       let validOrigin = false;
@@ -162,7 +169,10 @@ class webhookListener extends EventEmitter {
         res.sendStatus(401);
       } else if (!net.isIP(clientIp)) {
         // ERROR, but don't exit.
-        console.trace(`FATAL: Incoming request appears to have an invalid origin IP.`);
+        _this.logger.log(
+          `FATAL: Incoming request appears to have an invalid origin IP: ${clientIp}`,
+          "warn"
+        );
         res.sendStatus(500); // Try to send a status anyway.
       } else {
         res.sendStatus(200);
@@ -172,14 +182,24 @@ class webhookListener extends EventEmitter {
     }
 
     // Set up the listening endpoint
-    console.log("Starting server.");
+    _this.logger.log("Starting server.");
     server.post("/gerrit-events", (req, res) => {
       if (validateOrigin(req, res))
         _this.emit("newRequest", req.body);
     });
     server.get("/", (req, res) => res.send("Nothing to see here."));
-    server.listen(webhookPort);
-    _this.emit("serverStarted", `Server started listening on port ${webhookPort}`);
+    portfinder
+      .getPortPromise()
+      .then((port) => {
+        // `port` is guaranteed to be a free port in this scope.
+        server.listen(webhookPort);
+        _this.emit("serverStarted", `Server started listening on port ${webhookPort}`);
+      })
+      .catch((err) => {
+        // Could not get a free port, `err` contains the reason.
+        _this.logger.log(err, "error");
+        process.exit();
+      });
   }
 }
 

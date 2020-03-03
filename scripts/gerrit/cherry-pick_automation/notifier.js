@@ -38,26 +38,39 @@
  ****************************************************************************/
 
 exports.id = "notifier";
-const Server = require("./server");
-const server = new Server();
-const RequestProcessor = require("./requestProcessor");
-const requestProcessor = new RequestProcessor();
-server.requestProcessor = requestProcessor;
-const RetryProcessor = require("./retryProcessor");
-const retryProcessor = new RetryProcessor(requestProcessor);
-requestProcessor.retryProcessor = retryProcessor;
-const SingleRequestManager = require("./singleRequestManager");
-const singleRequestManager = new SingleRequestManager(retryProcessor, requestProcessor);
-const RelationChainManager = require("./relationChainManager");
-const relationChainManager = new RelationChainManager(retryProcessor, requestProcessor);
-const postgreSQLClient = require("./postgreSQLClient");
+
 const onExit = require("node-cleanup");
 
+const Logger = require("./logger");
+const logger = new Logger();
+logger.log("Logger started...");
+const Server = require("./server");
+const server = new Server(logger);
+const RequestProcessor = require("./requestProcessor");
+const requestProcessor = new RequestProcessor(logger);
+server.requestProcessor = requestProcessor;
+const RetryProcessor = require("./retryProcessor");
+const retryProcessor = new RetryProcessor(logger, requestProcessor);
+requestProcessor.retryProcessor = retryProcessor;
+const SingleRequestManager = require("./singleRequestManager");
+const singleRequestManager = new SingleRequestManager(logger, retryProcessor, requestProcessor);
+const RelationChainManager = require("./relationChainManager");
+const relationChainManager = new RelationChainManager(logger, retryProcessor, requestProcessor);
+const StartupStateRecovery = require("./startupStateRecovery");
+const startupStateRecovery = new StartupStateRecovery(logger, requestProcessor);
+const postgreSQLClient = require("./postgreSQLClient");
+
 // release resources here before node exits
-onExit(function(exitCode, signal) {
-  console.log("Cleaning up...");
-  postgreSQLClient.end();
-  console.log("Exiting");
+onExit(function (exitCode, signal) {
+  if (signal) {
+    logger.log("Cleaning up...");
+    postgreSQLClient.end(() => {
+      logger.log("Exiting");
+      process.exit(0);
+    });
+    onExit.uninstall(); // don't call cleanup handler again
+    return false;
+  }
 });
 
 // Notifier handles all event requests from worker modules.
@@ -82,6 +95,12 @@ server.on("newRequest", (reqBody) => {
 
 // Emitted by the server when the incoming request has been written to the database.
 server.on("newRequestStored", (uuid) => {
+  requestProcessor.processMerge(uuid);
+});
+
+// Emitted by startupStateRecovery if an in-process item stored had no
+// cherry-picks created yet.
+startupStateRecovery.on("recoverFromStart", (uuid) => {
   requestProcessor.processMerge(uuid);
 });
 
@@ -111,6 +130,10 @@ requestProcessor.on("validateBranch", (parentJSON, branch, responseSignal) => {
 requestProcessor.on("verifyParentPickExists", (parentJSON, branch, responseSignal, errorSignal) => {
   requestProcessor.verifyParentPickExists(parentJSON, branch, responseSignal, errorSignal);
 });
+
+// Emitted when a cherry-pick's parent is not a suitable target on the pick-to branch.
+requestProcessor.on("locateNearestParent", (currentJSON, next, branch, responseSignal) =>
+  requestProcessor.locateNearestParent(currentJSON, next, branch, responseSignal));
 
 // Emitted when a branch has been validated against the merge's project in codereview.
 requestProcessor.on(
@@ -150,24 +173,42 @@ requestProcessor.on("cherrypickReadyForStage", (parentJSON, cherryPickJSON, resp
 // requestProcessor.gerritCommentHandler handles failure cases and posts
 // this event again for retry. This design is such that the gerritCommentHandler
 // or this event can be fired without caring about the result.
-requestProcessor.on("postGerritComment", (fullChangeID, revision, message, notifyScope) => {
-  requestProcessor.gerritCommentHandler(fullChangeID, revision, message, notifyScope);
-});
+requestProcessor.on(
+  "postGerritComment",
+  (parentUuid, fullChangeID, revision, message, notifyScope) => {
+    requestProcessor.gerritCommentHandler(parentUuid, fullChangeID, revision, message, notifyScope);
+  }
+);
 
 // Emitted when a job fails to complete for a non-fatal reason such as network
 // disruption. The job is then stored in the database and rescheduled.
-requestProcessor.on("addRetryJob", (action, args) => {
-  retryProcessor.addRetryJob(action, args);
+requestProcessor.on("addRetryJob", (originalUuid, action, args) => {
+  retryProcessor.addRetryJob(originalUuid, action, args);
 });
 
 // Emitted when a retry job should be processed again.
 retryProcessor.on("processRetry", (uuid) => {
-  console.log(`Retrying retry job: ${uuid}`);
-  retryProcessor.processRetry(uuid, function(success, data) {
+  logger.log(`Retrying retry job: ${uuid}`, "warn");
+  retryProcessor.processRetry(uuid, function (success, data) {
     // This callback should only be called if the database threw
     // an error. This should not happen, so just log the failure.
-    console.log(`A database error occurred when trying to process a retry for ${uuid}: ${data}`);
+    logger.log(
+      `A database error occurred when trying to process a retry for ${uuid}: ${data}`,
+      "warn"
+    );
   });
+});
+
+// Restore any open event listeners, followed by any items that
+// weren't complete before the last app shutdown.
+startupStateRecovery.restoreActionListeners();
+startupStateRecovery.on("RestoreListenersDone", () => {
+  logger.log("Finished restoring listeners from the database.");
+  startupStateRecovery.restoreProcessingItems();
+});
+
+startupStateRecovery.on("restoreProcessingDone", () => {
+  logger.log("Finished restoring in-process items from the database.");
 });
 
 // Start the server and begin listening for incoming webhooks.w
