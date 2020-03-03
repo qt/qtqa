@@ -37,9 +37,10 @@
  **
  ****************************************************************************/
 
-id = "postgreSQLClient";
+exports.id = "postgreSQLClient";
 const { Pool } = require("pg");
 const jsonSql = require("json-sql")();
+
 let config = require("./postgreSQLconfig.json");
 
 jsonSql.configure({ namedValues: false });
@@ -47,16 +48,13 @@ jsonSql.setDialect("postgresql");
 
 // Use DATABASE_URL environment variable if set. (Heroku environments)
 // Otherwise, continue to use the config file.
-if (process.env.DATABASE_URL) {
-  config = {
-    connectionString: process.env.DATABASE_URL,
-    ssl: true
-  };
-}
+if (process.env.DATABASE_URL)
+  config = { connectionString: process.env.DATABASE_URL, ssl: true };
+
 const pool = new Pool(config);
 
-pool.on("error", err => {
-  // This should be non-critial. The database will clean up idle clients.
+pool.on("error", (err) => {
+  // This should be non-critical. The database will clean up idle clients.
   console.trace("An idle database client has experienced an error", err.stack);
 });
 
@@ -71,7 +69,7 @@ pool.query(`CREATE TABLE IF NOT EXISTS processing_queue
                 cherrypick_results_json TEXT,
                 pick_count_remaining INTEGER
             )
-        `);
+          `);
 
 pool.query(`CREATE TABLE IF NOT EXISTS finished_requests
             (
@@ -83,21 +81,21 @@ pool.query(`CREATE TABLE IF NOT EXISTS finished_requests
                 cherrypick_results_json TEXT,
                 pick_count_remaining INTEGER
             )
-        `);
+          `);
 
 pool.query(`CREATE TABLE IF NOT EXISTS retry_queue
-        (
-            uuid UUID PRIMARY KEY,
-            retryaction TEXT,
-            args TEXT
-        )
-    `);
+            (
+                uuid UUID PRIMARY KEY,
+                retryaction TEXT,
+                args TEXT
+            )
+          `);
 
 // Exported functions
 exports.end = end;
 function end() {
   console.log("Waiting for PostgreSQL connections to close...");
-  pool.end(() => {
+  pool.end(function() {
     console.log("Database client pool has ended");
   });
 }
@@ -105,23 +103,21 @@ function end() {
 exports.insert = insert;
 function insert(table, columns, values, callback) {
   let valuecount_string;
-  if (table == "processing_queue") {
-    valuecount_string = "$1,$2,$3,$4,$5,$6"
-  } else if (table == "retry_queue") {
-    valuecount_string = "$1,$2,$3"
-  }
+  if (table == "processing_queue")
+    valuecount_string = "$1,$2,$3,$4,$5,$6";
+  else if (table == "retry_queue")
+    valuecount_string = "$1,$2,$3";
+
   const query = {
     name: `insert-row-${table}`,
     text: `INSERT INTO ${table}(${columns}) VALUES(${valuecount_string})`,
     values: values
   };
   pool.query(query, function(err, data) {
-    if (err) {
+    if (err)
       console.trace(err.message);
-    }
-    if (callback) {
-      callback(err ? false : true, err ? err : data);
-    }
+    if (callback)
+      callback(!err, err ? err : data);
   });
 }
 
@@ -133,44 +129,32 @@ function query(table, fields, keyName, keyValue, callback) {
     values: [keyValue]
   };
   pool.query(query, (err, data) => {
-    if (err) {
+    if (err)
       console.trace(err);
-    }
     if (callback) {
       let returndata = data.rows.length == 1 ? data.rows[0] : data.rows;
-      callback(err ? false : true, err ? err : returndata);
+      callback(!err, err ? err : returndata);
     }
   });
 }
 
 exports.update = update;
-function update(
-  table,
-  keyName,
-  keyValue,
-  changes,
-  callback,
-  processNextQueuedUpdate
-) {
+function update(table, keyName, keyValue, changes, callback, processNextQueuedUpdate) {
   let sql = jsonSql.build({
-    type: "update",
-    table: table,
-    condition: {
-      [keyName]: keyValue
-    },
+    type: "update", table: table,
+    condition: { [keyName]: keyValue },
     modifier: { ...changes }
   });
 
   pool.query(sql.query, sql.values, function(err, result) {
-    if (callback) {
-      callback(err ? false : true, err ? err : result);
-    }
+    if (callback)
+      callback(!err, err ? err : result);
+
     // If the queuing function was passed, call it with the unlock parameter.
     // This will process the next item in queue or globally unlock the status
     // update lockout.
-    if (processNextQueuedUpdate) {
+    if (processNextQueuedUpdate)
       processNextQueuedUpdate(undefined, undefined, undefined, undefined, true);
-    }
   });
 }
 
@@ -186,9 +170,7 @@ function move(fromTable, toTable, keyName, keyValue, callback) {
       console.trace(err);
       callback(false, err);
     } else {
-      deleteDBEntry(fromTable, keyName, keyValue, function(success, data) {
-        callback(success, data);
-      });
+      deleteDBEntry(fromTable, keyName, keyValue, callback);
     }
   });
 }
@@ -203,12 +185,7 @@ function decrement(table, uuid, keyName, callback) {
         console.trace(err);
         callback(false, err);
       } else {
-        query(table, ["pick_count_remaining"], "uuid", uuid, function(
-          success,
-          data
-        ) {
-          callback(success, data);
-        });
+        query(table, ["pick_count_remaining"], "uuid", uuid, callback);
       }
     }
   );
@@ -217,21 +194,14 @@ function decrement(table, uuid, keyName, callback) {
 exports.deleteDBEntry = deleteDBEntry;
 function deleteDBEntry(table, keyName, keyValue, callback) {
   let sql = jsonSql.build({
-    type: "remove",
-    table: table,
-    condition: {
-      [keyName]: keyValue
-    }
+    type: "remove", table: table,
+    condition: { [keyName]: keyValue }
   });
 
   pool.query(sql.query, sql.values, function(err) {
-    if (callback) {
-      if (err) {
-        console.trace(
-          `An error occurred while running a query: ${JSON.stringify(sql)}`
-        );
-      }
-      callback(err ? false : true, err ? err : this);
-    }
+    if (err)
+      console.trace(`An error occurred while running a query: ${JSON.stringify(sql)}`);
+    if (callback)
+      callback(!err, err ? err : this);
   });
 }

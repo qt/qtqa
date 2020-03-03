@@ -50,9 +50,7 @@ class relationChainManager {
       "relationChain_validBranchVerifyParent",
       this.handleValidBranch
     );
-    this.handleValidBranchReadyForPick = this.handleValidBranchReadyForPick.bind(
-      this
-    );
+    this.handleValidBranchReadyForPick = this.handleValidBranchReadyForPick.bind(this);
     this.requestProcessor.addListener(
       "relationChain_validBranchReadyForPick",
       this.handleValidBranchReadyForPick
@@ -63,65 +61,43 @@ class relationChainManager {
       this.handleParentNotPicked
     );
     this.handleNewCherryPick = this.handleNewCherryPick.bind(this);
-    this.requestProcessor.addListener(
-      "relationChain_newCherryPick",
-      this.handleNewCherryPick
-    );
+    this.requestProcessor.addListener("relationChain_newCherryPick", this.handleNewCherryPick);
     this.handleCherryPickDone = this.handleCherryPickDone.bind(this);
-    this.requestProcessor.addListener(
-      "relationChain_cherryPickDone",
-      this.handleCherryPickDone
-    );
-    this.handleStageEligibilityCheck = this.handleStageEligibilityCheck.bind(
-      this
-    );
+    this.requestProcessor.addListener("relationChain_cherryPickDone", this.handleCherryPickDone);
+    this.handleStageEligibilityCheck = this.handleStageEligibilityCheck.bind(this);
     this.requestProcessor.addListener(
       "relationChain_checkStageEligibility",
       this.handleStageEligibilityCheck
     );
-    this.handleCherrypickReadyForStage = this.handleCherrypickReadyForStage.bind(
-      this
-    );
+    this.handleCherrypickReadyForStage = this.handleCherrypickReadyForStage.bind(this);
     this.requestProcessor.addListener(
       "relationChain_cherrypickReadyForStage",
       this.handleCherrypickReadyForStage
     );
-    this.handleCherrypickWaitForParent = this.handleCherrypickWaitForParent.bind(
-      this
-    );
+    this.handleCherrypickWaitForParent = this.handleCherrypickWaitForParent.bind(this);
     this.requestProcessor.addListener(
       "relationChain_cherrypickWaitParentMergeStage",
       this.handleCherrypickWaitForParent
     );
     this.handleStagingDone = this.handleStagingDone.bind(this);
-    this.requestProcessor.addListener(
-      "relationChain_stagingDone",
-      this.handleStagingDone
-    );
+    this.requestProcessor.addListener("relationChain_stagingDone", this.handleStagingDone);
   }
 
   start(currentJSON, branches) {
     let _this = this;
 
     // Determine if this change is the top-level change.
-    let positionInChain = currentJSON.relatedChanges.findIndex(
-      i => i.change_id === currentJSON.change.id
-    );
+    let positionInChain = currentJSON.relatedChanges.findIndex((i) =>
+      i.change_id === currentJSON.change.id);
     if (positionInChain === currentJSON.relatedChanges.length - 1) {
       // Since this change does not depend on anything, process it
       // as though it's not part of a chain.
-      _this.requestProcessor.emit(
-        "processAsSingleChange",
-        currentJSON,
-        branches
-      );
+      _this.requestProcessor.emit("processAsSingleChange", currentJSON, branches);
     } else {
       // This change is dependent on a parent in the chain. Begin the process.
       branches.forEach(function(branch) {
         _this.requestProcessor.emit(
-          "validateBranch",
-          currentJSON,
-          branch,
+          "validateBranch", currentJSON, branch,
           "relationChain_validBranchVerifyParent"
         );
       });
@@ -131,9 +107,7 @@ class relationChainManager {
   handleValidBranch(currentJSON, branch, isRetry) {
     let _this = this;
     _this.requestProcessor.emit(
-      "verifyParentPickExists",
-      currentJSON,
-      branch,
+      "verifyParentPickExists", currentJSON, branch,
       "relationChain_validBranchReadyForPick",
       "relationChain_targetParentNotPicked",
       isRetry
@@ -143,10 +117,7 @@ class relationChainManager {
   handleValidBranchReadyForPick(currentJSON, branch, detail) {
     let _this = this;
     _this.requestProcessor.emit(
-      "validBranchReadyForPick",
-      currentJSON,
-      branch,
-      detail.target,
+      "validBranchReadyForPick", currentJSON, branch, detail.target,
       "relationChain_newCherryPick"
     );
   }
@@ -154,13 +125,7 @@ class relationChainManager {
   handleParentNotPicked(currentJSON, branch, detail) {
     let _this = this;
 
-    function setupListener(
-      event,
-      timeout,
-      messageChangeId,
-      messageOnSetup,
-      messageOnTimeout
-    ) {
+    function setupListener(event, timeout, messageChangeId, messageOnSetup, messageOnTimeout) {
       // Listen for event only once
       // Cancel the event listener if timeout is set, since leaving listeners
       // is a memory leak, and a manually processed cherry pick MAY not retain
@@ -174,10 +139,7 @@ class relationChainManager {
           // Post a message to gerrit if available.
           if (messageOnTimeout) {
             _this.requestProcessor.emit(
-              "postGerritComment",
-              messageChangeId,
-              undefined,
-              messageOnTimeout,
+              "postGerritComment", messageChangeId, undefined, messageOnTimeout,
               "OWNER"
             );
           }
@@ -188,14 +150,13 @@ class relationChainManager {
         console.log("Setting up a listener for:", event);
         _this.requestProcessor.once(
           event,
-          () => {
+          function() {
             clearTimeout(timeoutHandle);
             setTimeout(function() {
               console.log("Firing delayed event.");
               _this.requestProcessor.emit(
                 "relationChain_validBranchVerifyParent",
-                currentJSON,
-                branch
+                currentJSON, branch
               );
             }, 2000);
           },
@@ -204,18 +165,13 @@ class relationChainManager {
       }
       if (messageChangeId && messageOnSetup) {
         _this.requestProcessor.emit(
-          "postGerritComment",
-          messageChangeId,
-          undefined,
-          messageOnSetup,
+          "postGerritComment", messageChangeId, undefined, messageOnSetup,
           "OWNER"
         );
       }
     }
 
-    if (
-      ["NEW", "STAGED", "INTEGRATING"].some(element => detail.error == element)
-    ) {
+    if (["NEW", "STAGED", "INTEGRATING"].some((element) => detail.error == element)) {
       // The parent has not yet been merged. Set up a listener and
       // re-run validation when the merge comes through. Wait for
       // 2 seconds before validating to help avoid a race condition
@@ -231,8 +187,7 @@ class relationChainManager {
       // that the parent left off pick-to footers, or that the pick hasn't
       // been completed yet.
       let parentCommitMessage =
-        detail.parentJSON.revisions[detail.parentJSON.current_revision].commit
-          .message;
+        detail.parentJSON.revisions[detail.parentJSON.current_revision].commit.message;
 
       let parentPickBranches = toolbox.findPickToBranches(parentCommitMessage);
       let listenEvent = ``;
@@ -253,9 +208,7 @@ class relationChainManager {
             setTimeout(function() {
               _this.requestProcessor.emit(
                 "relationChain_validBranchVerifyParent",
-                currentJSON,
-                branch,
-                true
+                currentJSON, branch, true
               );
             }, 5000);
           } else if (detail.isRetry) {
@@ -293,21 +246,12 @@ class relationChainManager {
       }
       // Set an event listener to call the verify parent step again when
       // the expected event occurs.
-      if (
-        [
-          listenEvent,
-          listenTimeout,
-          gerritMessageChangeID,
-          gerritMessage,
-          gerritMessageOnTimeout
-        ].some(element => element)
+      if (listenEvent || listenTimeout || gerritMessageChangeID ||
+          gerritMessage|| gerritMessageOnTimeout
       ) {
         setupListener(
-          listenEvent,
-          listenTimeout,
-          gerritMessageChangeID,
-          gerritMessage,
-          gerritMessageOnTimeout
+          listenEvent, listenTimeout, gerritMessageChangeID,
+          gerritMessage, gerritMessageOnTimeout
         );
       }
     } else if (detail.error == "ABANDONED") {
@@ -318,9 +262,7 @@ class relationChainManager {
   handleNewCherryPick(parentJSON, cherryPickJSON) {
     let _this = this;
     _this.requestProcessor.emit(
-      "newCherryPick",
-      parentJSON,
-      cherryPickJSON,
+      "newCherryPick", parentJSON, cherryPickJSON,
       "relationChain_cherryPickDone"
     );
   }
@@ -328,9 +270,7 @@ class relationChainManager {
   handleCherryPickDone(parentJSON, cherryPickJSON) {
     let _this = this;
     _this.requestProcessor.emit(
-      "cherryPickDone",
-      parentJSON,
-      cherryPickJSON,
+      "cherryPickDone", parentJSON, cherryPickJSON,
       "relationChain_checkStageEligibility"
     );
   }
@@ -343,45 +283,25 @@ class relationChainManager {
 
     let _this = this;
     _this.requestProcessor.emit(
-      "stageEligibilityCheck",
-      originalRequestJSON,
-      cherryPickJSON,
+      "stageEligibilityCheck", originalRequestJSON, cherryPickJSON,
       "relationChain_cherrypickReadyForStage",
       "relationChain_cherrypickWaitParentMergeStage"
     );
   }
 
-  handleCherrypickReadyForStage(
-    originalRequestJSON,
-    cherryPickJSON,
-    parentChangeID,
-    parentStatus
-  ) {
+  handleCherrypickReadyForStage(originalRequestJSON, cherryPickJSON, parentChangeID, parentStatus) {
     // The status of the cherry-pick's parent ok. Stage the new cherry-pick.
     let _this = this;
     _this.requestProcessor.emit(
-      "cherrypickReadyForStage",
-      originalRequestJSON,
-      cherryPickJSON,
+      "cherrypickReadyForStage", originalRequestJSON, cherryPickJSON,
       "relationChain_stagingDone"
     );
   }
 
-  handleCherrypickWaitForParent(
-    originalRequestJSON,
-    cherryPickJSON,
-    parentChangeID,
-    parentStatus
-  ) {
+  handleCherrypickWaitForParent(originalRequestJSON, cherryPickJSON, parentChangeID, parentStatus) {
     // The cherry-pick's parent is not ready yet. Start wait listeners for it.
     let _this = this;
-    function setupListener(
-      event,
-      timeout,
-      messageChangeId,
-      messageOnSetup,
-      messageOnTimeout
-    ) {
+    function setupListener(event, timeout, messageChangeId, messageOnSetup, messageOnTimeout) {
       // Listen for event only once. The listener is consumed if triggered.
       // Cancel the event listener if timeout is set, since leaving listeners
       // is a memory leak, and a manually processed cherry pick MAY not retain
@@ -390,15 +310,12 @@ class relationChainManager {
       // Drop the listener after timeout if there's been no event.
       let timeoutHandle;
       if (event && timeout) {
-        timeoutHandle = setTimeout(() => {
+        timeoutHandle = setTimeout(function() {
           _this.requestProcessor.removeAllListeners(event);
           // Post a message to gerrit if available.
           if (messageOnTimeout) {
             _this.requestProcessor.emit(
-              "postGerritComment",
-              messageChangeId,
-              undefined,
-              messageOnTimeout,
+              "postGerritComment", messageChangeId, undefined, messageOnTimeout,
               "OWNER"
             );
           }
@@ -406,27 +323,19 @@ class relationChainManager {
       }
 
       if (event) {
-        _this.requestProcessor.once(
-          event,
-          () => {
-            clearTimeout(timeoutHandle);
-            setTimeout(function() {
-              _this.requestProcessor.emit(
-                "relationChain_checkStageEligibility",
-                originalRequestJSON,
-                cherryPickJSON
-              );
-            }, 10000);
-          },
-          1000
-        );
+        _this.requestProcessor.once(event, function() {
+          clearTimeout(timeoutHandle);
+          setTimeout(function() {
+            _this.requestProcessor.emit(
+              "relationChain_checkStageEligibility",
+              originalRequestJSON, cherryPickJSON
+            );
+          }, 10000);
+        }, 1000);
       }
       if (messageChangeId && messageOnSetup) {
         _this.requestProcessor.emit(
-          "postGerritComment",
-          messageChangeId,
-          undefined,
-          messageOnSetup,
+          "postGerritComment", messageChangeId, undefined, messageOnSetup,
           "OWNER"
         );
       }
@@ -438,25 +347,19 @@ class relationChainManager {
     if (parentStatus == "NEW") {
       gerritMessage = `This cherry-pick is ready to be automatically staged, but it's parent is not staged or merged.\n\nCherry-pick bot will wait for the parent to stage for the next 48 hours.\nIf this window expires, a follow up message will be posted and you will need to stage this pick manually.`;
       gerritMessageOnTimeout =
-        "An automatic staging requst for this pick has expired because it's parent did not stage in a timely manner.\nPlease stage this chery-pick manually as appropriate.";
+        "An automatic staging request for this pick has expired because it's parent did not stage in a timely manner.\nPlease stage this cherry-pick manually as appropriate.";
       console.log("Configured listener for:", `staged_${parentChangeID}`);
       setupListener(
         `staged_${parentChangeID}`,
-        listenTimeout,
-        cherryPickJSON.id,
-        gerritMessage,
-        gerritMessageOnTimeout
+        listenTimeout, cherryPickJSON.id, gerritMessage, gerritMessageOnTimeout
       );
     } else if (parentStatus == "INTEGRATING") {
       gerritMessage = `This cherry-pick is ready to be automatically staged, but it's parent is currently integrating.\n\nCherry-pick bot will wait for the parent to successfully merge for the next 48 hours.\nIf this window expires, a follow up message will be posted and you will need to stage this pick manually.`;
       gerritMessageOnTimeout =
-        "An automatic staging requst for this pick has expired because it's parent did not merge in a timely manner.\nPlease stage this chery-pick manually as appropriate.";
+        "An automatic staging request for this pick has expired because it's parent did not merge in a timely manner.\nPlease stage this cherry-pick manually as appropriate.";
       setupListener(
         `merge_${parentChangeID}`,
-        listenTimeout,
-        cherryPickJSON.id,
-        gerritMessage,
-        gerritMessageOnTimeout
+        listenTimeout, cherryPickJSON.id, gerritMessage, gerritMessageOnTimeout
       );
     }
     setupListener(`abandon_${parentChangeID}`, listenTimeout);

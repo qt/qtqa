@@ -70,19 +70,18 @@ onExit(function(exitCode, signal) {
 
 // Emitted when the HTTP Listener is up and running and we're actively listening
 // for incoming POST events to /gerrit-events
-server.on("serverStarted", info => {
-  if (info) {
+server.on("serverStarted", (info) => {
+  if (info)
     console.log(info);
-  }
 });
 
 // Emitted by server when a new incoming request is received by the listener.
-server.on("newRequest", (reqBody, res) => {
-  server.receiveEvent(reqBody, res);
+server.on("newRequest", (reqBody) => {
+  server.receiveEvent(reqBody);
 });
 
 // Emitted by the server when the incoming request has been written to the database.
-server.on("newRequestStored", uuid => {
+server.on("newRequestStored", (uuid) => {
   requestProcessor.processMerge(uuid);
 });
 
@@ -132,9 +131,15 @@ requestProcessor.on("cherryPickDone", (parentJSON, cherryPickJSON, responseSigna
 });
 
 // Emitted when a cherry pick needs to stage against a specific parent change.
-requestProcessor.on("stageEligibilityCheck", (originalRequestJSON, cherryPickJSON, responseSignal, errorSignal) => {
-  requestProcessor.stagingReadyCheck(originalRequestJSON, cherryPickJSON, responseSignal, errorSignal);
-});
+requestProcessor.on(
+  "stageEligibilityCheck",
+  (originalRequestJSON, cherryPickJSON, responseSignal, errorSignal) => {
+    requestProcessor.stagingReadyCheck(
+      originalRequestJSON, cherryPickJSON,
+      responseSignal, errorSignal
+    );
+  }
+);
 
 // Emitted when a cherry pick is approved and ready for automatic staging.
 requestProcessor.on("cherrypickReadyForStage", (parentJSON, cherryPickJSON, responseSignal) => {
@@ -145,17 +150,9 @@ requestProcessor.on("cherrypickReadyForStage", (parentJSON, cherryPickJSON, resp
 // requestProcessor.gerritCommentHandler handles failure cases and posts
 // this event again for retry. This design is such that the gerritCommentHandler
 // or this event can be fired without caring about the result.
-requestProcessor.on(
-  "postGerritComment",
-  (fullChangeID, revision, message, notifyScope) => {
-    requestProcessor.gerritCommentHandler(
-      fullChangeID,
-      revision,
-      message,
-      notifyScope
-    );
-  }
-);
+requestProcessor.on("postGerritComment", (fullChangeID, revision, message, notifyScope) => {
+  requestProcessor.gerritCommentHandler(fullChangeID, revision, message, notifyScope);
+});
 
 // Emitted when a job fails to complete for a non-fatal reason such as network
 // disruption. The job is then stored in the database and rescheduled.
@@ -164,14 +161,12 @@ requestProcessor.on("addRetryJob", (action, args) => {
 });
 
 // Emitted when a retry job should be processed again.
-retryProcessor.on("processRetry", uuid => {
+retryProcessor.on("processRetry", (uuid) => {
   console.log(`Retrying retry job: ${uuid}`);
   retryProcessor.processRetry(uuid, function(success, data) {
     // This callback should only be called if the database threw
     // an error. This should not happen, so just log the failure.
-    console.log(
-      `A database error occurred when trying to process a retry for ${uuid}: ${data}`
-    );
+    console.log(`A database error occurred when trying to process a retry for ${uuid}: ${data}`);
   });
 });
 

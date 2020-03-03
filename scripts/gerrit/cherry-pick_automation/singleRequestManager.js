@@ -52,36 +52,23 @@ class singleRequestManager {
       this.handleValidBranch
     );
     this.handleNewCherryPick = this.handleNewCherryPick.bind(this);
-    this.requestProcessor.addListener(
-      "singleRequest_newCherryPick",
-      this.handleNewCherryPick
-    );
+    this.requestProcessor.addListener("singleRequest_newCherryPick", this.handleNewCherryPick);
     this.handleCherryPickDone = this.handleCherryPickDone.bind(this);
-    this.requestProcessor.addListener(
-      "singleRequest_cherryPickDone",
-      this.handleCherryPickDone
-    );
-    this.handleCherrypickReadyForStage = this.handleCherrypickReadyForStage.bind(
-      this
-    );
+    this.requestProcessor.addListener("singleRequest_cherryPickDone", this.handleCherryPickDone);
+    this.handleCherrypickReadyForStage = this.handleCherrypickReadyForStage.bind(this);
     this.requestProcessor.addListener(
       "singleRequest_cherrypickReadyForStage",
       this.handleCherrypickReadyForStage
     );
     this.handleStagingDone = this.handleStagingDone.bind(this);
-    this.requestProcessor.addListener(
-      "singleRequest_stagingDone",
-      this.handleStagingDone
-    );
+    this.requestProcessor.addListener("singleRequest_stagingDone", this.handleStagingDone);
   }
 
   start(parentJSON, branches) {
     let _this = this;
     branches.forEach(function(branch) {
       _this.requestProcessor.emit(
-        "validateBranch",
-        parentJSON,
-        branch,
+        "validateBranch", parentJSON, branch,
         "singleRequest_validBranchReadyForPick"
       );
     });
@@ -90,10 +77,7 @@ class singleRequestManager {
   handleValidBranch(parentJSON, branch, newParentRev) {
     let _this = this;
     _this.requestProcessor.emit(
-      "validBranchReadyForPick",
-      parentJSON,
-      branch,
-      newParentRev,
+      "validBranchReadyForPick", parentJSON, branch, newParentRev,
       "singleRequest_newCherryPick"
     );
   }
@@ -101,9 +85,7 @@ class singleRequestManager {
   handleNewCherryPick(parentJSON, cherryPickJSON) {
     let _this = this;
     _this.requestProcessor.emit(
-      "newCherryPick",
-      parentJSON,
-      cherryPickJSON,
+      "newCherryPick", parentJSON, cherryPickJSON,
       "singleRequest_cherryPickDone"
     );
   }
@@ -111,9 +93,7 @@ class singleRequestManager {
   handleCherryPickDone(parentJSON, cherryPickJSON) {
     let _this = this;
     _this.requestProcessor.emit(
-      "cherryPickDone",
-      parentJSON,
-      cherryPickJSON,
+      "cherryPickDone", parentJSON, cherryPickJSON,
       "singleRequest_cherrypickReadyForStage"
     );
   }
@@ -121,9 +101,7 @@ class singleRequestManager {
   handleCherrypickReadyForStage(parentJSON, cherryPickJSON) {
     let _this = this;
     _this.requestProcessor.emit(
-      "cherrypickReadyForStage",
-      parentJSON,
-      cherryPickJSON,
+      "cherrypickReadyForStage", parentJSON, cherryPickJSON,
       "singleRequest_stagingDone"
     );
   }

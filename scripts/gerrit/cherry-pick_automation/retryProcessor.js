@@ -37,9 +37,10 @@
  **
  ****************************************************************************/
 
-const postgreSQLClient = require("./postgreSQLClient");
 const EventEmitter = require("events");
 const uuidv1 = require("uuid/v1");
+
+const postgreSQLClient = require("./postgreSQLClient");
 const toolbox = require("./toolbox");
 
 class retryProcessor extends EventEmitter {
@@ -52,16 +53,10 @@ class retryProcessor extends EventEmitter {
     let _this = this;
     const retryUuid = uuidv1();
     postgreSQLClient.insert(
-      "retry_queue",
-      ["uuid", "retryaction", "args"],
-      [
-        retryUuid,
-        retryAction,
-        toolbox.encodeJSONtoBase64(args)
-      ],
+      "retry_queue", ["uuid", "retryaction", "args"],
+      [retryUuid, retryAction, toolbox.encodeJSONtoBase64(args)],
       function() {
         console.log(`Retry ${retryAction} registered for ${retryUuid}`);
-
         // Call retry in 30 seconds.
         setTimeout(function() {
           _this.emit("processRetry", retryUuid);
@@ -70,33 +65,25 @@ class retryProcessor extends EventEmitter {
     );
   }
 
-  // Process a retry item and call it's original callback, which should resume
+  // Process a retry item and call its original callback, which should resume
   // the process where it left off.
   processRetry(uuid, callback) {
     console.log(`Processing retry event with uuid ${uuid}`);
     let _this = this;
     function deleteRetryRecord() {
-      postgreSQLClient.deleteDBEntry("retry_queue", "uuid", uuid, function(
-        result
-      ) {});
+      postgreSQLClient.deleteDBEntry("retry_queue", "uuid", uuid, function(success, data) {});
     }
 
-    postgreSQLClient.query("retry_queue", undefined, "uuid", uuid, function(
-      success,
-      row
-    ) {
-      if (!success) {
-        if (callback) {
-          callback(false, row);
-        } else {
-          // This is a silent failure and may leave orphaned jobs.
-          // All calls to processRetry should pass a callback for safety.
-          return;
-        }
-      } else {
+    postgreSQLClient.query("retry_queue", undefined, "uuid", uuid, function(success, row) {
+      if (success) {
         deleteRetryRecord();
         let args = toolbox.decodeBase64toJSON(row.args);
         _this.requestProcessor.emit(row.retryaction, ...args);
+      } else if (callback) {
+        callback(false, row);
+      } else {
+        // This is a silent failure and may leave orphaned jobs.
+        // All calls to processRetry should pass a callback for safety.
       }
     });
   }

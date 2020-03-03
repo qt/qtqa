@@ -52,33 +52,28 @@ let SESCREDENTIALS = {
 
 // Use environment variables if set.
 
-if (process.env.EMAIL_SENDER) {
+if (process.env.EMAIL_SENDER)
   senderAddress = process.env.EMAIL_SENDER;
-}
 
-if (process.env.SES_ACCESS_KEY_ID) {
+if (process.env.SES_ACCESS_KEY_ID)
   SESCREDENTIALS.accessKeyId = process.env.SES_ACCESS_KEY_ID;
-}
 
-if (process.env.SES_SECRET_ACCESS_KEY) {
+if (process.env.SES_SECRET_ACCESS_KEY)
   SESCREDENTIALS.secretAccessKey = process.env.SES_SECRET_ACCESS_KEY;
-}
 
 exports.genericSendEmail = function(to, subject, htmlbody, textbody) {
   // create reusable transporter
-  let transporter = nodemailer.createTransport(
-    sesTransport({
-      accessKeyId: SESCREDENTIALS.accessKeyId,
-      secretAccessKey: SESCREDENTIALS.secretAccessKey,
-      rateLimit: 5
-    })
-  );
+  let transporter = nodemailer.createTransport(sesTransport({
+    accessKeyId: SESCREDENTIALS.accessKeyId,
+    secretAccessKey: SESCREDENTIALS.secretAccessKey,
+    rateLimit: 5
+  }));
 
   // setup email data with unicode symbols
   let mailOptions = {
     from: senderAddress, // sender address
     to: to, // list of receivers
-    subject: `${subject}`, // Subject line
+    subject: subject, // Subject line
     text: textbody, // plain text body
     html: htmlbody // html body
   };
