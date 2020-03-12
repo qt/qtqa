@@ -51,9 +51,11 @@ the commit to remove any remaining boredom or include anything
 mis-classified as boring, before pushing to Gerrit.
 
 Run in the top-level directory of a work tree in a clean state; don't
-expect it to be left in a clean state.  Depends on the dulwich package
-for python; see your local package manager or 'pip install dulwich' if
-managing python packages with pip.
+expect it to be left in a clean state. In particular, any sub-modules
+shall be checked out on their versions from the prior release.
+
+Depends on the dulwich package for python; see your local package
+manager or 'pip install dulwich' if managing python packages with pip.
 
 Options:
 
@@ -103,10 +105,11 @@ Exit status is 1 on error, else 0.  Success may mean no change at all,
 only boring changes or some interesting changes have been saved.  If
 there are no changes, the repository is restored to its prior state
 (including deleting the api-review-* branch, if created rather than
-reused).  The other two cases can be distinguished by comparing the
-api-review-* branch with the prior release using git diff --quiet;
-this succeeds if there is no difference - i.e. if the API change was
-all boring so we made no commit.
+reused), except for any sub-modules.  The other two cases can be
+distinguished by comparing the api-review-* branch with the prior
+release using git diff --quiet; this succeeds if there is no
+difference - i.e. if the API change was all boring so we made no
+commit.
 
 After a first pass of review, if prior or soon has changed (and been
 fetched), it is possible to rebase the review branch onto prior and
@@ -234,11 +237,8 @@ then
     # Suppress --amend or --replace unless we have a prior commit on $BRANCH:
     if git diff --quiet "$BRANCH" "$PRIOR"
     then
-        if [ -n "$AMEND" ]
-        then
-            mention "Suppressing requested $AMEND: no prior commit on $BRANCH"
-            AMEND=
-        fi
+        mention "Suppressing requested $AMEND: no prior commit on $BRANCH"
+        AMEND=
     else # Read (and validate) last commit's Change-Id:
         CHANGEID=`git show --summary $BRANCH | sed -ne '/Change-Id:/ s/.*: *//p'`
         [ -n "$CHANGEID" ] || die "No prior Change-Id from $BRANCH"
@@ -267,6 +267,7 @@ fi
 # apiheaders commit
 # Echoes one header name per line
 apiheaders () {
+    # Preliminary file-list, to be filtered:
     git ls-tree -r --name-only "$1" \
         | grep "^$SRCDIR"'/[-a-zA-Z0-9_/]*\.h$' \
         | grep -vi '^src/tools/' \
@@ -291,6 +292,7 @@ apiheaders () {
                 # Otherwise, plugins and 3rdparty aren't API:
                 src/plugins/*) ;;
                 */3rdparty/*) ;;
+                *) echo "$f" ;;
            esac
         done
     fi
