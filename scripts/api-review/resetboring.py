@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 # Usage: see api-review-gen.
 #############################################################################
 ##
@@ -920,13 +920,14 @@ class Scanner(object): # Support for its .disclaimed()
                 elif warn == 1:
                     if not line: # There may be several blank lines at the start.
                         continue
+                    # Check for banner (may have spaces between letters):
                     if ''.join(line.split()) != 'WARNING':
                         warn = 0
                         continue
                     warn = 2
                     paragraph = ''
 
-                elif warn == 2: # Banner is always undelined with dashes:
+                elif warn == 2: # Banner is always underlined with dashes:
                     if any(ch != '-' for ch in line):
                         warn = 0
                         continue
