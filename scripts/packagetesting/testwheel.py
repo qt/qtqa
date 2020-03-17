@@ -82,7 +82,7 @@ def run_example(root, path):
 
 def has_pyinstaller():
     """Checks for PyInstaller"""
-    process_result = run_process(["pip", "list"])
+    process_result = run_process([sys.executable, "-m", "pip", "list"])
     for line in process_result[1]:
         if line.startswith("PyInstaller"):
             return True
