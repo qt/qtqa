@@ -64,7 +64,7 @@ def run_process(args):
                              stdout=subprocess.PIPE)
     lines = popen.stdout.readlines()
     popen.wait()
-    return (popen.returncode, lines)
+    return popen.returncode, lines
 
 
 def run_process_output(args):
@@ -82,29 +82,26 @@ def run_example(root, path):
 
 def has_pyinstaller():
     """Checks for PyInstaller"""
-    process_result = run_process([sys.executable, "-m", "pip", "list"])
-    for line in process_result[1]:
-        if line.startswith("PyInstaller"):
-            return True
-    return False
+    code, lines = run_process([sys.executable, "-m", "pip", "list"])
+    return any(line.startswith("PyInstaller") for line in lines)
 
 
 def test_pyinstaller(example):
-    name = os.path.basename(example)[:-3]
+    name = os.path.splitext(os.path.basename(example))[0]
     print('Running PyInstaller test of {}'.format(name))
     current_dir = os.getcwd()
     result = False
     with tempfile.TemporaryDirectory() as tmpdirname:
         try:
             os.chdir(tmpdirname)
+            level = "CRITICAL" if sys.platform == "darwin" else "WARN"
             cmd = ['pyinstaller', '--name={}'.format(name),
-                   '--log-level=WARN', example]
+                   '--log-level=' + level, example]
             execute(cmd)
-            if sys.platform != 'darwin':
-                binary = os.path.join(tmpdirname, 'dist', name, name)
-                if sys.platform == "win32":
-                    binary += '.exe'
-                execute([binary])
+            binary = os.path.join(tmpdirname, 'dist', name, name)
+            if sys.platform == "win32":
+                binary += '.exe'
+            execute([binary])
             result = True
         except RuntimeError as e:
             print(str(e))
@@ -114,21 +111,32 @@ def test_pyinstaller(example):
 
 
 if __name__ == "__main__":
+    do_pyinst = True
     if sys.version_info[0] < 3:  # Note: PyInstaller no longer supports Python 2
-        raise Exception('This script requires Python 3')
+        print('PyInstaller requires Python 3, test disabled')
+        do_pyinst = False
     root = None
     for p in sys.path:
-        if p.endswith('site-packages'):
-            root = os.path.join(p, 'PySide2/examples')
+        if p.endswith('/site-packages'):
+            root = os.path.join(p, 'PySide2')
+            root_ex = os.path.join(root, 'examples')
             break
     if not root or not os.path.exists(root):
         print('Could not locate the PySide2 module.')
         sys.exit(1)
+    if not os.path.exists(root_ex):
+        print("PySide2 module found without examples. Did you forget to install wheels?")
+        sys.exit(1)
     print('Detected PySide2 at {}.'.format(root))
     for e in examples():
-        run_example(root, e)
+        run_example(root_ex, e)
 
     if has_pyinstaller():
-        test_pyinstaller(os.path.join(root, PYINSTALLER_EXAMPLE))
+        if test_pyinstaller(os.path.join(root_ex, PYINSTALLER_EXAMPLE)):
+            print("\nPyInstaller test successful")
+        else:
+            print("\nProblem running PyInstaller")
+            sys.exit(1)
     else:
-        print('PyInstaller not found, skipping test')
+        if do_pyinst:
+            print('PyInstaller not found, skipping test')
