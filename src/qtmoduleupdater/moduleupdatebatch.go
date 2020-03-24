@@ -145,6 +145,8 @@ func (batch *ModuleUpdateBatch) checkPendingModules(gerrit *gerritInstance) {
 			// Abandoned or tried too many times possibly -- either way an error integrating the update
 			removeAllDirectAndIndirectDependencies(&batch.Todo, module.RepoPath)
 			batch.FailedModuleCount++
+			url := fmt.Sprintf("https://codereview.qt-project.org/#/q/%s,n,z", pendingUpdate.CommitID)
+			postMessageToSlack(fmt.Sprintf("Dependency update to %s in %s failed -- <%s>", module.RepoPath, batch.Branch, url))
 		}
 	}
 	batch.Pending = newPending

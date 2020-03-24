@@ -251,5 +251,10 @@ func prepareQt5Update(product string, branch string, productFetchRef string, upd
 		return fmt.Errorf("Error pushing qt5 change: %s", err)
 	}
 
-	return gerrit.reviewAndStageChange(product, branch, commitOid, "Updating all submodules with a new consistent set")
+	if err := gerrit.reviewAndStageChange(product, branch, commitOid, "Updating all submodules with a new consistent set"); err != nil {
+		return err
+	}
+	url := fmt.Sprintf("https://codereview.qt-project.org/#/q/%s,n,z", commitOid)
+	postMessageToSlack(fmt.Sprintf("Updating all submodules in qt5 %s with a new consistent set: <%s>", branch, url))
+	return nil
 }

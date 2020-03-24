@@ -94,6 +94,7 @@ func appMain() error {
 		if err != nil {
 			return fmt.Errorf("error preparing environment to work as submodule-update user: %s", err)
 		}
+		initSlackIntegration()
 	}
 
 	if autorun {
