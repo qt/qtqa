@@ -36,7 +36,7 @@ import (
 )
 
 func setupEnvironmentForSubmoduleUpdateBot() (username string, err error) {
-	submoduleUpdateBotKeyPath := "submodule_update_bot_key_rsa"
+	submoduleUpdateBotKeyPath := "coin-secrets/submodule_update_bot_key_rsa"
 	if _, err = os.Stat(submoduleUpdateBotKeyPath); os.IsNotExist(err) {
 		err = fmt.Errorf("cannot locate submodule update bot SSH key file. Please copy it from the coin secrets repo into the current directory")
 		return

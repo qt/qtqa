@@ -2,4 +2,4 @@ git-repos
 .vscode
 qtmoduleupdater
 state_*.json
-submodule_update_bot_key_rsa
+coin-secrets
