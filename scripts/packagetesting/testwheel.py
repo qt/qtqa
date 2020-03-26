@@ -117,7 +117,7 @@ if __name__ == "__main__":
         do_pyinst = False
     root = None
     for p in sys.path:
-        if p.endswith('site-packages'):
+        if os.path.basename(p) == 'site-packages':
             root = os.path.join(p, 'PySide2')
             root_ex = os.path.join(root, 'examples')
             break
