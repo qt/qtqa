@@ -359,7 +359,7 @@ class QtBranching:
         return datastream_h, datastream_cpp
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(prog="merge_qt",
+    parser = argparse.ArgumentParser(prog="branch_qt.py",
                                      formatter_class=argparse.RawTextHelpFormatter,
                                      description="Do various merge operations on Qt repositories")
     parser.add_argument("--mode", "-m",
