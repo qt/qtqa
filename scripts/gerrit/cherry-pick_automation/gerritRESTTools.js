@@ -79,13 +79,9 @@ function gerritBaseURL(api, id) {
 // Splice out the "Pick-to: keyword from the old commit message, but keep the rest."
 exports.generateCherryPick = generateCherryPick;
 function generateCherryPick(changeJSON, parent, destinationBranch, callback) {
-  const changeIDPos = changeJSON.change.commitMessage.lastIndexOf("Change-Id:");
   const newCommitMessage = changeJSON.change.commitMessage
-    .slice(0, changeIDPos)
-    .concat(`Cherry-picked from branch: ${changeJSON.change.branch}\n\n`)
-    .concat(changeJSON.change.commitMessage.slice(changeIDPos))
-    .replace(/^(Pick-to:(?:\s+(?:\d\.\d+\.\d+|\d\.\d+|dev))+)\s?/gm, "")
-    .replace(/^(Reviewed-by:\s(\w.+)$)\s?/gm, "");
+    .replace(/^Pick-to:.+\s?/gm, "")
+    .concat(`(cherry picked from commit ${changeJSON.patchSet.revision})`);
   let url = `${gerritBaseURL("changes", changeJSON.fullChangeID)}/revisions/${
     changeJSON.patchSet.revision}/cherrypick`;
   let data = {
