@@ -49,11 +49,10 @@ String.prototype.color = function (color) {
   return `${color}${this}\x1b[0m`;
 };
 
-let level = process.env.LOG_LEVEL ? process.env.LOG_LEVEL : "info";
-
 class logger {
   constructor() {
-    const levels = {
+    this.level = process.env.LOG_LEVEL || "info";
+    this.levels = {
       error: 0,
       warn: 1,
       info: 2,
@@ -64,15 +63,15 @@ class logger {
     };
 
     this.logger = winston.createLogger({
-      levels: levels,
-      level: level,
+      levels: this.levels,
+      level: this.level,
       format: combine(format.colorize(), format.align(), format.simple()),
       defaultMeta: { service: "user-service" },
       exitOnError: false,
       transports: [new winston.transports.Console()]
     });
 
-    this.logger.log("info", `Log verbosity set to ${level.color("\x1b[38;2;241;241;0m")}`);
+    this.logger.log("info", `Log verbosity set to ${this.level.color("\x1b[38;2;241;241;0m")}`);
   }
 
   // Generate a unique color based on the uuid.

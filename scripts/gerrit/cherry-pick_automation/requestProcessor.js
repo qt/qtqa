@@ -656,6 +656,8 @@ class requestProcessor extends EventEmitter {
         `Conflicts found for ${cherryPickJSON.id}`,
         "verbose", parentJSON.uuid
       );
+      // Internal emitter in case anything needs to know about merge conflicts on this change.
+      _this.emit(`mergeConflict_${cherryPickJSON.id}`);
       gerritTools.setChangeAssignee(
         parentJSON.uuid, cherryPickJSON,
         parentJSON.change.owner.email
@@ -819,7 +821,7 @@ class requestProcessor extends EventEmitter {
             toolbox.decrementPickCountRemaining(parentJSON.uuid);
           }
         );
-        _this.emit(responseSignal, true);
+        _this.emit(responseSignal, true, parentJSON, cherryPickJSON);
       } else if (data == "retry") {
         // Do nothing. This callback function will be called again on retry.
         _this.logger.log(`Failed to stage cherry pick ${
@@ -875,7 +877,7 @@ class requestProcessor extends EventEmitter {
             toolbox.decrementPickCountRemaining(parentJSON.uuid);
           }
         );
-        _this.emit(responseSignal, false, data);
+        _this.emit(responseSignal, false, parentJSON, cherryPickJSON);
       }
     });
   }
