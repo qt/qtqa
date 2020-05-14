@@ -1,0 +1,16 @@
+# Generated from bic.pro.
+
+#####################################################################
+## tst_bic Test:
+#####################################################################
+
+qt_add_test(tst_bic
+    SOURCES
+        ../global.h
+        qbic.cpp qbic.h
+        tst_bic.cpp
+    DEFINES
+        SRCDIR=\\\"${CMAKE_CURRENT_SOURCE_DIR}/\\\"
+    INCLUDE_DIRECTORIES
+        ..
+)
