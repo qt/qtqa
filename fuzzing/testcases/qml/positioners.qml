@@ -1,0 +1,21 @@
+/*A*/
+import QtQuick 2.0
+Rectangle{width:1
+height:1
+Column{id:a
+x:1
+y:1
+spacing:2
+Rectangle{}}Row{id:b
+x:1
+y:1
+Rectangle{}spacing:2}Flow{id:c
+x:1
+y:1
+width:4
+height:4
+Rectangle{}spacing:2}Grid{id:d
+x:1
+y:1
+columns:3
+Rectangle{}spacing:2}}
