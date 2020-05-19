@@ -223,19 +223,18 @@ static QList<Example> readDataEntriesFromFile(const QString &fileName)
     if (!file.open(QFile::ReadOnly))
         return ret;
 
-    QByteArray line;
-    QRegExp lineMatcher("\"([^\"]*)\", *\"([^\"]*)\", *\"([^\"]*)\", *([-0-9]*), *([-0-9]*)");
-    for (line = file.readLine(); !line.isEmpty(); line = file.readLine()) {
-        int matchPos = lineMatcher.indexIn(QString::fromLatin1(line));
-        if (matchPos < 0)
+    QRegularExpression lineMatcher("\"([^\"]*)\", *\"([^\"]*)\", *\"([^\"]*)\", *([-0-9]*), *([-0-9]*)");
+    for (QByteArray line = file.readLine(); !line.isEmpty(); line = file.readLine()) {
+        QRegularExpressionMatch match = lineMatcher.match(QString::fromLatin1(line));
+        if (!match.hasMatch())
             break;
 
         Example example;
-        example.name = lineMatcher.cap(1).toLatin1();
-        example.directory = lineMatcher.cap(2).toLatin1();
-        example.binary = lineMatcher.cap(3).toLatin1();
-        example.priority = lineMatcher.cap(4).toUInt();
-        example.upTimeMS = lineMatcher.cap(5).toInt();
+        example.name = match.captured(1).toLatin1();
+        example.directory = match.captured(2).toLatin1();
+        example.binary = match.captured(3).toLatin1();
+        example.priority = match.captured(4).toUInt();
+        example.upTimeMS = match.captured(5).toInt();
         ret << example;
     }
 

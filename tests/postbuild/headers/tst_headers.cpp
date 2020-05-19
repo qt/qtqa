@@ -70,8 +70,8 @@ static QStringList getHeaders(const QString &path)
     QStringList entries = string.split( "\n" );
 
     // We just want to check header files
-    entries = entries.filter(QRegExp("\\.h$"));
-    entries = entries.filter(QRegExp("^(?!ui_)"));
+    entries = entries.filter(QRegularExpression("\\.h$"));
+    entries = entries.filter(QRegularExpression("^(?!ui_)"));
 
     // Recreate the whole file path so we can open the file from disk
     QStringList result;
@@ -167,11 +167,11 @@ QString tst_Headers::explainPrivateSlot(const QString& line)
 {
     // Extract private slot from a line like:
     //  Q_PRIVATE_SLOT(d_func(), void fooBar(...))
-    QRegExp re("^\\s+Q_PRIVATE_SLOT\\([^,]+,\\s*(.+)\\)\\s*$");
+    QRegularExpression re("^\\s+Q_PRIVATE_SLOT\\([^,]+,\\s*(.+)\\)\\s*$");
     QString slot = line;
-    if (re.indexIn(slot) != -1) {
-        slot = re.cap(1).simplified();
-    }
+    QRegularExpressionMatch match = re.match(slot);
+    if (match.hasMatch())
+        slot = match.captured(1).simplified();
 
     return QString(
         "Private slot `%1' should be named starting with _q_, to reduce the risk of collisions "
@@ -226,16 +226,16 @@ void tst_Headers::macros()
 
     // "signals" and "slots" should be banned in public headers
     // headers which use signals/slots wouldn't compile if Qt is configured with QT_NO_KEYWORDS
-    QVERIFY2(content.indexOf(QRegExp("\\bslots\\s*:")) == -1, "Header contains `slots' - use `Q_SLOTS' instead!");
-    QVERIFY2(content.indexOf(QRegExp("\\bsignals\\s*:")) == -1, "Header contains `signals' - use `Q_SIGNALS' instead!");
+    QVERIFY2(content.indexOf(QRegularExpression("\\bslots\\s*:")) == -1, "Header contains `slots' - use `Q_SLOTS' instead!");
+    QVERIFY2(content.indexOf(QRegularExpression("\\bsignals\\s*:")) == -1, "Header contains `signals' - use `Q_SIGNALS' instead!");
 
     if (header.contains("/sql/drivers/") || header.contains("/arch/qatomic")
-        || header.contains(QRegExp("q.*global\\.h$"))
+        || header.contains(QRegularExpression("q.*global\\.h$"))
         || header.endsWith("qwindowdefs_win.h"))
         return;
 
-    int beginNamespace = content.indexOf(QRegExp("QT_BEGIN_NAMESPACE(_[A-Z_]+)?"));
-    int endNamespace = content.lastIndexOf(QRegExp("QT_END_NAMESPACE(_[A-Z_]+)?"));
+    int beginNamespace = content.indexOf(QRegularExpression("QT_BEGIN_NAMESPACE(_[A-Z_]+)?"));
+    int endNamespace = content.lastIndexOf(QRegularExpression("QT_END_NAMESPACE(_[A-Z_]+)?"));
     QVERIFY(beginNamespace != -1);
     QVERIFY(endNamespace != -1);
     QVERIFY(beginNamespace < endNamespace);

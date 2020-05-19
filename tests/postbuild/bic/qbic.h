@@ -31,7 +31,7 @@
 #include "QtCore/qhash.h"
 #include "QtCore/qlist.h"
 #include "QtCore/qpair.h"
-#include "QtCore/qregexp.h"
+#include "QtCore/qregularexpression.h"
 #include "QtCore/qstring.h"
 #include "QtCore/qstringlist.h"
 
@@ -62,7 +62,7 @@ public:
     };
 
     void addBlacklistedClass(const QString &wildcard);
-    void addBlacklistedClass(const QRegExp &expression);
+    void addBlacklistedClass(const QRegularExpression &expression);
     void removeBlacklistedClass(const QString &wildcard);
     bool isBlacklisted(const QString &className) const;
 
@@ -73,7 +73,7 @@ public:
     SizeDiff diffSizes(const Info &oldLib, const Info &newLib) const;
 
 private:
-    mutable QList<QRegExp> blackList;
+    mutable QList<QRegularExpression> blackList;
 };
 
 #endif

@@ -71,15 +71,16 @@ bool compilerVersion(const QString &compiler, QString *output, Version *version,
     *output = QString::fromLocal8Bit(proc.readAllStandardOutput());
 
     // Extract version from last token of first line ("g++ (Ubuntu 4.8.2-19ubuntu1) 4.8.2 [build (prerelease)]\n...")
-    QRegExp versionPattern(QLatin1String("^[^(]+\\([^)]+\\) (\\d+)\\.(\\d+)\\.\\d+.*$"));
+    QRegularExpression versionPattern(QLatin1String("^[^(]+\\([^)]+\\) (\\d+)\\.(\\d+)\\.\\d+.*$"));
     Q_ASSERT(versionPattern.isValid());
-    if (!versionPattern.exactMatch(*output)) {
+    QRegularExpressionMatch match = versionPattern.match(*output);
+    if (!match.hasMatch()) {
         *errorMessage = compiler + QLatin1String(" produced unexpected output: \"")
-            + *output + QLatin1String("\", matching up to ") + QString::number(versionPattern.matchedLength());
+            + *output + QLatin1String("\", matching up to ") + QString::number(match.capturedLength());
         return false;
     }
-    version->first = versionPattern.cap(1).toInt();
-    version->second = versionPattern.cap(2).toInt();
+    version->first = match.captured(1).toInt();
+    version->second = match.captured(2).toInt();
     return true;
 #else // !QT_NO_PROCESS
     Q_UNUSED(compiler)
@@ -230,7 +231,7 @@ tst_Bic::tst_Bic(const char *appFilePath)
     bic.addBlacklistedClass(QLatin1String("QFlags<QFileEngine::FileFlag>"));
 
     /* QTest::toString lambda error is false positive */
-    bic.addBlacklistedClass(QRegExp(QLatin1String("QTest::toString(const T&) [with T = QUrl]::__lambda0"), Qt::CaseSensitive, QRegExp::FixedString));
+    bic.addBlacklistedClass(QRegularExpression::escape(QLatin1String("QTest::toString(const T&) [with T = QUrl]::__lambda0")));
 
     /* Private classes */
     bic.addBlacklistedClass(QLatin1String("QBrushData"));

@@ -100,16 +100,17 @@ void tst_Symbols::initTestCase()
 static QString symbolToLine(const QString &symbol, const QString &lib)
 {
     // nm outputs the symbol name, the type, the address and the size
-    QRegExp re("global constructors keyed to ([a-zA-Z_0-9.]*) (.) ([0-f]*) ([0-f]*)");
-    if (re.indexIn(symbol) == -1)
+    QRegularExpression re("global constructors keyed to ([a-zA-Z_0-9.]*) (.) ([0-f]*) ([0-f]*)");
+    QRegularExpressionMatch match = re.match(symbol);
+    if (!match.hasMatch())
         return QString();
 
     // address and symbolSize are in hex. Convert to integers
     bool ok;
-    int symbolAddress = re.cap(3).toInt(&ok, 16);
+    int symbolAddress = match.captured(3).toInt(&ok, 16);
     if (!ok)
         return QString();
-    int symbolSize = re.cap(4).toInt(&ok, 16);
+    int symbolSize = match.captured(4).toInt(&ok, 16);
     if (!ok)
         return QString();
 
@@ -177,14 +178,15 @@ void tst_Symbols::globalObjects()
             if (!symbol.startsWith("global constructors keyed to "))
                 continue;
 
-            QRegExp re("global constructors keyed to ([a-zA-Z_0-9.]*)");
-            QVERIFY(re.indexIn(symbol) != -1);
+            QRegularExpression re("global constructors keyed to ([a-zA-Z_0-9.]*)");
+            QRegularExpressionMatch match = re.match(symbol);
+            QVERIFY(match.hasMatch());
 
-            QString cap = re.cap(1);
+            QString cap = match.captured(1);
 
             bool whitelisted = false;
             foreach (QString white, whitelist) {
-                if (cap.indexOf(QRegExp(white)) != -1) {
+                if (cap.indexOf(QRegularExpression(white)) != -1) {
                     whitelisted = true;
                     break;
                 }

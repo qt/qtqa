@@ -34,17 +34,17 @@
 
 void QBic::addBlacklistedClass(const QString &wildcard)
 {
-    blackList.append(QRegExp(wildcard, Qt::CaseSensitive, QRegExp::Wildcard));
+    blackList.append(QRegularExpression(QRegularExpression::anchoredPattern(QRegularExpression::wildcardToRegularExpression(wildcard))));
 }
 
-void QBic::addBlacklistedClass(const QRegExp &expression)
+void QBic::addBlacklistedClass(const QRegularExpression &expression)
 {
     blackList.append(expression);
 }
 
 void QBic::removeBlacklistedClass(const QString &wildcard)
 {
-    blackList.removeAll(QRegExp(wildcard, Qt::CaseSensitive, QRegExp::Wildcard));
+    blackList.removeAll(QRegularExpression(QRegularExpression::anchoredPattern(QRegularExpression::wildcardToRegularExpression(wildcard))));
 }
 
 bool QBic::isBlacklisted(const QString &className) const
@@ -54,7 +54,7 @@ bool QBic::isBlacklisted(const QString &className) const
         return true;
 
     for (int i = 0; i < blackList.count(); ++i)
-        if (blackList[i].exactMatch(className))
+        if (blackList[i].match(className).hasMatch())
             return true;
     return false;
 }
@@ -206,12 +206,13 @@ QBic::Info QBic::parseOutput(const QByteArray &ba) const
             const QString className = entry.at(0).mid(6);
             if (isBlacklisted(className))
                 continue;
-            QRegExp rx("size=(\\d+)");
-            if  (rx.indexIn(entry.at(1)) == -1) {
+            QRegularExpression rx("size=(\\d+)");
+            QRegularExpressionMatch match = rx.match(entry.at(1));
+            if (!match.hasMatch()) {
                 qWarning("Could not parse class information for className %s", className.toLatin1().constData());
                 continue;
             }
-            info.classSizes[className] = rx.cap(1).toInt();
+            info.classSizes[className] = match.captured(1).toInt();
         } else if (entry.at(0).startsWith("Vtable for ")) {
             const QString className = entry.at(0).mid(11);
             if (isBlacklisted(className))
