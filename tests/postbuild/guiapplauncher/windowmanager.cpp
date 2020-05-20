@@ -40,15 +40,9 @@
 #  include <X11/Xmd.h>    // CARD32
 #endif
 
-#if defined(Q_OS_WIN) && !defined(Q_OS_WINCE)
-#  include <windows.h>
+#if defined(Q_OS_WIN)
+#  include <qt_windows.h>
 #endif
-
-// Export the sleep function
-class FriendlySleepyThread : public QThread {
-public:
-    static void sleepMS(int milliSeconds) { msleep(milliSeconds); }
-};
 
 #ifdef Q_WS_X11
 // X11 Window manager
@@ -58,7 +52,7 @@ public:
 // can be checked after calls.
 
 static unsigned x11ErrorCount = 0;
-static const char *currentX11Function = 0;
+static const char *currentX11Function = nullptr;
 
 int xErrorHandler(Display *, XErrorEvent *e)
 {
@@ -189,10 +183,12 @@ public:
     ~X11_WindowManager();
 
 protected:
-    virtual bool isDisplayOpenImpl() const;
-    virtual bool openDisplayImpl(QString *errorMessage);
-    virtual QString waitForTopLevelWindowImpl(unsigned count, Q_PID, int timeOutMS, QString *errorMessage);
-    virtual bool sendCloseEventImpl(const QString &winId, Q_PID pid, QString *errorMessage);
+    bool isDisplayOpenImpl() const override;
+    bool openDisplayImpl(QString *errorMessage) override;
+    QString waitForTopLevelWindowImpl(unsigned count, Q_PID, int timeOutMS,
+                                      QString *errorMessage) override;
+    bool sendCloseEventImpl(const QString &winId, Q_PID pid,
+                            QString *errorMessage) override;
 
 private:
     Display *m_display;
@@ -282,19 +278,23 @@ QString X11_WindowManager::waitForTopLevelWindowImpl(unsigned count, Q_PID, int 
 
 #endif
 
-#if defined(Q_OS_WIN) && !defined(Q_OS_WINCE)
+#if defined(Q_OS_WIN)
 // Windows
 
  QString winErrorMessage(unsigned long error)
 {
     QString rc = QString::fromLatin1("#%1: ").arg(error);
-    ushort *lpMsgBuf;
+    char16_t *lpMsgBuf;
 
     const int len = FormatMessage(
             FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-            NULL, error, 0, (LPTSTR)&lpMsgBuf, 0, NULL);
+            NULL, error, 0, reinterpret_cast<LPTSTR>(&lpMsgBuf), 0, nullptr);
     if (len) {
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
         rc = QString::fromUtf16(lpMsgBuf, len);
+#else
+        rc = QString::fromUtf16(reinterpret_cast<const ushort *>(lpMsgBuf), len);
+#endif
         LocalFree(lpMsgBuf);
     } else {
         rc += QString::fromLatin1("<unknown error>");
@@ -308,10 +308,12 @@ QString X11_WindowManager::waitForTopLevelWindowImpl(unsigned count, Q_PID, int 
      Win_WindowManager() {}
 
  protected:
-     virtual bool isDisplayOpenImpl() const;
-     virtual bool openDisplayImpl(QString *errorMessage);
-     virtual QString waitForTopLevelWindowImpl(unsigned count, Q_PID, int timeOutMS, QString *errorMessage);
-     virtual bool sendCloseEventImpl(const QString &winId, Q_PID pid, QString *errorMessage);
+     bool isDisplayOpenImpl() const override;
+     bool openDisplayImpl(QString *errorMessage) override;
+     QString waitForTopLevelWindowImpl(unsigned count, Q_PID, int timeOutMS,
+                                      QString *errorMessage) override;
+     virtual bool sendCloseEventImpl(const QString &winId, Q_PID pid,
+                                     QString *errorMessage) override;
 
  private:
  };
@@ -384,14 +386,14 @@ QString Win_WindowManager::waitForTopLevelWindowImpl(unsigned /* count */, Q_PID
         EnumWindows(findProcessWindowEnumWindowProc, reinterpret_cast<LPARAM>(&context));
         if (context.window)
             return QLatin1String("0x") + QString::number(reinterpret_cast<quintptr>(context.window), 16);
-        sleepMS(intervalMilliSeconds);
+        QThread::msleep(intervalMilliSeconds);
     }
     *errorMessage = QString::fromLatin1("Unable to find toplevel of process %1 after %2ms.").arg(pid->dwProcessId).arg(timeOutMS);
     return QString();
 }
 
 bool Win_WindowManager::sendCloseEventImpl(const QString &winId, Q_PID, QString *errorMessage)
-{   
+{
     // Convert window back.
     quintptr winIdIntPtr;
     QTextStream str(const_cast<QString*>(&winId), QIODevice::ReadOnly);
@@ -487,9 +489,4 @@ bool WindowManager::sendCloseEventImpl(const QString &, Q_PID, QString *errorMes
 {
     *errorMessage = QLatin1String("Not implemented.");
     return false;
-}
-
-void WindowManager::sleepMS(int milliSeconds)
-{
-    FriendlySleepyThread::sleepMS(milliSeconds);
 }

@@ -29,6 +29,7 @@
 #include "windowmanager.h"
 
 #include <QtCore/QDir>
+#include <QtCore/QThread>
 #include <QtCore/QString>
 #include <QtTest/QtTest>
 #include <QtCore/QProcess>
@@ -190,7 +191,7 @@ void tst_GuiAppLauncher::run()
     QFETCH(AppLaunchData, data);
     const bool rc = runApp(data, &errorMessage);
     if (!rc) // Wait for windows to disappear after kill
-        WindowManager::sleepMS(500);
+        QThread::msleep(500);
     QVERIFY2(rc, qPrintable(errorMessage));
 }
 
@@ -348,10 +349,10 @@ bool tst_GuiAppLauncher::runApp(const AppLaunchData &data, QString *errorMessage
     }
     qDebug("Window: %s\n", qPrintable(winId));
     // Wait a bit, then send close
-    WindowManager::sleepMS(data.upTimeMS);
+    QThread::msleep(data.upTimeMS);
     if (m_wm->sendCloseEvent(winId, process.pid(), errorMessage)) {
         qDebug("Sent close to window: %s\n", qPrintable(winId));
-    } else {        
+    } else {
         ensureTerminated(&process);
         return false;
     }

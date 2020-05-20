@@ -51,8 +51,6 @@ public:
     QString waitForTopLevelWindow(unsigned count, Q_PID pid, int timeOutMS, QString *errorMessage);
     bool sendCloseEvent(const QString &winId, Q_PID pid, QString *errorMessage);
 
-    static void sleepMS(int milliSeconds);
-
 protected:
     WindowManager();
 
