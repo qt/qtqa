@@ -27,7 +27,7 @@
 ****************************************************************************/
 
 #include "windowmanager.h"
-#include <QtCore/QTime>
+#include <QtCore/QElapsedTimer>
 #include <QtCore/QThread>
 #include <QtCore/QDebug>
 #include <QtCore/QTextStream>
@@ -137,7 +137,7 @@ static Window waitForTopLevelMapped(Display *display, unsigned count, int timeOu
     xa_wm_state = XInternAtom(display, "WM_STATE", False);
 #endif
 
-    QTime elapsedTime;
+    QElapsedTimer elapsedTime;
     elapsedTime.start();
     while (mappingsCount) {
         if (elapsedTime.elapsed() > timeOutMS) {
@@ -366,8 +366,8 @@ static BOOL CALLBACK findProcessWindowEnumWindowProc(HWND hwnd, LPARAM lParam)
 }
 
 QString Win_WindowManager::waitForTopLevelWindowImpl(unsigned /* count */, Q_PID pid, int timeOutMS, QString *errorMessage)
-{    
-    QTime elapsed;
+{
+    QElapsedTimer elapsed;
     elapsed.start();
     // First, wait until the application is up
     if (WaitForInputIdle(pid->hProcess, timeOutMS) != 0) {
@@ -376,7 +376,7 @@ QString Win_WindowManager::waitForTopLevelWindowImpl(unsigned /* count */, Q_PID
     }
     // Try to locate top level app window. App still might be in splash screen or initialization
     // phase.
-    const int remainingMilliSeconds = qMax(timeOutMS - elapsed.elapsed(), 500);
+    const int remainingMilliSeconds = qMax(timeOutMS - elapsed.elapsed(), qint64(500));
     const int attempts = 10;
     const int intervalMilliSeconds = remainingMilliSeconds / attempts;
     for (int a = 0; a < attempts; a++) {
