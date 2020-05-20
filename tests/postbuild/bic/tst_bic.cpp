@@ -1,6 +1,6 @@
 /****************************************************************************
 **
-** Copyright (C) 2017 The Qt Company Ltd.
+** Copyright (C) 2020 The Qt Company Ltd.
 ** Contact: https://www.qt.io/licensing/
 **
 ** This file is part of the test suite of the Qt Toolkit.
@@ -71,7 +71,8 @@ bool compilerVersion(const QString &compiler, QString *output, Version *version,
     *output = QString::fromLocal8Bit(proc.readAllStandardOutput());
 
     // Extract version from last token of first line ("g++ (Ubuntu 4.8.2-19ubuntu1) 4.8.2 [build (prerelease)]\n...")
-    QRegularExpression versionPattern(QLatin1String("^[^(]+\\([^)]+\\) (\\d+)\\.(\\d+)\\.\\d+.*$"));
+    QRegularExpression versionPattern(QLatin1String("^[^(]+\\([^)]+\\) (\\d+)\\.(\\d+)\\.\\d+.*$"),
+                                      QRegularExpression::MultilineOption);
     Q_ASSERT(versionPattern.isValid());
     QRegularExpressionMatch match = versionPattern.match(*output);
     if (!match.hasMatch()) {
