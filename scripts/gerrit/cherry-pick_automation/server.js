@@ -77,6 +77,22 @@ class webhookListener extends EventEmitter {
     super();
     this.logger = logger;
     this.requestProcessor = requestProcessor;
+
+    /* Holds objects describing events which should be emitted by
+    receiveEvent.
+    Schema:
+    "<gerrit-event-type>": {
+        "<unique-name>": someFunction(),
+      }
+    */
+    this.customEvents = {};
+  }
+
+  registerCustomEvent(name, eventType, action) {
+    let _this = this;
+    if (!_this.customEvents[eventType])
+      _this.customEvents[eventType] = {};
+    _this.customEvents[eventType][name] = action;
   }
 
   receiveEvent(req) {
@@ -126,6 +142,15 @@ class webhookListener extends EventEmitter {
       // Emit a signal that the change was staged in case anything is
       // waiting on it.
       _this.requestProcessor.emit(`unstaged_${req.fullChangeID}`);
+    } else if (req.type == "change-integration-pass") {
+      _this.requestProcessor.emit(`integrationPass_${req.fullChangeID}`);
+    } else if (req.type == "change-integration-fail") {
+      _this.requestProcessor.emit(`integrationFail_${req.fullChangeID}`);
+    }
+    if (_this.customEvents[req.type]) {
+      Object.keys(_this.customEvents[req.type]).forEach((name) => {
+        _this.customEvents[req.type][name](req);
+      });
     }
   }
 

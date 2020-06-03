@@ -40,17 +40,22 @@
 exports.id = "notifier";
 
 const onExit = require("node-cleanup");
+let autoload = require("auto-load")
+let fs = require('fs');
 
 const Logger = require("./logger");
 const logger = new Logger();
 logger.log("Logger started...");
 const Server = require("./server");
 const server = new Server(logger);
+exports.server = server;
 const RequestProcessor = require("./requestProcessor");
 const requestProcessor = new RequestProcessor(logger);
+exports.requestProcessor = requestProcessor;
 server.requestProcessor = requestProcessor;
 const RetryProcessor = require("./retryProcessor");
 const retryProcessor = new RetryProcessor(logger, requestProcessor);
+exports.retryProcessor = retryProcessor;
 requestProcessor.retryProcessor = retryProcessor;
 const SingleRequestManager = require("./singleRequestManager");
 const singleRequestManager = new SingleRequestManager(logger, retryProcessor, requestProcessor);
@@ -59,6 +64,8 @@ const relationChainManager = new RelationChainManager(logger, retryProcessor, re
 const StartupStateRecovery = require("./startupStateRecovery");
 const startupStateRecovery = new StartupStateRecovery(logger, requestProcessor);
 const postgreSQLClient = require("./postgreSQLClient");
+
+exports.registerCustomListener = registerCustomListener;
 
 // release resources here before node exits
 onExit(function (exitCode, signal) {
@@ -72,6 +79,27 @@ onExit(function (exitCode, signal) {
     return false;
   }
 });
+
+// Create user bots which can tie into the rest of the system.
+// Bots should accept this instance of Notifier as the only
+// constructor parameter:
+if (!fs.existsSync('plugin_bots'))
+  fs.mkdirSync('plugin_bots');
+let plugin_bots = autoload('plugin_bots');
+let initialized_bots = {};
+Object.keys(plugin_bots).forEach((bot) => {
+  initialized_bots[bot] = new plugin_bots[bot][bot](this);
+  logger.log(`plugin "${bot}" loaded`);
+});
+
+// Plugin bots can use this function to register a custom listener to
+// route events from one module to itself. For example, to set up
+// a listener for server to emit an event "integrationFail"
+function registerCustomListener(source, event, destination) {
+  source.on(event, function () {
+    destination(...arguments)
+  });
+}
 
 // Notifier handles all event requests from worker modules.
 // A worker module should avoid calling a function from itself or another
@@ -175,8 +203,11 @@ requestProcessor.on("cherrypickReadyForStage", (parentJSON, cherryPickJSON, resp
 // or this event can be fired without caring about the result.
 requestProcessor.on(
   "postGerritComment",
-  (parentUuid, fullChangeID, revision, message, notifyScope) => {
-    requestProcessor.gerritCommentHandler(parentUuid, fullChangeID, revision, message, notifyScope);
+  (parentUuid, fullChangeID, revision, message, notifyScope, customGerritAuth) => {
+    requestProcessor.gerritCommentHandler(
+      parentUuid, fullChangeID, revision,
+      message, notifyScope, customGerritAuth
+    );
   }
 );
 

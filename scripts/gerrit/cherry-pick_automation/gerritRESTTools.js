@@ -78,7 +78,7 @@ function gerritBaseURL(api, id) {
 // Make a REST API call to gerrit to cherry pick the change to a requested branch.
 // Splice out the "Pick-to: keyword from the old commit message, but keep the rest."
 exports.generateCherryPick = generateCherryPick;
-function generateCherryPick(changeJSON, parent, destinationBranch, callback) {
+function generateCherryPick(changeJSON, parent, destinationBranch, customAuth, callback) {
   const newCommitMessage = changeJSON.change.commitMessage
     .replace(/^Pick-to:.+\s?/gm, "")
     .concat(`(cherry picked from commit ${changeJSON.patchSet.revision})`);
@@ -97,7 +97,7 @@ function generateCherryPick(changeJSON, parent, destinationBranch, callback) {
     `POST request to: ${url}\nRequest Body: ${safeJsonStringify(data)}`,
     "debug", changeJSON.uuid
   );
-  axios({ method: "post", url: url, data: data, auth: gerritAuth })
+  axios({ method: "post", url: url, data: data, auth: customAuth || gerritAuth })
     .then(function (response) {
       // Send an update with only the branch before trying to parse the raw response.
       // If the parse is bad, then at least we stored a status with the branch.
@@ -143,7 +143,10 @@ function generateCherryPick(changeJSON, parent, destinationBranch, callback) {
 
 // Post a review to the change on the latest revision.
 exports.setApproval = setApproval;
-function setApproval(parentUuid, cherryPickJSON, approvalScore, message, notifyScope, callback) {
+function setApproval(
+  parentUuid, cherryPickJSON, approvalScore,
+  message, notifyScope, customAuth, callback
+) {
   let url = `${gerritBaseURL("changes", cherryPickJSON.id)}/revisions/current/review`;
   let data = {
     message: message ? message : "", notify: notifyScope ? notifyScope : "OWNER",
@@ -155,7 +158,7 @@ function setApproval(parentUuid, cherryPickJSON, approvalScore, message, notifyS
     "debug", parentUuid
   );
 
-  axios({ method: "post", url: url, data: data, auth: gerritAuth })
+  axios({ method: "post", url: url, data: data, auth: customAuth || gerritAuth })
     .then(function (response) {
       logger.log(
         `Successfully set approval to "${approvalScore}" on change ${cherryPickJSON.id}`,
@@ -196,14 +199,14 @@ function setApproval(parentUuid, cherryPickJSON, approvalScore, message, notifyS
 // NOTE: This requires gerrit to be extended with "gerrit-plugin-qt-workflow"
 // https://codereview.qt-project.org/admin/repos/qtqa/gerrit-plugin-qt-workflow
 exports.stageCherryPick = stageCherryPick;
-function stageCherryPick(parentUuid, cherryPickJSON, callback) {
+function stageCherryPick(parentUuid, cherryPickJSON, customAuth, callback) {
   let url =`${
     gerritBaseURL("changes", cherryPickJSON.id)}/revisions/current/gerrit-plugin-qt-workflow~stage`;
 
   logger.log(`POST request to: ${url}`, "debug", parentUuid);
 
   setTimeout(function () {
-    axios({ method: "post", url: url, data: {}, auth: gerritAuth })
+    axios({ method: "post", url: url, data: {}, auth: customAuth || gerritAuth })
       .then(function (response) {
         logger.log(`Successfully staged "${cherryPickJSON.id}"`, "info", parentUuid);
         callback(true, undefined);
@@ -241,7 +244,10 @@ function stageCherryPick(parentUuid, cherryPickJSON, callback) {
 
 // Post a comment to the change on the latest revision.
 exports.postGerritComment = postGerritComment;
-function postGerritComment(parentUuid, fullChangeID, revision, message, notifyScope, callback) {
+function postGerritComment(
+  parentUuid, fullChangeID, revision, message,
+  notifyScope, customAuth, callback
+) {
   let url = `${gerritBaseURL("changes", fullChangeID)}/revisions/${
     revision ? revision : "current"}/review`;
   let data = { message: message, notify: notifyScope ? notifyScope : "OWNER_REVIEWERS" };
@@ -251,7 +257,7 @@ function postGerritComment(parentUuid, fullChangeID, revision, message, notifySc
     "debug", parentUuid
   );
 
-  axios({ method: "post", url: url, data: data, auth: gerritAuth })
+  axios({ method: "post", url: url, data: data, auth: customAuth || gerritAuth })
     .then(function (response) {
       logger.log(`Posted comment "${message}" to change "${fullChangeID}"`, "info", parentUuid);
       callback(true, undefined);
@@ -285,10 +291,10 @@ function postGerritComment(parentUuid, fullChangeID, revision, message, notifySc
 }
 
 // Query gerrit project to make sure a target cherry-pick branch exists.
-exports.validateBranch = function (parentUuid, project, branch, callback) {
+exports.validateBranch = function (parentUuid, project, branch, customAuth, callback) {
   let url = `${gerritBaseURL("projects", encodeURIComponent(project))}/branches/${branch}`;
   logger.log(`GET request to: ${url}`, "debug", parentUuid);
-  axios.get(url, { auth: gerritAuth })
+  axios.get(url, { auth: customAuth || gerritAuth })
     .then(function (response) {
       // Execute callback with the target branch head SHA1 of that branch
       callback(true, JSON.parse(response.data.slice(4)).revision);
@@ -321,10 +327,10 @@ exports.validateBranch = function (parentUuid, project, branch, callback) {
 };
 
 // Query gerrit commit for it's relation chain. Returns a list of changes.
-exports.queryRelated = function (parentUuid, fullChangeID, callback) {
+exports.queryRelated = function (parentUuid, fullChangeID, customAuth, callback) {
   let url = `${gerritBaseURL("changes", fullChangeID)}/revisions/current/related`;
   logger.log(`GET request to: ${url}`, "debug", parentUuid);
-  axios.get(url, { auth: gerritAuth })
+  axios.get(url, { auth: customAuth || gerritAuth })
     .then(function (response) {
       // Execute callback and return the list of changes
       logger.log(`Raw Response:\n${response.data}`, "debug", parentUuid);
@@ -356,10 +362,13 @@ exports.queryRelated = function (parentUuid, fullChangeID, callback) {
 };
 
 // Query gerrit for a change and return it along with the current revision if it exists.
-exports.queryChange = function (parentUuid, fullChangeID, callback) {
+exports.queryChange = function (parentUuid, fullChangeID, fields, customAuth, callback) {
   let url = `${gerritBaseURL("changes", fullChangeID)}/?o=CURRENT_COMMIT&o=CURRENT_REVISION`;
+  // Tack on any additional fields requested
+  if (fields)
+    fields.forEach((field) => url = `${url}&o=${field}`);
   logger.log(`Querying gerrit for ${url}`, "debug", parentUuid);
-  axios.get(url, { auth: gerritAuth })
+  axios.get(url, { auth: customAuth || gerritAuth })
     .then(function (response) {
       // Execute callback and return the list of changes
       logger.log(`Raw response: ${response.data}`, "debug", parentUuid);
@@ -398,18 +407,18 @@ exports.queryChange = function (parentUuid, fullChangeID, callback) {
 
 // Set the assignee of a change
 exports.setChangeAssignee = setChangeAssignee;
-function setChangeAssignee(parentUuid, changeJSON, newAssignee, callback) {
-  let url = `${gerritBaseURL("changes", changeJSON.id)}/assignee`;
+function setChangeAssignee(parentUuid, changeJSON, newAssignee, customAuth, callback) {
+  let url = `${gerritBaseURL("changes", changeJSON.id || changeJSON.fullChangeID)}/assignee`;
   let data = { assignee: newAssignee };
   logger.log(
     `PUT request to: ${url}\nRequest Body: ${safeJsonStringify(data)}`,
     "debug", parentUuid
   );
-  axios({ method: "PUT", url: url, data: data, auth: gerritAuth })
+  axios({ method: "PUT", url: url, data: data, auth: customAuth || gerritAuth })
     .then(function (response) {
       logger.log(
-        `Set new assignee "${newAssignee}" on "${changeJSON.id}"`,
-        "info", changeJSON.uuid
+        `Set new assignee "${newAssignee}" on "${changeJSON.id || changeJSON.fullChangeID}"`,
+        "info", parentUuid
       );
       callback(true, undefined);
     })
@@ -443,11 +452,11 @@ function setChangeAssignee(parentUuid, changeJSON, newAssignee, callback) {
 
 // Query gerrit for the existing reviewers on a change.
 exports.getChangeReviewers = getChangeReviewers;
-function getChangeReviewers(parentUuid, fullChangeID, callback) {
+function getChangeReviewers(parentUuid, fullChangeID, customAuth, callback) {
   let url = `${gerritBaseURL("changes", fullChangeID)}/reviewers/`;
   logger.log(`GET request for ${url}`, "debug", parentUuid);
   axios
-    .get(url, { auth: gerritAuth })
+    .get(url, { auth: customAuth || gerritAuth })
     .then(function (response) {
       logger.log(`Raw Response: ${response.data}`, "debug", parentUuid);
       // Execute callback with the target branch head SHA1 of that branch
@@ -484,7 +493,7 @@ function getChangeReviewers(parentUuid, fullChangeID, callback) {
 
 // Add new reviewers to a change.
 exports.setChangeReviewers = setChangeReviewers;
-function setChangeReviewers(parentUuid, fullChangeID, reviewers, callback) {
+function setChangeReviewers(parentUuid, fullChangeID, reviewers, customAuth, callback) {
   let failedItems = [];
 
   function postReviewer(reviewer) {
@@ -494,7 +503,7 @@ function setChangeReviewers(parentUuid, fullChangeID, reviewers, callback) {
       `POST request to ${url}\nRequest Body: ${safeJsonStringify(data)}`,
       "debug", parentUuid
     );
-    axios({ method: "post", url: url, data: data, auth: gerritAuth })
+    axios({ method: "post", url: url, data: data, auth: customAuth || gerritAuth })
       .then(function (response) {
         logger.log(
           `Success adding ${reviewer} to ${fullChangeID}\n${response.data}`,
@@ -528,11 +537,11 @@ function setChangeReviewers(parentUuid, fullChangeID, reviewers, callback) {
 
 // Copy reviewers from one change ID to another
 exports.copyChangeReviewers = copyChangeReviewers;
-function copyChangeReviewers(parentUuid, fromChangeID, toChangeID, callback) {
+function copyChangeReviewers(parentUuid, fromChangeID, toChangeID, customAuth, callback) {
   logger.log(`Copy change reviewers from ${fromChangeID} to ${toChangeID}`, "info", parentUuid);
-  getChangeReviewers(parentUuid, fromChangeID, function (success, reviewerlist) {
+  getChangeReviewers(parentUuid, fromChangeID, customAuth, function (success, reviewerlist) {
     if (success) {
-      setChangeReviewers(parentUuid, toChangeID, reviewerlist, function (failedItems) {
+      setChangeReviewers(parentUuid, toChangeID, reviewerlist, customAuth, function (failedItems) {
         if (callback)
           callback(true, failedItems);
       });
