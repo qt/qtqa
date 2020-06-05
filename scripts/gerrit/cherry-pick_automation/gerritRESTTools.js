@@ -122,7 +122,11 @@ function generateCherryPick(changeJSON, parent, destinationBranch, callback) {
             error.response.status}: ${error.response.data}`,
           "error", changeJSON.uuid
         );
-        callback(false, { statusDetail: error.response.data, statusCode: error.response.status });
+        if (error.response.status == 409
+            && error.response.data.includes("com.google.gerrit.git.LockFailureException"))
+          callback(false, "retry");
+        else
+          callback(false, { statusDetail: error.response.data, statusCode: error.response.status });
       } else if (error.request) {
         // The server failed to respond. Try the pick later.
         callback(false, "retry");
@@ -168,7 +172,11 @@ function setApproval(parentUuid, cherryPickJSON, approvalScore, message, notifyS
             error.response.status}: ${error.response.data}`,
           "error", parentUuid
         );
-        callback(false, error.response.status);
+        if (error.response.status == 409
+            && error.response.data.includes("com.google.gerrit.git.LockFailureException"))
+          callback(false, "retry");
+        else
+          callback(false, error.response.status);
       } else if (error.request) {
         // The request was made but no response was received
         callback(false, "retry");
@@ -194,35 +202,41 @@ function stageCherryPick(parentUuid, cherryPickJSON, callback) {
 
   logger.log(`POST request to: ${url}`, "debug", parentUuid);
 
-  axios({ method: "post", url: url, data: {}, auth: gerritAuth })
-    .then(function (response) {
-      logger.log(`Successfully staged "${cherryPickJSON.id}"`, "info", parentUuid);
-      callback(true, undefined);
-    })
-    .catch(function (error) {
-      if (error.response) {
+  setTimeout(function () {
+    axios({ method: "post", url: url, data: {}, auth: gerritAuth })
+      .then(function (response) {
+        logger.log(`Successfully staged "${cherryPickJSON.id}"`, "info", parentUuid);
+        callback(true, undefined);
+      })
+      .catch(function (error) {
+        if (error.response) {
         // The request was made and the server responded with a status code
         // that falls out of the range of 2xx
 
-        // Call this a permenant failure for staging. Ask the owner to handle it.
-        logger.log(
-          `An error occurred in POST to "${url}". Error message: ${
-            error.response.status}: ${error.response.data}`,
-          "error", parentUuid
-        );
-        callback(false, { status: error.response.status, data: error.response.data });
-      } else if (error.request) {
+          // Call this a permanent failure for staging. Ask the owner to handle it.
+          logger.log(
+            `An error occurred in POST to "${url}". Error message: ${
+              error.response.status}: ${error.response.data}`,
+            "error", parentUuid
+          );
+          if (error.response.status == 409
+            && error.response.data.includes("com.google.gerrit.git.LockFailureException"))
+            callback(false, "retry");
+          else
+            callback(false, { status: error.response.status, data: error.response.data });
+        } else if (error.request) {
         // The request was made but no response was received. Retry it later.
-        callback(false, "retry");
-      } else {
+          callback(false, "retry");
+        } else {
         // Something happened in setting up the request that triggered an Error
-        logger.log(
-          `Error in HTTP request while trying to stage. Error: ${safeJsonStringify(error)}`,
-          "error", parentUuid
-        );
-        callback(false, error.message);
-      }
-    });
+          logger.log(
+            `Error in HTTP request while trying to stage. Error: ${safeJsonStringify(error)}`,
+            "error", parentUuid
+          );
+          callback(false, error.message);
+        }
+      });
+  }, 5000);
 }
 
 // Post a comment to the change on the latest revision.
@@ -251,7 +265,11 @@ function postGerritComment(parentUuid, fullChangeID, revision, message, notifySc
             error.response.status}: ${error.response.data}`,
           "error", parentUuid
         );
-        callback(false, error.response);
+        if (error.response.status == 409
+            && error.response.data.includes("com.google.gerrit.git.LockFailureException"))
+          callback(false, "retry");
+        else
+          callback(false, error.response);
       } else if (error.request) {
         // The request was made but no response was received
         callback(false, "retry");
@@ -400,11 +418,15 @@ function setChangeAssignee(parentUuid, changeJSON, newAssignee, callback) {
         // The request was made and the server responded with a status code
         // that falls out of the range of 2xx
         logger.log(
-          `An error occurred in POST to "${url}". Error message: ${
+          `An error occurred in PUT to "${url}". Error message: ${
             error.response.status}: ${error.response.data}`,
           "error", parentUuid
         );
-        callback(false, { status: error.response.status, data: error.response.data });
+        if (error.response.status == 409
+            && error.response.data.includes("com.google.gerrit.git.LockFailureException"))
+          callback(false, "retry");
+        else
+          callback(false, { status: error.response.status, data: error.response.data });
       } else if (error.request) {
         // The request was made but no response was received. Retry it later.
         callback(false, "retry");
