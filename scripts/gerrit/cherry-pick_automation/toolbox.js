@@ -52,7 +52,7 @@ let dbListenerCacheUpdateLockout = false;
 
 // Parse the commit message and return a raw list of branches to pick to.
 exports.findPickToBranches = function (requestUuid, message) {
-  let matches = message.match(/^(Pick-to:(?:\s+(?:\d\.\d+\.\d+|\d\.\d+|dev))+)/gm);
+  let matches = message.match(/(?:^|\\n)(Pick-to:(?:\s+(?:\d\.\d+\.\d+|\d\.\d+|dev))+)/gm);
   logger.log(
     `Regex on branches matched: ${safeJsonStringify(matches)} from input:\n"${message}"`,
     "debug",
