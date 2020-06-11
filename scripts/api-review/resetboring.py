@@ -677,6 +677,19 @@ class Selector(object): # Select interesting changes, discard boring.
             # alternate forms) should go after all others, to avoid
             # needlessly exercising them:
 
+            # 6.0.0: Q_STATIC_ASSERT(_X)? -> static_assert
+            # Since it accepts either one or two parameters, we'd need
+            # to parse its parameter list to work out which it came
+            # from; too messy so kludge:
+            def test(words):
+                return 'static_assert' in words
+            def purge(words):
+                # Longer one first, or a prefix match in join() goes wrong:
+                return [('Q_STATIC_ASSERT_X', 'Q_STATIC_ASSERT')
+                        if word == 'static_assert' else word
+                        for word in words]
+            yield test, purge
+
             # 5.10: common switch from while (0) to while (false)
             # 5.12: Q_DECL_EQ_DELETE -> = delete
             # 5.14: qMove -> std::move, Q_DECL_NOEXCEPT_EXPR(...) -> noexcept(...)
