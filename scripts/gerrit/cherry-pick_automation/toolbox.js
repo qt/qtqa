@@ -51,8 +51,9 @@ let dbListenerCacheUpdateQueue = [];
 let dbListenerCacheUpdateLockout = false;
 
 // Parse the commit message and return a raw list of branches to pick to.
+// Trust that the list of branches has been validated by Sanity bot.
 exports.findPickToBranches = function (requestUuid, message) {
-  let matches = message.match(/(?:^|\\n)(Pick-to:(?:\s+(?:\d\.\d+\.\d+|\d\.\d+|dev))+)/gm);
+  let matches = message.match(/(?:^|\\n)Pick-to:(?:\s+(.+))/gm);
   logger.log(
     `Regex on branches matched: ${safeJsonStringify(matches)} from input:\n"${message}"`,
     "debug",
@@ -61,8 +62,7 @@ exports.findPickToBranches = function (requestUuid, message) {
   let branchSet = new Set();
   if (matches) {
     matches.forEach(function (match) {
-      let parsedMatch = match.split(":");
-      parsedMatch = parsedMatch[1].split(" ");
+      let parsedMatch = match.split(":")[1].split(" ");
       parsedMatch.forEach(function (submatch) {
         if (submatch)
           branchSet.add(submatch);
