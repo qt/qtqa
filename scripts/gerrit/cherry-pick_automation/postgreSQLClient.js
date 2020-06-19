@@ -124,7 +124,7 @@ function insert(table, columns, values, callback) {
     if (err)
       logger.log(`Database error: ${err.message}\n${Error().stack}`, "error", "DATABASE");
     if (callback)
-      callback(!err, err ? err : data);
+      callback(!err, err || data);
   });
 }
 
@@ -132,7 +132,7 @@ exports.query = query;
 function query(table, fields, keyName, keyValue, operator, callback) {
   const query = {
     name: `query-${keyName}-${fields}`,
-    text: `SELECT ${fields ? fields : "*"} FROM ${table} WHERE ${keyName} ${
+    text: `SELECT ${fields || "*"} FROM ${table} WHERE ${keyName} ${
       keyValue ? operator + " $1" : operator
     }`,
     values: keyValue ? [keyValue] : undefined
@@ -143,7 +143,7 @@ function query(table, fields, keyName, keyValue, operator, callback) {
     if (err)
       logger.log(`Database error: ${err}\nQuery: ${query}\n${Error().stack}`, "error", "DATABASE");
     if (callback)
-      callback(!err, err ? err : data.rows);
+      callback(!err, err || data.rows);
 
   });
 }
@@ -165,7 +165,7 @@ function update(table, keyName, keyValue, changes, callback, processNextQueuedUp
       );
     }
     if (callback)
-      callback(!err, err ? err : result);
+      callback(!err, err || result);
 
     // If the queuing function was passed, call it with the unlock parameter.
     // This will process the next item in queue or globally unlock the status
@@ -208,6 +208,6 @@ function deleteDBEntry(table, keyName, keyValue, callback) {
       );
     }
     if (callback)
-      callback(!err, err ? err : this);
+      callback(!err, err || this);
   });
 }

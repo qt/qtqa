@@ -39,12 +39,14 @@
 
 exports.id = "notifier";
 
+const path = require('path');
 const onExit = require("node-cleanup");
 let autoload = require("auto-load")
 let fs = require('fs');
 
 const Logger = require("./logger");
 const logger = new Logger();
+exports.logger = logger;
 logger.log("Logger started...");
 const Server = require("./server");
 const server = new Server(logger);
@@ -67,6 +69,15 @@ const postgreSQLClient = require("./postgreSQLClient");
 
 exports.registerCustomListener = registerCustomListener;
 
+function envOrConfig(ID, configFile) {
+  if (process.env[ID]) {
+    return process.env[ID];
+  } else if (configFile) {
+    const config = require(configFile);
+    return config[ID];
+  }
+}
+
 // release resources here before node exits
 onExit(function (exitCode, signal) {
   if (signal) {
@@ -82,14 +93,24 @@ onExit(function (exitCode, signal) {
 
 // Create user bots which can tie into the rest of the system.
 // Bots should accept this instance of Notifier as the only
-// constructor parameter:
+// constructor parameter.
+// Bot configuration should set an environment variable of the same
+// name as the bot, upper cased and suffixed with _ENABLED.
+// If this variable is set in neither the environment or in the
+// config file, the plugin will not be loaded.
 if (!fs.existsSync('plugin_bots'))
   fs.mkdirSync('plugin_bots');
 let plugin_bots = autoload('plugin_bots');
 let initialized_bots = {};
 Object.keys(plugin_bots).forEach((bot) => {
-  initialized_bots[bot] = new plugin_bots[bot][bot](this);
-  logger.log(`plugin "${bot}" loaded`);
+  if (
+    envOrConfig(`${bot.toUpperCase()}_ENABLED`, path.resolve("plugin_bots", bot, "config.json"))
+  ) {
+    initialized_bots[bot] = new plugin_bots[bot][bot](this);
+    logger.log(`plugin "${bot}" loaded`);
+  } else {
+    logger.log(`${bot} is disabled in config. Skipping...`);
+  }
 });
 
 // Plugin bots can use this function to register a custom listener to
@@ -176,7 +197,7 @@ requestProcessor.on("newCherryPick", (parentJSON, cherryPickJSON, responseSignal
   requestProcessor.processNewCherryPick(parentJSON, cherryPickJSON, responseSignal);
 });
 
-// Emitted when a cherry pick has been validated and has no merge conflicts.
+// Emitted when a cherry pick has been validated and has no conflicts.
 requestProcessor.on("cherryPickDone", (parentJSON, cherryPickJSON, responseSignal) => {
   requestProcessor.autoApproveCherryPick(parentJSON, cherryPickJSON, responseSignal);
 });

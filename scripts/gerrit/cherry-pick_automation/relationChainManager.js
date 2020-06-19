@@ -109,7 +109,7 @@ class relationChainManager {
     } else {
       // This change is dependent on a parent in the chain. Begin the process.
       _this.logger.log(
-        `Kicking off the process for each branch in  ${safeJsonStringify(branches)}`,
+        `Kicking off the process for each branch in  ${safeJsonStringify(Array.from(branches))}`,
         "verbose", currentJSON.uuid
       );
       branches.forEach(function (branch) {

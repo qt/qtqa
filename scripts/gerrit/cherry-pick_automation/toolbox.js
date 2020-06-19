@@ -485,8 +485,11 @@ function getDBSubState(uuid, branch, callback) {
         let picksJSON = decodeBase64toJSON(rows[0].cherrypick_results_json);
         if (picksJSON[branch])
           callback(true, picksJSON[branch].state);
+        else
+          callback(false);
+      } else {
+        callback(false);
       }
-      callback(false);
     }
   );
 }

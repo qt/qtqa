@@ -75,8 +75,8 @@ repos.forEach((repo, index) => {
   axios({
     method: "post", url: baseUrl,
     data: {
-      "project" : `qt/${repo}`, "subject" : `Configure webhooks for Qt Cherry-pick bot`,
-      "branch" : "dev", "status" : "NEW"
+      "project" : `${repo}`, "subject" : `Configure webhooks for Qt Cherry-pick bot`,
+      "branch" : "refs/meta/config", "status" : "NEW"
     },
     auth: gerritAuth
   })
@@ -94,7 +94,7 @@ repos.forEach((repo, index) => {
           logger.log(`${stderr} - ${stdout}`)
           axios({ method: "post", url: `${baseUrl}${changeID}/edit:publish`, auth: gerritAuth })
             .then(function (response) {
-              logger.log(`Success posting edit to qt/${repo}`);
+              logger.log(`Success posting edit to ${repo}`);
               axios({
                 method: "post", url: `${baseUrl}${changeID}/revisions/current/review`, auth: gerritAuth,
                 data: {
@@ -103,28 +103,28 @@ repos.forEach((repo, index) => {
                 }
               })
                 .then(function (response) {
-                  logger.log(`Success setting review on qt/${repo}`);
-                  if (! process.argv.some("nosubmit")) {
+                  logger.log(`Success setting review on ${repo}`);
+                  if (! process.argv.some((e) => e == "nosubmit")) {
                     axios({ method: "post", url: `${baseUrl}${changeID}/submit`, auth: gerritAuth })
                       .then(function (response) {
-                        logger.log(`Success submitting on qt/${repo}`);
+                        logger.log(`Success submitting on ${repo}`);
                       })
                       .catch(function (error) {
-                        logger.log(`Failed to submit on qt/${repo} ${changeID}\n ${error.message}`, "error");
+                        logger.log(`Failed to submit on ${repo} ${changeID}\n ${error.message}`, "error");
                       });
                   }
                 })
                 .catch(function (error) {
-                  logger.log(`Failed to set review on qt/${repo} ${changeID}\n ${error.message}`, "error");
+                  logger.log(`Failed to set review on ${repo} ${changeID}\n ${error.message}`, "error");
                 });
             })
             .catch(function (error) {
-              logger.log(`Failed to publish edit on qt/${repo} ${changeID}\n ${error.message}`, "error");
+              logger.log(`Failed to publish edit on ${repo} ${changeID}\n ${error.message}`, "error");
             });
         }
       )
     })
     .catch(function (error) {
-      logger.log(`Failed to create webhook config change on qt/${repo}\n${baseUrl}\n${error.message}`, "error");
+      logger.log(`Failed to create webhook config change on ${repo}\n${baseUrl}\n${error.message}`, "error");
     })
 })

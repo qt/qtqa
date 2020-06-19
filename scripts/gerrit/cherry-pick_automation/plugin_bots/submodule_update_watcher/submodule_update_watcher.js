@@ -52,9 +52,6 @@ function envOrConfig(ID) {
     return config[ID];
 }
 
-// The singleRequestManager processes incoming changes linerally.
-// When start() is called, the request progresses through branch
-// validation, tries to create a cherry pick, and tries to stage it.
 class submodule_update_watcher {
   constructor(notifier) {
     this.notifier = notifier;
@@ -79,7 +76,7 @@ class submodule_update_watcher {
     notifier.server.registerCustomEvent(
       "submodule_update_failed", "change-integration-fail",
       function (req) {
-        if (req.change.commitMessagemsg.match(/Update (submodules|dependencies) on/)) {
+        if (req.change.commitMessage.match(/Update (submodules|dependencies) on/)) {
           req["customGerritAuth"] = gerritAuth;
           req["jenkinsURL"] = jenkinsURL;
           req["jenkinsAuth"] = jenkinsAuth;
@@ -91,7 +88,7 @@ class submodule_update_watcher {
     notifier.server.registerCustomEvent(
       "submodule_update_passed", "change-integration-pass",
       function (req) {
-        if (req.change.commitMessage.msg.match(/Update (submodules|dependencies) on/)) {
+        if (req.change.commitMessage.match(/Update (submodules|dependencies) on/)) {
           req["customGerritAuth"] = gerritAuth;
           req["jenkinsURL"] = jenkinsURL;
           req["jenkinsAuth"] = jenkinsAuth;
@@ -134,7 +131,7 @@ class submodule_update_watcher {
   handleIntegrationPassed(req) {
     let _this = this;
     if (envOrConfig("SUBMODULE_UPDATE_TEAMS_URL")
-        && req.change.commitMessage.msg.match(/Update submodules on/)
+        && req.change.commitMessage.match(/Update submodules on/)
     ) {
       axios.post(envOrConfig("SUBMODULE_UPDATE_TEAMS_URL"), {
         "Text": `Successfully updated ${req.change.project} submodules set in https://codereview.qt-project.org/#/q/${req.change.id},n,z`

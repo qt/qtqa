@@ -133,7 +133,7 @@ function generateCherryPick(changeJSON, parent, destinationBranch, customAuth, c
       } else {
         // Something unexpected happened in generating the HTTP request itself.
         logger.log(
-          `UNKNOWN ERROR posting cherry-pick for ${destinationBranch}: ${safeJsonStringify(error)}`,
+          `UNKNOWN ERROR posting cherry-pick for ${destinationBranch}: ${error}`,
           "error", changeJSON.uuid
         );
         callback(false, error.message);
@@ -149,7 +149,7 @@ function setApproval(
 ) {
   let url = `${gerritBaseURL("changes", cherryPickJSON.id)}/revisions/current/review`;
   let data = {
-    message: message ? message : "", notify: notifyScope ? notifyScope : "OWNER",
+    message: message || "", notify: notifyScope || "OWNER",
     labels: { "Code-Review": approvalScore, "Sanity-Review": 1 },
     omit_duplicate_comments: true, ready: true
   };
@@ -249,8 +249,8 @@ function postGerritComment(
   notifyScope, customAuth, callback
 ) {
   let url = `${gerritBaseURL("changes", fullChangeID)}/revisions/${
-    revision ? revision : "current"}/review`;
-  let data = { message: message, notify: notifyScope ? notifyScope : "OWNER_REVIEWERS" };
+    revision || "current"}/review`;
+  let data = { message: message, notify: notifyScope || "OWNER_REVIEWERS" };
 
   logger.log(
     `POST request to: ${url}\nRequest Body: ${safeJsonStringify(data)}`,
@@ -396,8 +396,7 @@ exports.queryChange = function (parentUuid, fullChangeID, fields, customAuth, ca
       } else {
         // Something happened in setting up the request that triggered an Error
         logger.log(
-          `Error in HTTP request while trying to query ${
-            fullChangeID}. ${safeJsonStringify(error)}`,
+          `Error in HTTP request while trying to query ${fullChangeID}. ${error}`,
           "error", parentUuid
         );
         callback(false, error.message);
@@ -442,7 +441,7 @@ function setChangeAssignee(parentUuid, changeJSON, newAssignee, customAuth, call
       } else {
         // Something happened in setting up the request that triggered an Error
         logger.log(
-          `Error in HTTP request while trying to set assignee. Error: ${safeJsonStringify(error)}`,
+          `Error in HTTP request while trying to set assignee. Error: ${error}`,
           "error", parentUuid
         );
         callback(false, error.message);

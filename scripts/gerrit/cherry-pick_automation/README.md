@@ -33,17 +33,17 @@ to restore any in-process items and listeners upon restarting the service.
        pick from the original relation chain.
 4. Upon successful creation of the cherry-pick, the bot will either:
     1. Add reviewers and alert the original owner that the change has
-       merge conflicts.
+       conflicts.
     2. Automatically approve and stage the change if gerrit did not
        report any git conflicts. Changes in a relation chain will be staged
        together whenever possible.
     -  **Note**: If the cherry-pick was created from a change that was part of
        a relation chain, but the cherry-pick was picked onto the target
-       branch head without merge conflicts, it will be staged automatically.
+       branch head without conflicts, it will be staged automatically.
        In this case, the change will not be reparented, even if a pick
        correlating to the original change's parent is created on the
        target branch. This is acceptable, since the cherry pick had no
-       merge conflicts and should not have any direct dependencies on
+       conflicts and should not have any direct dependencies on
        any other changes.
 
 

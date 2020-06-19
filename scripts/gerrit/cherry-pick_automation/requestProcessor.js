@@ -382,7 +382,7 @@ class requestProcessor extends EventEmitter {
     );
 
     let positionInChain = currentJSON.relatedChanges.findIndex((i) =>
-      i.change_id === (next ? next : currentJSON.change.id));
+      i.change_id === (next || currentJSON.change.id));
 
     if (next === -1) {
       // We've reached the top of the chain and found no suitable parent.
@@ -660,7 +660,7 @@ class requestProcessor extends EventEmitter {
     let _this = this;
 
     _this.logger.log(
-      `Checking cherry-pick ${cherryPickJSON.id} for merge conflicts`,
+      `Checking cherry-pick ${cherryPickJSON.id} for conflicts`,
       "verbose", parentJSON.uuid
     );
     toolbox.addToCherryPickStateUpdateQueue(
@@ -677,13 +677,11 @@ class requestProcessor extends EventEmitter {
         `Conflicts found for ${cherryPickJSON.id}`,
         "verbose", parentJSON.uuid
       );
-      // Internal emitter in case anything needs to know about merge conflicts on this change.
+      // Internal emitter in case anything needs to know about conflicts on this change.
       _this.emit(`mergeConflict_${cherryPickJSON.id}`);
       gerritTools.setChangeAssignee(
         parentJSON.uuid, cherryPickJSON,
-        parentJSON.change.owner.email
-          ? parentJSON.change.owner.email
-          : parentJSON.change.owner.username,
+        parentJSON.change.owner.email || parentJSON.change.owner.username,
         parentJSON.customGerritAuth,
         function (success, data) {
           if (!success) {
@@ -701,7 +699,7 @@ class requestProcessor extends EventEmitter {
           _this.gerritCommentHandler(
             parentJSON.uuid, cherryPickJSON.id, undefined,
             `INFO: This cherry-pick from your recently merged change on ${
-              parentJSON.branch} has merge conflicts.\nPlease review.`
+              parentJSON.change.branch} has conflicts.\nPlease review.`
           );
           if (success && failedItems.length > 0) {
             _this.gerritCommentHandler(
@@ -748,7 +746,7 @@ class requestProcessor extends EventEmitter {
       "cherryPickDone"
     );
 
-    const approvalmsg = `This change is being approved because it was automatically cherry-picked from dev and contains no merge conflicts.`;
+    const approvalmsg = `This change is being approved because it was automatically cherry-picked from dev and contains no conflicts.`;
     gerritTools.setApproval(
       parentJSON.uuid, cherryPickJSON, 2, approvalmsg, "NONE", parentJSON.customGerritAuth,
       function (success, data) {
@@ -784,7 +782,7 @@ class requestProcessor extends EventEmitter {
           toolbox.addToCherryPickStateUpdateQueue(
             parentJSON.uuid,
             {
-              branch: cherryPickJSON.branch, statusDetail: data ? data : undefined, args: []
+              branch: cherryPickJSON.branch, statusDetail: data || undefined, args: []
             },
             "done_setApprovalFailed",
             function () {
@@ -793,9 +791,7 @@ class requestProcessor extends EventEmitter {
           );
           gerritTools.setChangeAssignee(
             parentJSON.uuid, cherryPickJSON,
-            parentJSON.change.owner.email
-              ? parentJSON.change.owner.email
-              : parentJSON.change.owner.username,
+            parentJSON.change.owner.email || parentJSON.change.owner.username,
             parentJSON.customGerritAuth,
             function (success, data) {
               if (!success) {
@@ -868,9 +864,7 @@ class requestProcessor extends EventEmitter {
           );
           gerritTools.setChangeAssignee(
             parentJSON.uuid, cherryPickJSON,
-            parentJSON.change.owner.email
-              ? parentJSON.change.owner.email
-              : parentJSON.change.owner.username,
+            parentJSON.change.owner.email || parentJSON.change.owner.username,
             parentJSON.customGerritAuth,
             function (success, data) {
               if (!success) {
@@ -895,8 +889,8 @@ class requestProcessor extends EventEmitter {
           toolbox.addToCherryPickStateUpdateQueue(
             parentJSON.uuid,
             {
-              branch: cherryPickJSON.branch, statusDetail: data.data ? data.data : data.message,
-              statusCode: data.status ? data.status : "", args: []
+              branch: cherryPickJSON.branch, statusDetail: data.data || data.message,
+              statusCode: data.status || "", args: []
             },
             "stageFailed",
             function () {
