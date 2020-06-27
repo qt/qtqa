@@ -84,7 +84,7 @@ bool compilerVersion(const QString &compiler, QString *output, Version *version,
     version->second = match.captured(2).toInt();
     return true;
 #else // !QT_NO_PROCESS
-    Q_UNUSED(compiler)
+    Q_UNUSED(compiler);
     *errorMessage = QLatin1String("Platform does not support QProcess");
     return false;
 #endif
@@ -92,7 +92,7 @@ bool compilerVersion(const QString &compiler, QString *output, Version *version,
 
 static QStringList compilerArguments(const QString &compiler, const QStringList &incPaths)
 {
-    Q_UNUSED(compiler)
+    Q_UNUSED(compiler);
     QStringList result;
     result << "-c"
          << incPaths
@@ -121,7 +121,7 @@ static const char noneSuchFileSuffix[] = "nonsuch";
 
 static QString fileSuffix(const QString &compiler, const Version &compilerVersion)
 {
-    Q_UNUSED(compiler)
+    Q_UNUSED(compiler);
     Q_UNUSED(compilerVersion);
     QString result;
 #if !defined(Q_CC_GNU) || defined(Q_CC_INTEL)
