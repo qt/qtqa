@@ -35,12 +35,12 @@ make -j$(nproc) > /dev/null
 # prepare corpus files
 zip -j $WORK/cbor $SRC/qtqa/fuzzing/testcases/cbor/*
 zip -j $WORK/html $SRC/qtqa/fuzzing/testcases/html/*
-zip -j $WORK/images $SRC/qtqa/fuzzing/testcases/svg/* $SRC/AFL/testcases/images/*/*
+zip -j $WORK/images $SRC/qtqa/fuzzing/testcases/svg/* $SRC/afl/testcases/images/*/*
 zip -j $WORK/markdown $SRC/qtqa/fuzzing/testcases/markdown/*
 zip -j $WORK/ssl.pem.zip $SRC/qtqa/fuzzing/testcases/ssl.pem/*
 zip -j $WORK/svg $SRC/qtqa/fuzzing/testcases/svg/*
-zip -j $WORK/text $SRC/qtqa/fuzzing/testcases/text/* $SRC/AFL/testcases/others/text/*
-zip -j $WORK/xml $SRC/qtqa/fuzzing/testcases/xml/* $SRC/AFL/testcases/others/xml/*
+zip -j $WORK/text $SRC/qtqa/fuzzing/testcases/text/* $SRC/afl/testcases/others/text/*
+zip -j $WORK/xml $SRC/qtqa/fuzzing/testcases/xml/* $SRC/afl/testcases/others/xml/*
 
 # build fuzzers
 
@@ -85,11 +85,11 @@ build_fuzzer() {
 build_fuzzer "new" "qtbase" "corelib/serialization/qcborstreamreader/next/next.pro" "cbor"
 build_fuzzer "new" "qtbase" "corelib/serialization/qcborvalue/fromcbor/fromcbor.pro" "cbor"
 build_fuzzer "new" "qtbase" "corelib/serialization/qtextstream/extractionoperator-float/extractionoperator-float.pro" "text"
-build_fuzzer "new" "qtbase" "corelib/serialization/qxmlstream/qxmlstreamreader/readnext/readnext.pro" "xml" "$SRC/AFL/dictionaries/xml.dict"
-build_fuzzer "new" "qtbase" "corelib/text/qregularexpression/optimize/optimize.pro" "" "$SRC/AFL/dictionaries/regexp.dict"
+build_fuzzer "new" "qtbase" "corelib/serialization/qxmlstream/qxmlstreamreader/readnext/readnext.pro" "xml" "$SRC/afl/dictionaries/xml.dict"
+build_fuzzer "new" "qtbase" "corelib/text/qregularexpression/optimize/optimize.pro" "" "$SRC/afl/dictionaries/regexp.dict"
 build_fuzzer "new" "qtbase" "gui/image/qimage/loadfromdata/loadfromdata.pro" "images"
 build_fuzzer "new" "qtbase" "gui/painting/qcolorspace/fromiccprofile/fromiccprofile.pro"
-build_fuzzer "new" "qtbase" "gui/text/qtextdocument/sethtml/sethtml.pro" "html" "$SRC/AFL/dictionaries/html_tags.dict"
+build_fuzzer "new" "qtbase" "gui/text/qtextdocument/sethtml/sethtml.pro" "html" "$SRC/afl/dictionaries/html_tags.dict"
 build_fuzzer "old" "qtbase" "gui/text/qtextdocument/setmarkdown/setmarkdown.pro" "markdown"
 build_fuzzer "new" "qtbase" "gui/text/qtextlayout/beginlayout/beginlayout.pro" "text"
 build_fuzzer "new" "qtbase" "network/ssl/qsslcertificate/qsslcertificate/pem/pem.pro" "ssl.pem"
