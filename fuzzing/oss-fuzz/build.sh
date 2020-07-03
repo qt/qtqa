@@ -87,6 +87,7 @@ build_fuzzer "new" "qtbase" "corelib/serialization/qcborvalue/fromcbor/fromcbor.
 build_fuzzer "new" "qtbase" "corelib/serialization/qtextstream/extractionoperator-float/extractionoperator-float.pro" "text"
 build_fuzzer "new" "qtbase" "corelib/serialization/qxmlstream/qxmlstreamreader/readnext/readnext.pro" "xml" "$SRC/afl/dictionaries/xml.dict"
 build_fuzzer "new" "qtbase" "corelib/text/qregularexpression/optimize/optimize.pro" "" "$SRC/afl/dictionaries/regexp.dict"
+build_fuzzer "new" "qtbase" "corelib/tools/qcryptographichash/result/result.pro"
 build_fuzzer "new" "qtbase" "gui/image/qimage/loadfromdata/loadfromdata.pro" "images"
 build_fuzzer "new" "qtbase" "gui/painting/qcolorspace/fromiccprofile/fromiccprofile.pro"
 build_fuzzer "new" "qtbase" "gui/text/qtextdocument/sethtml/sethtml.pro" "html" "$SRC/afl/dictionaries/html_tags.dict"
