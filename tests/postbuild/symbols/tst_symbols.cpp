@@ -220,9 +220,8 @@ void tst_Symbols::prefix()
             << "QTextFormat" << "QTextLength" << "QPen" << "QFont" << "QIcon"
             << "QPixmap" << "QImage" << "QRegion" << "QPolygon";
     QStringList qAlgorithmFunctions;
-    qAlgorithmFunctions << "qBinaryFind" << "qLowerBound" << "qUpperBound"
-                        << "qAbs" << "qMin" << "qMax" << "qBound" << "qSwap"
-                        << "qHash" << "qDeleteAll" << "qCopy" << "qSort";
+    qAlgorithmFunctions << "qAbs" << "qMin" << "qMax" << "qBound" << "qSwap"
+                        << "qHash" << "qDeleteAll";
 
     QStringList exceptionalSymbols;
     exceptionalSymbols << "XRectangle::~XRectangle()"
