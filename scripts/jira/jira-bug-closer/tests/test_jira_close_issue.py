@@ -30,15 +30,21 @@ from config import Config
 from jiracloser import JiraCloser
 from logger import get_logger
 from git import FixedByTag
+import pytest
 
 log = get_logger('test')
 
 
-def test_close_issue():
+@pytest.mark.parametrize("issue_key, issue_type", [
+                         ('QTBUG-4795', 'Bug'),
+                         ('QTBUG-85641', 'Epic'),
+                         ('QTBUG-85642', 'User Story'),
+                         ('QTBUG-85643', 'Task')]
+                         )
+def test_close_issue(issue_key, issue_type):
     config = Config('test')
     j = JiraCloser(config)
-    issue_key = 'QTBUG-4795'
-
+    log.info(f'Testing Close issue on {issue_key} - {issue_type}')
     issue = j.jira_client.issue(issue_key)
 
     if issue.fields.status.name != 'Open':

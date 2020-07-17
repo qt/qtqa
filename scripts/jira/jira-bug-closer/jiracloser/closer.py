@@ -203,7 +203,11 @@ class JiraCloser:
             return
         if issue.fields.status.name == 'In Progress':
             fields.update({'resolution': {'name': 'Done'}})
-            self.jira_client.transition_issue(issue.key, transition='Fixed', fields=fields)
+            targetTransitionName = 'Fixed' \
+                if issue.fields.issuetype.name in ['Bug', 'Task', 'Technical task', 'Sub-task',
+                                                   'Suggestion'] \
+                else 'Close'
+            self.jira_client.transition_issue(issue.key, transition=targetTransitionName, fields=fields)
             return
         fields.update({'resolution': {'name': 'Done'}})
         self.jira_client.transition_issue(issue.key, transition='Close', fields=fields)
