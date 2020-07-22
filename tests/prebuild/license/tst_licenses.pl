@@ -145,8 +145,6 @@ my %optionalFiles = (
                           qr{^bin/patch_capabilities\.bat$},
                           # This is a 3rdparty file
                           qr{^src/network/kernel/qurltlds_p\.h$},
-                          # This is a 3rdparty file
-                          qr{^src/corelib/global/qtypetraits\.h$},
                           # These are generated files
                           qr{^src/corelib/global/qsimd_x86\.cpp$},
                           qr{^src/corelib/global/qsimd_x86_p\.h$},
