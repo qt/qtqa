@@ -13,6 +13,7 @@
     "@billjs/event-emitter": "1.0.3",
     "atob": "2.1.2",
     "axios": "0.19.0",
+    "axios-rate-limit": "1.2.1",
     "express": "4.17.1",
     "json-sql": "0.4.11",
     "net": "1.0.2",
