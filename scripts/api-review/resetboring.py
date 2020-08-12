@@ -622,7 +622,10 @@ class Selector(object): # Select interesting changes, discard boring.
             # Fatuous substitutions (see below for Q_DECL_OVERRIDE):
             for pair in (('Q_QDOC', 'Q_CLANG_QDOC'),
                          ('Q_DECL_FINAL', 'final'),
-                         ('Q_DECL_CONSTEXPR', 'constexpr'),
+                         (('Q_CONSTEXPR',
+                           'Q_DECL_CONSTEXPR',
+                           'Q_RELAXED_CONSTEXPR',
+                           'Q_DECL_RELAXED_CONSTEXPR'), 'constexpr'),
                          ('QT_HAS_BUILTIN', '__has_builtin'),
                          ('QT_HAS_FEATURE', '__has_feature'),
                          ('QT_HAS_ATTRIBUTE', '__has_attribute'),
