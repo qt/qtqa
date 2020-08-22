@@ -59,14 +59,14 @@ QHash<QString, QString> qt_tests_shared_global_get_modules(const QString &workDi
 
     while (!xml.atEnd()) {
         xml.readNext();
-        if (xml.tokenType() == QXmlStreamReader::StartElement && xml.name() == "config") {
+        if (xml.tokenType() == QXmlStreamReader::StartElement && xml.name() == QLatin1String("config")) {
             xml.readNextStartElement();
-            if (xml.name() == "modules") {
+            if (xml.name() == QLatin1String("modules")) {
                 while (!xml.atEnd()) {
                     xml.readNextStartElement();
                     QString modName;
                     QString qtModName;
-                    if (xml.name() == "module") {
+                    if (xml.name() == QLatin1String("module")) {
                         modName = xml.attributes().value("name").toString().simplified();
                         qtModName = xml.attributes().value("qtname").toString().simplified();
                         if (!modName.isEmpty() && !qtModName.isEmpty())
