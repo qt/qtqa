@@ -2,7 +2,7 @@
 # Usage: see api-review-gen.
 #############################################################################
 ##
-## Copyright (C) 2016 The Qt Company Ltd.
+## Copyright (C) 2020 The Qt Company Ltd.
 ## Contact: https://www.qt.io/licensing/
 ##
 ## This file is part of the release tools of the Qt Toolkit.
@@ -447,7 +447,7 @@ class Selector(object): # Select interesting changes, discard boring.
         cuts = ( '...', '<<=', '>>=',
                  '//', '/*', '*/', '##', '::',
                  # Be sure that // precedes /= (see // = default)
-                 '<<', '>>', '==', '!=', '<=', '>=', '&&', '||',
+                 '<<', '>>', '==', '!=', '<=', '>=', '&&', '||', '[[', ']]',
                  '+=', '*=', '-=', '/=', '&=', '|=', '%=', '->',
                  '#', '<', '>', '!', '?', ':', ',', '.', ';',
                  '=', '+', '-', '*', '/', '%', '|', '&', '^', '~',
@@ -645,7 +645,7 @@ class Selector(object): # Select interesting changes, discard boring.
             # Don't ignore constexpr or nothrow; can't retract once added to an API.
             # Don't ignore explicit; it matters.
             # Words to ignore:
-            for key in ('Q_REQUIRED_RESULT', 'Q_NORETURN', # ? 'inline',
+            for key in ('Q_NORETURN', # ? 'inline',
                         'Q_DECL_CONST_FUNCTION', 'Q_ALWAYS_INLINE'):
                 def test(words, k=key):
                     return k in words
@@ -747,6 +747,7 @@ class Selector(object): # Select interesting changes, discard boring.
             for swap in ((('while', '(', '0', ')'), ('while', '(', 'false', ')')),
                          (('Q_DECL_EQ_DELETE', ';'), ('=', 'delete', ';')),
                          (('qMove',), ('std', '::', 'move')),
+                         (('Q_REQUIRED_RESULT',), ('[[', 'nodiscard', ']]')),
                          # Needs to happen before handling of Q_DECL_NOEXCEPT (as both replace "noexcept"):
                          # Gets complicated by the first case being common:
                          (('Q_DECL_NOEXCEPT_EXPR', '(', 'noexcept', '('), ('noexcept', '(', 'noexcept', '(')),
