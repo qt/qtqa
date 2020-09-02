@@ -125,6 +125,7 @@ EOF
 warn () { echo "$@" >&2; }
 die () { warn "$@"; exit 1; }
 run () { mutter "Running: $@"; eval "$@" || die "Failed ($?): $@"; }
+logged () { mention "Running: $@"; eval "$@"; }
 
 # Parse command-line:
 CHATTY=
@@ -320,7 +321,9 @@ then
 fi
 
 mutter "Reverting the boring bits"
-run "$THERE/resetboring.py" --disclaim | xargs -r git checkout $QUIET "$PRIOR" --
+run "$THERE/resetboring.py" --disclaim | while read f
+do git checkout $QUIET "$PRIOR" -- "$f" || logged rm -f "$f"
+done
 
 if git diff --quiet --cached "$PRIOR"
 then retire "All the change here looks boring: check with git diff -D"
