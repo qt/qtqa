@@ -2,7 +2,7 @@
 usage () { echo Usage: `basename $0` "[-h|-u] [-v] [--] prior soon"; }
 #############################################################################
 ##
-## Copyright (C) 2016 The Qt Company Ltd.
+## Copyright (C) 2020 The Qt Company Ltd.
 ## Contact: https://www.qt.io/licensing/
 ##
 ## This file is part of the release tools of the Qt Toolkit.
@@ -76,13 +76,18 @@ Options:
  --amend   Amend existing commit rather than extending the review
            branch, if it exists already.
 
- -r
  --replace Replace existing branch, if present, re-using its last
            Change-Id, rather than updating it.  (Conflicts with
            --amend, which should be preferred unless these scripts
            have changed.  If both are used, the last wins.)  If
            --task-number has not been specified, any Task-number:
            footer in the earlier commit will also be preserved.
+
+ -r name
+ --release name
+           Supply a name for the imminent release, if the branch given
+           for it doesn't match (e.g. when preparing a review on dev,
+           before the release branch is created).
 
  -v
  --verbose Say what's happening as it happens.
@@ -138,13 +143,15 @@ second () {
 # Parse command-line:
 CHATTY=
 AMEND=
+RELNAME=
 bad () { usage >&2; die "$@"; }
 while [ $# -gt 0 ]
 do  case "$1" in
         -u|--usage) usage; exit 0 ;;
         -h|--help) help; exit 0 ;;
         -a|--amend) AMEND=--amend; shift ;;
-        -r|--replace) AMEND=--replace; shift ;;
+        --replace) AMEND=--replace; shift ;;
+        -r|--release) RELNAME=`second "$@"`; shift 2 ;;
         -t|--task|--task-number) TASK=`second "$@"`; shift 2 ;;
         -v|--verbose) CHATTY=more; shift ;;
         -q|--quiet) CHATTY=less; shift ;;
@@ -180,6 +187,7 @@ do git rev-parse "$arg" -- >/dev/null || bad "Failed to parse $arg as a git ref"
 done
 PRIOR="$1"
 RELEASE="$2"
+[ -n "$RELNAME" ] || RELNAME="$RELEASE"
 RESTORE="`git branch | sed -n -e '/^\* (HEAD/ s/.* \([^ ]*\))$/\1/ p' -e '/^\*/ s/.* // p'`"
 
 # Implement --verbose, --quiet:
@@ -197,7 +205,7 @@ retire () { mention "$@"; exit; }
 checkout () { run git checkout $QUIET "$@"; }
 
 # Get API headers of $RELEASE checked out on a branch off $PRIOR:
-BRANCH="api-review-$PRIOR-$RELEASE"
+BRANCH="api-review-$PRIOR-$RELNAME"
 mutter "Checking for branch $BRANCH to check out"
 case `git branch | grep -wF " $BRANCH" | grep "^[* ] $BRANCH"'$'` in
     '')
@@ -315,7 +323,7 @@ apiheaders HEAD | while read h
 # Update former API headers, remove them if removed:
 do git checkout -q "$RELEASE" -- "$h" || git rm $QUIET -f -- "$h"
 done 2>&1 | grep -wv "error: pathspec '.*' did not match any"
-mutter "Checking out $RELEASE's API headers"
+mutter "Checking out $RELNAME's API headers"
 apiheaders "$RELEASE" | tr '\n' '\0' | \
     xargs -0r git checkout "$RELEASE" -- || die "Failed new header checkout"
 
@@ -344,7 +352,7 @@ else GITDIR=.git
 fi
 
 # It's a WIP to discourage any unwitting actual merge !
-( echo "WIP: API comparison from $PRIOR to $RELEASE"
+( echo "WIP: API comparison from $PRIOR to $RELNAME"
   echo
   git status | grep 'deleted:' | tr '\t' ' '
   git diff | wc | python -c 'import sys; row = sys.stdin.readline().split(); print; \
