@@ -741,6 +741,20 @@ class Selector(object): # Select interesting changes, discard boring.
                         for word in words]
             yield test, purge
 
+            # Used repeatedly below; iterates indices at which key starts in words:
+            def scan(words, key):
+                ind = -1
+                try:
+                    while True:
+                        ind = words.index(key[0], ind + 1)
+                        if len(words) < ind + len(key):
+                            break # Can't possibly match here, or later
+                        if all(words[i + ind] == tok for i, tok in enumerate(key)):
+                            yield ind
+                            ind += len(key) - 1
+                except ValueError:
+                    pass # when .index() doesn't find key[0]
+
             # 5.10: common switch from while (0) to while (false)
             # 5.12: Q_DECL_EQ_DELETE -> = delete
             # 5.14: qMove -> std::move, Q_DECL_NOEXCEPT_EXPR(...) -> noexcept(...)
@@ -748,30 +762,20 @@ class Selector(object): # Select interesting changes, discard boring.
                          (('Q_DECL_EQ_DELETE', ';'), ('=', 'delete', ';')),
                          (('qMove',), ('std', '::', 'move')),
                          (('Q_REQUIRED_RESULT',), ('[[', 'nodiscard', ']]')),
-                         # Needs to happen before handling of Q_DECL_NOEXCEPT (as both replace "noexcept"):
+                         # Needs to happen before handling of Q_DECL_NOEXCEPT
+                         # (as both replace "noexcept"):
                          # Gets complicated by the first case being common:
-                         (('Q_DECL_NOEXCEPT_EXPR', '(', 'noexcept', '('), ('noexcept', '(', 'noexcept', '(')),
+                         (('Q_DECL_NOEXCEPT_EXPR', '(', 'noexcept', '('),
+                          ('noexcept', '(', 'noexcept', '(')),
                          (('Q_DECL_NOEXCEPT_EXPR', '(', '('), ('noexcept', '(', '(')),
                          ):
-                def find(words, after=swap[1]):
-                    try:
-                        ind = 0
-                        while True:
-                            ind = words.index(after[0], ind)
-                            if len(words) < ind + len(after):
-                                break # definitely doesn't match, here or later
-                            if all(words[i + ind] == tok for i, tok in enumerate(after)):
-                                yield ind
-                            ind += 1
-                    except ValueError: # when .index() doesn't find after[0]
-                        pass
-                def test(words, get=find):
-                    for it in get(words):
+                def test(words, get=scan, key=swap[1]):
+                    for it in get(words, key):
                         return True
                     return False
-                def purge(words, pair=swap, get=find):
+                def purge(words, pair=swap, get=scan):
                     offset, step = 0, len(pair[0]) - len(pair[1])
-                    for ind in get(words):
+                    for ind in get(words, pair[1]):
                         ind += offset # Correct for earlier edits
                         words[ind : ind + len(pair[1])] = pair[0]
                         offset += step # Update the correction
