@@ -632,6 +632,9 @@ class Selector(object): # Select interesting changes, discard boring.
                          ('QT_HAS_CPP_ATTRIBUTE', '__has_cpp_attribute'),
                          ('QT_HAS_INCLUDE', '__has_include'),
                          ('QT_HAS_INCLUDE_NEXT', '__has_include_next'),
+                         ('Q_ALIGNOF', 'alignof'),
+                         ('Q_DECL_ALIGN', 'alignas'),
+                         ('QVector', 'QList'),
                          ):
                 def test(words, k=pair[1]):
                     return k in words
