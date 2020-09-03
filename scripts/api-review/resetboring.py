@@ -735,9 +735,11 @@ class Selector(object): # Select interesting changes, discard boring.
             # Multi-step transitions (oldest first in each tuple):
             for seq in (('0', 'Q_NULLPTR', 'nullptr'),
                         # Needs to happen after handling of Q_DECL_NOEXCEPT_EXPR():
-                        ('Q_DECL_NOTHROW', 'Q_DECL_NOEXCEPT', 'noexcept'),
+                        (None, 'Q_DECL_NOTHROW', 'Q_DECL_NOEXCEPT', 'noexcept'),
+                        # 6.0 (at Lars's request, because we had a lot of them):
+                        # simply adding noexcept is boring (hence None).
                         ):
-                for key in seq[1:]:
+                for key in seq[2 if seq[0] is None else 1:]:
                     def test(words, z=key):
                         return z in words
                     def purge(words, z=key, s=seq):
