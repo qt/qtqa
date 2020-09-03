@@ -191,11 +191,15 @@ RELEASE="$2"
 RESTORE="`git branch | sed -n -e '/^\* (HEAD/ s/.* \([^ ]*\))$/\1/ p' -e '/^\*/ s/.* // p'`"
 
 # Implement --verbose, --quiet:
-QUIET=
 mutter () { true; }
 mention () { warn "$@"; }
+# Option to pass to various git commands:
+QUIET=
+UNQUIET=-q
 case "$CHATTY" in
-    more) mutter () { warn "$@"; } ;;
+    more) UNQUIET=
+        mutter () { warn "$@"; }
+        ;;
     less) QUIET=-q
         mention () { true; }
         ;;
@@ -321,7 +325,7 @@ git submodule update --checkout
 mutter "Purging obsolete headers" # so renames get detected and handled correctly:
 apiheaders HEAD | while read h
 # Update former API headers, remove them if removed:
-do git checkout -q "$RELEASE" -- "$h" || git rm $QUIET -f -- "$h"
+do git checkout $UNQUIET "$RELEASE" -- "$h" || git rm $UNQUIET -f -- "$h"
 done 2>&1 | grep -wv "error: pathspec '.*' did not match any"
 mutter "Checking out $RELNAME's API headers"
 apiheaders "$RELEASE" | tr '\n' '\0' | \
