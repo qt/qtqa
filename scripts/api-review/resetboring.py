@@ -748,12 +748,13 @@ class Selector(object): # Select interesting changes, discard boring.
                     return None
 
                 for pair in zip(words, key):
-                    if pair[1] == None:
-                        if all(x.isalnum() for x in pair[0].split('_')):
-                            result = pair[0]
+                    word, k = pair
+                    if k is None:
+                        if all(x.isalnum() for x in word.split('_')):
+                            result = word
                         else:
                             return None
-                    elif pair[0] != pair[1]:
+                    elif word != k:
                         return None
 
                 # Didn't return early: so matched (and result *did* get set).
@@ -811,7 +812,7 @@ class Selector(object): # Select interesting changes, discard boring.
                         yield ind, 'QT_NO_' + words[ind].upper()
                     ind += 1
 
-            # Also match QT_CONFIG() when part-way through a #if of #elif condition:
+            # Also match QT_CONFIG() when part-way through a #if or #elif condition:
             sought = ('#', ('if', 'elif'), 'QT_CONFIG')
             def test(words, get=find, keys=sought):
                 for it in get(words, keys):
@@ -839,15 +840,14 @@ class Selector(object): # Select interesting changes, discard boring.
             yield test, purge
 
             # Ignore parentheses on #if ... defined(blah) ...:
-            sought = (('#', 'if'), 'defined')
-            def find(words, start=sought[0], key=sought[1]):
+            def find(words):
                 """Iterate indices in words of each blah in 'defined(blah)'"""
-                if any(a != b for a, b in zip(words, start)):
+                if any(a != b for a, b in zip(words, ('#', 'if'))):
                     raise StopIteration
                 ind, ans = 0, []
                 while True:
                     try:
-                        ind = words.index(key, ind)
+                        ind = words.index('defined', ind)
                     except ValueError:
                         break
                     if ind < 0 or len(words) <= ind + 3:
