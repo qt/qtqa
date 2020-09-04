@@ -749,7 +749,10 @@ class Selector(object): # Select interesting changes, discard boring.
                         ind = words.index(key[0], ind + 1)
                         if len(words) < ind + len(key):
                             break # Can't possibly match here, or later
-                        if all(words[i + ind] == tok for i, tok in enumerate(key)):
+                        if all((words[i + ind] in tok
+                                if isinstance(tok, tuple) else
+                                words[i + ind] == tok)
+                               for i, tok in enumerate(key)):
                             yield ind
                             ind += len(key) - 1
                 except ValueError:
@@ -805,7 +808,9 @@ class Selector(object): # Select interesting changes, discard boring.
                 for pair in zip(words, key):
                     word, k = pair
                     if k is None:
-                        if all(x.isalnum() for x in word.split('_')):
+                        if any(tok is not None and
+                               all(x.isalnum() for x in tok.split('_'))
+                               for tok in (word if isinstance(word, tuple) else (word,))):
                             result = word
                         else:
                             return None
@@ -814,6 +819,13 @@ class Selector(object): # Select interesting changes, discard boring.
 
                 # Didn't return early: so matched (and result *did* get set).
                 return result, len(key)
+
+            # 6.0: defined(QT_OPENGL_ES*) -> QT_CONFIG(opengles*)
+            opengls = { 'opengles2': ('QT_OPENGL_ES_2', 'QT_OPENGL_ES'),
+                        'angle': 'QT_OPENGL_ES_2_ANGLE',
+                        'opengles3': 'QT_OPENGL_ES_3',
+                        'opengles31': 'QT_OPENGL_ES_3_1',
+                        'opengles32': 'QT_OPENGL_ES_3_2' }
 
             # 5.10: #ifndef QT_NO_XXX -> #if QT_CONFIG(xxx)
             swap = (('#', 'ifndef', None), ('#', 'if', 'QT_CONFIG', '(', None, ')'))
@@ -824,9 +836,11 @@ class Selector(object): # Select interesting changes, discard boring.
                 if not words or words[0] == '//':
                     return True
                 return words[0] == '/*' and '*/' not in words[:-1]
-            def purge(words, get=find, pair=swap):
+            def purge(words, get=find, pair=swap, gls=opengls):
                 name, length = get(words, pair[1])
-                words[:length] = [x or 'QT_NO_' + name.upper() for x in pair[0]]
+                words[:length] = (['#', 'ifdef', gls[name]]
+                                  if name in gls else
+                                  [x or 'QT_NO_' + name.upper() for x in pair[0]])
                 return words
             yield test, purge
 
@@ -846,7 +860,7 @@ class Selector(object): # Select interesting changes, discard boring.
                 yield test, purge
 
             # Used both by #if/#elif and by #endif processing:
-            def find(words, keys):
+            def find(words, keys, gls=opengls):
                 if (len(words) < len(keys)
                     or any(a != b for a, b in zip(words, keys[:-2]))
                     or words[len(keys) - 2] not in keys[-2]):
@@ -863,7 +877,11 @@ class Selector(object): # Select interesting changes, discard boring.
                     if words[ind] != '(' or words[ind + 2] != ')':
                         continue
                     ind += 1
-                    if words[ind].isalnum():
+                    if isinstance(words[ind], tuple):
+                        pass # is the result of earlier, equivalent, handling
+                    elif words[ind] in gls:
+                        yield ind, gls[words[ind]]
+                    elif words[ind].isalnum():
                         yield ind, 'QT_NO_' + words[ind].upper()
                     ind += 1
 
@@ -874,10 +892,14 @@ class Selector(object): # Select interesting changes, discard boring.
                     return True
                 return False
             def purge(words, get=find, keys=sought):
-                for ind, name in get(words, keys):
+                # Reverse iterate, as some replacements shorten, so shift later indices
+                for ind, name in reversed(tuple(get(words, keys))):
                     assert words[ind - 2] == 'QT_CONFIG'
                     assert words[ind + 1] == ')'
-                    words[ind - 2 : ind + 1] = ('!', 'defined', '(', name)
+                    words[ind - 2 : ind + 1] = (
+                        ['!', 'defined', '(', name]
+                        if not isinstance(name, tuple) and name.startswith('QT_NO_') else
+                        ['defined', '(', name])
                 return words
             yield test, purge
 
@@ -911,7 +933,7 @@ class Selector(object): # Select interesting changes, discard boring.
                     if words[ind] != '(' or words[ind + 2] != ')':
                         continue
                     ind += 1
-                    if words[ind].isalnum():
+                    if isinstance(words[ind], basestring) and words[ind].isalnum():
                         yield ind
             def test(words, get=find):
                 for it in get(words):
