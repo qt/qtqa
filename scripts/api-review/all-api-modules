@@ -72,6 +72,12 @@ Options:
  -h
  --help    Print this help and exit.
 
+ -i
+ --ignored
+           Invert the selection on status, to get the modules that
+           would normally be ignored, but that otherwise would qualify
+           for review.
+
  -r ref
  --require ref
            Limit to modules that have a specific branch or tag.
@@ -132,6 +138,15 @@ examples), assuming qtqa/scripts/api-review is in your PATH:
  Note the use of quoted shell metacharacters; $ME shall
  eval the command, ensuring they do their proper job.
 
+ Now we must discard any modules that aren't part of the coming
+ release, for which we need the current .gitmodules rather than the
+ old one:
+ $ git checkout $NEXT -- .gitmodules
+
+ Clear review branches from any modules to be ignored:
+ $ $ME -i -r api-review-$LAST-$NEXT \\
+        git checkout $NEXT '&&' git branch -D api-review-$LAST-$NEXT
+
  Examine changes (mostly interesting) to be reviewed:
  $ $ME -r api-review-$LAST-$NEXT git log -p $LAST..
 
@@ -153,8 +168,9 @@ modules () {
     echo
 }
 
-# Parse a single linearised stanza; discard if boring, else extract
-# its directory name:
+# Parse a single linearised stanza; discard if boring (or, when INVERT
+# is set, if interesting), else extract its directory name:
+INVERT=
 vetcheck () {
     # Can't return from within the while loop; piping input to it has
     # made it a sub-shell. (That also precludes assigning any
@@ -167,9 +183,11 @@ vetcheck () {
                 # No BC/SC promises in preview; and we
                 # don't care about obsolete or ignore:
                 case "$value" in
-                    essential|addon|deprecated) ;;
-                    preview|obsolete|ignore) echo no ;;
-                    *) warn "Unrecognized module status: $value (treated as active)" ;;
+                    essential|addon|deprecated) [ -z "$INVERT" ] || echo no ;;
+                    preview|obsolete|ignore) [ -n "$INVERT" ] || echo no ;;
+                    *) warn "Unrecognized module status: $value (treated as active)"
+                        [ -z "$INVERT" ] || echo no
+                        ;;
                 esac;;
             # repotools has qt = false
             qt) [ "$value" = false ] && echo no ;;
@@ -217,6 +235,7 @@ do
     case "$1" in
         -u|--usage) usage; exit 0;;
         -h|--help) help; exit 0;;
+        -i|--ignored) INVERT=yes; shift;;
         -r|--require) REFS="$REFS $2"; shift 2;;
         --) shift; break;;
         -*) usage >&2; die "Unrecognised option: $1";;
