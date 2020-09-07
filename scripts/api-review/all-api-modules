@@ -161,8 +161,6 @@ vet () {
     do
         [ "$op" = '=' ] || continue
         case "$name" in
-            # In dev, status is replaced by initrepo; but it's only
-            # given when true, so we can't filter on it here.
             status)
                 # No BC/SC promises in preview; and we
                 # don't care about obsolete or ignore:
@@ -179,7 +177,7 @@ vet () {
     # Because | while runs in a sub-shell, no variable assignment we
     # make there survives to be used; so we need to re-scan to extract
     # module paths:
-    echo "$@" | grep -w '\(status *= *\|initrepo *= *true\)' | \
+    echo "$@" | grep -w 'status *= *' | \
         tr '\f' '\n' | grep 'path *=' | cut -d = -f 2
 }
 
