@@ -444,7 +444,7 @@ class Selector(object): # Select interesting changes, discard boring.
             return cls.join(old, news)
 
         # Punctuation at which to split, long tokens before their prefixes:
-        cuts = ( '<<=', '>>=',
+        cuts = ( '...', '<<=', '>>=',
                  '//', '/*', '*/', '##', '::',
                  # Be sure that // precedes /= (see // = default)
                  '<<', '>>', '==', '!=', '<=', '>=', '&&', '||',
