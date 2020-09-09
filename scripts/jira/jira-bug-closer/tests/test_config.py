@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 #############################################################################
 ##
 ## Copyright (C) 2019 The Qt Company Ltd.
@@ -27,15 +26,16 @@
 ##
 #############################################################################
 
-import coloredlogs
-import logging
-
-level = logging.INFO
+import os
+from config import Config
 
 
-def get_logger(name: str) -> logging.Logger:
-    log = logging.getLogger(name)
-    log.setLevel(level)
-    log_format = "%(asctime)s %(filename)s:%(lineno)d %(levelname)s %(message)s"
-    coloredlogs.install(level=level, logger=log, fmt=log_format)
-    return log
+def test_have_secrets():
+    dir_name = os.path.join(os.path.dirname(os.path.abspath(__file__)))
+    assert os.path.exists(os.path.join(dir_name, "../jira_gerrit_bot_id_rsa"))
+
+    config = Config('production')
+    oauth = config.get_oauth_data()
+    assert oauth["access_token"] != "get_this_by_running_oauth_dance.py"
+    assert oauth["access_token_secret"] != "get_this_by_running_oauth_dance.py"
+    assert oauth["key_cert"]

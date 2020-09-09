@@ -7,9 +7,9 @@
 # The modified version for Python requests was copied from this fork:
 # https://bitbucket.org/MicahCarrick/atlassian-oauth-examples/src/68d005311b9b74d6a85787bb87ccc948766486d3/python-requests/example.py?at=default&fileviewer=file-view-default
 
-from oauthlib.oauth1 import SIGNATURE_RSA  # type: ignore
-from requests_oauthlib import OAuth1Session  # type: ignore
-from jira.client import JIRA  # type: ignore
+from oauthlib.oauth1 import SIGNATURE_RSA
+from requests_oauthlib import OAuth1Session
+from jira.client import JIRA
 
 
 def read(file_path: str) -> str:

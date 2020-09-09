@@ -31,7 +31,7 @@ from string import Template
 from time import sleep
 from distutils.version import LooseVersion
 from typing import Any, Dict, List, Optional, Tuple
-import jira  # type: ignore
+import jira
 from config import Config
 from git import FixedByTag
 from logger import logger

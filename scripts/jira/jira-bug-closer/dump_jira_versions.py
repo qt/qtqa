@@ -37,9 +37,9 @@ from jiracloser import JiraCloser
 
 
 def print_versions(version_list: List[Tuple[LooseVersion, str, bool]]) -> None:
-    print("    {name:35}{description:35}{released}".format(name="Version", description="Stuff", released="Released", width=30))
+    print(f"    {'Version':35}{'description':35}{'released':30}")
     for version in version_list:
-        print("    {name:35}{description:35}{released}".format(name=version[0].vstring, description=version[1], released=str(version[2]), width=30))
+        print(f"    {version[0].vstring:35}{version[1]:35}{str(version[2]):30}")
 
 
 if __name__ == "__main__":

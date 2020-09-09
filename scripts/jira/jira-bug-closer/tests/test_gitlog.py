@@ -44,7 +44,7 @@ for repo_name in ('qt/qtbase', 'qt/qtdeclarative', 'qt/qtdatavis3d', 'yocto/meta
     loop.run_until_complete(Repository(repo_name)._check_repo())
 
 
-dev_branch_version = "5.14.0"
+dev_branch_version = "5.16.0"
 
 
 @pytest.mark.parametrize("branch,expected,branches,tags", [

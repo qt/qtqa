@@ -59,7 +59,7 @@ class Repository:
             fcntl.flock(self._fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError:
             loop = asyncio.get_event_loop()
-            await loop.run_in_executor(None, lambda: fcntl.flock(self._fd, fcntl.LOCK_EX))  # type: ignore
+            await loop.run_in_executor(None, lambda: fcntl.flock(self._fd, fcntl.LOCK_EX))
         return self
 
     async def __aexit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None:
@@ -92,7 +92,6 @@ class Repository:
         if process.returncode:
             if process.stderr:
                 log.error(f"Error when fetching heads!\n{process.stderr}\n")
-
 
     async def _git_show_ref(self, tags: bool = False) -> str:
         refType = '--tags' if tags else '--heads'

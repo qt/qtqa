@@ -16,7 +16,7 @@ oauth:
 	$(PIPENV) run ./oauth_dance.py
 
 test: flake8 mypy
-	$(PIPENV) run py.test
+	$(PIPENV) run py.test -v
 
 flake8:
 	$(PIPENV) run flake8
