@@ -163,12 +163,12 @@ class relationChainManager {
       // abandoned, re-run the parent validation logic to post the
       // appropriate comment in gerrit.
 
-      if (parentPickBranches.length > 0) {
+      if (parentPickBranches.size > 0) {
         listenEvent = `cherryPickCreated_${detail.targetPickParent}`;
         listenTimeout = 48 * 60 * 60 * 1000;
         gerritMessageChangeID = detail.unmergedChangeID;
 
-        if (parentPickBranches.includes(branch)) {
+        if (parentPickBranches.has(branch)) {
           // The parent is suitable, just needs to be merged so it can be
           // cherry-picked.
           toolbox.setupListener(
@@ -200,11 +200,11 @@ class relationChainManager {
       // The change's parent was merged, but not picked. This could mean
       // that the parent left off pick-to footers, or that the pick hasn't
       // been completed yet.
-      if (parentPickBranches.length > 0) {
+      if (parentPickBranches.size > 0) {
         // Maybe this is a race condition. The parent has a Pick-to footer
         // and is merged, but we couldn't find the change ID on the target
         // branch.
-        if (parentPickBranches.includes(branch)) {
+        if (parentPickBranches.has(branch)) {
           // The target branch is on the parent as well, so there should
           // be a cherry-pick. Maybe it's not done processing in the bot yet.
           if (!detail.isRetry) {
