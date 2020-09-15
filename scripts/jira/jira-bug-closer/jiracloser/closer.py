@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 #############################################################################
 ##
-## Copyright (C) 2019 The Qt Company Ltd.
+## Copyright (C) 2020 The Qt Company Ltd.
 ## Contact: https://www.qt.io/licensing/
 ##
 ## This file is part of the Quality Assurance module of the Qt Toolkit.
@@ -31,12 +31,18 @@ from string import Template
 from time import sleep
 from distutils.version import LooseVersion
 from typing import Any, Dict, List, Optional, Tuple
+import re
 import jira
 from config import Config
 from git import FixedByTag
 from logger import logger
 
 log = logger.get_logger('jira')
+
+
+class LooseVersion (LooseVersion):  # type: ignore
+    component_re = re.compile(r'\s*(\d+|[a-z]+|\.)\s*', re.IGNORECASE)
+
 
 comment_template = Template(
     """A change related to this issue (sha1 '$sha1') was integrated in '$repository' in the '$branch' branch.
@@ -59,13 +65,6 @@ class JiraCloser:
             version_description = version_data.get('description')
             if not version_description:
                 continue
-            # Remove all spaces and lower-case the version string.
-            # LooseVersion's handling of spaces and upper-case letters is "quirky":
-            # '5.14.0 Beta 1' becomes [5, 14, 0, ' B', 'eta', ' ', 1]
-            # '5.14.0 Beta2' becomes [5, 14, 0, ' B', 'eta', 2].
-            # Comparing these lead to a comparison between the former's second ' '
-            # and the latter's 2, of different types, leading to a TypeError.
-            version_description = version_description.replace(' ', '').lower()
             looseVersion = LooseVersion(version_description)
             # Skip versions that are for example only two digits, e.g. "6.0"
             if len(looseVersion.version) < 3:

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 #############################################################################
 ##
-## Copyright (C) 2019 The Qt Company Ltd.
+## Copyright (C) 2020 The Qt Company Ltd.
 ## Contact: https://www.qt.io/licensing/
 ##
 ## This file is part of the Quality Assurance module of the Qt Toolkit.
@@ -27,10 +27,10 @@
 ##
 #############################################################################
 
-from distutils.version import LooseVersion
 from typing import List, Tuple
+
 from config import Config
-from jiracloser import JiraCloser
+from jiracloser import JiraCloser, LooseVersion
 
 
 """ Debugging helper to test the other code when working on these scripts. """
