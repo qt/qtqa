@@ -31,7 +31,9 @@ import (
 	"bytes"
 	"fmt"
 	"log"
+	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -62,6 +64,8 @@ type YAMLDependenciesMap map[string]*YAMLModule
 type YAMLDependencies struct {
 	Dependencies YAMLDependenciesMap `yaml:"dependencies"`
 }
+
+var shaValidator = regexp.MustCompile(`\b[0-9a-f]{40}\b`)
 
 // MarshalYAML implements the marshalling of the dependencies while
 // making sure the entries are sorted.
@@ -191,6 +195,39 @@ func NewModule(moduleName string, branch string, qt5Modules map[string]*submodul
 	moduleTipCommit, err := repo.Fetch(repoURL, headRef)
 	if err != nil {
 		return nil, fmt.Errorf("could not fetch repo tip %s of %s: %s", headRef, moduleName, err)
+	}
+
+	var sha string
+
+	if repoPath == "qt/qtbase" {
+		fmt.Printf("\nProposing to update %s to %s. You may now override this sha if desired.\n", repoPath, moduleTipCommit)
+		fmt.Print("WARN: Overriding shas may cause an inconsistent set. Only do this if you know what you're doing.\n")
+		for {
+			if os.Getenv("CUSTOM_QTBASE") != "" {
+				sha = os.Getenv("CUSTOM_QTBASE")
+				fmt.Printf("Using custom Qtbase SHA from environment variable CUSTOM_QTBASE: %s\n", sha)
+				fmt.Println("NOTICE: No sha validation occurs on input from environment variables.")
+				moduleTipCommit = OID(strings.Trim(sha, " "))
+				break
+			} else if os.Getenv("AUTORUN") == "" {
+				fmt.Print("\nPress Return to accept default proposal or enter a custom sha:\n->")
+				fmt.Scanln(&sha)
+			}
+			if sha != "" {
+				sha = strings.Trim(sha, " ")
+				if shaValidator.MatchString(sha) {
+					moduleTipCommit = OID(sha)
+					fmt.Printf("Using custom sha for %s: %s\n", repoPath, moduleTipCommit)
+					break
+				} else {
+					fmt.Printf("Custom sha \"%s\" is not a valid SHA1. Try again or accept the default.\n", sha)
+					sha = ""
+				}
+			} else {
+				fmt.Printf("Using default HEAD sha for %s: %s", repoPath, moduleTipCommit)
+				break
+			}
+		}
 	}
 
 	yamlDependencies := &YAMLDependencies{}
