@@ -4,7 +4,7 @@
 ## tst_guiapplauncher Test:
 #####################################################################
 
-qt_add_test(tst_guiapplauncher
+qt_internal_add_test(tst_guiapplauncher
     SOURCES
         tst_guiapplauncher.cpp
         windowmanager.cpp windowmanager.h
@@ -20,12 +20,12 @@ qt_add_test(tst_guiapplauncher
 ## Scopes:
 #####################################################################
 
-qt_extend_target(tst_guiapplauncher CONDITION WIN32
+qt_internal_extend_target(tst_guiapplauncher CONDITION WIN32
     PUBLIC_LIBRARIES
         user32
 )
 
-qt_extend_target(tst_guiapplauncher CONDITION QT_FEATURE_xlib # special case
+qt_internal_extend_target(tst_guiapplauncher CONDITION QT_FEATURE_xlib # special case
     DEFINES
         Q_WS_X11
 )

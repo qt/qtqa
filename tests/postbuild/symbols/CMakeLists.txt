@@ -4,7 +4,7 @@
 ## tst_symbols Test:
 #####################################################################
 
-qt_add_test(tst_symbols
+qt_internal_add_test(tst_symbols
     SOURCES
         tst_symbols.cpp
     INCLUDE_DIRECTORIES
@@ -14,7 +14,7 @@ qt_add_test(tst_symbols
 ## Scopes:
 #####################################################################
 
-qt_extend_target(tst_symbols CONDITION CMAKE_CROSSCOMPILING
+qt_internal_extend_target(tst_symbols CONDITION CMAKE_CROSSCOMPILING
     DEFINES
         QT_CROSS_COMPILED
 )

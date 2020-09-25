@@ -26,7 +26,7 @@ endif()
 
 # special case end
 
-qt_add_test(tst_bic
+qt_internal_add_test(tst_bic
     SOURCES
         ../global.h
         qbic.cpp qbic.h
