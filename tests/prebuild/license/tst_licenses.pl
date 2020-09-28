@@ -631,40 +631,17 @@ sub run
     }
 
     #
-    # Pase 2: Read the reference license texts
+    # Phase 2: Read the reference license texts
     #
-
-    # Check that qtbase is a peer directory of QT_MODULE_TO_TEST
-    my @qtbase_paths = (
-        catfile( $QT_MODULE_TO_TEST, '..', 'qtbase' ),  # qt5 submodule case
-        catfile( $QT_MODULE_TO_TEST, 'qtbase' ),        # qt5 case
-        catfile( $QT_MODULE_TO_TEST, '../..', 'qt/qtbase' ),  # any other module (qt-labs/someproject)
-    );
-
-    @moduleOptionalFiles = readRegularExpressionsFromFile(catfile($QT_MODULE_TO_TEST, ".qt-license-check.optional"));
-    @moduleExcludedFiles = readRegularExpressionsFromFile(catfile($QT_MODULE_TO_TEST, ".qt-license-check.exclude"));
-
-    my $qtbase_path = first { -d $_ } @qtbase_paths;
-    if (! $qtbase_path) {
-        my $output = `qmake -query QT_INSTALL_PREFIX/src`;
-        chomp($output);
-        $qtbase_path = $output if -d $output;
-    }
-    if (! $qtbase_path) {
-        fail("Cannot find qtbase module, looked at: @qtbase_paths");
-        return;
-    }
-
-    # Treat all header.* files in the root of qtbase as reference license text
-    foreach (glob "$qtbase_path/header.*") {
+    # Load reference license headers from qtqa/tests/prebuild/license/templates/
+    my $current_dir = dirname(__FILE__);
+    foreach (glob "$current_dir/templates/header.*") {
         loadLicense($_) || return;
     }
 
     # Also load all header.* files in the module's root, in case the module has special requirements
-    if (abs_path($qtbase_path) ne abs_path($QT_MODULE_TO_TEST)) {
-        foreach (glob "$QT_MODULE_TO_TEST/header.*") {
-            loadLicense($_) || return;
-        }
+    foreach (glob "$QT_MODULE_TO_TEST/header.*") {
+        loadLicense($_) || return;
     }
 
     my $numLicenses = keys %licenseTexts;
@@ -676,6 +653,8 @@ sub run
     #
     # Phase 3: Decide which files we are going to scan.
     #
+    @moduleOptionalFiles = readRegularExpressionsFromFile(catfile($QT_MODULE_TO_TEST, ".qt-license-check.optional"));
+    @moduleExcludedFiles = readRegularExpressionsFromFile(catfile($QT_MODULE_TO_TEST, ".qt-license-check.exclude"));
 
     my @filesToScan;
     if (!$optForceFind && -d "$QT_MODULE_TO_TEST/.git") {
