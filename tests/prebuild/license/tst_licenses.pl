@@ -326,11 +326,6 @@ sub loadLicense {
         fail("$licenseFile has no QT_END_LICENSE marker");
         return 0;
     }
-    my $existingDefinition = $licenseFiles{$licenseType};
-    if (defined($existingDefinition)) {
-        fail("$licenseFile re-defines a license of type $licenseType originally defined in $existingDefinition");
-        return 0;
-    }
 
     $licenseTexts{$licenseType} = \@licenseText;
     $licenseFiles{$licenseType} = $licenseFile;
