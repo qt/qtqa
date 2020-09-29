@@ -208,7 +208,7 @@ class relationChainManager {
           // The target branch is on the parent as well, so there should
           // be a cherry-pick. Maybe it's not done processing in the bot yet.
           if (!detail.isRetry) {
-            // Run the check again in 10 seconds to be sure we didn't just
+            // Run the check again in 5 seconds to be sure we didn't just
             // miss close-timing.
             setTimeout(function () {
               _this.requestProcessor.emit(

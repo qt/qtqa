@@ -127,8 +127,8 @@ requestProcessor.on("validateBranch", (parentJSON, branch, responseSignal) => {
 });
 
 // Emitted when a cherry pick is dependent on another cherry pick.
-requestProcessor.on("verifyParentPickExists", (parentJSON, branch, responseSignal, errorSignal) => {
-  requestProcessor.verifyParentPickExists(parentJSON, branch, responseSignal, errorSignal);
+requestProcessor.on("verifyParentPickExists", (parentJSON, branch, responseSignal, errorSignal, isRetry) => {
+  requestProcessor.verifyParentPickExists(parentJSON, branch, responseSignal, errorSignal, isRetry);
 });
 
 // Emitted when a cherry-pick's parent is not a suitable target on the pick-to branch.
