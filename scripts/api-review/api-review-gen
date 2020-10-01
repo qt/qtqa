@@ -126,25 +126,6 @@ warn () { echo "$@" >&2; }
 die () { warn "$@"; exit 1; }
 run () { mutter "Running: $@"; eval "$@" || die "Failed ($?): $@"; }
 
-# Check basic expectations of context:
-if [ -d src -a -f sync.profile ]
-then
-    SYNC='sync.profile'
-    SRCDIR=src
-elif [ -f Source/sync.profile ] # qtwebkit/'s eccentric layout ...
-then
-    SYNC='Source/sync.profile'
-    SRCDIR=Source
-else
-    die "I expect to be run in the top level directory of a module (see --help)."
-fi
-THERE=`dirname $0`
-[ -n "$THERE" -a -x "$THERE/resetboring.py" ] || \
-    die "I don't know where resetboring.py is: please run me via an explicit path."
-python -c 'from dulwich.repo import Repo; from dulwich.index import IndexEntry' || \
-    die "I need dulwich installed (for resetboring.py; see --help)."
-# dulwich 0.16.3 has been known to work; 0.9.4 is too old.
-
 # Parse command-line:
 CHATTY=
 AMEND=
@@ -163,6 +144,25 @@ do  case $1 in
         *) break ;;
     esac
 done
+
+# Check basic expectations of context:
+if [ -d src -a -f sync.profile ]
+then
+    SYNC='sync.profile'
+    SRCDIR=src
+elif [ -f Source/sync.profile ] # qtwebkit/'s eccentric layout ...
+then
+    SYNC='Source/sync.profile'
+    SRCDIR=Source
+else
+    die "I expect to be run in the top level directory of a module (see --help)."
+fi
+THERE=`dirname $0`
+[ -n "$THERE" -a -x "$THERE/resetboring.py" ] || \
+    die "I don't know where resetboring.py is: please run me via an explicit path."
+python -c 'from dulwich.repo import Repo; from dulwich.index import IndexEntry' || \
+    die "I need dulwich installed (for resetboring.py; see --help)."
+# dulwich 0.16.3 has been known to work; 0.9.4 is too old.
 
 # Select revisions to compare:
 [ $# -eq 2 ] || bad "Expected exactly two arguments, got $#: $@"

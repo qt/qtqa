@@ -204,7 +204,6 @@ relevant () {
     done
 }
 
-[ -e .gitmodules ] || die "I must be run in the top-level (qt5) directory"
 REFS=
 while [ $# -gt 0 ]
 do
@@ -217,6 +216,7 @@ do
         *) break;;
     esac
 done
+[ -e .gitmodules ] || die "I must be run in the top-level (qt5) directory"
 if [ $# -eq 0 ]
 then
     usage >&2
