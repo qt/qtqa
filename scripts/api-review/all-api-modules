@@ -155,8 +155,10 @@ modules () {
 
 # Parse a single linearised stanza; discard if boring, else extract
 # its directory name:
-vet () {
-    # First pass: filter out modules we don't want:
+vetcheck () {
+    # Can't return from within the while loop; piping input to it has
+    # made it a sub-shell. (That also precludes assigning any
+    # variables within the loop; values would be forgotten after.)
     echo "$@" | tr '\f' '\n' | while read name op value
     do
         [ "$op" = '=' ] || continue
@@ -166,17 +168,22 @@ vet () {
                 # don't care about obsolete or ignore:
                 case "$value" in
                     essential|addon|deprecated) ;;
-                    preview|obsolete|ignore) return ;;
+                    preview|obsolete|ignore) echo no ;;
+                    *) warn "Unrecognized module status: $value (treated as active)" ;;
                 esac;;
             # repotools has qt = false
-            qt) [ "$value" = false ] && return ;;
+            qt) [ "$value" = false ] && echo no ;;
             # non-versioned modules aren't relevant to us:
-            branch) [ "$value" = master ] && return ;;
+            branch) [ "$value" = master ] && echo no ;;
         esac
     done
-    # Because | while runs in a sub-shell, no variable assignment we
-    # make there survives to be used; so we need to re-scan to extract
-    # module paths:
+}
+
+vet () {
+    # First pass: filter out modules we don't want:
+    if vetcheck "$@" | grep -q no
+    then return
+    fi
     echo "$@" | grep -w 'status *= *' | \
         tr '\f' '\n' | grep 'path *=' | cut -d = -f 2
 }
