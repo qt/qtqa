@@ -356,6 +356,24 @@ then GITDIR=`cut -d ' ' -f 2 <.git`
 else GITDIR=.git
 fi
 
+# Suppress clang-format pre-commit hook:
+if [ -e $GITDIR/hooks/pre-commit ]
+then
+    PRECOMMIT=$GITDIR/hooks/isolated-pre-commit
+    mv $GITDIR/hooks/pre-commit $PRECOMMIT
+
+    # But put it back when we're done:
+    commit () {
+        mutter "Running: git commit $@"
+        git commit "$@"
+        STAT=$?
+        mv $PRECOMMIT $GITDIR/hooks/pre-commit
+        [ $STAT -eq 0 ] || die "Failed ($STAT): $@"
+    }
+else
+    commit () { run git commit "$@"; }
+fi
+
 # It's a WIP to discourage any unwitting actual merge !
 ( echo "WIP: API comparison from $PRIOR to $RELNAME"
   echo
@@ -395,7 +413,7 @@ EOF
   ) > "$GITDIR/COMMIT_EDITMSG"
 # The git status in that holds a lock that precludes the git commit;
 # so we can't just pipe the message and use -F - to deliver it.
-run git commit $QUIET $AMEND -F "$GITDIR/COMMIT_EDITMSG"
+commit $QUIET $AMEND -F "$GITDIR/COMMIT_EDITMSG"
 
 mention "I recommend you review that what git diff -D reports (now) *is* boring."
 mention "(If any of it isn't, you can git add -p it and git commit --amend.)"
