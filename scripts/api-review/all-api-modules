@@ -156,6 +156,11 @@ examples), assuming qtqa/scripts/api-review is in your PATH:
  When $LAST has changed (only relevant when using a branch here),
  rebase review branches onto it:
  $ $ME -r api-review-$LAST-$NEXT git rebase $LAST api-review-$LAST-$NEXT
+
+Note that all of the above presumes you have an up-to-date module set
+checked out; if you have not run qt5/init-repository recently, it may
+be prudent to do so before you start. Some modules may have been added
+or changed status since you last ran it.
 EOF
 }
 warn () { echo "$@" >&2; }
