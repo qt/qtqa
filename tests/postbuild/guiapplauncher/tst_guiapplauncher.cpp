@@ -342,7 +342,10 @@ bool tst_GuiAppLauncher::runApp(const AppLaunchData &data, QString *errorMessage
         return false;
     }
     // Get window id.
-    const QString winId = m_wm->waitForTopLevelWindow(data.splashScreen ? 2 : 1, process.pid(), data.topLevelWindowTimeoutMS, errorMessage);
+    const QString winId =
+            m_wm->waitForTopLevelWindow(data.splashScreen ? 2 : 1, process.processId(),
+                                        data.topLevelWindowTimeoutMS, errorMessage);
+
     if (winId.isEmpty()) {
         ensureTerminated(&process);
         return false;
@@ -350,7 +353,7 @@ bool tst_GuiAppLauncher::runApp(const AppLaunchData &data, QString *errorMessage
     qDebug("Window: %s\n", qPrintable(winId));
     // Wait a bit, then send close
     QThread::msleep(data.upTimeMS);
-    if (m_wm->sendCloseEvent(winId, process.pid(), errorMessage)) {
+    if (m_wm->sendCloseEvent(winId, process.processId(), errorMessage)) {
         qDebug("Sent close to window: %s\n", qPrintable(winId));
     } else {
         ensureTerminated(&process);
