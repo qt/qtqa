@@ -116,12 +116,14 @@ examples), assuming qtqa/scripts/api-review is in your PATH:
  $ $ME -r origin/$NEXT \\
         git fetch origin $NEXT:$NEXT '||' git pull --ff-only
 
- Generate review branches:
+ Generate review branches (but see notes following):
  $ $ME -r $LAST -r $NEXT api-review-gen -t $TASK $LAST $NEXT
 
  Add a --amend before the -t in that to update review branches to
  reflect changes in imminent release (e.g. fixes for an earlier round
- of review) after updating $NEXT as above.
+ of review) after updating $NEXT as above.  If the $NEXT branch name
+ isn't the imminent release's version (e.g. if the release hasn't yet
+ branched out from dev), see the --release option to api-review-gen.
 
  Examine residual diff (should all be boring):
  $ $ME -r api-review-$LAST-$NEXT git diff -b -D
