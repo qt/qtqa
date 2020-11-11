@@ -40,13 +40,19 @@ Qt Package testing script for testing Qt for Python wheels
 
 PYINSTALLER_EXAMPLE = 'widgets/widgets/tetrix.py'
 
+
+VERSION = -1
+
+
 def examples():
     """Compile a list of examples to be tested"""
-    return ['opengl/hellogl.py',
-            'multimedia/player.py',
-            'charts/donutbreakdown.py',
-            'widgets/mainwindows/mdi/mdi.py',
-            'webenginewidgets/tabbedbrowser/main.py']
+    result = ['widgets/mainwindows/mdi/mdi.py']
+    if VERSION < 6:
+        result.extend(['opengl/hellogl.py',
+                       'multimedia/player.py',
+                       'charts/donutbreakdown.py',
+                       'webenginewidgets/tabbedbrowser/main.py'])
+    return result
 
 
 def execute(args):
@@ -118,16 +124,22 @@ if __name__ == "__main__":
     root = None
     for p in sys.path:
         if os.path.basename(p) == 'site-packages':
-            root = os.path.join(p, 'PySide2')
+            root = os.path.join(p, 'PySide6')
+            if os.path.exists(root):
+                VERSION = 6
+            else:
+                root = os.path.join(p, 'PySide2')
+                VERSION = 2
             root_ex = os.path.join(root, 'examples')
             break
     if not root or not os.path.exists(root):
-        print('Could not locate the PySide2 module.')
+        print('Could not locate any PySide module.')
         sys.exit(1)
     if not os.path.exists(root_ex):
-        print("PySide2 module found without examples. Did you forget to install wheels?")
+        m = "PySide{} module found without examples. Did you forget to install wheels?".format(VERSION)
+        print(m)
         sys.exit(1)
-    print('Detected PySide2 at {}.'.format(root))
+    print('Detected PySide{} at {}.'.format(VERSION, root))
     for e in examples():
         run_example(root_ex, e)
 
