@@ -104,19 +104,25 @@ def qt_version_less_than(major, minor, patch):
     return qt_version < (major, minor, patch)
 
 
+def qt_version_greater_equal_than(major, minor, patch):
+    return qt_version >= (major, minor, patch)
+
+
 def examples():
     """Compile a list of examples to be tested"""
     global qt_mkspec
-    result = ['widgets/mainwindows/mdi', 'charts/qmlchart',
-              'multimedia/declarative-camera']
-    if not qt_mkspec.startswith('winrt'):
-        result.append('sensors/sensor_explorer')
-    if qt_version_less_than(5, 12, 0):
-        result.append('quick/demos/stocqt')
-    result.extend(['location/mapviewer', 'quickcontrols/extras/gallery',
-                   'quickcontrols2/gallery'])
-    if not qt_mkspec.startswith('winrt') and qt_mkspec != 'win32-g++':
-        result.append('webengine/quicknanobrowser')
+    result = ['widgets/mainwindows/mdi', 'quickcontrols2/gallery']
+
+    if qt_version_less_than(6, 0, 0):
+        if not qt_mkspec.startswith('winrt'):
+            result.append('sensors/sensor_explorer')
+
+        result.extend(['charts/qmlchart', 'multimedia/declarative-camera',
+                       'location/mapviewer', 'quickcontrols/extras/gallery'])
+
+        if not qt_mkspec.startswith('winrt') and qt_mkspec != 'win32-g++':
+            result.append('webengine/quicknanobrowser')
+
     return result
 
 
@@ -170,6 +176,17 @@ def run_process_output(args):
     return result
 
 
+def build_qmake(example_src_path):
+    execute(['qmake', 'CONFIG+=console', example_src_path])
+    execute(make_command)
+
+
+def build_cmake(example_src_path):
+    execute(['cmake', '-H' + example_src_path, '-B.', '-G', 'Ninja',
+             '-DCMAKE_BUILD_TYPE=Release'])
+    execute(['cmake', '--build', '.', '--parallel'])
+
+
 def run_example(example, test_deployment):
     """Build and run an example"""
     global qt_mkspec
@@ -183,11 +200,18 @@ def run_example(example, test_deployment):
     os.mkdir(dir_name)
     os.chdir(dir_name)
     try:
-        execute(['qmake', 'CONFIG+=console',
-                 os.path.join(qt_examples_path, example)])
-        execute(make_command)
+        example_src_path = os.path.join(qt_examples_path, example)
+        if qt_version_greater_equal_than(6, 0, 0):
+            build_cmake(example_src_path)
+        else:
+            build_qmake(example_src_path)
 
-        binary = name if not name == 'mapviewer' else 'qml_location_mapviewer'
+        binary = name
+        if name == 'mapviewer':
+            binary = 'qml_location_mapviewer'
+        elif qt_version_greater_equal_than(6, 0, 0) and name == 'gallery':
+            binary = 'gallery_controls2'
+
         if qt_mkspec.startswith('win'):
             binary += '.exe'
             # Note: After QTBUG-78445, MinGW has release/debug folders only
@@ -223,7 +247,7 @@ if __name__ == "__main__":
     print('#### Found Qt {}.{}.{}, "{}", examples at {}'.format(
           qt_version[0], qt_version[1], qt_version[2],
           qt_mkspec, qt_examples_path))
-    if qt_version[0] != 5 or not qt_mkspec or not qt_examples_path:
+    if qt_version[0] < 5 or not qt_mkspec or not qt_examples_path:
         print('No suitable Qt version could be found')
         sys.exit(1)
 
