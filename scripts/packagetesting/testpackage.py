@@ -51,7 +51,7 @@ qt_examples_path = ''
 qt_install_bins = ''
 make_command = ''
 PATH = os.environ.get('PATH')
-deploy_test_path = '' # path with qt_install_bins removed
+deploy_test_path = ''  # path with qt_install_bins removed
 
 
 class Deployment(Enum):
@@ -126,7 +126,7 @@ def determine_make_command(mkspec):
         return ['mingw32-make', '-s']
     if mkspec.startswith('win'):
         return ['nmake', '/s', '/l']
-    return ['make',  '-s']
+    return ['make', '-s']
 
 
 def query_qmake():
