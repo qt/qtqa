@@ -92,11 +92,6 @@ build_fuzzer "new" "qtbase" "gui/image/qimage/loadfromdata/loadfromdata.pro" "im
 build_fuzzer "new" "qtbase" "gui/painting/qcolorspace/fromiccprofile/fromiccprofile.pro"
 build_fuzzer "new" "qtbase" "gui/text/qtextdocument/sethtml/sethtml.pro" "html" "$SRC/afl/dictionaries/html_tags.dict"
 build_fuzzer "new" "qtbase" "gui/text/qtextdocument/setmarkdown/setmarkdown.pro" "markdown"
-
-# import existing corpus, remove after first build
-rm $OUT/qtbase_gui_text_qtextdocument_setmarkdown_seed_corpus.zip
-curl -o $OUT/qtbase_gui_text_qtextdocument_setmarkdown_seed_corpus.zip https://bugreports.qt.io/secure/attachment/100289/corpus_libFuzzer_qt_setMarkdown_2020-11-12.zip
-
 build_fuzzer "new" "qtbase" "gui/text/qtextlayout/beginlayout/beginlayout.pro" "text"
 build_fuzzer "new" "qtbase" "network/ssl/qsslcertificate/qsslcertificate/pem/pem.pro" "ssl.pem"
 build_fuzzer "new" "qtsvg" "svg/qsvgrenderer/render/render.pro" "svg"
