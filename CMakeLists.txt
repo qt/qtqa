@@ -25,7 +25,7 @@ if(BUILD_TESTING)
     add_subdirectory(scripts)
     add_subdirectory(tests)
 
-    if(QT_NO_MAKE_TESTS)
+    if(NOT QT_BUILD_TESTS_BY_DEFAULT)
         set_property(DIRECTORY scripts PROPERTY EXCLUDE_FROM_ALL TRUE)
         set_property(DIRECTORY tests PROPERTY EXCLUDE_FROM_ALL TRUE)
     endif()
