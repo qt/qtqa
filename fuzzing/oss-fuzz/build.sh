@@ -45,11 +45,10 @@ zip -j $WORK/xml $SRC/qtqa/fuzzing/testcases/xml/* $SRC/afl/testcases/others/xml
 # build fuzzers
 
 build_fuzzer() {
-    local nameScheme=$1
-    local module=$2
-    local proFilePath=$3
-    local format=${4-""}
-    local dictionary=${5-""}
+    local module=$1
+    local proFilePath=$2
+    local format=${3-""}
+    local dictionary=${4-""}
     local proFileName=${proFilePath##*/}
     local exeName=${proFileName%%.*}
     local proFileDir=${proFilePath%/*}
@@ -58,18 +57,6 @@ build_fuzzer() {
     cd build_fuzzer
     $WORK/qtbase/bin/qmake $SRC/qt/$module/tests/libfuzzer/$proFilePath
     make -j$(nproc)
-
-    # use old names of fuzzers, so open issues don't change state accidentally
-    local lowercaseExeName=$exeName
-    if [ "$exeName" == "setmarkdown" ]; then
-        exeName=setMarkdown
-    fi
-    if [ "$lowercaseExeName" != "$exeName" ]; then
-        mv $lowercaseExeName $exeName
-    fi
-    if [ "$nameScheme" == "old" ]; then
-        targetName="$exeName"
-    fi
 
     mv $exeName $OUT/$targetName
     if [ -n "$format" ]; then
@@ -82,16 +69,16 @@ build_fuzzer() {
     rm -r build_fuzzer
 }
 
-build_fuzzer "new" "qtbase" "corelib/serialization/qcborstreamreader/next/next.pro" "cbor"
-build_fuzzer "new" "qtbase" "corelib/serialization/qcborvalue/fromcbor/fromcbor.pro" "cbor"
-build_fuzzer "new" "qtbase" "corelib/serialization/qtextstream/extractionoperator-float/extractionoperator-float.pro" "text"
-build_fuzzer "new" "qtbase" "corelib/serialization/qxmlstream/qxmlstreamreader/readnext/readnext.pro" "xml" "$SRC/afl/dictionaries/xml.dict"
-build_fuzzer "new" "qtbase" "corelib/text/qregularexpression/optimize/optimize.pro" "" "$SRC/afl/dictionaries/regexp.dict"
-build_fuzzer "new" "qtbase" "corelib/tools/qcryptographichash/result/result.pro"
-build_fuzzer "new" "qtbase" "gui/image/qimage/loadfromdata/loadfromdata.pro" "images"
-build_fuzzer "new" "qtbase" "gui/painting/qcolorspace/fromiccprofile/fromiccprofile.pro"
-build_fuzzer "new" "qtbase" "gui/text/qtextdocument/sethtml/sethtml.pro" "html" "$SRC/afl/dictionaries/html_tags.dict"
-build_fuzzer "new" "qtbase" "gui/text/qtextdocument/setmarkdown/setmarkdown.pro" "markdown"
-build_fuzzer "new" "qtbase" "gui/text/qtextlayout/beginlayout/beginlayout.pro" "text"
-build_fuzzer "new" "qtbase" "network/ssl/qsslcertificate/qsslcertificate/pem/pem.pro" "ssl.pem"
-build_fuzzer "new" "qtsvg" "svg/qsvgrenderer/render/render.pro" "svg"
+build_fuzzer "qtbase" "corelib/serialization/qcborstreamreader/next/next.pro" "cbor"
+build_fuzzer "qtbase" "corelib/serialization/qcborvalue/fromcbor/fromcbor.pro" "cbor"
+build_fuzzer "qtbase" "corelib/serialization/qtextstream/extractionoperator-float/extractionoperator-float.pro" "text"
+build_fuzzer "qtbase" "corelib/serialization/qxmlstream/qxmlstreamreader/readnext/readnext.pro" "xml" "$SRC/afl/dictionaries/xml.dict"
+build_fuzzer "qtbase" "corelib/text/qregularexpression/optimize/optimize.pro" "" "$SRC/afl/dictionaries/regexp.dict"
+build_fuzzer "qtbase" "corelib/tools/qcryptographichash/result/result.pro"
+build_fuzzer "qtbase" "gui/image/qimage/loadfromdata/loadfromdata.pro" "images"
+build_fuzzer "qtbase" "gui/painting/qcolorspace/fromiccprofile/fromiccprofile.pro"
+build_fuzzer "qtbase" "gui/text/qtextdocument/sethtml/sethtml.pro" "html" "$SRC/afl/dictionaries/html_tags.dict"
+build_fuzzer "qtbase" "gui/text/qtextdocument/setmarkdown/setmarkdown.pro" "markdown"
+build_fuzzer "qtbase" "gui/text/qtextlayout/beginlayout/beginlayout.pro" "text"
+build_fuzzer "qtbase" "network/ssl/qsslcertificate/qsslcertificate/pem/pem.pro" "ssl.pem"
+build_fuzzer "qtsvg" "svg/qsvgrenderer/render/render.pro" "svg"
