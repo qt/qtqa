@@ -107,7 +107,7 @@ class submodule_update_watcher {
     gerritTools.queryChange(
       req.uuid, req.fullChangeID, undefined, req.customGerritAuth,
       function (success, data) {
-        if (!data.assignee) {
+        if (!data.assignee && envOrConfig("SUBMODULE_UPDATE_FAILED_ASSIGNEE")) {
           gerritTools.setChangeAssignee(
             req.uuid, req, envOrConfig("SUBMODULE_UPDATE_FAILED_ASSIGNEE"), req.customGerritAuth,
             function () {
@@ -119,7 +119,7 @@ class submodule_update_watcher {
             }
           );
         } else {
-          _this.logger.log("Ignoring. Assignee already set.", undefined, req.uuid);
+          _this.logger.log("Ignoring. Assignee already set or no new assignee configured.", undefined, req.uuid);
         }
 
         // Run the bot again, which will either stage it or give up.
@@ -134,7 +134,7 @@ class submodule_update_watcher {
         && req.change.commitMessage.match(/Update submodules on/)
     ) {
       axios.post(envOrConfig("SUBMODULE_UPDATE_TEAMS_URL"), {
-        "Text": `Successfully updated ${req.change.project} submodules set in https://codereview.qt-project.org/#/q/${req.change.id},n,z`
+        "Text": `Successfully updated ${req.change.project} on **${req.change.branch}** submodules set in [https://codereview.qt-project.org/#/q/${req.change.id},n,z](https://codereview.qt-project.org/#/q/${req.change.id},n,z)`
       });
     }
     _this.sendBuildRequest(req)
@@ -145,7 +145,7 @@ class submodule_update_watcher {
     if (req.jenkinsURL) {
       _this.logger.log("Running new submodule update job", undefined, req.uuid);
       axios.post(
-        `${req.jenkinsURL}/job/qt_submodule_update/buildWithParameters`, undefined,
+        `${req.jenkinsURL}/job/qt_submodule_update_${req.change.branch}/buildWithParameters`, undefined,
         { auth: req.jenkinsAuth }
       );
     } else {
