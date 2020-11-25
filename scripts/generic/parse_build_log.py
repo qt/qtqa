@@ -30,14 +30,14 @@ import re
 import subprocess
 import sys
 import logging
+import gzip
 
 usage = """
 Usage:  parse_build_log.py [log_file]
 
 Parses the output of COIN test runs and prints short summaries of compile
 errors and test fails for usage as gerrit comment. Takes the file name
-(either text or compressed .gz file). The zcat tool is required for
-decompressing .gz files.
+(either text or compressed .gz file).
 """
 
 # Match the log prefix "agent:2019/06/04 12:32:54 agent.go:262:"
@@ -54,28 +54,9 @@ def read_file(file_name):
     """
     Read a text file into a list of of chopped lines.
     """
-    with open(file_name) as f:
+    opener = gzip.open if file_name.endswith(".gz") else open
+    with opener(file_name, mode="rt") as f:
         return [prefix_re.sub('', l.rstrip()) for l in f.readlines()]
-
-
-def zcat(file_name):
-    """
-    Read a gzip'ed text file into a list of of chopped lines by means of
-    'zcat'. Note: Python's zipfile module cannot handle .gz
-    """
-    lines = []
-
-    try:
-        std_out = subprocess.Popen(['zcat', file_name],
-                                   universal_newlines=1,
-                                   stdout=subprocess.PIPE).stdout
-        for line in std_out.readlines():
-            lines.append(prefix_re.sub('', line.rstrip()))
-        std_out.close()
-    except FileNotFoundError:
-        print("ERROR: command 'zcat' not found")
-        sys.exit(-1)
-    return lines
 
 
 def is_compile_error(line):
@@ -166,5 +147,5 @@ if __name__ == '__main__':
     except IndexError:
         pass
 
-    lines = zcat(file_name) if file_name.endswith('.gz') else read_file(file_name)
+    lines = read_file(file_name)
     parse(lines)
