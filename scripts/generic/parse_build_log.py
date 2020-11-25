@@ -29,6 +29,7 @@
 import re
 import subprocess
 import sys
+import logging
 
 usage = """
 Usage:  parse_build_log.py [log_file]
@@ -87,8 +88,11 @@ def is_compile_error(line):
         # and also ignore the final ERROR building message, as that one would only print sccache
         # output
         if not ("QDEBUG" in line or "QWARN" in line or "ERROR building: exit status 8" in line):
+            logging.debug(f"===> Found error in line \n{line}\n")
             return True
     has_error = make_error_re.match(line)
+    if has_error:
+        logging.debug(f"===> Found error in line \n{line}\n")
     return has_error
 
 
@@ -138,6 +142,7 @@ def parse(lines):
         elif "======== CMake output     ======" in line:
             within_cmake_output = True
         elif start_test_re.match(line):
+            logging.debug("===> Matched test")
             test_start_line = i
         elif is_compile_error(line):
             start = max(0, i - 10)
@@ -154,6 +159,12 @@ if __name__ == '__main__':
         print(usage)
         sys.exit(-1)
     file_name = sys.argv[1]
+    try:
+        should_log = sys.argv[2] == "-debug"
+        if should_log:
+            logging.basicConfig(level=logging.DEBUG)
+    except IndexError:
+        pass
 
     lines = zcat(file_name) if file_name.endswith('.gz') else read_file(file_name)
     parse(lines)
