@@ -1,4 +1,4 @@
-############################################################################
+###########################################################################
 ##
 ## Copyright (C) 2019 The Qt Company Ltd.
 ## Contact: https://www.qt.io/licensing/
@@ -40,7 +40,8 @@ decompressing .gz files.
 """
 
 # Match the log prefix "agent:2019/06/04 12:32:54 agent.go:262:"
-prefix_re = re.compile(r'^agent:[\d :/]+\w+\.go:\d+: ')
+# and alternatively prefix with column(?): "agent:2019/06/04 12:32:54 agent.go:262: 53: "
+prefix_re = re.compile(r'^agent:[\d :/]+\w+\.go:\d+: (\d+: )?')
 
 # Match QTestlib output
 start_test_re = re.compile(r'^\*{9} Start testing of \w+ \*{9}$')
@@ -82,8 +83,13 @@ def is_compile_error(line):
     (g++, MSVC, Python) or from make
     """
     if any(e in line for e in (": error: ", ": error C", 'ERROR')):
-        return True
-    return make_error_re.match(line)
+        # Ignore error messages in debug output
+        # and also ignore the final ERROR building message, as that one would only print sccache
+        # output
+        if not ("QDEBUG" in line or "QWARN" in line or "ERROR building: exit status 8" in line):
+            return True
+    has_error = make_error_re.match(line)
+    return has_error
 
 
 def print_failed_test(lines, start, end):
@@ -109,8 +115,14 @@ def parse(lines):
     """
     test_start_line = -1
     within_configure_tests = False
+    # used to skip CMake output which contains information about failed configure tests
+    within_cmake_output: bool = False
+    # used to skip sccache output
     for i, line in enumerate(lines):
-        if within_configure_tests:
+        if within_cmake_output:
+            if "======== End CMake output ======" in line:
+                within_cmake_output = False
+        elif within_configure_tests:
             if line == 'Done running configuration tests.':
                 within_configure_tests = False
         elif test_start_line >= 0:
@@ -123,6 +135,8 @@ def parse(lines):
         # Do not report errors within configuration tests
         elif line == 'Running configuration tests...':
             within_configure_tests = True
+        elif "======== CMake output     ======" in line:
+            within_cmake_output = True
         elif start_test_re.match(line):
             test_start_line = i
         elif is_compile_error(line):
