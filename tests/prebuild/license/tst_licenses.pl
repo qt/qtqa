@@ -111,9 +111,9 @@ my %excludedFiles = (
     'pyside-setup'   => [ qr{^examples/.*/ui_[a-zA-Z0-9_]+\.py$},
                           qr{^examples/.*/[a-zA-Z0-9_]+_rc\.py$},
                           qr{^examples/.*/rc_[a-zA-Z0-9_]+\.py$},
-                          qr{^sources/shiboken2/.*\.1}, # Man pages (removed in 5.13)
+                          qr{^sources/shiboken\d/.*\.1}, # Man pages (removed in 5.13)
                           qr{^sources/pyside2-tools/.*$},
-                          qr{^sources/pyside2/doc/.*\.py$} # Sphinx
+                          qr{^sources/pyside\d/doc/.*\.py$} # Sphinx
                         ]
 );
 
