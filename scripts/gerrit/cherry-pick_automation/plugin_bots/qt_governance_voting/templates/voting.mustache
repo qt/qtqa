@@ -1,0 +1,271 @@
+<head>
+    <title>Qt Governance Model Voting tool</title>
+    <link rel="shortcut icon" href="assets/favicon.ico" />
+</head>
+<style>
+    input {
+        display: block;
+    }
+
+    body {
+        font: 13px "Helvetica Neue", "Lucida Grande", "Arial";
+        background: #ECE9E9 -webkit-gradient(linear, 0% 0%, 0% 100%, from(#fff), to(#ECE9E9));
+        background-repeat: no-repeat;
+        color: #555;
+        -webkit-font-smoothing: antialiased;
+    }
+
+    table {
+        border: 1px solid black;
+        border-spacing: 0px;
+    }
+
+    th {
+        text-align: center;
+        border-bottom: 1px solid black;
+        padding-left: 15px;
+        padding-right: 15px;
+    }
+
+    td {
+        padding-left: 15px;
+        padding-right: 15px;
+        text-align: center;
+    }
+
+    .tooltip {
+        display: inline;
+        position: relative
+    }
+
+    .tooltip:hover {
+        text-decoration: none
+    }
+
+    .tooltip:hover:after {
+        background: #111;
+        background: rgba(0, 0, 0, .8);
+        border-radius: 5px;
+        bottom: 18px;
+        width: 300px;
+        color: #fff;
+        content: attr(help);
+        display: block;
+        left: 50%;
+        padding: 5px 15px;
+        position: absolute;
+        white-space: pre-wrap;
+        z-index: 98
+    }
+
+    .tooltip:hover:before {
+        border: solid;
+        border-color: #111 transparent;
+        border-width: 6px 6px 0 6px;
+        bottom: 12px;
+        content: "";
+        display: block;
+        left: 75%;
+        position: absolute;
+        z-index: 99
+    }
+
+    .BasicButton {
+        -moz-box-shadow: inset 0px 1px 3px 0px #91b8b3;
+        -webkit-box-shadow: inset 0px 1px 3px 0px #91b8b3;
+        box-shadow: inset 0px 1px 3px 0px #91b8b3;
+        background: -webkit-gradient(linear, left top, left bottom, color-stop(0.05, #768d87), color-stop(1, #6c7c7c));
+        background: -moz-linear-gradient(top, #768d87 5%, #6c7c7c 100%);
+        background: -webkit-linear-gradient(top, #768d87 5%, #6c7c7c 100%);
+        background: -o-linear-gradient(top, #768d87 5%, #6c7c7c 100%);
+        background: -ms-linear-gradient(top, #768d87 5%, #6c7c7c 100%);
+        background: linear-gradient(to bottom, #768d87 5%, #6c7c7c 100%);
+        filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#768d87', endColorstr='#6c7c7c', GradientType=0);
+        background-color: #768d87;
+        -moz-border-radius: 5px;
+        -webkit-border-radius: 5px;
+        border-radius: 5px;
+        border: 1px solid #566963;
+        display: inline-block;
+        cursor: pointer;
+        color: #ffffff;
+        font-family: Arial;
+        font-size: 12px;
+        font-weight: bold;
+        padding: 3px 8px;
+        text-decoration: none;
+        text-shadow: 0px -1px 0px #2b665e;
+    }
+
+    .BasicButton:hover {
+        background: -webkit-gradient(linear, left top, left bottom, color-stop(0.05, #6c7c7c), color-stop(1, #768d87));
+        background: -moz-linear-gradient(top, #6c7c7c 5%, #768d87 100%);
+        background: -webkit-linear-gradient(top, #6c7c7c 5%, #768d87 100%);
+        background: -o-linear-gradient(top, #6c7c7c 5%, #768d87 100%);
+        background: -ms-linear-gradient(top, #6c7c7c 5%, #768d87 100%);
+        background: linear-gradient(to bottom, #6c7c7c 5%, #768d87 100%);
+        filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#6c7c7c', endColorstr='#768d87', GradientType=0);
+        background-color: #6c7c7c;
+    }
+
+    .BasicButton:active {
+        position: relative;
+        top: 1px;
+    }
+
+    a:link {
+        color: #0FD112;
+        background-color: transparent;
+        text-decoration: none;
+    }
+
+    a:visited {
+        color: #0FD112;
+        background-color: transparent;
+        text-decoration: none;
+    }
+
+    a:hover {
+        color: #0FD112;
+        background-color: transparent;
+        text-decoration: underline;
+    }
+
+    a:active {
+        color: yellow;
+        background-color: transparent;
+        text-decoration: underline;
+    }
+</style>
+
+<body>
+<h1><a href="{{self_base_url}}/voting">Qt Governance Model Voting tool</h1></a>
+<h4>All votes are private.
+<br>Only Approvers and Maintainers may vote.
+<br>One vote per person. You can change or retract your vote until voting closes.
+<br>Your ability to vote is determined upon submission of the form below.
+<br>Votes will be completely wiped two weeks after the final decision.</h4>
+
+<table style="border:0px;width:100%;">
+<tr>
+<td style="min-width:325px;vertical-align:top;padding-top:50px">
+{{&moniker_mappings}}
+</td>
+<td align="center">
+<div>
+<h2 align="center">Current Vote:</h2>
+<div align="center" style="padding:0px">{{&subject}}</div>
+<table align="center">
+    <tbody>
+        <tr>
+            <th>Votes For</th>
+            <th>Votes Against</th>
+            <th>Total Votes</th>
+        </tr>
+        <tr>
+            <td>{{votes_for}}</td>
+            <td>{{votes_against}}</td>
+            <td>{{tally}}
+        </tr>
+    </tbody>
+</table>
+</div>
+<br>
+<hr style="width:20%">
+<br>
+<div id="votingDiv" {{hide_voting}} align="center">
+<h2 align="center">Set or change your vote</h2>
+    <form id="votingForm", action="/voting/", method="post", encType="application/x-www-form-urlencoded"
+    onsubmit="return handle_form_submission()">
+        <label for="voter">Your username on codereview.qt-project.org (will be kept secret): <a href=https://codereview.qt-project.org/settings target="_blank" rel="noopener"><b style="color:#ff0000"
+         help="Click to check your username at https://codereview.qt-project.org/settings/
+
+If you are using a voting token, this field is still required." class="tooltip">(?)</b></a></label><br>
+        <input id="voter" type="text" required style="width:400;" name="voter" placeholder="your_gerrit_username"><br>
+        <label for="password">Your codereview API password or personal voting token for verifying identity: <a href=https://codereview.qt-project.org/settings/#HTTPCredentials target="_blank" rel="noopener"><b style="color:#ff0000"
+         help="Click to go to https://codereview.qt-project.org/settings/#HTTPCredentials to generate a new password.
+
+Note: Generating a new password invalidates any previously generated password. It is therefore recommended to regenerate your password after voting.
+
+Voting is tied to your user, not your API password.
+
+If you would prefer to avoid using your gerrit API password, email gerrit-admin@qt-project.org to request a secret voting token to use instead." class="tooltip">(?)</b></a></label><br>
+        <input id="password" type="password" required style="width:400;" name="password" placeholder="HTTP password or voting token"><br>
+        <label for="vote_value" style="font-size:18px;font-weight:bold">Choose your vote:</label><br>
+        <input id="button_value" required type="hidden" name="button_value" value="" />
+        <table id="vote_values">
+            <tr>
+                <td style="padding:5px"><button id="approve_measure" type="button"
+                            onclick="set_vote(this)">Approve measure</button></td>
+                <td style="padding:5px"><button id="reject_measure" type="button"
+                            onclick="set_vote(this)">Reject measure</button></td>
+                <td style="padding:5px"><button id="retract_measure" type="button"
+                            onclick="set_vote(this)">Retract my vote</button></td>
+            </tr>
+        </table><br>
+        <table style="border:0px"><tr><td><input type="submit" id="submit" value="Submit Vote"></td>
+        <td><button id="retrieve_vote" onclick="set_vote(this)">Retrieve my vote</button></td></tr></table>
+    </form>
+</div>
+</td>
+<td style="min-width: 325px;">
+</td>
+</tr>
+</table>
+<div align="center">
+<h2>{{&user_status_message}}</h2>
+<h2 style="color:#ff0000">{{&vote_error}}</h2>
+</div>
+</body>
+<script>
+let vote_buttons = {
+        approve_measure_button: document.getElementById('approve_measure'),
+        reject_measure_button: document.getElementById('reject_measure'),
+        retract_vote_button: document.getElementById('retract_measure')
+    }
+let activeButton;
+
+
+Object.keys(vote_buttons).forEach(button => {
+        // Ignore Enter keypress for form submission
+        vote_buttons[button].onkeypress = function(e) {
+            var key = e.charCode || e.keyCode || 0;
+            if (key == 13) {
+                e.preventDefault();
+            }
+        }
+    })
+
+function set_vote(button) {
+    activeButton = button
+    button_value = document.getElementById("button_value")
+    button_value.value = button.id
+    setActiveButtonColor()
+}
+
+function setActiveButtonColor() {
+        Object.keys(vote_buttons).forEach(button => {
+            if (vote_buttons[button].id == activeButton.id) {
+                vote_buttons[button].style.backgroundColor = "#4CAF50";
+            } else {
+                vote_buttons[button].style.backgroundColor = "#555555";
+                vote_buttons[button].style.color = "#FFFFFF";
+            }
+        })
+    }
+
+function handle_form_submission() {
+        submitbutton = document.getElementById("submit", true)
+        submitbutton.disabled = true;
+        retrievebutton = document.getElementById("retrieve_vote", true)
+        retrievebutton.disabled = true
+        if (activeButton.id == retrievebutton.id) {
+            retrievebutton.style.backgroundColor = "#4CAF50";
+            retrievebutton.style.color = "#FFFFFF";
+        } else {
+            submitbutton.style.backgroundColor = "#4CAF50";
+            submitbutton.style.color = "#FFFFFF";
+        }
+        return true; //submit the form
+    }
+</script>

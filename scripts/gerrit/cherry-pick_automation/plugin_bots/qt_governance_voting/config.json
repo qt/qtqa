@@ -1,0 +1,7 @@
+{
+    "QT_GOVERNANCE_VOTING_ENABLED": false,
+    "VOTING_OPEN": false,
+    "VOTING_DEADLINE_DT": "",
+    "VOTING_GERRIT_URL": "codereview.qt-project.org",
+    "VOTING_GERRIT_PORT": 443
+}

@@ -39,6 +39,7 @@ class webhookListener extends EventEmitter {
     super();
     this.logger = logger;
     this.requestProcessor = requestProcessor;
+    this.server = express()
 
     /* Holds objects describing events which should be emitted by
     receiveEvent.
@@ -142,12 +143,11 @@ class webhookListener extends EventEmitter {
   // Set up a server and start listening on a given port.
   startListening() {
     let _this = this;
-    let server = express();
-    server.use(express.json()); // Set Express to use JSON parsing by default.
-    server.enable("trust proxy", true);
+    _this.server.use(express.json()); // Set Express to use JSON parsing by default.
+    _this.server.enable("trust proxy", true);
 
     // Create a custom error handler for Express.
-    server.use(function (err, req, res, next) {
+    _this.server.use(function (err, req, res, next) {
       if (err instanceof SyntaxError) {
         // Send the bad request to gerrit admins so it can either be manually processed
         // or fixed if there's a bug.
@@ -193,17 +193,17 @@ class webhookListener extends EventEmitter {
 
     // Set up the listening endpoint
     _this.logger.log("Starting server.");
-    server.post("/gerrit-events", (req, res) => {
+    _this.server.post("/gerrit-events", (req, res) => {
       if (validateOrigin(req, res))
         _this.emit("newRequest", req.body);
     });
-    server.get("/status", (req, res) => _this.send_status(req, res));
-    server.get("/", (req, res) => res.send("Nothing to see here."));
+    _this.server.get("/status", (req, res) => _this.send_status(req, res));
+    _this.server.get("/", (req, res) => res.send("Nothing to see here."));
     portfinder
       .getPortPromise()
       .then((port) => {
         // `port` is guaranteed to be a free port in this scope.
-        server.listen(webhookPort);
+        _this.server.listen(webhookPort);
         _this.emit("serverStarted", `Server started listening on port ${webhookPort}`);
       })
       .catch((err) => {

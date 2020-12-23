@@ -26,6 +26,7 @@ logger.log(
 );
 
 const pool = new Pool(config);
+exports.pool = pool;
 
 pool.on("error", (err) => {
   // This should be non-critical. The database will clean up idle clients.
@@ -77,7 +78,8 @@ function insert(table, columns, values, callback) {
     valuecount_string = "$1,$2,$3,$4,$5,$6";
   else if (table == "retry_queue")
     valuecount_string = "$1,$2,$3";
-
+  else if (table == "governance_voting")
+    valuecount_string = "$1,$2,$3"
   const query = {
     name: `insert-row-${table}`,
     text: `INSERT INTO ${table}(${columns}) VALUES(${valuecount_string})`,
