@@ -50,8 +50,13 @@ class singleRequestManager {
     this.requestProcessor = requestProcessor;
     this.handleValidBranch = this.handleValidBranch.bind(this);
     this.requestProcessor.addListener(
-      "singleRequest_validBranchReadyForPick",
+      "singleRequest_validBranch",
       this.handleValidBranch
+    );
+    this.ltsTargetChecked = this.ltsTargetChecked.bind(this);
+    this.requestProcessor.addListener(
+      "singleRequest_ltsTargetChecked",
+      this.ltsTargetChecked
     );
     this.handleNewCherryPick = this.handleNewCherryPick.bind(this);
     this.requestProcessor.addListener("singleRequest_newCherryPick", this.handleNewCherryPick);
@@ -74,13 +79,21 @@ class singleRequestManager {
     );
     branches.forEach(function (branch) {
       _this.requestProcessor.emit(
-        "validateBranch", parentJSON, branch,
-        "singleRequest_validBranchReadyForPick"
+        "validateBranch", _this.requestProcessor.toolbox.deepCopy(parentJSON), branch,
+        "singleRequest_validBranch"
       );
     });
   }
 
   handleValidBranch(parentJSON, branch, newParentRev) {
+    let _this = this;
+    _this.requestProcessor.emit(
+      "checkLtsTarget", parentJSON, branch, newParentRev,
+      "singleRequest_ltsTargetChecked"
+    );
+  }
+
+  ltsTargetChecked(parentJSON, branch, newParentRev) {
     let _this = this;
     _this.requestProcessor.emit(
       "validBranchReadyForPick", parentJSON, branch, newParentRev,

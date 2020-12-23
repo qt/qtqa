@@ -46,10 +46,7 @@ const gerritTools = require("../../gerritRESTTools");
 const config = require("./config.json");
 
 function envOrConfig(ID) {
-  if (process.env[ID])
-    return process.env[ID];
-  else
-    return config[ID];
+  return process.env[ID] || config[ID];
 }
 
 class submodule_update_watcher {

@@ -47,9 +47,7 @@ const logger = new Logger();
 
 // Set default values with the config file, but prefer environment variable.
 function envOrConfig(ID) {
-  if (process.env[ID])
-    return process.env[ID];
-  return config[ID];
+  return process.env[ID] || config[ID];
 }
 
 let senderAddress = envOrConfig("EMAIL_SENDER");

@@ -40,6 +40,7 @@
 exports.id = "toolbox";
 
 const safeJsonStringify = require("safe-json-stringify");
+const v8 = require('v8');
 
 const postgreSQLClient = require("./postgreSQLClient");
 const Logger = require("./logger");
@@ -49,6 +50,12 @@ let dbSubStatusUpdateQueue = [];
 let dbSubStateUpdateLockout = false;
 let dbListenerCacheUpdateQueue = [];
 let dbListenerCacheUpdateLockout = false;
+
+// Deep copy an object. Useful for forking processing paths with different data
+// than originally entered the system.
+exports.deepCopy = function (obj) {
+  return v8.deserialize(v8.serialize(obj));
+}
 
 // Parse the commit message and return a raw list of branches to pick to.
 // Trust that the list of branches has been validated by Sanity bot.
@@ -173,7 +180,7 @@ function addToCherryPickStateUpdateQueue(
   } else {
     logger.log(
       `New state update request: State: ${newState}, Data: ${safeJsonStringify(branchData)}`,
-      "silly", parentUuid
+      "debug", parentUuid
     );
   }
   if (parentUuid && branchData && newState)
@@ -443,22 +450,24 @@ function setupListener(
 // branches for a given change is kept in a JSON blob within a single
 // cell on a given row for an origin revision.
 // Use the addToCherryPickStateUpdateQueue() function to queue updates.
+// NOTE: branches are sanitized by this operation:
+// "tqtc/lts-5.15" is written as simply "5.15" for better state tracking.
 function setDBSubState(uuid, branchdata, state, callback) {
+  let branch = /(?:tqtc\/lts-)?(.+)/.exec(branchdata.branch).pop()
   postgreSQLClient.query(
     "processing_queue", "cherrypick_results_json", "uuid", uuid, "=",
     function (success, rows) {
       if (success) {
         let newdata = decodeBase64toJSON(rows[0].cherrypick_results_json);
-        if (newdata[branchdata.branch] == undefined) {
-          newdata[branchdata.branch] = { state: state, targetParentRevision: branchdata.revision };
+        if (newdata[branch] == undefined) {
+          newdata[branch] = { state: state, targetParentRevision: branchdata.revision };
         } else {
           // Overwrite the target branch object with any new updates.
           for (let [key, value] of Object.entries(branchdata)) {
             if (key != "branch")
-              newdata[branchdata.branch][key] = value;
+              newdata[branch][key] = value;
           }
-
-          newdata[branchdata.branch]["state"] = state; // obsolete
+          newdata[branch]["state"] = state;
         }
         newdata = encodeJSONtoBase64(newdata);
         postgreSQLClient.update(
@@ -469,8 +478,8 @@ function setDBSubState(uuid, branchdata, state, callback) {
         );
       } else {
         logger.log(
-          `ERROR: Failed to update sub-state branch ${
-            branchdata.branch} on revision key ${branchdata.revision}. Raw error: ${rows}`,
+          `ERROR: Failed to update sub-state branch ${branch} on revision key ${
+            branchdata.revision}. Raw error: ${rows}`,
           "error", uuid
         );
       }

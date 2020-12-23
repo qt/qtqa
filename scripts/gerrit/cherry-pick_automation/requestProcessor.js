@@ -46,17 +46,16 @@ const gerritTools = require("./gerritRESTTools");
 const emailClient = require("./emailClient");
 const config = require("./config");
 
+function envOrConfig(ID) {
+  return process.env[ID] || config[ID];
+}
 class requestProcessor extends EventEmitter {
   constructor(logger, retryProcessor) {
     super();
     this.logger = logger;
     this.retryProcessor = retryProcessor;
+    this.toolbox = toolbox;
     // Set default values with the config file, but prefer environment variable.
-    function envOrConfig(ID) {
-      if (process.env[ID])
-        return process.env[ID];
-      return config[ID];
-    }
 
     this.adminEmail = envOrConfig("ADMIN_EMAIL");
     this.gerritURL = envOrConfig("GERRIT_URL");
@@ -160,7 +159,8 @@ class requestProcessor extends EventEmitter {
     );
   }
 
-  // Verify the target branch exists and call the response.
+  // Verify the target branch exists, and target private LTS branches if necessary,
+  // then call the response.
   validateBranch(incoming, branch, responseSignal) {
     let _this = this;
     _this.logger.log(`Validating branch ${branch}`, "debug", incoming.uuid);
@@ -169,38 +169,182 @@ class requestProcessor extends EventEmitter {
       "validateBranch"
     );
 
-    gerritTools.validateBranch(
-      incoming.uuid, incoming.change.project, branch, incoming.customGerritAuth,
-      function (success, data) {
-        if (success) {
-          _this.logger.log(`Branch ${branch} passed validation`, "debug", incoming.uuid);
-          _this.emit(responseSignal, incoming, branch, data);
-        } else if (data == "retry") {
-          _this.retryProcessor.addRetryJob(
-            incoming.uuid, "validateBranch",
-            [incoming, branch, responseSignal]
-          );
-        } else {
-          _this.logger.log(
-            `Branch validation failed for ${branch}. Reason: ${safeJsonStringify(data)}`,
-            "error", incoming.uuid
-          );
-          const message = `Failed to cherry pick to ${branch}.\nReason: ${branch} is invalid.`;
+    function done(responseSignal, incoming, branch, success, data, message) {
+      if (success) {
+        _this.emit(responseSignal, incoming, branch, data);
+      } else if (data == "retry") {
+        _this.retryProcessor.addRetryJob(
+          incoming.uuid, "validateBranch",
+          [incoming, branch, responseSignal]
+        );
+      } else {
+        // While the sanity bot should be warning about non-existent branches,
+        // it may occur that Pick-to: footers specify a closed branch by the time
+        // the change is merged. In this case, or if an lts branch fails to be created
+        // for an intended target branch, this error will occur and the appropriate
+        // error message will be posted to the original change, notifying the Owner.
+        _this.logger.log(
+          `Branch validation failed for ${branch}. Reason: ${safeJsonStringify(data)}`,
+          "error", incoming.uuid
+        );
+        if (message) {
           const notifyScope = "OWNER";
           _this.gerritCommentHandler(
             incoming.uuid, incoming.fullChangeID, undefined,
             message, notifyScope
           );
-          toolbox.addToCherryPickStateUpdateQueue(
-            incoming.uuid, { branch: branch, args: [], statusDetail: "" },
-            "done_invalidBranch",
-            function () {
-              toolbox.decrementPickCountRemaining(incoming.uuid);
+        }
+        toolbox.addToCherryPickStateUpdateQueue(
+          incoming.uuid, { branch: branch, args: [], statusDetail: "" },
+          "done_invalidBranch",
+          function () {
+            toolbox.decrementPickCountRemaining(incoming.uuid);
+          }
+        );
+      }
+    }
+
+    incoming.originalProject = incoming.change.project;
+    incoming.originalBranch = incoming.change.branch;
+
+    gerritTools.validateBranch(
+      incoming.uuid, incoming.change.project, branch, incoming.customGerritAuth,
+      function (success, data) {
+        if (success) {
+          _this.logger.log(
+            `Branch ${branch} exists. Checking if it's a private LTS.`,
+            "debug", incoming.uuid
+          );
+          gerritTools.checkAccessRights(
+            incoming.uuid, incoming.change.project, branch, envOrConfig("GERRIT_USER"), "push",
+            incoming.customGerritAuth, function (canPush, error) {
+              _this.logger.log(
+                `Access rights check for ${incoming.change.project}:${branch} returned ${canPush}.`,
+                "debug", incoming.uuid
+              );
+              if (canPush) {
+                _this.logger.log(`Using ${/tqtc\//.test(branch) ? "private": "public"} branch ${
+                  branch}.`, "verbose", incoming.uuid);
+                done(responseSignal, incoming, branch, success, data);
+              } else if (!/tqtc\//.test(branch) || !/tqtc-/.test(incoming.change.project)) {
+                _this.logger.log(`Checking if a private LTS branch exists`, "info", incoming.uuid);
+                let privateProject = incoming.change.project;
+                let privateBranch = branch;
+                if (!privateProject.includes("tqtc-")) {
+                  let projectSplit = privateProject.split('/');
+                  privateProject = projectSplit.slice(0, -1);
+                  privateProject.push(`tqtc-${projectSplit.slice(-1)}`);
+                  privateProject = privateProject.join('/');
+                }
+                if (!branch.includes("tqtc/lts-"))
+                  privateBranch = `tqtc/lts-${branch}`;
+
+                gerritTools.validateBranch(
+                  incoming.uuid, privateProject, privateBranch, incoming.customGerritAuth,
+                  function (success, data) {
+                    if (success) {
+                      gerritTools.checkAccessRights(
+                        incoming.uuid, privateProject, privateBranch,  envOrConfig("GERRIT_USER"),
+                        "push", incoming.customGerritAuth, function (canPushPrivate) {
+                          let message;
+                          if (canPushPrivate) {
+                            incoming.change.project = privateProject;
+                            incoming.change.branch = privateBranch;
+                          } else {
+                            _this.logger.log(
+                              `Unable to push to private branch ${privateBranch} in ${
+                                privateProject} because it is closed.`,
+                              "error", incoming.uuid
+                            );
+                            message = `Unable to cherry-pick this change to ${branch} or`
+                            + ` ${privateBranch} because the branch is closed for new changes.`
+                            + `\nIf you need this change in a closed branch, please contact the`
+                            + ` Releasing group to argue for inclusion: releasing@qt-project.org`;
+                          }
+                          done(responseSignal, incoming, incoming.change.branch, success, data, message);
+                        }
+                      );
+                    } else { // No private lts branch exists.
+                      _this.logger.log(
+                        `Unable to push to public branch ${branch} in ${
+                          incoming.change.project} because it is closed and no private LTS branch exists.`,
+                        "error", incoming.uuid
+                      );
+                      let message = `Unable to cherry-pick this change to ${branch} because the`
+                      + ` branch is closed for new changes.`
+                      + `\nIf you need this change in a closed branch, please contact the`
+                      + ` Releasing group to argue for inclusion: releasing@qt-project.org`;
+                      done(responseSignal, incoming, branch, success, data, message);
+                    }
+                  }
+                );
+              } else {
+                _this.logger.log(
+                  `Unable to push to branch ${branch} in ${incoming.change.project} because the`
+                  + ` branch is either closed or the bot user account does not have permissions`
+                  + ` to create changes there.`,
+                  "error", incoming.uuid
+                );
+                message = `Unable to cherry-pick this change to ${branch} or`
+                  + ` ${privateBranch} because the branch is closed for new changes.`
+                  + `\nIf you need this change in a closed branch, please contact the`
+                  + ` Releasing group to argue for inclusion: releasing@qt-project.org`;
+              }
+              done(responseSignal, incoming, branch, success, data, message);
             }
           );
+        } else {  // Invalid branch specified in Pick-to: footer or some other critical failure
+          let message = `Failed to cherry pick to ${incoming.change.project}:${
+            branch} due to an unknown problem with the target branch.\nPlease contact the gerrit admins.`;
+          done(responseSignal, incoming, branch, success, data, message)
         }
       }
     );
+  }
+
+  // Check the prospective cherry-pick branch for LTS. If it is to be picked to
+  // an lts branch, check to make sure the original change exists in the shadow repo.
+  // If it doesn't, set up an action to wait for replication.
+  checkLtsTarget(currentJSON, branch, branchHeadSha, responseSignal) {
+    let _this = this;
+    toolbox.addToCherryPickStateUpdateQueue(
+      currentJSON.uuid,
+      {
+        branch: branch,
+        args: [currentJSON, branch, branchHeadSha, responseSignal], statusDetail: ""
+      }, "checkLtsTarget"
+    );
+    if (! /^tqtc(?:%2F|\/)lts-/.test(currentJSON.change.branch)) {
+      _this.emit(responseSignal, currentJSON, branch, branchHeadSha);
+    } else {
+      _this.logger.log(
+        `Checking to see if ${currentJSON.patchSet.revision} has been replicated to ${
+          currentJSON.change.project} shadow repo yet`,
+        "info", currentJSON.uuid
+      );
+      gerritTools.queryProjectCommit(
+        currentJSON.uuid, currentJSON.change.project, currentJSON.patchSet.revision, currentJSON.customGerritAuth,
+        function (success, data) {
+          if (success) {
+            _this.logger.log(
+              `${currentJSON.patchSet.revision} is a valid ${currentJSON.change.project} target. Continuing.`,
+              "info", currentJSON.uuid
+            );
+            _this.emit(responseSignal, currentJSON, branch, branchHeadSha);
+          } else {
+            _this.logger.log(
+              `${currentJSON.patchSet.revision} hasn't been replicated yet. Waiting for it for 15 minutes.`,
+              "info", currentJSON.uuid
+            );
+            // Set a 15 minute timeout to check again. This process will be iterated so long as
+            // the target has not been replicated.
+            setTimeout(function () {
+              _this.emit("checkLtsTarget", currentJSON, branch, branchHeadSha, responseSignal)
+            }, 15 * 60 * 1000);
+          }
+        }
+      )
+    }
   }
 
   // From the current change, determine if the direct parent has a cherry-pick
@@ -252,7 +396,7 @@ class requestProcessor extends EventEmitter {
             function (exists, data) {
               if (exists) {
                 let targetPickParent = `${encodeURIComponent(currentJSON.change.project)}~${
-                  branch}~${data.change_id}`;
+                  encodeURIComponent(branch)}~${data.change_id}`;
                 _this.logger.log(
                   `Set target pick parent for ${branch} to ${targetPickParent}`,
                   "debug", currentJSON.uuid
@@ -281,7 +425,7 @@ class requestProcessor extends EventEmitter {
                     error: data.status,
                     unmergedChangeID: `${
                       encodeURIComponent(currentJSON.change.project)}~${
-                      data.branch}~${data.change_id}`,
+                      encodeURIComponent(data.branch)}~${data.change_id}`,
                     targetPickParent: targetPickParent, parentJSON: data, isRetry: isRetry
                   });
                 } else {
@@ -324,8 +468,7 @@ class requestProcessor extends EventEmitter {
                               errorSignal, currentJSON, branch,
                               {
                                 error: "notPicked",
-                                parentChangeID: `${encodeURIComponent(currentJSON.change.project)}~${
-                                  data.branch}~${data.change_id}`,
+                                parentChangeID: data.id,
                                 parentJSON: data, targetPickParent: targetPickParent, isRetry: isRetry
                               }
                             );
@@ -388,11 +531,11 @@ class requestProcessor extends EventEmitter {
       // We've reached the top of the chain and found no suitable parent.
       // Send the response signal with the target branch head.
       _this.logger.log(
-        `Using ${branch} head as the target pick parent`,
+        `Using ${branch} head as the target pick parent in ${currentJSON.change.project}`,
         "verbose", currentJSON.uuid
       );
       gerritTools.validateBranch(
-        currentJSON.uuid, currentJSON.project.name, branch, currentJSON.customGerritAuth,
+        currentJSON.uuid, currentJSON.change.project, branch, currentJSON.customGerritAuth,
         (success, branchHead) => {
           // This should never hard-fail since the branch is already
           // validated!
@@ -400,8 +543,8 @@ class requestProcessor extends EventEmitter {
         }
       );
     } else {
-      let targetPickParent = `${encodeURIComponent(currentJSON.change.project)}~${branch}~${
-        currentJSON.relatedChanges[positionInChain].change_id
+      let targetPickParent = `${encodeURIComponent(currentJSON.change.project)}~${
+        encodeURIComponent(branch)}~${currentJSON.relatedChanges[positionInChain].change_id
       }`;
       _this.logger.log(
         `Locating nearest parent in relation chain to ${currentJSON.fullChangeID}. Now trying: ${
@@ -702,7 +845,13 @@ class requestProcessor extends EventEmitter {
             _this.logger.log(
               `Failed to set change assignee "${safeJsonStringify(parentJSON.change.owner)}" on ${
                 cherryPickJSON.id}.\nReason: ${safeJsonStringify(data)}`,
-              "error", parentJSON.uuid
+              "warn", parentJSON.uuid
+            );
+            _this.gerritCommentHandler(
+              parentJSON.uuid, cherryPickJSON.id, undefined,
+              `Unable to add ${parentJSON.change.owner.email || parentJSON.change.owner.username
+              } as the assignee to this issue.\nReason: ${data}`,
+              "NONE"
             );
           }
         }
@@ -713,7 +862,7 @@ class requestProcessor extends EventEmitter {
           _this.gerritCommentHandler(
             parentJSON.uuid, cherryPickJSON.id, undefined,
             `INFO: This cherry-pick from your recently merged change on ${
-              parentJSON.change.branch} has conflicts.\nPlease review.`
+              parentJSON.originalBranch} has conflicts.\nPlease review.`
           );
           if (success && failedItems.length > 0) {
             _this.gerritCommentHandler(

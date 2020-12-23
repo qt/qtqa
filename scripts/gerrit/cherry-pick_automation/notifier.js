@@ -175,6 +175,11 @@ requestProcessor.on("validateBranch", (parentJSON, branch, responseSignal) => {
   requestProcessor.validateBranch(parentJSON, branch, responseSignal);
 });
 
+// Emitted when a branch needs to be checked against private lts branches.
+requestProcessor.on("checkLtsTarget", (currentJSON, branch, newParentRev, responseSignal) => {
+  requestProcessor.checkLtsTarget(currentJSON, branch, newParentRev, responseSignal);
+});
+
 // Emitted when a cherry pick is dependent on another cherry pick.
 requestProcessor.on("verifyParentPickExists", (parentJSON, branch, responseSignal, errorSignal, isRetry) => {
   requestProcessor.verifyParentPickExists(parentJSON, branch, responseSignal, errorSignal, isRetry);

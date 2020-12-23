@@ -56,9 +56,7 @@ const config = require("./config.json");
 
 // Set default values with the config file, but prefer environment variable.
 function envOrConfig(ID) {
-  if (process.env[ID])
-    return process.env[ID];
-  return config[ID];
+  return process.env[ID] || config[ID];
 }
 
 let webhookPort = envOrConfig("WEBHOOK_PORT");
@@ -102,7 +100,8 @@ class webhookListener extends EventEmitter {
     req["uuid"] = uuidv1(); // used for tracking and database access.
     if (req.change) {
       req["fullChangeID"] =
-        `${encodeURIComponent(req.change.project)}~${req.change.branch}~${req.change.id}`;
+        `${encodeURIComponent(req.change.project)}~${encodeURIComponent(req.change.branch)}~${
+          req.change.id}`;
       _this.logger.log(`Event ${req.type} received on ${req.fullChangeID}`, "verbose");
     }
 

@@ -49,9 +49,7 @@ const Logger = require("../../logger");
 const logger = new Logger();
 
 function envOrConfig(ID) {
-  if (process.env[ID])
-    return process.env[ID];
-  return config[ID];
+  return process.env[ID] || config[ID];
 }
 
 let gerritURL = envOrConfig("GERRIT_URL");
