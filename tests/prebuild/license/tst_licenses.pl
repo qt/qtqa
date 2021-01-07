@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 #############################################################################
 ##
-## Copyright (C) 2020 The Qt Company Ltd.
+## Copyright (C) 2021 The Qt Company Ltd.
 ## Contact: https://www.qt.io/licensing/
 ##
 ## This file is part of the test suite of the Qt Toolkit.
@@ -604,6 +604,9 @@ sub run
 
     # Get module name without the preceding path
     $moduleName = defined($optModuleName) ? $optModuleName : basename($QT_MODULE_TO_TEST);
+
+    # Remove possible 'tqtc-' prefix from the module name
+    substr($moduleName, 0, 5, "") if (index($moduleName,"tqtc-") == 0);
 
     # Skip the test (and return success) if we don't want to scan this module
 
