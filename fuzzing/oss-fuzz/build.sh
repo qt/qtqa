@@ -37,6 +37,7 @@ zip -j $WORK/cbor $SRC/qtqa/fuzzing/testcases/cbor/*
 zip -j $WORK/html $SRC/qtqa/fuzzing/testcases/html/*
 zip -j $WORK/images $SRC/qtqa/fuzzing/testcases/{bmp,gif,jpg,svg,xbm,xpm}/* $SRC/afl/testcases/images/*/*
 zip -j $WORK/markdown $SRC/qtqa/fuzzing/testcases/markdown/*
+zip -j $WORK/regexp.zip $SRC/qtqa/fuzzing/testcases/regexp/*
 zip -j $WORK/ssl.pem.zip $SRC/qtqa/fuzzing/testcases/ssl.pem/*
 zip -j $WORK/svg $SRC/qtqa/fuzzing/testcases/svg/*
 zip -j $WORK/text $SRC/qtqa/fuzzing/testcases/text/* $SRC/afl/testcases/others/text/*
@@ -73,7 +74,7 @@ build_fuzzer "qtbase" "corelib/serialization/qcborstreamreader/next/next.pro" "c
 build_fuzzer "qtbase" "corelib/serialization/qcborvalue/fromcbor/fromcbor.pro" "cbor"
 build_fuzzer "qtbase" "corelib/serialization/qtextstream/extractionoperator-float/extractionoperator-float.pro" "text"
 build_fuzzer "qtbase" "corelib/serialization/qxmlstream/qxmlstreamreader/readnext/readnext.pro" "xml" "$SRC/afl/dictionaries/xml.dict"
-build_fuzzer "qtbase" "corelib/text/qregularexpression/optimize/optimize.pro" "" "$SRC/afl/dictionaries/regexp.dict"
+build_fuzzer "qtbase" "corelib/text/qregularexpression/optimize/optimize.pro" "regexp" "$SRC/afl/dictionaries/regexp.dict"
 build_fuzzer "qtbase" "corelib/tools/qcryptographichash/result/result.pro"
 build_fuzzer "qtbase" "gui/image/qimage/loadfromdata/loadfromdata.pro" "images"
 build_fuzzer "qtbase" "gui/painting/qcolorspace/fromiccprofile/fromiccprofile.pro"
