@@ -48,16 +48,16 @@ public:
     bool isDisplayOpen() const;
 
     // Count: Number of toplevels, 1 for normal apps, 2 for apps with a splash screen
-    QString waitForTopLevelWindow(unsigned count, Q_PID pid, int timeOutMS, QString *errorMessage);
-    bool sendCloseEvent(const QString &winId, Q_PID pid, QString *errorMessage);
+    QString waitForTopLevelWindow(unsigned count, qint64 pid, int timeOutMS, QString *errorMessage);
+    bool sendCloseEvent(const QString &winId, qint64 pid, QString *errorMessage);
 
 protected:
     WindowManager();
 
     virtual bool openDisplayImpl(QString *errorMessage);
     virtual bool isDisplayOpenImpl() const;
-    virtual QString waitForTopLevelWindowImpl(unsigned count, Q_PID pid, int timeOutMS, QString *errorMessage);
-    virtual bool sendCloseEventImpl(const QString &winId, Q_PID pid, QString *errorMessage);
+    virtual QString waitForTopLevelWindowImpl(unsigned count, qint64 pid, int timeOutMS, QString *errorMessage);
+    virtual bool sendCloseEventImpl(const QString &winId, qint64 pid, QString *errorMessage);
 };
 
 #endif // WINDOWMANAGER_H
