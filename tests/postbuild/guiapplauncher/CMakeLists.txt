@@ -28,4 +28,6 @@ qt_internal_extend_target(tst_guiapplauncher CONDITION WIN32
 qt_internal_extend_target(tst_guiapplauncher CONDITION QT_FEATURE_xlib # special case
     DEFINES
         Q_WS_X11
+    PUBLIC_LIBRARIES
+        X11
 )

@@ -185,9 +185,9 @@ public:
 protected:
     bool isDisplayOpenImpl() const override;
     bool openDisplayImpl(QString *errorMessage) override;
-    QString waitForTopLevelWindowImpl(unsigned count, Q_PID, int timeOutMS,
+    QString waitForTopLevelWindowImpl(unsigned count, qint64, int timeOutMS,
                                       QString *errorMessage) override;
-    bool sendCloseEventImpl(const QString &winId, Q_PID pid,
+    bool sendCloseEventImpl(const QString &winId, qint64 pid,
                             QString *errorMessage) override;
 
 private:
@@ -232,7 +232,7 @@ bool X11_WindowManager::openDisplayImpl(QString *errorMessage)
     return true;
 }
 
-QString X11_WindowManager::waitForTopLevelWindowImpl(unsigned count, Q_PID, int timeOutMS, QString *errorMessage)
+QString X11_WindowManager::waitForTopLevelWindowImpl(unsigned count, qint64, int timeOutMS, QString *errorMessage)
 {
     const Window w = waitForTopLevelMapped(m_display, count, timeOutMS, errorMessage);
     if (w == 0)
@@ -240,7 +240,7 @@ QString X11_WindowManager::waitForTopLevelWindowImpl(unsigned count, Q_PID, int 
     return QLatin1String("0x") + QString::number(w, 16);
 }
 
- bool X11_WindowManager::sendCloseEventImpl(const QString &winId, Q_PID, QString *errorMessage)
+ bool X11_WindowManager::sendCloseEventImpl(const QString &winId, qint64, QString *errorMessage)
  {
      // Get win id
      bool ok;
@@ -310,9 +310,9 @@ QString X11_WindowManager::waitForTopLevelWindowImpl(unsigned count, Q_PID, int 
  protected:
      bool isDisplayOpenImpl() const override;
      bool openDisplayImpl(QString *errorMessage) override;
-     QString waitForTopLevelWindowImpl(unsigned count, Q_PID, int timeOutMS,
+     QString waitForTopLevelWindowImpl(unsigned count, qint64, int timeOutMS,
                                       QString *errorMessage) override;
-     virtual bool sendCloseEventImpl(const QString &winId, Q_PID pid,
+     virtual bool sendCloseEventImpl(const QString &winId, qint64 pid,
                                      QString *errorMessage) override;
 
  private:
@@ -367,7 +367,7 @@ static BOOL CALLBACK findProcessWindowEnumWindowProc(HWND hwnd, LPARAM lParam)
     return TRUE;
 }
 
-QString Win_WindowManager::waitForTopLevelWindowImpl(unsigned /* count */, Q_PID pid, int timeOutMS, QString *errorMessage)
+QString Win_WindowManager::waitForTopLevelWindowImpl(unsigned /* count */, qint64 pid, int timeOutMS, QString *errorMessage)
 {
     QElapsedTimer elapsed;
     elapsed.start();
@@ -392,7 +392,7 @@ QString Win_WindowManager::waitForTopLevelWindowImpl(unsigned /* count */, Q_PID
     return QString();
 }
 
-bool Win_WindowManager::sendCloseEventImpl(const QString &winId, Q_PID, QString *errorMessage)
+bool Win_WindowManager::sendCloseEventImpl(const QString &winId, qint64, QString *errorMessage)
 {
     // Convert window back.
     quintptr winIdIntPtr;
@@ -449,7 +449,7 @@ bool WindowManager::isDisplayOpen() const
 
 
 
-QString WindowManager::waitForTopLevelWindow(unsigned count, Q_PID pid, int timeOutMS, QString *errorMessage)
+QString WindowManager::waitForTopLevelWindow(unsigned count, qint64 pid, int timeOutMS, QString *errorMessage)
 {
     if (!isDisplayOpen()) {
         *errorMessage = msgNoDisplayOpen();
@@ -458,7 +458,7 @@ QString WindowManager::waitForTopLevelWindow(unsigned count, Q_PID pid, int time
     return waitForTopLevelWindowImpl(count, pid, timeOutMS, errorMessage);
 }
 
-bool WindowManager::sendCloseEvent(const QString &winId, Q_PID pid, QString *errorMessage)
+bool WindowManager::sendCloseEvent(const QString &winId, qint64 pid, QString *errorMessage)
 {
     if (!isDisplayOpen()) {
         *errorMessage = msgNoDisplayOpen();
@@ -479,13 +479,13 @@ bool WindowManager::isDisplayOpenImpl() const
     return false;
 }
 
-QString WindowManager::waitForTopLevelWindowImpl(unsigned, Q_PID, int, QString *errorMessage)
+QString WindowManager::waitForTopLevelWindowImpl(unsigned, qint64, int, QString *errorMessage)
 {
     *errorMessage = QLatin1String("Not implemented.");
     return QString();
 }
 
-bool WindowManager::sendCloseEventImpl(const QString &, Q_PID, QString *errorMessage)
+bool WindowManager::sendCloseEventImpl(const QString &, qint64, QString *errorMessage)
 {
     *errorMessage = QLatin1String("Not implemented.");
     return false;
