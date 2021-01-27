@@ -313,11 +313,7 @@ func (batch *ModuleUpdateBatch) clearStateCommit(gerrit *gerritInstance) error {
 		return fmt.Errorf("Error determining %s repo URL: %s", batch.Product, err)
 	}
 
-	if gerrit.pushUserName != "" {
-		pushURL.User = url.User(gerrit.pushUserName)
-	}
-
-	targetRef := "refs/personal/" + pushURL.User.Username() + "/state/" + batch.Branch
+	targetRef := "refs/personal/qt_submodule_update_bot/state/" + batch.Branch
 
 	log.Printf("Clearing batch state at %s\n", targetRef)
 

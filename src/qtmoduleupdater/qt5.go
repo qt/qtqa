@@ -88,6 +88,8 @@ func listSubmodules(repo Repository, repoURL *url.URL, commit OID) (modules map[
 		if status, ok := values["status"]; ok {
 			if status == "ignore" {
 				continue
+			} else if status == "additionalLibrary" {
+				continue
 			}
 		} else if initRepo, ok := values["initrepo"]; ok {
 			if initRepo != "true" {
