@@ -35,7 +35,7 @@ VERBOSE=1 cmake --build . --parallel
 # prepare corpus files
 zip -j $WORK/cbor $SRC/qtqa/fuzzing/testcases/cbor/*
 zip -j $WORK/html $SRC/qtqa/fuzzing/testcases/html/*
-zip -j $WORK/images $SRC/qtqa/fuzzing/testcases/{bmp,gif,jpg,svg,xbm,xpm}/* $SRC/afl/testcases/images/*/*
+zip -j $WORK/images $SRC/qtqa/fuzzing/testcases/{bmp,gif,ico,jpg,svg,xbm,xpm}/* $SRC/afl/testcases/images/*/*
 zip -j $WORK/markdown $SRC/qtqa/fuzzing/testcases/markdown/*
 zip -j $WORK/regexp.zip $SRC/qtqa/fuzzing/testcases/regexp/*
 zip -j $WORK/ssl.pem.zip $SRC/qtqa/fuzzing/testcases/ssl.pem/*
