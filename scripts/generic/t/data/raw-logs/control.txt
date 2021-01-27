@@ -1,2 +1,0 @@
-This is a fake build log.
-parse_build_log.pl should never be able to extract anything from this.
