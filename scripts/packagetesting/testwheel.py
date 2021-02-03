@@ -28,6 +28,7 @@
 # ############################################################################
 
 
+from argparse import ArgumentParser, RawTextHelpFormatter
 import os
 import subprocess
 import sys
@@ -120,8 +121,15 @@ def test_pyinstaller(example):
 
 
 if __name__ == "__main__":
-    do_pyinst = True
-    if sys.version_info[0] < 3:  # Note: PyInstaller no longer supports Python 2
+    parser = ArgumentParser(description='Qt for Python package tester',
+                            formatter_class=RawTextHelpFormatter)
+    parser.add_argument('--no-pyinstaller', '-p', action='store_true',
+                        help='Skip pyinstaller test')
+
+    options = parser.parse_args()
+    do_pyinst = not options.no_pyinstaller
+
+    if do_pyinst and sys.version_info[0] < 3:  # Note: PyInstaller no longer supports Python 2
         print('PyInstaller requires Python 3, test disabled')
         do_pyinst = False
     root = None
@@ -146,12 +154,14 @@ if __name__ == "__main__":
     for e in examples():
         run_example(root_ex, e)
 
-    if has_pyinstaller():
-        if test_pyinstaller(os.path.join(root_ex, PYINSTALLER_EXAMPLE)):
-            print("\nPyInstaller test successful")
-        else:
-            print("\nProblem running PyInstaller")
-            sys.exit(1)
+    if not do_pyinst:
+        sys.exit(0)
+    if not has_pyinstaller():
+        print('PyInstaller not found, skipping test')
+        sys.exit(0)
+
+    if test_pyinstaller(os.path.join(root_ex, PYINSTALLER_EXAMPLE)):
+        print("\nPyInstaller test successful")
     else:
-        if do_pyinst:
-            print('PyInstaller not found, skipping test')
+        print("\nProblem running PyInstaller")
+        sys.exit(1)
