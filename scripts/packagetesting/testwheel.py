@@ -47,7 +47,10 @@ VERSION = -1
 def examples():
     """Compile a list of examples to be tested"""
     result = ['widgets/mainwindows/mdi/mdi.py']
-    if VERSION < 6:
+    if VERSION >= 6:
+        result.extend(['declarative/extending/chapter5-listproperties/listproperties.py',
+                       '3d/simple3d.py'])
+    else:
         result.extend(['opengl/hellogl.py',
                        'multimedia/player.py',
                        'charts/donutbreakdown.py',
