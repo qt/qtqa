@@ -57,6 +57,12 @@ build_fuzzer() {
     mkdir build_fuzzer
     cd build_fuzzer
     $WORK/qtbase/bin/qmake $SRC/qt/$module/tests/libfuzzer/$proFilePath
+
+    # insert wanted compilers and linker into Makefile
+    sed -i -e "s,^CC .*,CC = $CC,g" Makefile
+    sed -i -e "s,^CXX .*,CXX = $CXX,g" Makefile
+    sed -i -e "s,^LINK .*,LINK = $CXX,g" Makefile
+
     make -j$(nproc)
 
     mv $exeName $OUT/$targetName
