@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Copyright (C) 2019 The Qt Company Ltd.
+# Copyright (C) 2021 The Qt Company Ltd.
 # Contact: https://www.qt.io/licensing/
 #
 # You may use this file under the terms of the 3-clause BSD license.
@@ -89,14 +89,23 @@ def get_repo_name(repo: git.Repo) -> str:
     return os.path.basename(repo.working_dir)
 
 class QtBranching:
-    def __init__(self, mode: Mode, fromBranch: str, toBranch: str, pretend: bool, skip_hooks: bool, repos: typing.Optional[typing.List[str]]) -> None:
+    def __init__(self,
+                 mode: Mode,
+                 fromBranch: str,
+                 fromVersion: str,
+                 toBranch: str,
+                 pretend: bool,
+                 skip_hooks: bool,
+                 repos: typing.Optional[typing.List[str]]
+                 ) -> None:
         self.mode = mode
         self.fromBranch = fromBranch
+        self.fromVersion = fromVersion
         self.toBranch = toBranch
         self.pretend = pretend
         self.skip_hooks = skip_hooks
         self.repos = repos
-        log.info(f"{self.mode.name} from '{self.fromBranch}' to '{self.toBranch}'")
+        log.info(f"{mode.name} from '{fromVersion} (on {fromBranch})' to '{toBranch}'")
 
     def subprocess_or_pretend(self, *args: typing.Any, **kwargs: typing.Any) -> None:
         if self.pretend:
@@ -165,23 +174,20 @@ class QtBranching:
             os.chdir(oldpath)
 
     def sanity_check(self) -> None:
-        assert os.path.exists('qt.pro'), "This script must be run in an existing qt5.git checkout."
-
-        if self.mode == Mode['sync']:
-            return
-
-        if self.fromBranch == 'dev':
-            assert is_major_minor(self.toBranch), "Branching from dev must be to a minor version (a.b)"
-        elif is_major_minor_patch(self.fromBranch):
-            assert False, "Cannot branch from release branch"
-        elif is_major_minor(self.fromBranch):
-            assert is_major_minor_patch(self.toBranch) and self.toBranch.startswith(self.fromBranch + '.'), \
-                "Branching from x.y should result in x.y.z."
-        else:
-            assert False, f"Branching from {self.fromBranch} is not (yet) handled by this script."
-
         if self.mode == Mode['bump']:
-            assert is_major_minor_patch(self.toBranch), "Bumping must happen to a new minor version!"
+            assert self.fromVersion, "'--version' not set!"
+            assert is_major_minor_patch(self.toBranch), \
+                   "Bumping must happen to a new minor version!"
+        elif self.mode == Mode['branch']:
+            if self.fromBranch == 'dev':
+                assert is_major_minor(self.toBranch), \
+                       f"Branching from dev must be to a minor version (a.b no {self.toBranch})"
+            elif is_major_minor_patch(self.fromBranch):
+                assert False, f"Cannot branch from release branch ({self.fromBranch})"
+            elif is_major_minor(self.fromBranch):
+                assert is_major_minor_patch(self.toBranch) \
+                and self.toBranch.startswith(self.fromBranch + '.'), \
+                    f"Branching from x.y ({self.fromBranch}) should result in x.y.z (not {self.toBranch})"
 
     def init_repository(self) -> None:
         log.info(f"Fetching super module...")
@@ -281,31 +287,45 @@ class QtBranching:
         except Exception as e:
             log.exception(f"Could not sync repository: {repo_name}")
 
+    def version_bump(self, file: str, pattern: str, repo: str) -> bool:
+        with open(file, mode='r', encoding='utf-8') as f:
+            content = f.read()
+
+        match = re.search(pattern, content, flags = re.MULTILINE)
+        if match is not None:
+            if match.group(1) != self.fromVersion:
+                log.warning(f"--version ({self.fromVersion}) differs the one ({match.group(1)}) parsed from {file}, SKIPPING")
+                return False
+            log.info(f"bump {repo}:{file} from {self.fromVersion} to {self.toBranch}")
+            i, j = match.span(1)
+            with open(file, mode='w', encoding='utf-8') as f:
+                f.write(content[:i] + self.toBranch + content[j:])
+            return True
+
+        log.warning(f"could not read version in {repo}, {file}, SKIPPING")
+        return False
+
     def version_bump_repo(self, repo: git.Repo) -> None:
-        qmake_conf_file_name = '.qmake.conf'
-        with open(qmake_conf_file_name, mode='r', encoding='utf-8') as qmake_conf:
-            qmake_conf_content = qmake_conf.read()
-        match = re.search(r'^MODULE_VERSION *= *([0-9\.]+)\b.*', qmake_conf_content, flags=re.MULTILINE)
         repo_name = get_repo_name(repo)
-        if not match:
-            log.warning(f"could not read version in {repo_name}")
-            return
-        version = match.group(1)
-        qmake_conf_content = re.sub(
-            r'^MODULE_VERSION *= *[0-9\.]+.*$',
-            f'MODULE_VERSION = {self.toBranch}',
-            qmake_conf_content, flags=re.MULTILINE)
-        with open(qmake_conf_file_name, mode='w', encoding='utf-8') as qmake_conf:
-            qmake_conf.write(qmake_conf_content)
-
-        log.info(f"bump {repo_name} from {version} to {self.toBranch}")
-
-        files = [qmake_conf_file_name]
+        bumpers = {
+        '.qmake.conf': r'^MODULE_VERSION *= *([0-9\.]+)\b.*',
+        '.cmake.conf': r'^^set\(QT_REPO_MODULE_VERSION "([0-9.]+)"\)$',
+        'conanfile.py': r'^ +version = "([0-9.]+)"$'
+        }
+        if repo_name == 'qtbase':
+            bumpers.update({'util/cmake/pro2cmake.py': r'set\(QT_REPO_MODULE_VERSION "([0-9.]+)"\)'})
+        bumped_files = [] # type: List[str]
+        for file, pattern in bumpers.items():
+            try:
+                if self.version_bump(file, pattern, repo_name):
+                    bumped_files.append(file)
+            except FileNotFoundError:
+                log.info(f"{repo_name}, {file} does not exist, SKIPPING")
 
         if repo_name == 'qtbase':
-            files.extend(self.bump_qtbase_datastream())
+            bumped_files.extend(self.bump_qtbase_datastream())
 
-        repo.git.add(files)
+        repo.git.add(bumped_files)
         if not repo.is_dirty():
             log.warning(f"nothing to do for {repo_name}, is the version bump already done?")
             return
@@ -325,7 +345,7 @@ class QtBranching:
         self.subprocess_or_pretend(['git', 'push', 'gerrit', f'HEAD:refs/heads/{branch}', f'HEAD:refs/staging/{branch}'])
 
     def bump_qtbase_datastream(self) -> typing.Iterable[str]:
-        if self.fromBranch.split('.')[1] == self.toBranch.split('.')[1]:
+        if self.fromVersion.split('.')[1] == self.toBranch.split('.')[1]:
             return []
         # For minor version changes we need to change qdatastream,
         # it has a version enum that must correspond to the Qt minor version:
@@ -377,9 +397,11 @@ def parse_args() -> argparse.Namespace:
                                         branch_qt.py -m merge --from 5.12 --to 5.12.4
                                             Merges 5.12 into 5.12.4.
                                     bump - version bump, to move from 5.12.3 to 5.12.4:
-                                        branch_qt.py -m bump --from 5.12 --to 5.12.4"""))
+                                        branch_qt.py -m bump --from dev --version 5.12.0 --to 5.13.0"""))
     parser.add_argument("--from", "-f", required=True,
                         type=str, dest="fromBranch")
+    parser.add_argument("--version", "-v", required=False,
+                        type=str, dest="fromVersion")
     parser.add_argument("--to", "-t", required=True,
                         type=str, dest="toBranch")
     parser.add_argument("--pretend", action="store_true",
@@ -409,7 +431,13 @@ if __name__ == "__main__":
         if not args.pretend:
             gerrit_add_pushmaster()
 
-        branching = QtBranching(mode=Mode[args.mode], fromBranch=args.fromBranch, toBranch=args.toBranch, pretend=args.pretend, skip_hooks=args.skip_hooks, repos=args.repos)
+        branching = QtBranching(mode=Mode[args.mode],
+                                fromBranch=args.fromBranch,
+                                fromVersion=args.fromVersion,
+                                toBranch=args.toBranch,
+                                pretend=args.pretend,
+                                skip_hooks=args.skip_hooks,
+                                repos=args.repos)
         branching.run()
     finally:
         if not args.pretend:
