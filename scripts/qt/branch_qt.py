@@ -365,8 +365,8 @@ class QtBranching:
         next_next_version_hex = f'{int(split_target[0]):02x}{int(split_target[1])+1:02x}00'
 
         # Add new version to enum and bump up the hex version in #ifdef
-        search = f'^(#if QT_VERSION >= 0x){next_version_hex}\\n(#error [^\\n]+\\n#endif\\n( +)Qt_DefaultCompiledVersion = Qt_)[0-9_]+$'
-        replacement = f'\\g<3>Qt_{nextver} = Qt_{ver},\\n\\g<1>{next_next_version_hex}\\n\\g<2>{nextver}'
+        search = f'^( +)(Qt_DefaultCompiledVersion = Qt_)[0-9_]+\\n(#if QT_VERSION >= 0x){next_version_hex}(\\n#error [^\\n]+\\n#endif)$'
+        replacement = f'\\g<1>Qt_{nextver} = Qt_{ver},\\n\\g<1>\\g<2>{nextver}\\n\\g<3>{next_next_version_hex}\\g<4>'
         datastream_h_content = re.sub(search, replacement, datastream_h_content, flags=re.MULTILINE)
         open(datastream_h, mode='w', encoding='utf-8').write(datastream_h_content)
 
@@ -374,7 +374,7 @@ class QtBranching:
         datastream_cpp_content = open(datastream_cpp, mode='r', encoding='utf-8').read()
 
         # Add Documentation (a line like '\value Qt_5_12 Same as Qt_5_11')
-        search = f'^( +)(\\\\value Qt_{ver} Version[^\n]+\n)( +\\\\omitvalue Qt_DefaultCompiledVersion)$'
+        search = f'^( +)(\\\\value Qt_{ver} [^\n]+\n)( +\\\\omitvalue Qt_DefaultCompiledVersion)$'
         replacement = f'\\1\\2\\1\\\\value Qt_{nextver} Same as Qt_{ver}\n\\3'
         datastream_cpp_content = re.sub(search, replacement, datastream_cpp_content, flags=re.MULTILINE)
 
