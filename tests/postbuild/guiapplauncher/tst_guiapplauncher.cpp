@@ -275,7 +275,13 @@ tst_GuiAppLauncher::TestDataEntries tst_GuiAppLauncher::testData() const
 {
     TestDataEntries rc;
     const QChar slash = QLatin1Char('/');
+
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    const QString binPath = QLibraryInfo::path(QLibraryInfo::BinariesPath) + slash;
+#else
     const QString binPath = QLibraryInfo::location(QLibraryInfo::BinariesPath) + slash;
+#endif
+
     const QString path = qgetenv("QT_MODULE_TO_TEST");
 
     AppLaunchData data;
@@ -299,7 +305,7 @@ tst_GuiAppLauncher::TestDataEntries tst_GuiAppLauncher::testData() const
             rc += exampleData(m_examplePriority, path, examples, examples.size());
         }
     }
-    qDebug("Running %d tests...", rc.size());
+    qDebug("Running %d tests...", int(rc.size()));
     return rc;
 }
 
