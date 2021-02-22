@@ -81,7 +81,11 @@ void tst_Symbols::initTestCase()
     if (!modules.size())
         QSKIP("No modules found.");
 
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    qtLibDir = QLibraryInfo::path( QLibraryInfo::LibrariesPath );
+#else
     qtLibDir = QLibraryInfo::location( QLibraryInfo::LibrariesPath );
+#endif
     QFileInfo qtLibDirInfo(qtLibDir);
     QVERIFY2(qtLibDirInfo.isDir(), qPrintable(
         QString("QLibraryInfo::LibrariesPath `%1' %2\nIs your build complete and installed?")
