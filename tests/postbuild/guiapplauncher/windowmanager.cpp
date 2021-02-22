@@ -341,7 +341,7 @@ struct FindProcessWindowEnumContext {
 static inline bool isQtMainWindow(HWND hwnd)
 {
     static char buffer[MAX_PATH];
-    if (!GetClassNameA(hwnd, buffer, MAX_PATH) || qstrcmp(buffer, "QWidget"))
+    if (!GetClassNameA(hwnd, buffer, MAX_PATH) || qstrncmp(buffer, "Qt", 2))
         return false;
     WINDOWINFO windowInfo;
     if (!GetWindowInfo(hwnd, &windowInfo))
@@ -349,8 +349,8 @@ static inline bool isQtMainWindow(HWND hwnd)
     if (!(windowInfo.dwWindowStatus & WS_ACTIVECAPTION))
         return false;
     // Check the style for a real mainwindow
-    const DWORD excluded = WS_DISABLED | WS_POPUP;
-    const DWORD required = WS_CAPTION | WS_SYSMENU | WS_VISIBLE;    
+    const DWORD excluded = WS_DISABLED;
+    const DWORD required = WS_CAPTION | WS_SYSMENU | WS_VISIBLE;
     return (windowInfo.dwStyle & excluded) == 0
             && (windowInfo.dwStyle & required) == required;
 }
@@ -367,12 +367,36 @@ static BOOL CALLBACK findProcessWindowEnumWindowProc(HWND hwnd, LPARAM lParam)
     return TRUE;
 }
 
+class ScopedHandle
+{
+public:
+    explicit ScopedHandle(HANDLE h) : m_handle(h) {}
+    ~ScopedHandle() { CloseHandle(m_handle); }
+    operator HANDLE() const { return m_handle; }
+
+    ScopedHandle(const ScopedHandle &) = delete;
+    ScopedHandle &operator=(const ScopedHandle &) = delete;
+
+private:
+    const HANDLE m_handle;
+};
+
 QString Win_WindowManager::waitForTopLevelWindowImpl(unsigned /* count */, qint64 pid, int timeOutMS, QString *errorMessage)
 {
+    const auto processId = DWORD(pid);
+    const ScopedHandle hProcess(OpenProcess(PROCESS_QUERY_INFORMATION, FALSE,
+                                            processId));
+     if (hProcess == nullptr) {
+         const int errorCode = GetLastError();
+         qErrnoWarning(errorCode, "OpenProcess() failed (error %d).", errorCode);
+         *errorMessage = QString::fromLatin1("OpenProcess()");
+         return QString();
+     }
+
     QElapsedTimer elapsed;
     elapsed.start();
     // First, wait until the application is up
-    if (WaitForInputIdle(pid->hProcess, timeOutMS) != 0) {
+    if (WaitForInputIdle(hProcess, timeOutMS) != 0) {
         *errorMessage = QString::fromLatin1("WaitForInputIdle time out after %1ms").arg(timeOutMS);
         return QString();
     }
@@ -382,13 +406,14 @@ QString Win_WindowManager::waitForTopLevelWindowImpl(unsigned /* count */, qint6
     const int attempts = 10;
     const int intervalMilliSeconds = remainingMilliSeconds / attempts;
     for (int a = 0; a < attempts; a++) {
-        FindProcessWindowEnumContext context(pid->dwProcessId);
+        FindProcessWindowEnumContext context(processId);
         EnumWindows(findProcessWindowEnumWindowProc, reinterpret_cast<LPARAM>(&context));
         if (context.window)
             return QLatin1String("0x") + QString::number(reinterpret_cast<quintptr>(context.window), 16);
         QThread::msleep(intervalMilliSeconds);
     }
-    *errorMessage = QString::fromLatin1("Unable to find toplevel of process %1 after %2ms.").arg(pid->dwProcessId).arg(timeOutMS);
+    *errorMessage = QString::fromLatin1("Unable to find toplevel of process %1 after %2ms.")
+                    .arg(pid).arg(timeOutMS);
     return QString();
 }
 
