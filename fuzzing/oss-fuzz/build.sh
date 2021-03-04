@@ -35,6 +35,7 @@ VERBOSE=1 cmake --build . --parallel
 # prepare corpus files
 zip -j $WORK/cbor $SRC/qtqa/fuzzing/testcases/cbor/*
 zip -j $WORK/html $SRC/qtqa/fuzzing/testcases/html/*
+zip -j $WORK/icc $SRC/qtqa/fuzzing/testcases/icc/*
 zip -j $WORK/images $SRC/qtqa/fuzzing/testcases/{bmp,gif,ico,jpg,png,svg,xbm,xpm}/* $SRC/afltestcases/images/*/*
 zip -j $WORK/markdown $SRC/qtqa/fuzzing/testcases/markdown/*
 zip -j $WORK/regexp.zip $SRC/qtqa/fuzzing/testcases/regexp/*
@@ -83,7 +84,7 @@ build_fuzzer "qtbase" "corelib/serialization/qxmlstream/qxmlstreamreader/readnex
 build_fuzzer "qtbase" "corelib/text/qregularexpression/optimize/optimize.pro" "regexp" "$SRC/afldictionaries/regexp.dict"
 build_fuzzer "qtbase" "corelib/tools/qcryptographichash/result/result.pro"
 build_fuzzer "qtbase" "gui/image/qimage/loadfromdata/loadfromdata.pro" "images"
-build_fuzzer "qtbase" "gui/painting/qcolorspace/fromiccprofile/fromiccprofile.pro" "" "$SRC/afldictionaries/iccprofile.dict"
+build_fuzzer "qtbase" "gui/painting/qcolorspace/fromiccprofile/fromiccprofile.pro" "icc" "$SRC/afldictionaries/iccprofile.dict"
 build_fuzzer "qtbase" "gui/text/qtextdocument/sethtml/sethtml.pro" "html" "$SRC/afldictionaries/html_tags.dict"
 build_fuzzer "qtbase" "gui/text/qtextdocument/setmarkdown/setmarkdown.pro" "markdown" "$SRC/afldictionaries/markdown.dict"
 build_fuzzer "qtbase" "gui/text/qtextlayout/beginlayout/beginlayout.pro" "text"
