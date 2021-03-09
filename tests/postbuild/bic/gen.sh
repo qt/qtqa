@@ -51,7 +51,7 @@ fi
 
 for module in $modules; do
     echo "#include <$module/$module>" >test.cpp
-    g++ -c -std=c++11 -I$QTDIR/include -DQT_NO_STL $DUMP_CMDLINE -fPIC test.cpp
+    g++ -c -std=c++17 -I$QTDIR/include -DQT_NO_STL $DUMP_CMDLINE -fPIC test.cpp
     mv test.cpp*.class $module.$2.txt
     # Remove template classes from the output
     perl -pi -e '$skip = 1 if (/^(Class|Vtable).*</);
