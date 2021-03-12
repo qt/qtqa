@@ -62,13 +62,13 @@ def read_file(file_name):
 def is_compile_error(line):
     """
     Return whether a line is an error from one of the common compilers
-    (g++, MSVC, Python) or from make
+    (g++, MSVC, Python)
     """
-    if any(e in line for e in (": error: ", ": error C", 'ERROR')):
+    if any(e in line for e in (": error: ", ": error C", "SyntaxError:", "NameError:")):
         # Ignore error messages in debug output
         # and also ignore the final ERROR building message, as that one would only print sccache
         # output
-        if not ("QDEBUG" in line or "QWARN" in line or "ERROR building: exit status 8" in line):
+        if not ("QDEBUG" in line or "QWARN" in line):
             logging.debug(f"===> Found error in line \n{line}\n")
             return True
     has_error = make_error_re.match(line)
