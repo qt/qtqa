@@ -47,6 +47,7 @@ prefix_re = re.compile(r'^agent:[\d :/]+\w+\.go:\d+: (\d+: )?')
 # Match QTestlib output
 start_test_re = re.compile(r'^\*{9} Start testing of \w+ \*{9}$')
 end_test_re = re.compile(r'Totals: \d+ passed, (\d+) failed, \d+ skipped, \d+ blacklisted, \d+ms')
+end_test_crash_re = re.compile(r'\d+/\d+\sTest\s#\d+:.*\*\*\*Failed.*')
 make_error_re = re.compile(r'make\[.*Error \d+$')
 
 
@@ -87,7 +88,7 @@ def print_failed_test(lines, start, end):
     print('\n{}: {}'.format(start, lines[start]))
     for i in range(start + 1, end):
         line = lines[i]
-        if 'FAIL!' in line or 'XPASS' in line:
+        if 'FAIL!' in line or 'XPASS' or '***Failed' in line:
             last_fail = i
         if i - last_fail < 4:
             print(line)
@@ -116,6 +117,10 @@ def parse(lines):
                 fails = int(end_match.group(1))
                 if fails:
                     print_failed_test(lines, test_start_line, i)
+                test_start_line = -1
+            elif end_test_crash_re.match(line):
+                logging.debug(f"===> test crashed {line} {test_start_line} {i}")
+                print_failed_test(lines, test_start_line, i)
                 test_start_line = -1
         # Do not report errors within configuration tests
         elif line == 'Running configuration tests...':
