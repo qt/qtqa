@@ -135,6 +135,11 @@ class JiraCloser:
         if not fix_version:
             return 'unknown version', {}
 
+        # sanitize fix version to use public version names only.
+        for prefix in ('tqtc/lts-',):
+            if fix_version.startswith(prefix):
+                fix_version = fix_version[len(prefix):]
+
         jira_versions = self._jira_version_list(issue)
         version_id = self._guess_fix_version(fix_version, jira_versions)
         if not version_id:
