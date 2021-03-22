@@ -190,6 +190,10 @@ my %optionalFiles = (
                           # This directory is a copy of a 3rdparty library
                           qr{^src/assistant/lib/fulltextsearch/},
                         ],
+    'qtscxml'        => [
+                          # Don't expect license headers in patch files
+                          qr{^tools/qscxmlc/moc_patches/.*\.patch$},
+                        ],
     'pyside-setup'   => [
                           qr{docs/conf.py},
                           qr{docs/make.bat},
