@@ -535,7 +535,21 @@ class requestProcessor extends EventEmitter {
                       statusDetail: "stageEligibilityCheckWaitParent"
                     }, "stageEligibilityCheck"
                   );
+                  // Stop processing this request and consider it done.
+                  // If further processing is needed, the caller should
+                  // handle the error signal as needed.
                   _this.emit(errorSignal, originalRequestJSON, cherryPickJSON, data.id, data.status);
+                  toolbox.addToCherryPickStateUpdateQueue(
+                    originalRequestJSON.uuid,
+                    {
+                      branch: cherryPickJSON.branch,
+                      statusDetail: data.status
+                    },
+                    "done_waitParent",
+                    function () {
+                      toolbox.decrementPickCountRemaining(originalRequestJSON.uuid);
+                    }
+                  );
                 } else {
                 // Uh-oh! The parent is in some other status like ABANDONED! This
                 // is bad, and shouldn't happen, since it was a cherry-pick. It's
@@ -638,7 +652,7 @@ class requestProcessor extends EventEmitter {
             incoming.uuid,
             {
               branch: branch, statusCode: "",
-              statusDetail: "Unknown HTTP error. Contact the Administrator.", args: []
+              statusDetail: "Unknown HTTP error. Contact the gerrit admins at gerrit-admin@qt-project.org", args: []
             },
             "done_pickFailed",
             function () {
@@ -809,7 +823,7 @@ class requestProcessor extends EventEmitter {
             `INFO: The Cherry-Pick bot was unable to automatically approve this change. Please review.\nReason:${
               data
                 ? safeJsonStringify(data, undefined, 4)
-                : "Unknown error. Please contact the gerrit admins."
+                : "Unknown error. Please contact the gerrit admins at gerrit-admin@qt-project.org"
             }`,
             "OWNER"
           );
@@ -882,7 +896,7 @@ class requestProcessor extends EventEmitter {
             `INFO: The cherry-pick bot failed to automatically stage this change to CI. Please try to stage it manually.\n\nContact gerrit administration if you continue to experience issues.\n\nReason: ${
               data
                 ? safeJsonStringify(data, undefined, 4)
-                : "Unknown error. Please contact the gerrit admins."
+                : "Unknown error. Please contact the gerrit admins at gerrit-admin@qt-project.org"
             }`,
             "OWNER"
           );

@@ -141,7 +141,7 @@ class startupStateRecovery extends EventEmitter {
                 jsonData[listenerData][0] = _this.requestProcessor;
               // set up the listener with a flag that denotes that it was restored.
               // This suppresses the initial gerrit comments.
-              jsonData[listenerData].push([true]);
+              jsonData[listenerData].push(true);
               toolbox.setupListener.apply(this, jsonData[listenerData]);
             }
           }

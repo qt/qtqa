@@ -269,8 +269,14 @@ function setupListener(
   // Event listeners should be unique and never called from different
   // places in the application, so there's no need to worry about
   // updating the listener with new data.
-  if (source.eventNames().includes(listenerEvent))
+  if (source.eventNames().includes(listenerEvent)) {
+    logger.log(
+      `Ignoring listener setup request: ${
+        source.constructor.name} already has a listener for ${listenerEvent}`,
+      "info", originalChangeUuid
+    );
     return;
+  }
 
   if (!isRestoredListener || logger.levels[logger.level] >= logger.levels["debug"])
     logger.log(`Requested listener setup of ${listenerEvent}`, "info", originalChangeUuid);
@@ -290,6 +296,13 @@ function setupListener(
     newTimeout -= elapsed;
     // If the listener has 5000 ms or less remaining, delete it.
     if (newTimeout < 5000) {
+      // Post a comment if the nearly expired listener should, as long as it's not expired yet.
+      if (newTimeout > 0 && messageOnTimeout && !messageTriggerEvent) {
+        source.emit(
+          "postGerritComment", originalChangeUuid, messageChangeId, undefined, messageOnTimeout,
+          "OWNER"
+        );
+      }
       logger.log(
         `Recovered listener is stale: ${
           listenerEvent}. Not restoring it, and deleting it from the database.`,
@@ -302,13 +315,6 @@ function setupListener(
         undefined,
         undefined, originalChangeUuid, false
       );
-      // If the nearly expired listener should post a comment, do so.
-      if (messageOnTimeout && !messageTriggerEvent) {
-        source.emit(
-          "postGerritComment", originalChangeUuid, messageChangeId, undefined, messageOnTimeout,
-          "OWNER"
-        );
-      }
       // Do not execute the rest of the listener setup.
       return;
     }
@@ -514,7 +520,7 @@ function updateDBListenerCache(
       undefined, undefined, undefined,
       undefined, undefined,
       undefined,
-      undefined, undefined, undefined, undefined, undefined, true
+      undefined, undefined, undefined, undefined, true
     );
   }
 

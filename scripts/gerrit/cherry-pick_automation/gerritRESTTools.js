@@ -65,7 +65,7 @@ let gerritAuth = {
 // Assemble the gerrit URL, and tack on http/https if it's not already
 // in the URL. Add the port if it's non-standard, and assume https
 // if the port is anything other than port 80.
-let gerritResolvedURL = /^(http)s?:\/\//g.test(gerritURL)
+let gerritResolvedURL = /^https?:\/\//g.test(gerritURL)
   ? gerritURL
   : `${gerritPort == 80 ? "http" : "https"}://${gerritURL}`;
 gerritResolvedURL += gerritPort != 80 && gerritPort != 443 ? ":" + gerritPort : "";
@@ -73,6 +73,18 @@ gerritResolvedURL += gerritPort != 80 && gerritPort != 443 ? ":" + gerritPort : 
 // Return an assembled url to use as a base for requests to gerrit.
 function gerritBaseURL(api, id) {
   return `${gerritResolvedURL}/a/${api}/${id}`;
+}
+
+// Trim )]}' off of a gerrit response. This magic prefix in the response
+// from gerrit helpts to prevent against XSSI attacks and will
+// always be included in a genuine response from gerrit.
+// See https://gerrit-review.googlesource.com/Documentation/rest-api.html
+exports.trimResponse = trimResponse;
+function trimResponse(response) {
+  if (response.startsWith(")]}'"))
+    return response.slice(4);
+  else
+    return response;
 }
 
 // Make a REST API call to gerrit to cherry pick the change to a requested branch.
@@ -105,7 +117,7 @@ function generateCherryPick(changeJSON, parent, destinationBranch, customAuth, c
         changeJSON.uuid, { branch: destinationBranch, statusDetail: "pickCreated" },
         "validBranchReadyForPick"
       );
-      let parsedResponse = JSON.parse(response.data.slice(4));
+      let parsedResponse = JSON.parse(trimResponse(response.data));
       toolbox.addToCherryPickStateUpdateQueue(
         changeJSON.uuid,
         { branch: destinationBranch, cherrypickID: parsedResponse.id, statusDetail: "pickCreated" },
@@ -297,7 +309,7 @@ exports.validateBranch = function (parentUuid, project, branch, customAuth, call
   axios.get(url, { auth: customAuth || gerritAuth })
     .then(function (response) {
       // Execute callback with the target branch head SHA1 of that branch
-      callback(true, JSON.parse(response.data.slice(4)).revision);
+      callback(true, JSON.parse(trimResponse(response.data)).revision);
     })
     .catch(function (error) {
       if (error.response) {
@@ -334,7 +346,7 @@ exports.queryRelated = function (parentUuid, fullChangeID, customAuth, callback)
     .then(function (response) {
       // Execute callback and return the list of changes
       logger.log(`Raw Response:\n${response.data}`, "debug", parentUuid);
-      callback(true, JSON.parse(response.data.slice(4)).changes);
+      callback(true, JSON.parse(trimResponse(response.data)).changes);
     })
     .catch(function (error) {
       if (error.response) {
@@ -372,7 +384,7 @@ exports.queryChange = function (parentUuid, fullChangeID, fields, customAuth, ca
     .then(function (response) {
       // Execute callback and return the list of changes
       logger.log(`Raw response: ${response.data}`, "debug", parentUuid);
-      callback(true, JSON.parse(response.data.slice(4)));
+      callback(true, JSON.parse(trimResponse(response.data)));
     })
     .catch(function (error) {
       if (error.response) {
@@ -460,7 +472,7 @@ function getChangeReviewers(parentUuid, fullChangeID, customAuth, callback) {
       logger.log(`Raw Response: ${response.data}`, "debug", parentUuid);
       // Execute callback with the target branch head SHA1 of that branch
       let reviewerlist = [];
-      JSON.parse(response.data.slice(4)).forEach(function (item) {
+      JSON.parse(trimResponse(response.data)).forEach(function (item) {
         // Email as user ID is preferred. If unavailable, use the bare username.
         if (item.email)
           reviewerlist.push(item.email);
