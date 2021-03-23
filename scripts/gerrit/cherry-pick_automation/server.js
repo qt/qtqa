@@ -41,7 +41,7 @@
 const express = require("express");
 const EventEmitter = require("events");
 const net = require("net");
-const uuidv1 = require("uuid/v1");
+const uuidv1 = require("uuidv1");
 const portfinder = require("portfinder");
 
 const postgreSQLClient = require("./postgreSQLClient");

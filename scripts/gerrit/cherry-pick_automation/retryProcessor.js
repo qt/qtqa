@@ -39,7 +39,7 @@
  ****************************************************************************/
 
 const EventEmitter = require("events");
-const uuidv1 = require("uuid/v1");
+const uuidv1 = require("uuidv1");
 
 const postgreSQLClient = require("./postgreSQLClient");
 const toolbox = require("./toolbox");
