@@ -90,10 +90,36 @@ def run_example(root, path):
     print('{} returned {}\n\n'.format(path, exit_code))
 
 
-def has_pyinstaller():
-    """Checks for PyInstaller"""
+def has_module(name):
+    """Checks for a module"""
     code, lines = run_process([sys.executable, "-m", "pip", "list"])
-    return any(line.lower().startswith("pyinstaller") for line in lines)
+    for l in lines:
+        tokens = l.split(' ')
+        if len(tokens) >= 1 and tokens[0] == name:
+            return True
+    return False
+
+
+def test_cxfreeze(example):
+    name = os.path.splitext(os.path.basename(example))[0]
+    print('Running CxFreeze test of {}'.format(name))
+    current_dir = os.getcwd()
+    result = False
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        try:
+            os.chdir(tmpdirname)
+            cmd = ['cxfreeze', example]
+            execute(cmd)
+            binary = os.path.join(tmpdirname, 'dist', name)
+            if sys.platform == "win32":
+                binary += '.exe'
+            execute([binary])
+            result = True
+        except RuntimeError as e:
+            print(str(e))
+        finally:
+            os.chdir(current_dir)
+    return result
 
 
 def test_pyinstaller(example):
@@ -156,12 +182,24 @@ if __name__ == "__main__":
 
     if not do_pyinst:
         sys.exit(0)
-    if not has_pyinstaller():
-        print('PyInstaller not found, skipping test')
-        sys.exit(0)
 
-    if test_pyinstaller(os.path.join(root_ex, PYINSTALLER_EXAMPLE)):
-        print("\nPyInstaller test successful")
+    if VERSION >= 6:
+        if not has_module('cx-Freeze'):
+            print('cx_Freeze not found, skipping test')
+            sys.exit(0)
+
+        if test_cxfreeze(os.path.join(root_ex, PYINSTALLER_EXAMPLE)):
+            print("\ncx_Freeze test successful")
+        else:
+            print("\nProblem running cx_Freeze")
+            sys.exit(1)
     else:
-        print("\nProblem running PyInstaller")
-        sys.exit(1)
+        if not has_module('PyInstaller'):
+            print('PyInstaller not found, skipping test')
+            sys.exit(0)
+
+        if test_pyinstaller(os.path.join(root_ex, PYINSTALLER_EXAMPLE)):
+            print("\nPyInstaller test successful")
+        else:
+            print("\nProblem running PyInstaller")
+            sys.exit(1)
