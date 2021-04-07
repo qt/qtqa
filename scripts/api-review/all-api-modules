@@ -128,6 +128,21 @@ examples), assuming qtqa/scripts/api-review is in your PATH:
  Examine residual diff (should all be boring):
  $ $ME -r api-review-$LAST-$NEXT git diff -b -D
 
+ If any of that isn't boring, you can git add -p the relevant files
+ and git commit --amend to include the non-boring parts of the files.
+ In such a case, it is a good idea to work out why resetboring.py
+ thought it was boring and fix it, if possible, to avoid similar
+ errors in future.
+
+ When doing an amend, git fetch the currently live patch-set of the
+ review in each sub-module (sadly not something we can automate with
+ this script) and also git diff -b -D FETCH_HEAD HEAD - if others have
+ added files to the review (as can happen with private headers that
+ define QML API), they'll show up in this diff. You need to check such
+ files out on $NEXT and add them to the newly amended commit. You can
+ run resetboring.py (without --disclaim) to unstage any boring changes
+ to such files, before committing such additions.
+
  Clear away residual diff (after verifying it's all boring):
  $ $ME -r api-review-$LAST-$NEXT git reset --hard HEAD
 
