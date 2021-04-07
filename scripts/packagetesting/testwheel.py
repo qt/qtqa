@@ -39,7 +39,8 @@ import tempfile
 Qt Package testing script for testing Qt for Python wheels
 """
 
-PYINSTALLER_EXAMPLE = 'widgets/widgets/tetrix.py'
+PYINSTALLER_EXAMPLE_6 = 'widgets/tetrix/tetrix.py'
+PYINSTALLER_EXAMPLE_2 = 'widgets/widgets/tetrix.py'
 
 
 VERSION = -1
@@ -188,7 +189,7 @@ if __name__ == "__main__":
             print('cx_Freeze not found, skipping test')
             sys.exit(0)
 
-        if test_cxfreeze(os.path.join(root_ex, PYINSTALLER_EXAMPLE)):
+        if test_cxfreeze(os.path.join(root_ex, PYINSTALLER_EXAMPLE_6)):
             print("\ncx_Freeze test successful")
         else:
             print("\nProblem running cx_Freeze")
@@ -198,7 +199,7 @@ if __name__ == "__main__":
             print('PyInstaller not found, skipping test')
             sys.exit(0)
 
-        if test_pyinstaller(os.path.join(root_ex, PYINSTALLER_EXAMPLE)):
+        if test_pyinstaller(os.path.join(root_ex, PYINSTALLER_EXAMPLE_2)):
             print("\nPyInstaller test successful")
         else:
             print("\nProblem running PyInstaller")
