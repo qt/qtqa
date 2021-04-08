@@ -116,6 +116,10 @@ my %excludedFiles = (
                           qr{^sources/shiboken\d/.*\.1}, # Man pages (removed in 5.13)
                           qr{^sources/pyside2-tools/.*$},
                           qr{^sources/pyside\d/doc/.*\.py$} # Sphinx
+                        ],
+    'qtscxml'        => [
+                          # Don't expect license headers in patch files
+                          qr{^tools/qscxmlc/moc_patches/.*\.patch$},
                         ]
 );
 
@@ -189,10 +193,6 @@ my %optionalFiles = (
                           qr{^src/assistant/clucene/},
                           # This directory is a copy of a 3rdparty library
                           qr{^src/assistant/lib/fulltextsearch/},
-                        ],
-    'qtscxml'        => [
-                          # Don't expect license headers in patch files
-                          qr{^tools/qscxmlc/moc_patches/.*\.patch$},
                         ],
     'pyside-setup'   => [
                           qr{docs/conf.py},
