@@ -78,6 +78,29 @@ build_fuzzer() {
     rm -r build_fuzzer
 }
 
+build_fuzzer_cmake() {
+    local module=$1
+    local srcDir="$2"
+    local format=${3-""}
+    local dictionary=${4-""}
+    local exeName="${srcDir##*/}"
+    local targetName="${module}_${srcDir//\//_}"
+    mkdir build_fuzzer
+    cd build_fuzzer
+    cmake -S "$SRC/qt/$module/tests/libfuzzer/$srcDir" -GNinja -DCMAKE_BUILD_TYPE:STRING=Release -DCMAKE_PREFIX_PATH:STRING="$WORK/qtbase"
+    VERBOSE=1 cmake --build . --parallel
+
+    mv "$exeName" "$OUT/$targetName"
+    if [ -n "$format" ]; then
+        cp "$WORK/$format.zip" "$OUT/${targetName}_seed_corpus.zip"
+    fi
+    if [ -n "$dictionary" ]; then
+        cp "$dictionary" "$OUT/$targetName.dict"
+    fi
+    cd ..
+    rm -r build_fuzzer
+}
+
 build_fuzzer "qtbase" "corelib/serialization/qcborstreamreader/next/next.pro" "cbor"
 build_fuzzer "qtbase" "corelib/serialization/qcborvalue/fromcbor/fromcbor.pro" "cbor"
 build_fuzzer "qtbase" "corelib/serialization/qtextstream/extractionoperator-float/extractionoperator-float.pro" "text"
@@ -91,4 +114,4 @@ build_fuzzer "qtbase" "gui/text/qtextdocument/sethtml/sethtml.pro" "html" "$SRC/
 build_fuzzer "qtbase" "gui/text/qtextdocument/setmarkdown/setmarkdown.pro" "markdown" "$SRC/afldictionaries/markdown.dict"
 build_fuzzer "qtbase" "gui/text/qtextlayout/beginlayout/beginlayout.pro" "text"
 build_fuzzer "qtbase" "network/ssl/qsslcertificate/qsslcertificate/pem/pem.pro" "ssl.pem"
-build_fuzzer "qtsvg" "svg/qsvgrenderer/render/render.pro" "svg" "$SRC/afldictionaries/svg.dict"
+build_fuzzer_cmake "qtsvg" "svg/qsvgrenderer/render" "svg" "$SRC/afldictionaries/svg.dict"
