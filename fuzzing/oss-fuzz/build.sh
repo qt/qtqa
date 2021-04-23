@@ -29,7 +29,7 @@ sed -i -e "s/QMAKE_CXXFLAGS_RTTI_OFF    = -fno-rtti/QMAKE_CXXFLAGS_RTTI_OFF    =
 
 # build project
 cd $WORK
-MAKEFLAGS=-j$(nproc) $SRC/qt/configure -qt-libmd4c -platform linux-clang-libc++ -release -static -opensource -confirm-license -no-opengl -nomake tests -nomake examples -prefix $PWD/qtbase -D QT_NO_DEPRECATED_WARNINGS
+$SRC/qt/configure -qt-libmd4c -platform linux-clang-libc++ -release -static -opensource -confirm-license -no-opengl -prefix $PWD/qtbase -D QT_NO_DEPRECATED_WARNINGS
 VERBOSE=1 cmake --build . --parallel
 
 # prepare corpus files
