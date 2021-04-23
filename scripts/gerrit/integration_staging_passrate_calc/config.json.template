@@ -1,0 +1,8 @@
+{
+  "GERRIT_URL": "https://codereview.qt-project.org",
+  "GERRIT_USERNAME": "",
+  "GERRIT_PASSWORD": "",
+  "INFLUXDB_URL": "https://testresults.qt.io/influxdb",
+  "INFLUXDB_USERNAME": "",
+  "INFLUXDB_PASSWORD": ""
+}
