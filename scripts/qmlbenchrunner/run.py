@@ -46,7 +46,7 @@ import requests
 import json
 import platform
 
-HOSTNAME = "testresults.qt.io:443/influxdb"
+HOSTNAME = "testresults.qt.io/influxdb"
 
 def submit_output(output, branch, hardwareId):
     tree = json.loads(output)

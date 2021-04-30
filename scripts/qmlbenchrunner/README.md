@@ -91,7 +91,7 @@ Python3 is set in the PATH environment variable used by Jenkins scripts.
 
 ### Embedded ###
 The build_and_test_embedded.sh script is intended to be used with a Jenkins host, but can be used
-on it' own. The script file will need to be modifed based on your specific environment as detailed
+on it' own. The script file will need to be modified based on your specific environment as detailed
 below.
 
 Terminology for this section:
@@ -110,21 +110,27 @@ Terminology for this section:
     2) Update the user and IP of the host in order to pass the results.json file back from the
         client.
 
-    Required host configuration:
+    Qt5 Required host configuration (customize for your target device):
 
         DEVMKSPEC=linux-imx6-g++
         DEVNAME=apalis-imx6
         CROSSCOMPILE=x86_64-pokysdk-linux/usr/bin/arm-poky-linux-gnueabi/arm-poky-linux-gnueabi-
         ARMSYSROOT=cortexa9hf-neon-poky-linux-gnueabi
-        DEVIP=x.x.x.x
+        DEVIP=IP of the target device to execute the tests on.
+
+    Qt6 Required host configuration:
+        CMAKE_GENERATOR="Unix Makefiles"
+        LB_TOOLCHAIN: Full path of the Boot2Qt sdk toolchain to use when cross-compiling.
+        TOOLCHAIN_FILE: Full path of the cmake toolchain file to use when cross-compiling.
+        DEVIP: IP of the target device to execute the tests on.
 
     Running the script:
 
-    **build_and_test_embedded.sh arguments are strictly positional. Do not skip arguments that are
+    **build_and_test_embedded_[qt5|qt6].sh arguments are strictly positional. Do not skip arguments that are
     required.**
 
         Args:
-            QtVersion (required) | MachineName (required) | BuildCores (required) |
+            QtVersion (required) | MachineName (required) | BuildCores (required for qt5, omit in qt6) |
             Annotate (required, set to "False" if not desired) |
             QtDeclarativeVersion (optional, leave missing if same as main QtVersion)
 
@@ -133,5 +139,5 @@ Terminology for this section:
     Required client configuration:
     1) Verify that at least 1GB of free space exists on the client.
 
-    NB! This script will wipe out /opt/qt on the client if there is insufficient space on the
-    device. Verify that this directory does not contain anything you want to keep.
+    NB! This script will wipe out /opt/qt on the device. Verify that this directory does not
+    contain anything you want to keep.
