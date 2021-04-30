@@ -87,7 +87,7 @@ build_fuzzer_cmake() {
     local targetName="${module}_${srcDir//\//_}"
     mkdir build_fuzzer
     cd build_fuzzer
-    cmake -S "$SRC/qt/$module/tests/libfuzzer/$srcDir" -GNinja -DCMAKE_BUILD_TYPE:STRING=Release -DCMAKE_PREFIX_PATH:STRING="$WORK/qtbase"
+    $WORK/qtbase/bin/qt-cmake -S "$SRC/qt/$module/tests/libfuzzer/$srcDir" -GNinja
     VERBOSE=1 cmake --build . --parallel
 
     mv "$exeName" "$OUT/$targetName"
