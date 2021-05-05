@@ -43,15 +43,37 @@ PYINSTALLER_EXAMPLE_6 = 'widgets/tetrix/tetrix.py'
 PYINSTALLER_EXAMPLE_2 = 'widgets/widgets/tetrix.py'
 
 
-VERSION = -1
+VERSION = (0, 0, 0)
+
+
+def get_pyside_version_from_import():
+    """Determine the exact Qt version by importing."""
+    qversion_string = None
+    try:
+        from PySide6.QtCore import qVersion
+        qversion_string = qVersion()
+    except ImportError:
+        try:
+            from PySide2.QtCore import qVersion
+            qversion_string = qVersion()
+        except ImportError:
+            print('Unable to determine PySide version; could not import any version',
+                  file=sys.stderr)
+    if qversion_string:
+        major, minor, patch = qVersion().split('.')
+        return int(major), int(minor), int(patch)
+    return 0, 0, 0
 
 
 def examples():
     """Compile a list of examples to be tested"""
     result = ['widgets/mainwindows/mdi/mdi.py']
-    if VERSION >= 6:
+    if VERSION[0] >= 6:
         result.extend(['declarative/extending/chapter5-listproperties/listproperties.py',
                        '3d/simple3d/simple3d.py'])
+        if VERSION[1] >= 1:
+            result.extend(['examples/charts/chartthemes/main.py',
+                           'examples/datavisualization/bars3d/bars3d.py'])
     else:
         result.extend(['opengl/hellogl.py',
                        'multimedia/player.py',
@@ -156,20 +178,24 @@ if __name__ == "__main__":
     options = parser.parse_args()
     do_pyinst = not options.no_pyinstaller
 
+    VERSION = get_pyside_version_from_import()
     if do_pyinst and sys.version_info[0] < 3:  # Note: PyInstaller no longer supports Python 2
         print('PyInstaller requires Python 3, test disabled')
         do_pyinst = False
     root = None
+    path_version = 0
     for p in sys.path:
         if os.path.basename(p) == 'site-packages':
             root = os.path.join(p, 'PySide6')
             if os.path.exists(root):
-                VERSION = 6
+                path_version = 6
             else:
                 root = os.path.join(p, 'PySide2')
-                VERSION = 2
+                path_version = 2
             root_ex = os.path.join(root, 'examples')
             break
+    if VERSION[0] == 0:
+        VERSION[0] == path_version
     if not root or not os.path.exists(root):
         print('Could not locate any PySide module.')
         sys.exit(1)
@@ -184,7 +210,11 @@ if __name__ == "__main__":
     if not do_pyinst:
         sys.exit(0)
 
-    if VERSION >= 6:
+    if VERSION >= (6, 1, 0):
+        print("Launching Qt Designer. Please check the custom widgets.")
+        execute([f'pyside{VERSION[0]}-designer'])
+
+    if VERSION[0] >= 6:
         if not has_module('cx-Freeze'):
             print('cx_Freeze not found, skipping test')
             sys.exit(0)
