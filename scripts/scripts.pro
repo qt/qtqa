@@ -19,8 +19,6 @@ linux* {
     check.commands = $$check.commands --clean
 }
 
-linux-*:system(". /etc/lsb-release && [ $DISTRIB_CODENAME = precise ]"):CONFIG+=insignificant_test # QTQAINFRA-708
-
 # There are deliberately no SUBDIRS, this project should do nothing except
 # override `check'
 QMAKE_EXTRA_TARGETS += check
