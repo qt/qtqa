@@ -72,8 +72,8 @@ def examples():
         result.extend(['declarative/extending/chapter5-listproperties/listproperties.py',
                        '3d/simple3d/simple3d.py'])
         if VERSION[1] >= 1:
-            result.extend(['examples/charts/chartthemes/main.py',
-                           'examples/datavisualization/bars3d/bars3d.py'])
+            result.extend(['charts/chartthemes/main.py',
+                           'datavisualization/bars3d/bars3d.py'])
     else:
         result.extend(['opengl/hellogl.py',
                        'multimedia/player.py',
@@ -196,6 +196,7 @@ if __name__ == "__main__":
             break
     if VERSION[0] == 0:
         VERSION[0] == path_version
+    print('Detected Qt version ', VERSION)
     if not root or not os.path.exists(root):
         print('Could not locate any PySide module.')
         sys.exit(1)
