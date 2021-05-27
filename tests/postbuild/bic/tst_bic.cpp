@@ -459,7 +459,11 @@ void tst_Bic::sizesAndVTables_data()
         QString key = keys.at(i);
         for (int i = 0; i <= minor; ++i) {
             if (i != minor || patch) {
+#if QT_VERSION >= 0x060000
+                QTest::newRow(key.toLatin1() + ":6." + QByteArray::number(i))
+#else
                 QTest::newRow(key.toLatin1() + ":5." + QByteArray::number(i))
+#endif
                     << key
                     << (QString(qtModuleDir + "/tests/auto/bic/data/%1.")
                         + QString::number(major)
