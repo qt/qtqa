@@ -343,6 +343,8 @@ tst_Bic::tst_Bic(const char *appFilePath)
     /* this class is not used in a way that requires its size to be stable,
        but it has grown between releases */
     bic.addBlacklistedClass(QLatin1String("QBindingStatus"));
+    /* don't bic-test Vulkan types */
+    bic.addBlacklistedClass(QLatin1String("Vk*"));
 }
 
 void tst_Bic::initTestCase()
