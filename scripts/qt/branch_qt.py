@@ -26,12 +26,18 @@ import git  # type: ignore
 
 Mode = Enum('Mode', 'branch sync merge bump')
 
-extra_repositories = (
+qt5_extra_repositories = (
     'qt/qtcoap',
     'qt/qtknx',
     'qt/qtmqtt',
     'qt/qtopcua',
+    'qt/qtdeviceutilities',
 )
+
+qt6_extra_repositories = (
+    'qt/qtdeviceutilities',
+)
+
 
 skipped_submodules = ('qtqa', 'qtrepotools')
 
@@ -88,6 +94,15 @@ def is_major_minor_patch(version: str) -> bool:
 def get_repo_name(repo: git.Repo) -> str:
     return os.path.basename(repo.working_dir)
 
+def versionCompare(version1: str, version2: str):
+    def normalize(v):
+        return [int(x) for x in re.sub(r'(\.0+)*$', '',v).split(".")]
+
+    def cmp(a, b):
+        return (a > b) - (a < b)
+
+    return cmp(normalize(version1), normalize(version2))
+
 class QtBranching:
     def __init__(self,
                  mode: Mode,
@@ -105,6 +120,14 @@ class QtBranching:
         self.pretend = pretend
         self.skip_hooks = skip_hooks
         self.repos = repos
+
+        # Additional repositories that are not part of qt5.git:
+        # use qt5_extra_repositories For Qt 5.x.y, otherwise use qt6 one(also for dev)
+        if versionCompare(self.toBranch, "6.0") >= 0:
+            self.extra_repositories = qt6_extra_repositories
+        else:
+            self.extra_repositories = qt5_extra_repositories
+
         log.info(f"{mode.name} from '{fromVersion} (on {fromBranch})' to '{toBranch}'")
 
     def subprocess_or_pretend(self, *args: typing.Any, **kwargs: typing.Any) -> None:
@@ -123,8 +146,7 @@ class QtBranching:
                 self.process_repository(repo_path)
         else:
             self.process_qt5_repositories()
-            # Additional repositories that are not part of qt5.git:
-            for repo_path in extra_repositories:
+            for repo_path in self.extra_repositories:
                 self.process_repository(repo_path)
 
         if self.mode == Mode['branch']:
@@ -257,7 +279,7 @@ class QtBranching:
         self.subprocess_or_pretend(f"git push -q gerrit gerrit/{self.fromBranch}:refs/heads/{self.toBranch}".split())
 
         # We do not want to add the extra repos in .gitmodules
-        if not repo_name in (extra_repo.split('/')[-1] for extra_repo in extra_repositories):
+        if not repo_name in (extra_repo.split('/')[-1] for extra_repo in self.extra_repositories):
             self.subprocess_or_pretend(f"git config -f ../.gitmodules submodule.{repo_name}.branch {self.toBranch}".split())
 
     def merge_repo(self, repo: git.Repo) -> None:
