@@ -45,6 +45,11 @@ zip -j $WORK/svg $SRC/qtqa/fuzzing/testcases/svg/*
 zip -j $WORK/text $SRC/qtqa/fuzzing/testcases/text/* $SRC/afltestcases/others/text/*
 zip -j $WORK/xml $SRC/qtqa/fuzzing/testcases/xml/* $SRC/afltestcases/others/xml/*
 
+# prepare merged dictionaries
+mkdir $WORK/merged_dicts
+cat $SRC/afldictionaries/{css,html_tags}.dict > "$WORK/merged_dicts/css_and_html.dict"
+cat $SRC/afldictionaries/{bmp,exif,gif,jpeg,png,svg,tiff,webp}.dict > "$WORK/merged_dicts/images.dict"
+
 # build fuzzers
 
 build_fuzzer() {
@@ -108,9 +113,9 @@ build_fuzzer "qtbase" "corelib/serialization/qxmlstream/qxmlstreamreader/readnex
 build_fuzzer "qtbase" "corelib/text/qregularexpression/optimize/optimize.pro" "regexp" "$SRC/afldictionaries/regexp.dict"
 build_fuzzer "qtbase" "corelib/time/qdatetime/fromstring/fromstring.pro" "datetime"
 build_fuzzer "qtbase" "corelib/tools/qcryptographichash/result/result.pro"
-build_fuzzer "qtbase" "gui/image/qimage/loadfromdata/loadfromdata.pro" "images"
+build_fuzzer "qtbase" "gui/image/qimage/loadfromdata/loadfromdata.pro" "images" "$WORK/merged_dicts/images.dict"
 build_fuzzer "qtbase" "gui/painting/qcolorspace/fromiccprofile/fromiccprofile.pro" "icc" "$SRC/afldictionaries/iccprofile.dict"
-build_fuzzer "qtbase" "gui/text/qtextdocument/sethtml/sethtml.pro" "html" "$SRC/afldictionaries/html_tags.dict"
+build_fuzzer "qtbase" "gui/text/qtextdocument/sethtml/sethtml.pro" "html" "$WORK/merged_dicts/css_and_html.dict"
 build_fuzzer "qtbase" "gui/text/qtextdocument/setmarkdown/setmarkdown.pro" "markdown" "$SRC/afldictionaries/markdown.dict"
 build_fuzzer "qtbase" "gui/text/qtextlayout/beginlayout/beginlayout.pro" "text"
 build_fuzzer "qtbase" "network/ssl/qsslcertificate/qsslcertificate/pem/pem.pro" "ssl.pem"
