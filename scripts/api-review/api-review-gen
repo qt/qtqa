@@ -383,6 +383,9 @@ fi
               if any(int(x) != 0 for x in row) else "Found nothing boring to ignore.")'
   cat <<EOF
 
+NOTE: Please review the appropriate documentation
+and make sure it is correct!
+
 Note to reviewers: if you know of other changes to API, not covered by
 this review, fetch this from Gerrit - see its checkout instructions;
 you might want to add -b $BRANCH to those - and you
