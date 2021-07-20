@@ -54,37 +54,6 @@ cat $SRC/afldictionaries/{bmp,exif,gif,jpeg,png,svg,tiff,webp}.dict > "$WORK/mer
 
 build_fuzzer() {
     local module=$1
-    local proFilePath=$2
-    local format=${3-""}
-    local dictionary=${4-""}
-    local proFileName=${proFilePath##*/}
-    local exeName=${proFileName%%.*}
-    local proFileDir=${proFilePath%/*}
-    local targetName="$module"_${proFileDir//\//_}
-    mkdir build_fuzzer
-    cd build_fuzzer
-    $WORK/qtbase/bin/qmake $SRC/qt/$module/tests/libfuzzer/$proFilePath
-
-    # insert wanted compilers and linker into Makefile
-    sed -i -e "s,^CC .*,CC = $CC,g" Makefile
-    sed -i -e "s,^CXX .*,CXX = $CXX,g" Makefile
-    sed -i -e "s,^LINK .*,LINK = $CXX,g" Makefile
-
-    make -j$(nproc)
-
-    mv $exeName $OUT/$targetName
-    if [ -n "$format" ]; then
-        cp $WORK/$format.zip $OUT/"$targetName"_seed_corpus.zip
-    fi
-    if [ -n "$dictionary" ]; then
-        cp $dictionary $OUT/$targetName.dict
-    fi
-    cd ..
-    rm -r build_fuzzer
-}
-
-build_fuzzer_cmake() {
-    local module=$1
     local srcDir="$2"
     local format=${3-""}
     local dictionary=${4-""}
@@ -106,19 +75,19 @@ build_fuzzer_cmake() {
     rm -r build_fuzzer
 }
 
-build_fuzzer "qtbase" "corelib/serialization/qcborstreamreader/next/next.pro" "cbor"
-build_fuzzer "qtbase" "corelib/serialization/qcborvalue/fromcbor/fromcbor.pro" "cbor"
-build_fuzzer "qtbase" "corelib/serialization/qtextstream/extractionoperator-float/extractionoperator-float.pro" "text"
-build_fuzzer "qtbase" "corelib/serialization/qxmlstream/qxmlstreamreader/readnext/readnext.pro" "xml" "$SRC/afldictionaries/xml.dict"
-build_fuzzer "qtbase" "corelib/text/qregularexpression/optimize/optimize.pro" "regexp" "$SRC/afldictionaries/regexp.dict"
-build_fuzzer "qtbase" "corelib/time/qdatetime/fromstring/fromstring.pro" "datetime"
-build_fuzzer "qtbase" "corelib/tools/qcryptographichash/result/result.pro"
-build_fuzzer "qtbase" "gui/image/qimage/loadfromdata/loadfromdata.pro" "images" "$WORK/merged_dicts/images.dict"
-build_fuzzer "qtbase" "gui/painting/qcolorspace/fromiccprofile/fromiccprofile.pro" "icc" "$SRC/afldictionaries/iccprofile.dict"
-build_fuzzer "qtbase" "gui/text/qtextdocument/sethtml/sethtml.pro" "html" "$WORK/merged_dicts/css_and_html.dict"
-build_fuzzer "qtbase" "gui/text/qtextdocument/setmarkdown/setmarkdown.pro" "markdown" "$SRC/afldictionaries/markdown.dict"
-build_fuzzer "qtbase" "gui/text/qtextlayout/beginlayout/beginlayout.pro" "text"
-build_fuzzer "qtbase" "network/ssl/qsslcertificate/qsslcertificate/pem/pem.pro" "ssl.pem"
-build_fuzzer_cmake "qtsvg" "svg/qsvgrenderer/render" "svg" "$SRC/afldictionaries/svg.dict"
+build_fuzzer "qtbase" "corelib/serialization/qcborstreamreader/next" "cbor"
+build_fuzzer "qtbase" "corelib/serialization/qcborvalue/fromcbor" "cbor"
+build_fuzzer "qtbase" "corelib/serialization/qtextstream/extractionoperator-float" "text"
+build_fuzzer "qtbase" "corelib/serialization/qxmlstream/qxmlstreamreader/readnext" "xml" "$SRC/afldictionaries/xml.dict"
+build_fuzzer "qtbase" "corelib/text/qregularexpression/optimize" "regexp" "$SRC/afldictionaries/regexp.dict"
+build_fuzzer "qtbase" "corelib/time/qdatetime/fromstring" "datetime"
+build_fuzzer "qtbase" "corelib/tools/qcryptographichash/result"
+build_fuzzer "qtbase" "gui/image/qimage/loadfromdata" "images" "$WORK/merged_dicts/images.dict"
+build_fuzzer "qtbase" "gui/painting/qcolorspace/fromiccprofile" "icc" "$SRC/afldictionaries/iccprofile.dict"
+build_fuzzer "qtbase" "gui/text/qtextdocument/sethtml" "html" "$WORK/merged_dicts/css_and_html.dict"
+build_fuzzer "qtbase" "gui/text/qtextdocument/setmarkdown" "markdown" "$SRC/afldictionaries/markdown.dict"
+build_fuzzer "qtbase" "gui/text/qtextlayout/beginlayout" "text"
+build_fuzzer "qtbase" "network/ssl/qsslcertificate/qsslcertificate/pem" "ssl.pem"
+build_fuzzer "qtsvg" "svg/qsvgrenderer/render" "svg" "$SRC/afldictionaries/svg.dict"
 
 rm -r "$WORK/merged_dicts"
