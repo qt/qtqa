@@ -120,3 +120,5 @@ build_fuzzer "qtbase" "gui/text/qtextdocument/setmarkdown/setmarkdown.pro" "mark
 build_fuzzer "qtbase" "gui/text/qtextlayout/beginlayout/beginlayout.pro" "text"
 build_fuzzer "qtbase" "network/ssl/qsslcertificate/qsslcertificate/pem/pem.pro" "ssl.pem"
 build_fuzzer_cmake "qtsvg" "svg/qsvgrenderer/render" "svg" "$SRC/afldictionaries/svg.dict"
+
+rm -r "$WORK/merged_dicts"
