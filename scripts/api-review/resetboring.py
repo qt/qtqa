@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 # Usage: see api-review-gen.
 #############################################################################
 ##
@@ -144,7 +144,7 @@ class Selector(object): # Select interesting changes, discard boring.
     def __get_lines(store, sha1):
         if sha1 is None: return ()
         assert len(sha1) == 40, "Expected 40-byte SHA1 digest as name of blob"
-        return tuple(store[sha1].as_raw_string().split('\n'))
+        return tuple(store[sha1].as_raw_string().decode().split('\n'))
 
     # Note: marker deliberately obfuscated so tools scanning *this*
     # file aren't mislead by it !
@@ -234,7 +234,7 @@ class Selector(object): # Select interesting changes, discard boring.
         only the sha1 and mode are actually needed to update the index
         (along with the name, which caller is presumed to handle).
         """
-        dull = blob(text)
+        dull = blob(text.encode())
         assert len(dull.id) == 40
         self.__store.add_object(dull)
         return self.__index_entry(mode, len(text), dull.id)
@@ -481,7 +481,7 @@ class Selector(object): # Select interesting changes, discard boring.
 
                     bits = iter(word.split(cut))
                     # Shouldn't raise StopIteration, because cut was in word:
-                    ind = bits.next()
+                    ind = next(bits)
                     if ind:
                         tokens[i] = ind # replacing word
                         i += 1 # insert the rest after it
@@ -877,7 +877,7 @@ class Selector(object): # Select interesting changes, discard boring.
                 if (len(words) < len(keys)
                     or any(a != b for a, b in zip(words, keys[:-2]))
                     or words[len(keys) - 2] not in keys[-2]):
-                    raise StopIteration
+                    return
                 ind, key = 0, keys[-1]
                 while True:
                     try:
@@ -933,7 +933,7 @@ class Selector(object): # Select interesting changes, discard boring.
             def find(words):
                 """Iterate indices in words of each blah in 'defined(blah)'"""
                 if any(a != b for a, b in zip(words, ('#', 'if'))):
-                    raise StopIteration
+                    return
                 ind, ans = 0, []
                 while True:
                     try:
@@ -946,7 +946,7 @@ class Selector(object): # Select interesting changes, discard boring.
                     if words[ind] != '(' or words[ind + 2] != ')':
                         continue
                     ind += 1
-                    if isinstance(words[ind], basestring) and words[ind].isalnum():
+                    if isinstance(words[ind], str) and words[ind].isalnum():
                         yield ind
             def test(words, get=find):
                 for it in get(words):
@@ -1080,7 +1080,7 @@ def main(args, hear, talk, complain):
         # content all being quite different.  Probably need to hack
         # dulwich (find_copies_harder is off by default anyway).
         for kind, old, new in \
-            renamer.changes_with_renames(store[repo.refs['HEAD']].tree,
+            renamer.changes_with_renames(store[repo.refs[b'HEAD']].tree,
                                          index.commit(store)):
             # Each of old, new is a named triple of .path, .mode and
             # .sha; kind is the change type, in ('add', 'modify',
@@ -1097,13 +1097,13 @@ def main(args, hear, talk, complain):
             elif old.path: # disclaimed or removed: ignore by restoring
                 assert new.path or kind == 'delete', (kind, new.path)
                 index[old.path] = Selector.restore(store[old.sha], old.mode)
-                talk.write(old.path + '\n')
+                talk.write(old.path.decode() + '\n')
                 if new.path and new.path != old.path:
-                    talk.write(new.path + '\n')
+                    talk.write(new.path.decode() + '\n')
             else: # new but disclaimed: ignore by discarding
                 assert kind == 'add' and new.path, (kind, new.path)
                 del index[new.path]
-                talk.write(new.path + '\n')
+                talk.write(new.path.decode() + '\n')
 
         index.write()
     except IOError: # ... and any other errors that just mean failure.

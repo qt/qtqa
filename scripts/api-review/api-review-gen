@@ -177,7 +177,7 @@ fi
 THERE=`dirname $0`
 [ -n "$THERE" -a -x "$THERE/resetboring.py" ] || \
     die "I don't know where resetboring.py is: please run me via an explicit path."
-python -c 'from dulwich.repo import Repo; from dulwich.index import IndexEntry' || \
+python3 -c 'from dulwich.repo import Repo; from dulwich.index import IndexEntry' || \
     die "I need dulwich installed (for resetboring.py; see --help)."
 # dulwich 0.16.3 has been known to work; 0.9.4 is too old.
 
@@ -378,8 +378,8 @@ fi
 ( echo "WIP: API comparison from $PRIOR to $RELNAME"
   echo
   git status | grep 'deleted:' | tr '\t' ' '
-  git diff | wc | python -c 'import sys; row = sys.stdin.readline().split(); print; \
-        print (("Excluded %s lines (%s words, %s bytes) of boring changes." % tuple(row)) \
+  git diff | wc | python3 -c 'import sys; row = sys.stdin.readline().split(); print(); \
+        print("Excluded {} lines ({} words, {} bytes) of boring changes.".format(*row) \
               if any(int(x) != 0 for x in row) else "Found nothing boring to ignore.")'
   cat <<EOF
 
