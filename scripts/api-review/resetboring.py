@@ -209,10 +209,25 @@ class Selector(object): # Select interesting changes, discard boring.
 
         return self.__as_entry('\n'.join(self.__hybrid), self.__mode)
 
-    from dulwich.objects import Blob
     from dulwich.index import IndexEntry
+    @staticmethod
+    def __index_entry(mode, size, blobid, entry=IndexEntry):
+        """Wrap IndexEntry to cope with variably many entries in tuple.
+
+        Up to (at least) version 0.20.15, there were ten entries in
+        the tuple; but 0.20.23-1 has an eleventh entry; and a
+        namedtuple doesn't support leaving out entries to give them a
+        default value.
+        """
+        # (ctime, mtime, dev, ino, mode, uid, gid, size, sha, flags [, extraflags])
+        seq = ((0, 0), (0, 0), 0, 0, mode, 0, 0, size, blobid)
+        seq += (len(entry._fields) - len(seq)) * (0,)
+        return entry(*seq)
+    del IndexEntry
+
+    from dulwich.objects import Blob
     def __as_entry(self, text, mode,
-                   blob=Blob.from_string, entry=IndexEntry):
+                   blob=Blob.from_string):
         """Turn a file's proposed contents into an IndexEntry.
 
         The returned IndexEntry's properties are mostly filler, as
@@ -222,11 +237,11 @@ class Selector(object): # Select interesting changes, discard boring.
         dull = blob(text)
         assert len(dull.id) == 40
         self.__store.add_object(dull)
-        # entry((ctime, mtime, dev, ino, mode, uid, gid, size, sha, flags))
-        return entry((0, 0), (0, 0), 0, 0, mode, 0, 0, len(text), dull.id, 0)
+        return self.__index_entry(mode, len(text), dull.id)
+    del Blob
 
-    @staticmethod
-    def restore(blob, mode, entry=IndexEntry):
+    @classmethod
+    def restore(cls, blob, mode):
         """Index entry for a specified extant blob.
 
         Requires exactly two arguments (do *not* pass a third):
@@ -237,9 +252,7 @@ class Selector(object): # Select interesting changes, discard boring.
         Can be used to put back a deleted file.
         """
         assert len(blob.id) == 40, blob.id
-        return entry((0, 0), (0, 0), 0, 0, mode, 0, 0,
-                     len(blob.as_raw_string()), blob.id, 0)
-    del Blob, IndexEntry
+        return cls.__index_entry(mode, len(blob.as_raw_string()), blob.id)
 
     def __copy(self, tag, startOld, endOld, startNew, endNew):
         assert tag in ('equal', 'implicit'), tag
