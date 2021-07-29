@@ -60,7 +60,7 @@ build_fuzzer() {
     local exeName="${srcDir##*/}"
     local targetName="${module}_${srcDir//\//_}"
     mkdir build_fuzzer
-    cd build_fuzzer
+    pushd build_fuzzer
     $WORK/qtbase/bin/qt-cmake -S "$SRC/qt/$module/tests/libfuzzer/$srcDir" -GNinja
     VERBOSE=1 cmake --build . --parallel
 
@@ -71,7 +71,7 @@ build_fuzzer() {
     if [ -n "$dictionary" ]; then
         cp "$dictionary" "$OUT/$targetName.dict"
     fi
-    cd ..
+    popd
     rm -r build_fuzzer
 }
 
