@@ -50,7 +50,7 @@ QHash<QString, QString> qt_tests_shared_global_get_modules(const QString &workDi
 
     QFile file(configFile);
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        QWARN("Can't open the config file for global.cfg.");
+        qWarning("Can't open the config file for global.cfg.");
         return modules;
     }
 
@@ -134,7 +134,7 @@ QStringList qt_tests_shared_run_qmake(const QString &workDir,
 #ifndef QT_NO_PROCESS
     QFile file(proFile);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        QWARN("Can't open the pro file for global.");
+        qWarning("Can't open the pro file for global.");
         return result;
     }
 
@@ -143,7 +143,7 @@ QStringList qt_tests_shared_run_qmake(const QString &workDir,
     file.close();
 
     if (!QDir::setCurrent(workDir)) {
-        QWARN("Change working dir failed.");
+        qWarning("Change working dir failed.");
         return result;
     }
 

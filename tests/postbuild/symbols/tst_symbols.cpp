@@ -201,9 +201,9 @@ void tst_Symbols::globalObjects()
             QString line = symbolToLine(symbol, dir.absolutePath() + "/" + lib);
 
             if (cap.contains('.'))
-                QWARN(qPrintable("Static global object(s) found in " + lib + " in file " + cap + " (" + line + ")"));
+                qWarning(qPrintable("Static global object(s) found in " + lib + " in file " + cap + " (" + line + ")"));
             else
-                QWARN(qPrintable("Static global object found in " + lib + " near symbol " + cap + " (" + line + ")"));
+                qWarning(qPrintable("Static global object found in " + lib + " near symbol " + cap + " (" + line + ")"));
 
             isFailed = true;
         }

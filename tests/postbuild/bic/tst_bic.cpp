@@ -346,7 +346,7 @@ void tst_Bic::initTestCase()
     const char qmake[] = "qmake.exe";
 #endif
 
-    QWARN("This test needs the correct qmake in PATH, we need it to generate INCPATH for qt modules.");
+    qWarning("This test needs the correct qmake in PATH, we need it to generate INCPATH for qt modules.");
 
     qtModuleDir = QDir::cleanPath(QFile::decodeName(qgetenv(moduleVar)));
     if (qtModuleDir.isEmpty()) {
@@ -360,7 +360,7 @@ void tst_Bic::initTestCase()
     }
 
     if (qgetenv("PATH").contains("teambuilder"))
-        QWARN("This test might not work with teambuilder, consider switching it off.");
+        qWarning("This test might not work with teambuilder, consider switching it off.");
 
     QString configFile = qtModuleDir + "/tests/global/global.cfg";
 
