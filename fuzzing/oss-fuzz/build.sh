@@ -17,7 +17,10 @@
 
 # build project
 cd $WORK
-$SRC/qt/configure -qt-libmd4c -platform linux-clang-libc++ -release -static -opensource -confirm-license -no-opengl -prefix $PWD/qtbase -D QT_NO_DEPRECATED_WARNINGS
+$SRC/qt/configure -opensource -confirm-license -prefix $PWD/qtbase \
+                  -platform linux-clang-libc++ -release -static \
+                  -qt-libmd4c -no-opengl -- \
+                  -DCMAKE_CXX_FLAGS_RELEASE="-O1" -DQT_USE_DEFAULT_CMAKE_OPTIMIZATION_FLAGS=ON
 VERBOSE=1 cmake --build . --parallel
 
 # prepare corpus files
