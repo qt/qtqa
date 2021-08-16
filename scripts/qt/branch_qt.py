@@ -313,7 +313,10 @@ class QtBranching:
         'conanfile.py': r'^ +version = "([0-9.]+)"$'
         }
         if repo_name == 'qtbase':
-            bumpers.update({'util/cmake/pro2cmake.py': r'set\(QT_REPO_MODULE_VERSION "([0-9.]+)"\)'})
+            cmake = r'set\(QT_REPO_MODULE_VERSION "([0-9.]+)"\)'
+            bumpers.update({'util/cmake/pro2cmake.py': cmake})
+            bumpers.update({'src/plugins/sqldrivers/.cmake.conf': cmake})
+
         bumped_files = [] # type: List[str]
         for file, pattern in bumpers.items():
             try:
