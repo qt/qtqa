@@ -226,10 +226,7 @@ def upload_change(module : str, previous_version : str):
     branch = f'api-review-{previous_version}-{c.next_version}'
 
     run(f'git checkout {branch}')
-
-    cmd = f'git push origin HEAD:refs/for/{c.next_version}'
-    run(cmd)
-
+    run(f'git push origin HEAD:refs/for/{c.next_version}%topic=api-change-review-{c.next_version}')
     run(f'git checkout {current_branch}')
 
     os.chdir(cwd)

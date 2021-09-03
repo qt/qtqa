@@ -420,5 +420,5 @@ commit $QUIET $AMEND -F "$GITDIR/COMMIT_EDITMSG"
 
 mention "I recommend you review that what git diff -D reports (now) *is* boring."
 mention "(If any of it isn't, you can git add -p it and git commit --amend.)"
-mention "Then you can: git push gerrit $BRANCH:refs/for/$RELEASE"
+mention "Then you can: git push gerrit $BRANCH:refs/for/$RELEASE%topic=api-change-review-$RELNAME"
 [ -n "$TASK" ] || warn "Warning: no Task-number: footer specified."

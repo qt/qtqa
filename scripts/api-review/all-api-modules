@@ -168,7 +168,8 @@ examples), assuming qtqa/scripts/api-review is in your PATH:
  $ $ME -r api-review-$LAST-$NEXT git log -p $LAST..
 
  Push to gerrit:
- $ $ME -r api-review-$LAST-$NEXT git push gerrit HEAD:refs/for/$NEXT
+ $ $ME -r api-review-$LAST-$NEXT \\
+     git push gerrit HEAD:refs/for/$NEXT%topic=api-change-review-$NEXT
 
  When $LAST has changed (only relevant when using a branch here),
  rebase review branches onto it:
