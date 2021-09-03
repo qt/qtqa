@@ -321,6 +321,10 @@ tst_Bic::tst_Bic(const char *appFilePath)
     bic.addBlacklistedClass(QLatin1String("QQmlPrivate::RegisterSingletonType"));
     bic.addBlacklistedClass(QLatin1String("QQmlPrivate::RegisterInterface"));
 
+    /* this class is not used in a way that requires its size to be stable,
+       but it has grown between releases */
+    bic.addBlacklistedClass(QLatin1String("QQmlPrivate::AOTCompiledFunction"));
+
     /* according to Thiago this is a false positive */
     bic.addBlacklistedClass(QLatin1String("QLoggingCategory::AtomicBools"));
     bic.addBlacklistedClass(QLatin1String("QOperatingSystemVersion::HighSierra"));
@@ -335,6 +339,10 @@ tst_Bic::tst_Bic(const char *appFilePath)
     bic.addBlacklistedClass(QLatin1String("QOpenGLFunctions_3_0_CoreBackend"));
     bic.addBlacklistedClass(QLatin1String("QOpenGLFunctions_3_3_CoreBackend"));
     bic.addBlacklistedClass(QLatin1String("QOpenGLFunctions_4_3_CoreBackend"));
+
+    /* this class is not used in a way that requires its size to be stable,
+       but it has grown between releases */
+    bic.addBlacklistedClass(QLatin1String("QBindingStatus"));
 }
 
 void tst_Bic::initTestCase()
