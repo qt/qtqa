@@ -381,37 +381,84 @@ class QtBranching:
                                         f'HEAD:refs/for/{branch}{reviewerStr}'])
 
     def bump_qtbase_datastream(self) -> typing.Iterable[str]:
-        if self.fromVersion.split('.')[1] == self.toBranch.split('.')[1]:
-            return []
-        # For minor version changes we need to change qdatastream,
-        # it has a version enum that must correspond to the Qt minor version:
-        log.info("Adjusting src/corelib/serialization/qdatastream.[h/cpp]")
-        datastream_h = 'src/corelib/serialization/qdatastream.h'
-        datastream_cpp = 'src/corelib/serialization/qdatastream.cpp'
+        """Update qdatastream.{h,cpp}'s Version enum.
+
+        Only needed for major and minor version changes. Each minor
+        version gets an entry in the enum, usually simply set to some
+        earlier version, but set to a fresh number whenever there are
+        material changes to the API. We need to add a new member to
+        the enum, equal to the preceding member (but best expressed as
+        what that one is equal to, when it's not a fresh number),
+        adjust the default value to be the new member and document the
+        new member.
+
+        The updates rely on matching regexes in the files; some care
+        is taken to be robust agsint updates to the file layout, but
+        the code assumes no-one messes with it too badly.
+
+        Returns a tuple of the files changed, that the caller should
+        take into account; if no change is needed, this tuple is
+        empty."""
+        tomajor, tominor = (int(s) for s in self.toBranch.split('.')[:2])
+        fromajor, frominor = (int(s) for s in self.fromVersion.split('.')[:2])
+        if tomajor == fromajor and tominor == frominor:
+            return ()
+        stem = 'src/corelib/serialization/qdatastream'
+        log.info(f"Adjusting {stem}.[h/cpp]")
+        datastream_h, datastream_cpp = f'{stem}.h', f'{stem}.cpp'
+        tover, fromver = f'Qt_{tomajor}_{tominor}',  f'Qt_{fromajor}_{frominor}'
 
         # datastream.h
-        datastream_h_content = open(datastream_h, mode='r', encoding='utf-8').read()
-        split_target = self.toBranch.split('.')
-        nextver = f'{split_target[0]}_{split_target[1]}'
-        ver = f'{split_target[0]}_{str(int(split_target[1]) - 1)}'
-        next_version_hex = f'{int(split_target[0]):02x}{int(split_target[1]):02x}00'
-        next_next_version_hex = f'{int(split_target[0]):02x}{int(split_target[1])+1:02x}00'
+        with open(datastream_h, mode='r', encoding='utf-8') as fd:
+            datastream_h_content = fd.read()
+        match = re.search(f'^ +{fromver} = (Qt_[0-9_]+),', datastream_h_content,
+                          flags = re.MULTILINE)
+        if match is None:
+            match = re.search(f'^ +{fromver} = [0-9]+,', datastream_h_content,
+                              flags = re.MULTILINE)
+            assert match is not None, f'Missing {fromver} in {datastream_h}'
+            wasver = fromver
+        else:
+            wasver = match.group(1) # The version fromver is assigned equal to.
 
-        # Add new version to enum and bump up the hex version in #ifdef
-        search = f'^( +)(Qt_DefaultCompiledVersion = Qt_)[0-9_]+\\n(#if QT_VERSION >= 0x){next_version_hex}(\\n#error [^\\n]+\\n#endif)$'
-        replacement = f'\\g<1>Qt_{nextver} = Qt_{ver},\\n\\g<1>\\g<2>{nextver}\\n\\g<3>{next_next_version_hex}\\g<4>'
-        datastream_h_content = re.sub(search, replacement, datastream_h_content, flags=re.MULTILINE)
-        open(datastream_h, mode='w', encoding='utf-8').write(datastream_h_content)
+        # Version used in comparison should use the macro, but might
+        # use old-style hex-format, numerically equal to it. Expect it
+        # to use (fromajor, frominor + 1), that this script would
+        # write, but fall back to matching a pattern in case weird has
+        # happened.
+        for tail in (
+            rf'QT_VERSION_CHECK\({fromajor},\s*{frominor + 1},\s*[0-9]+\)',
+            rf'0x0*{hex((fromajor << 8) | (frominor + 1))[2:]}[0-9a-fA-F][0-9a-fA-F]\b',
+            r'QT_VERSION_CHECK\([1-9][0-9]*,\s*[0-9]+,\s*[0-9]+\)',
+            r'0x0*[0-9a-fA-F]{5,}\b',
+            ):
+            check = re.compile(rf'^ *(# *if QT_VERSION >= ){tail}', flags = re.MULTILINE)
+            if check.search(datastream_h_content) is not None:
+                break
+        else:
+            log.warning(f"Failed to find Qt version check in {datastream_h}")
+            # The check.sub() will be a no-op, but harmless.
+
+        datastream_h_content = re.sub(
+            # Add new version to enum, initially same as prior, update default to use it:
+            f'^( +)(Qt_DefaultCompiledVersion = )Qt_([0-9_]+)',
+            rf'\g<1>{tover} = {wasver},\n\g<1>\g<2>{tover}',
+            # Bump up the QT_VERSION_CHECK() in #ifdef:
+            check.sub(rf'\g<1>QT_VERSION_CHECK({tomajor}, {tominor + 1}, 0)', datastream_h_content),
+            flags = re.MULTILINE)
+        with open(datastream_h, mode='w', encoding='utf-8') as fd:
+            fd.write(datastream_h_content)
 
         # datastream.cpp
-        datastream_cpp_content = open(datastream_cpp, mode='r', encoding='utf-8').read()
+        with open(datastream_cpp, mode='r', encoding='utf-8') as fd:
+            datastream_cpp_content = re.sub(
+                # Add documentation for new version (a line like '\value Qt_6_4 Same as Qt_6_0'):
+                rf'^( +\\value )({fromver} .+)$',
+                rf'\g<1>\g<2>\n\g<1>{tover} Same as {wasver}',
+                fd.read(), flags = re.MULTILINE)
+        with open(datastream_cpp, mode='w', encoding='utf-8') as fd:
+            fd.write(datastream_cpp_content)
 
-        # Add Documentation (a line like '\value Qt_5_12 Same as Qt_5_11')
-        search = f'^( +)(\\\\value Qt_{ver} [^\n]+\n)( +\\\\omitvalue Qt_DefaultCompiledVersion)$'
-        replacement = f'\\1\\2\\1\\\\value Qt_{nextver} Same as Qt_{ver}\n\\3'
-        datastream_cpp_content = re.sub(search, replacement, datastream_cpp_content, flags=re.MULTILINE)
-
-        open(datastream_cpp, mode='w', encoding='utf-8').write(datastream_cpp_content)
         return datastream_h, datastream_cpp
 
 def parse_args() -> argparse.Namespace:
