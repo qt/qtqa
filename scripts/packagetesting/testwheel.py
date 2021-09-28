@@ -65,19 +65,28 @@ def get_pyside_version_from_import():
     return 0, 0, 0
 
 
+def pyside2_examples():
+    """List of examples to be tested (PYSIDE 2)"""
+    return ['widgets/mainwindows/mdi/mdi.py',
+            'opengl/hellogl.py',
+            'multimedia/player.py',
+            'charts/donutbreakdown.py',
+            'webenginewidgets/tabbedbrowser/main.py']
+
+
 def examples():
     """Compile a list of examples to be tested"""
-    result = ['widgets/mainwindows/mdi/mdi.py']
-    if VERSION[0] >= 6:
-        result.extend(['declarative/extending/chapter5-listproperties/listproperties.py',
-                       '3d/simple3d/simple3d.py'])
-        if VERSION[1] >= 1:
-            result.extend(['charts/chartthemes/main.py',
-                           'datavisualization/bars3d/bars3d.py'])
-    else:
-        result.extend(['opengl/hellogl.py',
-                       'multimedia/player.py',
-                       'charts/donutbreakdown.py',
+    if VERSION[0] < 6:
+        return pyside2_examples()
+
+    result = ['widgets/mainwindows/mdi/mdi.py',
+              'declarative/extending/chapter5-listproperties/listproperties.py',
+              '3d/simple3d/simple3d.py']
+    if VERSION[1] >= 1:
+        result.extend(['charts/chartthemes/main.py',
+                       'datavisualization/bars3d/bars3d.py'])
+    if VERSION[1] >= 2:
+        result.extend(['multimedia/player/player.py',
                        'webenginewidgets/tabbedbrowser/main.py'])
     return result
 
