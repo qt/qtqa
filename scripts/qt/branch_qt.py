@@ -112,6 +112,8 @@ class QtBranching:
                  toBranch: str,
                  pretend: bool,
                  skip_hooks: bool,
+                 direct: bool,
+                 reviewers: typing.Optional[typing.List[str]],
                  repos: typing.Optional[typing.List[str]]
                  ) -> None:
         self.mode = mode
@@ -120,6 +122,8 @@ class QtBranching:
         self.toBranch = toBranch
         self.pretend = pretend
         self.skip_hooks = skip_hooks
+        self.direct = direct
+        self.reviewers = reviewers
         self.repos = repos
 
         # Additional repositories that are not part of qt5.git:
@@ -355,20 +359,26 @@ class QtBranching:
         if not repo.is_dirty():
             log.warning(f"nothing to do for {repo_name}, is the version bump already done?")
             return
-        repo.index.commit("Bump version", skip_hooks=self.skip_hooks)
+        repo.index.commit(f"Bump version to {self.toBranch}", skip_hooks=self.skip_hooks)
         self.push(repo_name, self.fromBranch)
 
     def push(self, project: str, branch: str) -> None:
-        # TODO: make this work for projects that don't have 'qt' as namespace
-        query = {'q': f'project:qt/{project} branch:{branch} (status:staging OR status:staged OR status:integrating)'}
-        response = requests.get(f'{GERRIT_REST_URL}/changes/', params=query)
-        response.raise_for_status()
-        assert response.text.startswith(')]}')
-        query_result = json.loads(response.text[4:])
-        if len(query_result):
-            log.warning(f"{project}, {branch} is busy (staged or integrating changes), SKIPPING!")
-            return
-        self.subprocess_or_pretend(['git', 'push', 'gerrit', f'HEAD:refs/heads/{branch}', f'HEAD:refs/staging/{branch}'])
+        # In case user wants to use direct push
+        if self.direct:
+            # TODO: make this work for projects that don't have 'qt' as namespace
+            query = {'q': f'project:qt/{project} branch:{branch} (status:staging OR status:staged OR status:integrating)'}
+            response = requests.get(f'{GERRIT_REST_URL}/changes/', params=query)
+            response.raise_for_status()
+            assert response.text.startswith(')]}')
+            query_result = json.loads(response.text[4:])
+            if query_result:
+                log.warning(f"{project}, {branch} is busy (staged or integrating changes), SKIPPING!")
+                return
+            self.subprocess_or_pretend(['git', 'push', 'gerrit', f'HEAD:refs/heads/{branch}', f'HEAD:refs/staging/{branch}'])
+        else: # Do formal codereview instead
+            reviewerStr = f"%r={',r='.join(self.reviewers)}" if self.reviewers else ''
+            self.subprocess_or_pretend(['git', 'push', 'gerrit'
+                                        f'HEAD:refs/for/{branch}{reviewerStr}'])
 
     def bump_qtbase_datastream(self) -> typing.Iterable[str]:
         if self.fromVersion.split('.')[1] == self.toBranch.split('.')[1]:
@@ -434,6 +444,10 @@ def parse_args() -> argparse.Namespace:
                         help="Make the changes to the repositories, but do not push to Gerrit.")
     parser.add_argument("--skip-hooks", action="store_true",
                         help="Do not run git commit hooks.")
+    parser.add_argument("--direct", action="store_true",
+                        help="Direct push changes in repos instead of sending changes for review")
+    parser.add_argument("--reviewers", nargs="*",
+                        help="Optional list of reviewers. Ignored when '--direct' is used.")
     parser.add_argument("--repos", nargs="*",
                         help="Optional list of repositories (instead of processing all repositories).")
     return parser.parse_args(sys.argv[1:])
@@ -454,7 +468,8 @@ def gerrit_remove_pushmaster() -> None:
 if __name__ == "__main__":
     args = parse_args()
     try:
-        if not args.pretend:
+        # If we want to do a review (or just pretend) user doesn't need to be in 'Push masters'
+        if not args.pretend and args.direct:
             gerrit_add_pushmaster()
 
         branching = QtBranching(mode=Mode[args.mode],
@@ -463,8 +478,10 @@ if __name__ == "__main__":
                                 toBranch=args.toBranch,
                                 pretend=args.pretend,
                                 skip_hooks=args.skip_hooks,
+                                direct=args.direct,
+                                reviewers=args.reviewers,
                                 repos=args.repos)
         branching.run()
     finally:
-        if not args.pretend:
+        if not args.pretend and args.direct:
             gerrit_remove_pushmaster()
