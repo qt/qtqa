@@ -17,6 +17,7 @@ import subprocess
 import sys
 import typing
 
+from typing import List
 from configparser import ConfigParser
 from enum import Enum
 from textwrap import dedent
@@ -26,17 +27,17 @@ import git  # type: ignore
 
 Mode = Enum('Mode', 'branch sync merge bump')
 
-qt5_extra_repositories = (
+qt5_extra_repositories = [
     'qt/qtcoap',
     'qt/qtknx',
     'qt/qtmqtt',
     'qt/qtopcua',
-    'qt/qtdeviceutilities',
-)
+    'qt/qtdeviceutilities'
+]
 
-qt6_extra_repositories = (
-    'qt/qtdeviceutilities',
-)
+qt6_extra_repositories = [
+    'qt/qtdeviceutilities'
+]
 
 
 skipped_submodules = ('qtqa', 'qtrepotools')
