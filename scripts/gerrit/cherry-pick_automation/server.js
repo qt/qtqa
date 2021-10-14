@@ -153,6 +153,23 @@ class webhookListener extends EventEmitter {
     }
   }
 
+  send_status(req, res) {
+    let self_base_url;
+    if (envOrConfig("HEROKU_APP_NAME"))
+        self_base_url = `https://${envOrConfig("HEROKU_APP_NAME")}.herokuapp.com`;
+    else
+        // Fall back to localhost, as HEROKU_APP_NAME is only set in a production heroku instance.
+        self_base_url = `http://localhost:${Number(process.env.PORT) || envOrConfig("WEBHOOK_PORT")}`;
+
+    let status = {
+      url: self_base_url,
+      time: Date.now(),
+      status: "OK"
+    }
+
+    res.send(status);
+  }
+
   // Set up a server and start listening on a given port.
   startListening() {
     let _this = this;
@@ -211,6 +228,7 @@ class webhookListener extends EventEmitter {
       if (validateOrigin(req, res))
         _this.emit("newRequest", req.body);
     });
+    server.get("/status", (req, res) => _this.send_status(req, res));
     server.get("/", (req, res) => res.send("Nothing to see here."));
     portfinder
       .getPortPromise()
