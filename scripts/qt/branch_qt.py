@@ -21,6 +21,7 @@ from typing import List
 from configparser import ConfigParser
 from enum import Enum
 from textwrap import dedent
+from pathlib import Path
 
 import git  # type: ignore
 
@@ -346,8 +347,15 @@ class QtBranching:
         }
         if repo_name == 'qtbase':
             cmake = r'set\(QT_REPO_MODULE_VERSION "([0-9.]+)"\)'
-            bumpers.update({'util/cmake/pro2cmake.py': cmake})
-            bumpers.update({'src/plugins/sqldrivers/.cmake.conf': cmake})
+            bumpers['util/cmake/pro2cmake.py'] = cmake
+            bumpers.update((f'{d}/.cmake.conf', cmake)
+                           for d in ('src/plugins/sqldrivers',
+                                     'tests/auto/cmake/test_static_resources',
+                                     'tests/auto/cmake/test_generating_cpp_exports',
+                                     'tests/auto/cmake/mockplugins'))
+        elif repo_name == 'qtnetworkauth':
+            conanfile = 'qtnetworkauth/([0-9.]+)'
+            bumpers.update((p, conanfile) for p in Path("examples/").rglob("conanfile.txt"))
 
         bumped_files = [] # type: List[str]
         for file, pattern in bumpers.items():
