@@ -65,6 +65,21 @@ class requestProcessor extends EventEmitter {
         this.gerritURL}, gerritPort=${this.gerritPort}`,
       "debug"
     );
+    this.eventCache = {};
+  }
+
+  // Cache an event with an expiry duration in ms
+  // This allows listeners to check for missed events
+  cacheEvent(event, ttl) {
+    let _this = this;
+    // Try to clear any existing timeout to prevent it from firing.
+    // This does not delete the event from the cache, so it can still be
+    // read while we set up the new timeout below.
+    clearTimeout(_this.eventCache[event]);
+    // NOTE: There is an extremely small race condition here where the
+    // event may be deleted from the cache and then requested by a listener
+    // before it can be re-added.
+    _this.eventCache[event] = setTimeout(function() { delete _this.eventCache[event]; }, ttl);
   }
 
   // Pull the request from the database and start processing it.

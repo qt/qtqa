@@ -430,6 +430,13 @@ function setupListener(
       `Set up listener for ${listenerEvent} with remaining timeout ${newTimeout}`,
       "info", originalChangeUuid
     );
+    // Broadcast the event again if it was cached while we were still setting up the listener.
+    // Source must have a cache for this to work. Most commonly used with RequestProcessor.
+    if (source.eventCache && source.eventCache[listenerEvent]) {
+      source.emit(listenerEvent);
+      logger.log(`Found event ${listenerEvent} in the cache of ${source.constructor.name}.`,
+                 "debug", originalChangeUuid)
+    }
   }
 
   // Add this listener to the database.

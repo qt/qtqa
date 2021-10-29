@@ -104,8 +104,9 @@ class webhookListener extends EventEmitter {
           req.change.id}`;
       _this.logger.log(`Event ${req.type} received on ${req.fullChangeID}`, "verbose");
     }
-
+    let changeEvent;
     if (req.type == "change-merged") {
+      changeEvent = `merge_${req.fullChangeID}`;
       // Insert the new request into the database for survivability.
       const columns = [
         "uuid", "changeid", "state", "revision", "rawjson", "cherrypick_results_json"
@@ -115,8 +116,6 @@ class webhookListener extends EventEmitter {
         toolbox.encodeJSONtoBase64(req), toolbox.encodeJSONtoBase64({})
       ];
       postgreSQLClient.insert("processing_queue", columns, rowdata, function (changes) {
-        // Emit a signal for this merge in case anything is waiting on it.
-        _this.requestProcessor.emit(`merge_${req.fullChangeID}`);
         // Ready to begin processing the merged change.
         _this.emit("newRequestStored", req.uuid);
       });
@@ -124,7 +123,7 @@ class webhookListener extends EventEmitter {
       // Emit a signal that the change was abandoned in case anything is
       // waiting on it. We don't need to do any direct processing on
       // abandoned changes.
-      _this.requestProcessor.emit(`abandon_${req.fullChangeID}`);
+      changeEvent = `abandon_${req.fullChangeID}`;
     } else if (req.type == "patchset-created") {
       // Treat all new changes as "cherryPickCreated"
       // since gerrit doesn't send a separate notification for actual
@@ -132,24 +131,30 @@ class webhookListener extends EventEmitter {
       // ever be listening for this signal on change ID's that should
       // be the direct result of a cherry-pick.
       if (req.patchSet.number == 1)
-        _this.requestProcessor.emit(`cherryPickCreated_${req.fullChangeID}`);
+        changeEvent = `cherryPickCreated_${req.fullChangeID}`;
     } else if (req.type == "change-staged") {
       // Emit a signal that the change was staged in case anything is
       // waiting on it.
-      _this.requestProcessor.emit(`staged_${req.fullChangeID}`);
+      changeEvent = `staged_${req.fullChangeID}`;
     } else if (req.type == "change-unstaged") {
       // Emit a signal that the change was staged in case anything is
       // waiting on it.
-      _this.requestProcessor.emit(`unstaged_${req.fullChangeID}`);
+      changeEvent = `unstaged_${req.fullChangeID}`;
     } else if (req.type == "change-integration-pass") {
-      _this.requestProcessor.emit(`integrationPass_${req.fullChangeID}`);
+      changeEvent = `integrationPass_${req.fullChangeID}`
     } else if (req.type == "change-integration-fail") {
-      _this.requestProcessor.emit(`integrationFail_${req.fullChangeID}`);
+      changeEvent = `integrationFail_${req.fullChangeID}`
     }
     if (_this.customEvents[req.type]) {
+      // Act on custom event types and execute the function for it.
       Object.keys(_this.customEvents[req.type]).forEach((name) => {
+        _this.requestProcessor.cacheEvent(name, 30 * 1000); // cache for 30 sec
         _this.customEvents[req.type][name](req);
       });
+    }
+    if (changeEvent) {
+      _this.requestProcessor.cacheEvent(changeEvent, 30 * 1000) // cache for 30 sec
+      _this.requestProcessor.emit(changeEvent);
     }
   }
 
