@@ -379,7 +379,7 @@ class QtBranching:
             self.subprocess_or_pretend(['git', 'push', 'gerrit', f'HEAD:refs/heads/{branch}', f'HEAD:refs/staging/{branch}'])
         else: # Do formal codereview instead
             reviewerStr = f"%r={',r='.join(self.reviewers)}" if self.reviewers else ''
-            self.subprocess_or_pretend(['git', 'push', 'gerrit'
+            self.subprocess_or_pretend(['git', 'push', 'gerrit',
                                         f'HEAD:refs/for/{branch}{reviewerStr}'])
 
     def bump_qtbase_datastream(self) -> typing.Iterable[str]:
