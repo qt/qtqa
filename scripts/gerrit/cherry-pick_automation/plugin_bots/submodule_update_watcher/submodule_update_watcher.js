@@ -76,7 +76,7 @@ class submodule_update_watcher {
     notifier.server.registerCustomEvent(
       "submodule_update_failed", "change-integration-fail",
       function (req) {
-        if (req.change.commitMessage.match(/Update (submodules|dependencies) on/)) {
+        if (req.change.commitMessage.match(/Update (submodule|submodules|dependencies) (refs )?on/)) {
           req["customGerritAuth"] = gerritAuth;
           req["jenkinsURL"] = jenkinsURL;
           req["jenkinsAuth"] = jenkinsAuth;
@@ -88,7 +88,7 @@ class submodule_update_watcher {
     notifier.server.registerCustomEvent(
       "submodule_update_passed", "change-integration-pass",
       function (req) {
-        if (req.change.commitMessage.match(/Update (submodules|dependencies) on/)) {
+        if (req.change.commitMessage.match(/Update (submodule|submodules|dependencies) (refs )?on/)) {
           req["customGerritAuth"] = gerritAuth;
           req["jenkinsURL"] = jenkinsURL;
           req["jenkinsAuth"] = jenkinsAuth;
@@ -131,7 +131,7 @@ class submodule_update_watcher {
   handleIntegrationPassed(req) {
     let _this = this;
     if (envOrConfig("SUBMODULE_UPDATE_TEAMS_URL")
-        && req.change.commitMessage.match(/Update submodules on/)
+        && req.change.commitMessage.match(/Update (submodule refs|submodules) on/)
     ) {
       axios.post(envOrConfig("SUBMODULE_UPDATE_TEAMS_URL"), {
         "Text": `Successfully updated ${req.change.project} on **${req.change.branch}** submodules set in [https://codereview.qt-project.org/#/q/${req.change.id},n,z](https://codereview.qt-project.org/#/q/${req.change.id},n,z)`
@@ -144,8 +144,9 @@ class submodule_update_watcher {
     let _this = this;
     if (req.jenkinsURL) {
       _this.logger.log("Running new submodule update job", undefined, req.uuid);
+      // Need to make the branch compatible with jenkins project naming rules.
       axios.post(
-        `${req.jenkinsURL}/job/qt_submodule_update_${req.change.branch}/buildWithParameters`, undefined,
+        `${req.jenkinsURL}/job/qt_submodule_update_${req.change.branch.replace("/", "-")}/buildWithParameters`, undefined,
         { auth: req.jenkinsAuth }
       );
     } else {
