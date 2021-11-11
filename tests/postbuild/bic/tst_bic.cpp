@@ -345,6 +345,8 @@ tst_Bic::tst_Bic(const char *appFilePath)
     bic.addBlacklistedClass(QLatin1String("QBindingStatus"));
     /* don't bic-test Vulkan types */
     bic.addBlacklistedClass(QLatin1String("Vk*"));
+    /* vtable churn */
+    bic.addBlackListedClass(QLatin1String("QNativeInterface::QEGLContext"));
 }
 
 void tst_Bic::initTestCase()
