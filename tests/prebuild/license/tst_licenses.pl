@@ -290,7 +290,7 @@ sub loadLicense {
     # Read the sample license
     my $fileHandle;
     if (!open($fileHandle, '<', $licenseFile)) {
-        fail("Cannot open license file: $licenseFile");
+        fail("error: Cannot open license file: $licenseFile");
         return 0;
     }
 
@@ -307,7 +307,7 @@ sub loadLicense {
         }
     }
     if (!$foundBeginMarker) {
-        fail("$licenseFile has no QT_BEGIN_LICENSE marker");
+        fail("error: $licenseFile has no QT_BEGIN_LICENSE marker");
         close $fileHandle;
         return 0;
     }
@@ -328,7 +328,7 @@ sub loadLicense {
     }
     close $fileHandle;
     if (!$foundEndMarker) {
-        fail("$licenseFile has no QT_END_LICENSE marker");
+        fail("error: $licenseFile has no QT_END_LICENSE marker");
         return 0;
     }
 
@@ -344,7 +344,7 @@ sub loadLicense {
 sub msgMismatch
 {
     my ($filename, $actual, $reference, $licenseType, $line) = @_;
-    return "Mismatch in license text in\n" . $filename . "\n"
+    return "error: Mismatch in license text in\n" . $filename . "\n"
         . "    Actual: '" . $actual . "'\n"
         . "  Expected: '" . $reference . "'\n"
         . '   License: ' . $licenseType . ' (' . $licenseFiles{$licenseType} . ':'
@@ -366,7 +366,7 @@ sub checkLicense
     # Read in the whole file
     my $fileHandle;
     if (!open($fileHandle, '<', $filename)) {
-        fail("Cannot open $filename");
+        fail("error: Cannot open $filename");
         return 0;
     }
     my @lines = <$fileHandle>;
@@ -429,15 +429,15 @@ sub checkLicense
                 ($licenseType,$endDelimiter) = ($1, $2);
                 # Verify that we have reference text for the license type
                 if (!@{$licenseTexts{$licenseType} // []}) {
-                    fail("No reference text for license type $licenseType in $shortfilename, line $currentLine");
+                    fail("error: No reference text for license type $licenseType in $shortfilename, line $currentLine");
                     return 0;
                 }
                 $inLicenseText = 1;
             } elsif (/^\Q$beginDelimiter\E/) {
-                fail("QT_BEGIN_LICENSE does not follow Copyright block in $shortfilename, line $currentLine");
+                fail("error: QT_BEGIN_LICENSE does not follow Copyright block in $shortfilename, line $currentLine");
                 return 0;
             } else {
-                fail("$shortfilename has license header with inconsistent comment delimiters, line $currentLine");
+                fail("error: $shortfilename has license header with inconsistent comment delimiters, line $currentLine");
                 return 0;
             }
             $linesMatched++;
@@ -455,7 +455,7 @@ sub checkLicense
                 }
                 my $useOldText = 0;
                 if ($#text != $#referenceText) {
-                    my $message = 'License text (' . $#text . ') and reference text ('
+                    my $message = 'error: License text (' . $#text . ') and reference text ('
                         . $licenseType . ', ' . $#referenceText . ') have different number of lines in '
                         . $shortfilename;
                     if ($#oldReferenceText == 0) {
@@ -475,7 +475,7 @@ sub checkLicense
                 while ($n <= $#text) {
                     if ($text[$n] ne $referenceText[$n]) {
                         if (!$useOldText && $hasOldText) {
-                            print('License text does not match ' . $licenseType . ' due to: '
+                            print('error: License text does not match ' . $licenseType . ' due to: '
                                   . msgMismatch($shortfilename, $text[$n], $referenceText[$n],
                                                 $licenseType, $n) . "\n");
                             $useOldText = 1;
@@ -519,7 +519,7 @@ sub checkLicense
 
     # Did we find any valid licenses?
     if ($matchedLicenses == 0 && $#lines > 2) {
-        fail("$shortfilename does not appear to contain a license header");
+        fail("error: $shortfilename does not appear to contain a license header");
         return 0;
     }
 
