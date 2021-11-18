@@ -102,11 +102,13 @@ my %excludedFiles = (
                           qr{^header\.[\w-]*$},
                         ],
     "qtwayland"      => [
-                          # XML files for protocol
+                          # XML files for protocol (the license checker fails to
+                          # recognize the copyright headers in these)
                           qr{^src/extensions/.+\.xml$},
                           qr{^config\.tests/wayland_scanner/scanner-test\.xml$},
                           qr{^examples/wayland/server-buffer/share-buffer\.xml$},
                           qr{^examples/wayland/custom-extension/protocol/custom\.xml$},
+                          qr{^examples/wayland/custom-shell/protocol/example-shell\.xml$},
                         ],
     'pyside-setup'   => [ qr{^doc/changelogs/changes.*$},
                           qr{^examples/.*/ui_[a-zA-Z0-9_]+\.py$},
