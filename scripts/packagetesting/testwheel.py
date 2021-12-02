@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # ###########################################################################
 #
-# Copyright (C) 2019 The Qt Company Ltd.
+# Copyright (C) 2021 The Qt Company Ltd.
 # Contact: https://www.qt.io/licensing/
 #
 # This file is part of the Quality Assurance module of the Qt Toolkit.
@@ -41,6 +41,7 @@ Qt Package testing script for testing Qt for Python wheels
 
 PYINSTALLER_EXAMPLE_6 = 'widgets/tetrix/tetrix.py'
 PYINSTALLER_EXAMPLE_2 = 'widgets/widgets/tetrix.py'
+OPCUAVIEWER = 'opcua/opcuaviewer/main.py'
 
 
 VERSION = (0, 0, 0)
@@ -74,10 +75,17 @@ def pyside2_examples():
             'webenginewidgets/tabbedbrowser/main.py']
 
 
-def examples():
+def commercial_examples(examples_root):
+    result = []
+    if os.path.exists(os.path.join(examples_root, OPCUAVIEWER)):
+        result.append(OPCUAVIEWER)
+    return result
+
+
+def examples(examples_root):
     """Compile a list of examples to be tested"""
     if VERSION[0] < 6:
-        return pyside2_examples()
+        return pyside2_examples() + commercial_examples(examples_root)
 
     result = ['widgets/mainwindows/mdi/mdi.py',
               'declarative/extending/chapter5-listproperties/listproperties.py',
@@ -88,7 +96,7 @@ def examples():
     if VERSION[1] >= 2:
         result.extend(['multimedia/player/player.py',
                        'webenginewidgets/tabbedbrowser/main.py'])
-    return result
+    return result + commercial_examples(examples_root)
 
 
 def execute(args):
@@ -214,7 +222,7 @@ if __name__ == "__main__":
         print(m)
         sys.exit(1)
     print('Detected PySide{} at {}.'.format(VERSION, root))
-    for e in examples():
+    for e in examples(root_ex):
         run_example(root_ex, e)
 
     if not do_pyinst:
