@@ -46,7 +46,10 @@ prefix_re = re.compile(r'^agent:[\d :/]+\w+\.go:\d+: ')
 start_test_re = re.compile(r'^\*{9} Start testing of \w+ \*{9}$')
 end_test_re = re.compile(r'Totals: \d+ passed, (\d+) failed, \d+ skipped, \d+ blacklisted, \d+ms')
 end_test_crash_re = re.compile(r'\d+/\d+\sTest\s#\d+:.*\*\*\*Failed.*')
+
+# Match make or cmake errors
 make_error_re = re.compile(r'make\[.*Error \d+$')
+cmake_error_re = re.compile(r'CMake Error')
 
 
 def read_file(file_name):
@@ -82,14 +85,14 @@ def is_compile_error(line):
     Return whether a line is an error from one of the common compilers
     (g++, MSVC, Python)
     """
-    if any(e in line for e in (": error: ", ": error C", "SyntaxError:", "NameError:")):
+    if any(e in line for e in (": error: ", ": error C", "SyntaxError:", "NameError:", "fatal error")):
         # Ignore error messages in debug output
         # and also ignore the final ERROR building message, as that one would only print sccache
         # output
         if not ("QDEBUG" in line or "QWARN" in line):
             logging.debug(f"===> Found error in line \n{line}\n")
             return True
-    has_error = make_error_re.match(line)
+    has_error = make_error_re.match(line) or cmake_error_re.search(line)
     if has_error:
         logging.debug(f"===> Found error in line \n{line}\n")
     return has_error
