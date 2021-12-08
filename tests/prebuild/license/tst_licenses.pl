@@ -123,7 +123,12 @@ my %excludedFiles = (
     'qtscxml'        => [
                           # Don't expect license headers in patch files
                           qr{^tools/qscxmlc/moc_patches/.*\.patch$},
-                        ]
+                        ],
+    'qtdigitaladvertising'   => [
+                                  qr{^src/imports/qadvertisement/simplecrypt.*$},
+                                  qr{^src/qtadv/doc/src/qtadv.*$},
+                                  qr{^src/qtadv/qdoc_wrapper.bat$},
+                                ],
 );
 
 # The following regex patterns designate directories and files for which
