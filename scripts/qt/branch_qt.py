@@ -16,7 +16,7 @@ import requests
 import subprocess
 import sys
 
-from typing import List, Iterable, Any, Dict
+from typing import List, Iterable, Any, Dict, Union
 from configparser import ConfigParser
 from enum import Enum
 from textwrap import dedent
@@ -156,7 +156,24 @@ class QtBranching:
         if self.pretend:
             log.info(f"PRETEND: {args}, {kwargs}")
         else:
-            subprocess.run(*args, **kwargs)
+            if kwargs.get("request_output"):
+                del kwargs["request_output"]
+                p = subprocess.run(*args, **kwargs, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                print(p.stdout.decode('utf-8'), p.stderr.decode('utf-8'))
+                return p.stdout.decode('utf-8'), p.stderr.decode('utf-8')
+            else:
+                subprocess.run(*args, **kwargs)
+
+    def post_or_pretend(self, endpoint: str, data: Union[str, bytes, dict] = None):
+        if self.pretend:
+            log.info(f"PRETEND: POST {GERRIT_REST_URL}/a/{endpoint}  data={str(data)}")
+        else:
+            config = Credentials()
+            auth = requests.auth.HTTPBasicAuth(config.username, config.password)
+            r = requests.post(f"{GERRIT_REST_URL}/a/{endpoint}", auth=auth, data=json.dumps(data),
+                              headers={"Content-Type": "application/json"})
+            if r.status_code not in [200, 204]:
+                print(r.status_code, r.reason, r.text, r.request.url, r.request.body)
 
     def run(self) -> None:
         self.sanity_check()
@@ -497,6 +514,45 @@ class QtBranching:
             self.subprocess_or_pretend(
                 ["git", "push", "gerrit", f"HEAD:refs/for/{branch}{reviewerStr}"]
             )
+            if self.pretend or not self.automatic_stage:
+                return
+            output = self.subprocess_or_pretend(["git", "rev-parse", "HEAD"], request_output=True)
+            try:
+                sha = output[0].strip()
+            except IndexError:
+                print('WARN: "git rev-parse HEAD" produced no output! Unable to continue with'
+                      'automatic staging.')
+                return
+            # Fetch the newly created change ID
+            config = Credentials()
+            auth = requests.auth.HTTPBasicAuth(config.username, config.password)
+            response = requests.get(f'{GERRIT_REST_URL}/a/changes/?q=commit:{sha}', auth=auth)
+            response.raise_for_status()
+            if not response.text.startswith(')]}'):
+                print(f"WARNING: Could not locate a gerrit change ID for {sha}! Unable to continue"
+                      "with automatic staging. Gerrit response:"
+                      f"\n{response.status_code}: {response.text}")
+                return
+            query_result = json.loads(response.text[4:])
+            try:
+                change_id = query_result[0]['change_id']
+            except (IndexError, AttributeError):
+                print("WARNING: Unable to locate a valid change ID from the gerrit query."
+                      " Unable to continue with automatic staging. Raw response:\n"
+                      + json.dumps(query_result, indent=4))
+                return
+            # Post a self-review and add the submodule update bot for
+            # automatic staging
+            self.post_or_pretend(f"changes/{change_id}/revisions/{sha}/review",
+                                 data={
+                                     "message": "Auto-approving version-bump",
+                                     "labels": {
+                                        "Code-Review": 2,
+                                        "Sanity-Review": 1
+                                     },
+                                     "reviewers":
+                                         [{"reviewer": "qt_submodule_update_bot@qt-project.org"}]
+                                 })
 
     def bump_qtbase_datastream(self) -> Iterable[str]:
         """Update qdatastream.{h,cpp}'s Version enum.
@@ -627,6 +683,11 @@ def parse_args() -> argparse.Namespace:
         nargs="*",
         help="Optional list of repositories (instead of processing all repositories).",
     )
+    parser.add_argument(
+        "--automatic-stage",
+        action="store_true",
+        help="Self-approve changes and add the Qt Submodule Update bot as reviewer "
+             "so the version bump gets included in the next submodule update round.")
     return parser.parse_args(sys.argv[1:])
 
 
