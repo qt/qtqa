@@ -54,6 +54,9 @@ end_test_crash_re = re.compile(r'\d+/\d+\sTest\s#\d+:.*\*\*\*Failed.*')
 make_error_re = re.compile(r'make\[.*Error \d+$')
 cmake_error_re = re.compile(r'CMake Error')
 
+# Failed to install tests archive
+nosource_re = re.compile(r"No sources for \"https?://(\d+\.\d+\.\d+\.\d+):(\d+)") # failed to install tests archive
+
 
 def read_file(file_name):
     """
@@ -161,6 +164,8 @@ def parse(lines):
             test_start_line = i
         elif is_compile_error(line):
             logging.debug("===> Matched compile error")
+            print_line_with_context(i, 10, lines)
+        elif nosource_re.match(line):
             print_line_with_context(i, 10, lines)
 
 if __name__ == '__main__':
