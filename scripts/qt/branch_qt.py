@@ -38,7 +38,10 @@ qt5_extra_repositories = [
 qt6_extra_repositories = [
     'qt/qtdeviceutilities',
     'yocto/meta-boot2qt',
-    'yocto/meta-qt6'
+    'yocto/meta-qt6',
+    'qt/qtinterfaceframework',
+    'qt/qtapplicationmanager',
+    'qt/tqtc-qmlcompilerplus'
 ]
 
 
