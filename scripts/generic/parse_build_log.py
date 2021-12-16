@@ -91,7 +91,7 @@ def print_failed_test(lines, start, end):
     print('\n{}: {}'.format(start, lines[start]))
     for i in range(start + 1, end):
         line = lines[i]
-        if 'FAIL!' in line or 'XPASS' or '***Failed' in line:
+        if 'FAIL!' in line or 'XPASS' in line or '***Failed' in line:
             last_fail = i
         if i - last_fail < 4:
             print(line)
