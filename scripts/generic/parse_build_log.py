@@ -31,6 +31,7 @@ import subprocess
 import sys
 import logging
 import gzip
+from typing import Set
 
 usage = """
 Usage:  parse_build_log.py [log_file]
@@ -81,21 +82,33 @@ def is_compile_error(line):
     return has_error
 
 
-def print_failed_test(lines, start, end):
+def print_failed_test(lines, start, end, already_known_errors):
     """
     For a failed test, print 3 lines following the FAIL!/XPASS and
     header/footer.
     """
     last_fail = -50
     # Print 3 lines after a failure
-    print('\n{}: {}'.format(start, lines[start]))
+    header = '\n{}: {}'.format(start, lines[start])
+    test_result = []
     for i in range(start + 1, end):
         line = lines[i]
         if 'FAIL!' in line or 'XPASS' in line or '***Failed' in line:
-            last_fail = i
+            # the format is FAIL! class::method(n) <info>
+            # with n being the time that the test has been repeated. To deduplicate, we need to
+            # remove n. n should be < 9, so %d is sufficient to match
+            # The first test might not have a number at all, but then the regex will also just
+            # ignore it
+            adjusted_line = re.sub(r'\(\d\)', '', line)
+            if not adjusted_line in already_known_errors:
+                already_known_errors.add(adjusted_line)
+                last_fail = i
         if i - last_fail < 4:
-            print(line)
-    print('{}\n'.format(lines[end]))
+            test_result.append(line)
+    if test_result:
+        print(header)
+        print("\n".join(test_result))
+        print('{}\n'.format(lines[end]))
 
 
 def parse(lines):
@@ -104,6 +117,7 @@ def parse(lines):
     """
     test_start_line = -1
     within_configure_tests = False
+    already_known_errors: Set[str] = set()
     # used to skip CMake output which contains information about failed configure tests
     within_cmake_output: bool = False
     # used to skip sccache output
@@ -119,7 +133,7 @@ def parse(lines):
             if end_match:
                 fails = int(end_match.group(1))
                 if fails:
-                    print_failed_test(lines, test_start_line, i)
+                    print_failed_test(lines, test_start_line, i, already_known_errors)
                 test_start_line = -1
             elif end_test_crash_re.match(line):
                 logging.debug(f"===> test crashed {line} {test_start_line} {i}")
