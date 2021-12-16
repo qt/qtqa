@@ -19,7 +19,7 @@
 cd $WORK
 $SRC/qt/configure -opensource -confirm-license -prefix $PWD/qtbase \
                   -platform linux-clang-libc++ -release -static \
-                  -qt-libmd4c -no-opengl -- \
+                  -qt-libmd4c -no-opengl -no-widgets -- \
                   -DCMAKE_CXX_FLAGS_RELEASE="-O1" -DQT_USE_DEFAULT_CMAKE_OPTIMIZATION_FLAGS=ON
 VERBOSE=1 cmake --build . --parallel
 
