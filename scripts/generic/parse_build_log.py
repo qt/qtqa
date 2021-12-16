@@ -31,7 +31,7 @@ import subprocess
 import sys
 import logging
 import gzip
-from typing import Set
+from typing import Set, List
 
 usage = """
 Usage:  parse_build_log.py [log_file]
@@ -110,6 +110,14 @@ def print_failed_test(lines, start, end, already_known_errors):
         print("\n".join(test_result))
         print('{}\n'.format(lines[end]))
 
+def is_fatal_timeout(line: str) -> bool:
+    return "Killed process: No output received (timeout" in line
+
+def print_line_with_context(start_line_number: int, context_before: int, lines: List[str]):
+    start = max(0, start_line_number - context_before)
+    sys.stdout.write('\n{}: '.format(start))
+    for e in range(start, start_line_number + 1):
+        print(lines[e])
 
 def parse(lines):
     """
@@ -139,6 +147,10 @@ def parse(lines):
                 logging.debug(f"===> test crashed {line} {test_start_line} {i}")
                 print_failed_test(lines, test_start_line, i)
                 test_start_line = -1
+            elif is_fatal_timeout(line):
+                logging.debug("===> Matched fatal timeout")
+                print("While running tests, a timeout occurred: ")
+                print_line_with_context(i, 10, lines)
         # Do not report errors within configuration tests
         elif line == 'Running configuration tests...':
             within_configure_tests = True
@@ -148,11 +160,8 @@ def parse(lines):
             logging.debug("===> Matched test")
             test_start_line = i
         elif is_compile_error(line):
-            start = max(0, i - 10)
-            sys.stdout.write('\n{}: '.format(start))
-            for e in range(start, i + 1):
-                print(lines[e])
-
+            logging.debug("===> Matched compile error")
+            print_line_with_context(i, 10, lines)
 
 if __name__ == '__main__':
     if sys.version_info[0] != 3:
