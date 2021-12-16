@@ -15,12 +15,19 @@
 #
 ################################################################################
 
-# build project
-cd $WORK
-$SRC/qt/configure -opensource -confirm-license -prefix $PWD/qtbase \
-                  -platform linux-clang-libc++ -release -static \
-                  -qt-libmd4c -no-opengl -no-widgets -- \
-                  -DCMAKE_CXX_FLAGS_RELEASE="-O1" -DQT_USE_DEFAULT_CMAKE_OPTIMIZATION_FLAGS=ON
+# build qtbase
+mkdir $WORK/qt
+cd $WORK/qt
+$SRC/qtbase/configure -opensource -confirm-license -prefix $PWD \
+                      -platform linux-clang-libc++ -release -static \
+                      -qt-libmd4c -no-opengl -no-widgets -- \
+                      -DCMAKE_CXX_FLAGS_RELEASE="-O1" -DQT_USE_DEFAULT_CMAKE_OPTIMIZATION_FLAGS=ON
+VERBOSE=1 cmake --build . --parallel
+
+# build qtsvg
+mkdir $WORK/build-qtsvg
+cd $WORK/build-qtsvg
+$WORK/qt/bin/qt-cmake -S $SRC/qtsvg -GNinja
 VERBOSE=1 cmake --build . --parallel
 
 # prepare corpus files
@@ -52,7 +59,7 @@ build_fuzzer() {
     local targetName="${module}_${srcDir//\//_}"
     mkdir build_fuzzer
     pushd build_fuzzer
-    $WORK/qtbase/bin/qt-cmake -S "$SRC/qt/$module/tests/libfuzzer/$srcDir" -GNinja
+    $WORK/qt/bin/qt-cmake -S "$SRC/$module/tests/libfuzzer/$srcDir" -GNinja
     VERBOSE=1 cmake --build . --parallel
 
     mv "$exeName" "$OUT/$targetName"
