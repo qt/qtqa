@@ -49,7 +49,7 @@ makecmd=''
 install=''
 QtverGtEq6=0
 module_set=''
-benchmark_set='benchmarks/auto/creation/ benchmarks/auto/changes/ benchmarks/auto/js benchmarks/auto/animations benchmarks/auto/bindings'
+benchmark_set=':benchmarks/auto/creation/ :benchmarks/auto/changes/ :benchmarks/auto/js :benchmarks/auto/animations :benchmarks/auto/bindings'
 
 
 # checkoutQtModule <module name> <branch>
@@ -114,7 +114,7 @@ if [[ "$1" =~ ^(v?6\.|dev) ]]; then
     makecmd="cmake --build . --parallel $3"
     install="cmake --install ."
     module_set="$module_set qtshadertools qtdeclarative qtquickcontrols2 qtquick3d"
-    benchmark_set="$benchmark_set benchmarks/auto/quick3d/"
+    benchmark_set="$benchmark_set :benchmarks/auto/quick3d/"
 else
     makecmd="make -j$3"
     moduleConfig="../qtbase/bin/qmake"

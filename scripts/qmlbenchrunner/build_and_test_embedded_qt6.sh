@@ -54,7 +54,7 @@ target_moduleConfig="$target_prefix/bin/qt-configure-module"
 makecmd="cmake --build . --parallel"
 install="cmake --install ."
 module_set="$module_set qtshadertools qtdeclarative qtquickcontrols2 qtquick3d"
-benchmark_set='benchmarks/auto/creation/ benchmarks/auto/changes/ benchmarks/auto/js benchmarks/auto/animations benchmarks/auto/bindings benchmarks/auto/quick3d/'
+benchmark_set=':benchmarks/auto/creation/ :benchmarks/auto/changes/ :benchmarks/auto/js :benchmarks/auto/animations :benchmarks/auto/bindings :benchmarks/auto/quick3d/'
 devicePrefix=/opt/qt
 deviceIP=$DEVIP
 
