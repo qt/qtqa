@@ -487,36 +487,36 @@ exports.queryProjectCommit = function (parentUuid, project, commit, customAuth, 
     });
 };
 
-// Set the assignee of a change
-exports.setChangeAssignee = setChangeAssignee;
-function setChangeAssignee(parentUuid, changeJSON, newAssignee, customAuth, callback) {
+// Add a user to the attention set of a change
+exports.addToAttentionSet = addToAttentionSet;
+function addToAttentionSet(parentUuid, changeJSON, user, customAuth, callback) {
   checkAccessRights(
     parentUuid, changeJSON.project, changeJSON.branch || changeJSON.change.branch,
-    newAssignee, "push", customAuth || gerritAuth,
+    user, "push", customAuth || gerritAuth,
     function (success, data) {
       if (!success) {
-        let msg = `User "${newAssignee}" cannot push to ${changeJSON.project}:${changeJSON.branch}.`
+        let msg = `User "${user}" cannot push to ${changeJSON.project}:${changeJSON.branch}.`
         logger.log(msg, "warn", parentUuid);
         callback(false, msg);
         let botAssignee = envOrConfig("GERRIT_USER");
         if (botAssignee && newAssignee != botAssignee) {
           logger.log(`Falling back to GERRIT_USER (${botAssignee}) as assignee...`);
-          setChangeAssignee(
+          addToAttentionSet(
             parentUuid, changeJSON, botAssignee, customAuth,
             function () {}
           );
         }
       } else {
-        let url = `${gerritBaseURL("changes")}/${changeJSON.id || changeJSON.fullChangeID}/assignee`;
-        let data = { assignee: newAssignee };
+        let url = `${gerritBaseURL("changes", changeJSON.fullChangeID || changeJSON.id)}/attention`;
+        let data = { user: user, "reason": "Original author of change" };
         logger.log(
-          `PUT request to: ${url}\nRequest Body: ${safeJsonStringify(data)}`,
+          `POST request to: ${url}\nRequest Body: ${safeJsonStringify(data)}`,
           "debug", parentUuid
         );
-        axios({ method: "PUT", url: url, data: data, auth: customAuth || gerritAuth })
+        axios({ method: "POST", url: url, data: data, auth: customAuth || gerritAuth })
           .then(function (response) {
             logger.log(
-              `Set new assignee "${newAssignee}" on "${changeJSON.id || changeJSON.fullChangeID}"`,
+              `Added Attention Set user: "${user}" on "${changeJSON.fullChangeID || changeJSON.id}"`,
               "info", parentUuid
             );
             callback(true, undefined);
@@ -526,7 +526,7 @@ function setChangeAssignee(parentUuid, changeJSON, newAssignee, customAuth, call
               // The request was made and the server responded with a status code
               // that falls out of the range of 2xx
               logger.log(
-                `An error occurred in PUT to "${url}". Error ${error.response.status}: ${
+                `An error occurred in POST to "${url}". Error: ${error.response.status}: ${
                   error.response.data}`,
                 "error", parentUuid
               );
@@ -541,7 +541,7 @@ function setChangeAssignee(parentUuid, changeJSON, newAssignee, customAuth, call
             } else {
               // Something happened in setting up the request that triggered an Error
               logger.log(
-                `Error in HTTP request while trying to set assignee. Error: ${error}`,
+                `Error in HTTP request while trying to add to attention set. Error: ${error}`,
                 "error", parentUuid
               );
               callback(false, error.message);

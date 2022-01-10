@@ -791,7 +791,7 @@ class requestProcessor extends EventEmitter {
   }
 
   // For a newly created cherry pick, check to see if there are merge
-  // conflicts and set the assignee and reviewers if so.
+  // conflicts and update the attention set to add reviewers if so.
   processNewCherryPick(parentJSON, cherryPickJSON, responseSignal) {
     let _this = this;
 
@@ -815,21 +815,19 @@ class requestProcessor extends EventEmitter {
       );
       // Internal emitter in case anything needs to know about conflicts on this change.
       _this.emit(`mergeConflict_${cherryPickJSON.id}`);
-      gerritTools.setChangeAssignee(
-        parentJSON.uuid, cherryPickJSON,
-        parentJSON.change.owner.email || parentJSON.change.owner.username,
-        parentJSON.customGerritAuth,
+      let owner = parentJSON.change.owner.email || parentJSON.change.owner.username
+      gerritTools.addToAttentionSet(
+        parentJSON.uuid, cherryPickJSON, owner, parentJSON.customGerritAuth,
         function (success, data) {
           if (!success) {
             _this.logger.log(
-              `Failed to set change assignee "${safeJsonStringify(parentJSON.change.owner)}" on ${
-                cherryPickJSON.id}.\nReason: ${safeJsonStringify(data)}`,
+              `Failed to add "${safeJsonStringify(parentJSON.change.owner)}" to the attention`
+              + ` set on ${cherryPickJSON.id}.\nReason: ${safeJsonStringify(data)}`,
               "warn", parentJSON.uuid
             );
             _this.gerritCommentHandler(
               parentJSON.uuid, cherryPickJSON.id, undefined,
-              `Unable to add ${parentJSON.change.owner.email || parentJSON.change.owner.username
-              } as the assignee to this issue.\nReason: ${data}`,
+              `Unable to add ${owner} to the attention set of this issue.\nReason: ${data}`,
               "NONE"
             );
           }
@@ -931,16 +929,15 @@ class requestProcessor extends EventEmitter {
               toolbox.decrementPickCountRemaining(parentJSON.uuid);
             }
           );
-          gerritTools.setChangeAssignee(
+          gerritTools.addToAttentionSet(
             parentJSON.uuid, cherryPickJSON,
             parentJSON.change.owner.email || parentJSON.change.owner.username,
             parentJSON.customGerritAuth,
             function (success, data) {
               if (!success) {
                 _this.logger.log(
-                  `Failed to set change assignee "${
-                    safeJsonStringify(parentJSON.change.owner)}" on ${cherryPickJSON.id}\nReason: ${
-                    safeJsonStringify(data)}`,
+                  `Failed to add "${safeJsonStringify(parentJSON.change.owner)}" to the`
+                  + ` attention set of ${cherryPickJSON.id}\nReason: ${safeJsonStringify(data)}`,
                   "error", parentJSON.uuid
                 );
               }
@@ -1004,15 +1001,15 @@ class requestProcessor extends EventEmitter {
             `Failed to stage ${cherryPickJSON.id}. Reason: ${safeJsonStringify(data)}`,
             "error", parentJSON.uuid
           );
-          gerritTools.setChangeAssignee(
+          gerritTools.addToAttentionSet(
             parentJSON.uuid, cherryPickJSON,
             parentJSON.change.owner.email || parentJSON.change.owner.username,
             parentJSON.customGerritAuth,
             function (success, data) {
               if (!success) {
                 _this.logger.log(
-                  `Failed to set change assignee "${safeJsonStringify(parentJSON.change.owner)}" on ${
-                    cherryPickJSON.id}\nReason: ${safeJsonStringify(data)}`,
+                  `Failed to add "${safeJsonStringify(parentJSON.change.owner)}" to the`
+                  + ` attention set of ${cherryPickJSON.id}\nReason: ${safeJsonStringify(data)}`,
                   "error", parentJSON.uuid
                 );
               }

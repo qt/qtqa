@@ -68,9 +68,9 @@ class submodule_update_watcher {
     gerritTools.queryChange(
       req.uuid, req.fullChangeID, undefined, req.customGerritAuth,
       function (success, data) {
-        if (!data.assignee && envOrConfig("SUBMODULE_UPDATE_FAILED_ASSIGNEE")) {
-          gerritTools.setChangeAssignee(
-            req.uuid, req, envOrConfig("SUBMODULE_UPDATE_FAILED_ASSIGNEE"), req.customGerritAuth,
+        if (envOrConfig("SUBMODULE_UPDATE_FAILED_ATTENTION_USER")) {
+          gerritTools.addToAttentionSet(
+            req.uuid, req, envOrConfig("SUBMODULE_UPDATE_FAILED_ATTENTION_USER"), req.customGerritAuth,
             function () {
               _this.notifier.requestProcessor.emit(
                 "postGerritComment", req.uuid, req.fullChangeID,
@@ -80,7 +80,8 @@ class submodule_update_watcher {
             }
           );
         } else {
-          _this.logger.log("Ignoring. Assignee already set or no new assignee configured.", undefined, req.uuid);
+          _this.logger.log("No default user configured to add to the attention set"
+                           + " for submodule updates.", undefined, req.uuid);
         }
 
         // Run the bot again, which will either stage it or give up.
