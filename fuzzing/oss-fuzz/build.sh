@@ -36,6 +36,7 @@ zip -j $WORK/datetime $SRC/qtqa/fuzzing/testcases/datetime/*
 zip -j $WORK/html $SRC/qtqa/fuzzing/testcases/html/*
 zip -j $WORK/icc $SRC/qtqa/fuzzing/testcases/icc/*
 zip -j $WORK/images $SRC/qtqa/fuzzing/testcases/{bmp,gif,ico,jpg,png,svg,xbm,xpm}/* $SRC/afltestcases/images/*/*
+zip -j $WORK/json $SRC/qtqa/fuzzing/testcases/json/*
 zip -j $WORK/markdown $SRC/qtqa/fuzzing/testcases/markdown/*
 zip -j $WORK/regexp.zip $SRC/qtqa/fuzzing/testcases/regexp/*
 zip -j $WORK/ssl.pem.zip $SRC/qtqa/fuzzing/testcases/ssl.pem/*
@@ -75,6 +76,7 @@ build_fuzzer() {
 
 build_fuzzer "qtbase" "corelib/serialization/qcborstreamreader/next" "cbor"
 build_fuzzer "qtbase" "corelib/serialization/qcborvalue/fromcbor" "cbor"
+build_fuzzer "qtbase" "corelib/serialization/qjsondocument/fromjson" "json" "$SRC/afldictionaries/json.dict"
 build_fuzzer "qtbase" "corelib/serialization/qtextstream/extractionoperator-float" "text"
 build_fuzzer "qtbase" "corelib/serialization/qxmlstream/qxmlstreamreader/readnext" "xml" "$SRC/afldictionaries/xml.dict"
 build_fuzzer "qtbase" "corelib/text/qregularexpression/optimize" "regexp" "$SRC/afldictionaries/regexp.dict"
