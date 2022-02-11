@@ -16,7 +16,7 @@ import requests
 import subprocess
 import sys
 
-from typing import List, Optional, Iterable, Any
+from typing import List, Iterable, Any
 from configparser import ConfigParser
 from enum import Enum
 from textwrap import dedent
@@ -121,27 +121,9 @@ def versionCompare(version1: str, version2: str) -> int:
 
 
 class QtBranching:
-    def __init__(
-        self,
-        mode: Mode,
-        fromBranch: str,
-        fromVersion: str,
-        toBranch: str,
-        pretend: bool,
-        skip_hooks: bool,
-        direct: bool,
-        reviewers: Optional[List[str]],
-        repos: Optional[List[str]],
-    ) -> None:
+    def __init__(self, mode: Mode, **kws) -> None:
         self.mode = mode
-        self.fromBranch = fromBranch
-        self.fromVersion = fromVersion
-        self.toBranch = toBranch
-        self.pretend = pretend
-        self.skip_hooks = skip_hooks
-        self.direct = direct
-        self.reviewers = reviewers
-        self.repos = repos
+        self.__dict__.update(kws)
 
         # Additional repositories that are not part of qt5.git:
         # use qt5_extra_repositories For Qt 5.x.y, otherwise use qt6 one(also for dev)
@@ -150,7 +132,9 @@ class QtBranching:
         else:
             self.extra_repositories = qt5_extra_repositories
 
-        log.info(f"{mode.name} from '{fromVersion} (on {fromBranch})' to '{toBranch}'")
+        log.info(
+            f"{mode.name} from '{self.fromVersion} (on {self.fromBranch})' to '{self.toBranch}'"
+        )
 
     def subprocess_or_pretend(self, *args: Any, **kwargs: Any) -> None:
         if self.pretend:
@@ -566,7 +550,8 @@ def parse_args() -> argparse.Namespace:
         "--mode",
         "-m",
         type=str,
-        choices=["branch", "sync", "merge", "bump"],
+        dest="_mode",
+        choices=[m.name for m in Mode],
         required=True,
         help=dedent(
             """\
@@ -635,17 +620,7 @@ if __name__ == "__main__":
         if not args.pretend and args.direct:
             gerrit_add_pushmaster()
 
-        branching = QtBranching(
-            mode=Mode[args.mode],
-            fromBranch=args.fromBranch,
-            fromVersion=args.fromVersion,
-            toBranch=args.toBranch,
-            pretend=args.pretend,
-            skip_hooks=args.skip_hooks,
-            direct=args.direct,
-            reviewers=args.reviewers,
-            repos=args.repos,
-        )
+        branching = QtBranching(mode=Mode[args._mode], **vars(args))
         branching.run()
     finally:
         if not args.pretend and args.direct:
