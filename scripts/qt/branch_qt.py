@@ -364,21 +364,22 @@ class QtBranching:
             content = f.read()
 
         match = re.search(pattern, content, flags=re.MULTILINE)
-        if match is not None:
-            if match.group(1) != self.fromVersion:
-                log.warning(
-                    f"--version ({self.fromVersion}) differs the one "
-                    f"({match.group(1)}) parsed from {file}, SKIPPING"
-                )
-                return False
-            log.info(f"bump {repo}:{file} from {self.fromVersion} to {self.toBranch}")
-            i, j = match.span(1)
-            with open(file, mode="w", encoding="utf-8") as f:
-                f.write(content[:i] + self.toBranch + content[j:])
-            return True
+        if match is None:
+            log.warning(f"could not read version in {repo}, {file}, SKIPPING")
+            return False
 
-        log.warning(f"could not read version in {repo}, {file}, SKIPPING")
-        return False
+        if match.group(1) != self.fromVersion:
+            log.warning(
+                f"--version ({self.fromVersion}) differs the one ({match.group(1)}) "
+                f"parsed from {file}, SKIPPING"
+            )
+            return False
+
+        log.info(f"bump {repo}:{file} from {self.fromVersion} to {self.toBranch}")
+        i, j = match.span(1)
+        with open(file, mode="w", encoding="utf-8") as f:
+            f.write(content[:i] + self.toBranch + content[j:])
+        return True
 
     def version_bump_repo(self, repo: git.Repo) -> None:
         repo_name = get_repo_name(repo)
