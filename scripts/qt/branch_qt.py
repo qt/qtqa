@@ -354,7 +354,7 @@ class QtBranching:
                                      'tests/auto/cmake/mockplugins'))
         elif repo_name == 'qtnetworkauth':
             conanfile = 'qtnetworkauth/([0-9.]+)'
-            bumpers.update((p, conanfile) for p in Path("examples/").rglob("conanfile.txt"))
+            bumpers.update((str(p), conanfile) for p in Path("examples/").rglob("conanfile.txt"))
 
         bumped_files = [] # type: List[str]
         for file, pattern in bumpers.items():
