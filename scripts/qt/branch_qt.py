@@ -59,14 +59,15 @@ log.setLevel(log_level)
 try:
     import coloredlogs  # type: ignore
     coloredlogs.install(level=log_level, logger=log, fmt=log_format)
-except:
+except ImportError:
     pass
 
 
-example_config_file = dedent(f"""\
+example_config_file = dedent("""\
     [gerrit]
     username = my_username
     password = some_password""")
+
 
 class Credentials:
     """ Reads ~/.config/branch_qt.ini for Gerrit username and password. """
@@ -97,17 +98,20 @@ def is_major_minor_patch(version: str) -> bool:
     parts = version.split('.')
     return len(parts) == 3 and all(x.isdigit() for x in parts)
 
+
 def get_repo_name(repo: git.Repo) -> str:
     return os.path.basename(repo.working_dir)
 
+
 def versionCompare(version1: str, version2: str) -> int:
     def normalize(v) -> List[int]:
-        return [int(x) for x in re.sub(r'(\.0+)*$', '',v).split(".")]
+        return [int(x) for x in re.sub(r'(\.0+)*$', '', v).split(".")]
 
     def cmp(a, b) -> int:
         return (a > b) - (a < b)
 
     return cmp(normalize(version1), normalize(version2))
+
 
 class QtBranching:
     def __init__(self,
@@ -222,11 +226,11 @@ class QtBranching:
                     f"Branching from x.y ({self.fromBranch}) should result in x.y.z (not {self.toBranch})"
 
     def init_repository(self) -> None:
-        log.info(f"Fetching super module...")
+        log.info("Fetching super module...")
         repo = git.Repo('.')
         self.checkout_and_pull_branch(repo, self.fromBranch)
 
-        log.info(f"Running init-repository...")
+        log.info("Running init-repository...")
         # This makes sure we have all submodules, and only the ones we want.
         # It also updates the submodules, so we are on the right branches.
         # Note: don't use --branch here, as it breaks idempotence.
@@ -237,7 +241,7 @@ class QtBranching:
         repo = git.Repo(submodule.path)
         try:
             self.checkout_and_pull_branch(repo, branch)
-        except:
+        except Exception:
             return False
         return True
 
@@ -289,7 +293,7 @@ class QtBranching:
         self.subprocess_or_pretend(f"git push -q gerrit gerrit/{self.fromBranch}:refs/heads/{self.toBranch}".split())
 
         # We do not want to add the extra repos in .gitmodules
-        if not repo_name in (extra_repo.split('/')[-1] for extra_repo in self.extra_repositories):
+        if repo_name not in (extra_repo.split('/')[-1] for extra_repo in self.extra_repositories):
             self.subprocess_or_pretend(f"git config -f ../.gitmodules submodule.{repo_name}.branch {self.toBranch}".split())
 
     def merge_repo(self, repo: git.Repo) -> None:
@@ -316,14 +320,14 @@ class QtBranching:
         try:
             subprocess.run(f'git merge --ff-only --quiet gerrit/{self.fromBranch}'.split(), check=True, stderr=subprocess.PIPE)
             self.push(repo_name, self.toBranch)
-        except Exception as e:
+        except Exception:
             log.exception(f"Could not sync repository: {repo_name}")
 
     def version_bump(self, file: str, pattern: str, repo: str) -> bool:
         with open(file, mode='r', encoding='utf-8') as f:
             content = f.read()
 
-        match = re.search(pattern, content, flags = re.MULTILINE)
+        match = re.search(pattern, content, flags=re.MULTILINE)
         if match is not None:
             if match.group(1) != self.fromVersion:
                 log.warning(f"--version ({self.fromVersion}) differs the one ({match.group(1)}) parsed from {file}, SKIPPING")
@@ -356,7 +360,7 @@ class QtBranching:
             conanfile = 'qtnetworkauth/([0-9.]+)'
             bumpers.update((str(p), conanfile) for p in Path("examples/").rglob("conanfile.txt"))
 
-        bumped_files = [] # type: List[str]
+        bumped_files = []  # type: List[str]
         for file, pattern in bumpers.items():
             try:
                 if self.version_bump(file, pattern, repo_name):
@@ -387,7 +391,7 @@ class QtBranching:
                 log.warning(f"{project}, {branch} is busy (staged or integrating changes), SKIPPING!")
                 return
             self.subprocess_or_pretend(['git', 'push', 'gerrit', f'HEAD:refs/heads/{branch}', f'HEAD:refs/staging/{branch}'])
-        else: # Do formal codereview instead
+        else:  # Do formal codereview instead
             reviewerStr = f"%r={',r='.join(self.reviewers)}" if self.reviewers else ''
             self.subprocess_or_pretend(['git', 'push', 'gerrit',
                                         f'HEAD:refs/for/{branch}{reviewerStr}'])
@@ -424,14 +428,14 @@ class QtBranching:
         with open(datastream_h, mode='r', encoding='utf-8') as fd:
             datastream_h_content = fd.read()
         match = re.search(f'^ +{fromver} = (Qt_[0-9_]+),', datastream_h_content,
-                          flags = re.MULTILINE)
+                          flags=re.MULTILINE)
         if match is None:
             match = re.search(f'^ +{fromver} = [0-9]+,', datastream_h_content,
-                              flags = re.MULTILINE)
+                              flags=re.MULTILINE)
             assert match is not None, f'Missing {fromver} in {datastream_h}'
             wasver = fromver
         else:
-            wasver = match.group(1) # The version fromver is assigned equal to.
+            wasver = match.group(1)  # The version fromver is assigned equal to.
 
         # Version used in comparison should use the macro, but might
         # use old-style hex-format, numerically equal to it. Expect it
@@ -444,7 +448,7 @@ class QtBranching:
             r'QT_VERSION_CHECK\([1-9][0-9]*,\s*[0-9]+,\s*[0-9]+\)',
             r'0x0*[0-9a-fA-F]{5,}\b',
             ):
-            check = re.compile(rf'^ *(# *if QT_VERSION >= ){tail}', flags = re.MULTILINE)
+            check = re.compile(rf'^ *(# *if QT_VERSION >= ){tail}', flags=re.MULTILINE)
             if check.search(datastream_h_content) is not None:
                 break
         else:
@@ -453,11 +457,11 @@ class QtBranching:
 
         datastream_h_content = re.sub(
             # Add new version to enum, initially same as prior, update default to use it:
-            f'^( +)(Qt_DefaultCompiledVersion = )Qt_([0-9_]+)',
+            '^( +)(Qt_DefaultCompiledVersion = )Qt_([0-9_]+)',
             rf'\g<1>{tover} = {wasver},\n\g<1>\g<2>{tover}',
             # Bump up the QT_VERSION_CHECK() in #ifdef:
             check.sub(rf'\g<1>QT_VERSION_CHECK({tomajor}, {tominor + 1}, 0)', datastream_h_content),
-            flags = re.MULTILINE)
+            flags=re.MULTILINE)
         with open(datastream_h, mode='w', encoding='utf-8') as fd:
             fd.write(datastream_h_content)
 
@@ -467,11 +471,12 @@ class QtBranching:
                 # Add documentation for new version (a line like '\value Qt_6_4 Same as Qt_6_0'):
                 rf'^( +\\value )({fromver} .+)$',
                 rf'\g<1>\g<2>\n\g<1>{tover} Same as {wasver}',
-                fd.read(), flags = re.MULTILINE)
+                fd.read(), flags=re.MULTILINE)
         with open(datastream_cpp, mode='w', encoding='utf-8') as fd:
             fd.write(datastream_cpp_content)
 
         return datastream_h, datastream_cpp
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(prog="branch_qt.py",
@@ -518,11 +523,13 @@ def gerrit_add_pushmaster() -> None:
     r = requests.put(f'{GERRIT_REST_URL}/a/groups/Push Masters/members/{config.username}', auth=auth)
     r.raise_for_status()
 
+
 def gerrit_remove_pushmaster() -> None:
     config = Credentials()
     auth = requests.auth.HTTPBasicAuth(config.username, config.password)
     r = requests.delete(f'{GERRIT_REST_URL}/a/groups/Push Masters/members/{config.username}', auth=auth)
     r.raise_for_status()
+
 
 if __name__ == "__main__":
     args = parse_args()
