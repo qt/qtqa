@@ -15,9 +15,8 @@ import re
 import requests
 import subprocess
 import sys
-import typing
 
-from typing import List
+from typing import List, Optional, Iterable, Any
 from configparser import ConfigParser
 from enum import Enum
 from textwrap import dedent
@@ -101,11 +100,11 @@ def is_major_minor_patch(version: str) -> bool:
 def get_repo_name(repo: git.Repo) -> str:
     return os.path.basename(repo.working_dir)
 
-def versionCompare(version1: str, version2: str):
-    def normalize(v):
+def versionCompare(version1: str, version2: str) -> int:
+    def normalize(v) -> List[int]:
         return [int(x) for x in re.sub(r'(\.0+)*$', '',v).split(".")]
 
-    def cmp(a, b):
+    def cmp(a, b) -> int:
         return (a > b) - (a < b)
 
     return cmp(normalize(version1), normalize(version2))
@@ -119,8 +118,8 @@ class QtBranching:
                  pretend: bool,
                  skip_hooks: bool,
                  direct: bool,
-                 reviewers: typing.Optional[typing.List[str]],
-                 repos: typing.Optional[typing.List[str]]
+                 reviewers: Optional[List[str]],
+                 repos: Optional[List[str]]
                  ) -> None:
         self.mode = mode
         self.fromBranch = fromBranch
@@ -141,7 +140,7 @@ class QtBranching:
 
         log.info(f"{mode.name} from '{fromVersion} (on {fromBranch})' to '{toBranch}'")
 
-    def subprocess_or_pretend(self, *args: typing.Any, **kwargs: typing.Any) -> None:
+    def subprocess_or_pretend(self, *args: Any, **kwargs: Any) -> None:
         if self.pretend:
             log.info(f"PRETEND: {args}, {kwargs}")
         else:
@@ -393,7 +392,7 @@ class QtBranching:
             self.subprocess_or_pretend(['git', 'push', 'gerrit',
                                         f'HEAD:refs/for/{branch}{reviewerStr}'])
 
-    def bump_qtbase_datastream(self) -> typing.Iterable[str]:
+    def bump_qtbase_datastream(self) -> Iterable[str]:
         """Update qdatastream.{h,cpp}'s Version enum.
 
         Only needed for major and minor version changes. Each minor
