@@ -16,7 +16,7 @@ import requests
 import subprocess
 import sys
 
-from typing import List, Iterable, Any
+from typing import List, Iterable, Any, Dict
 from configparser import ConfigParser
 from enum import Enum
 from textwrap import dedent
@@ -37,6 +37,8 @@ _parser_modes = {
          Merges 5.12 into 5.12.4.""",
     "bump": """version bump, to move from 5.12.3 to 5.12.4:
      branch_qt.py -m bump --from dev --version 5.12.0 --to 5.13.0""",
+    "bump_prerelease": """update prerelease version segment:
+     branch_qt.py -m bump_prerelease --from-prerelease alpha1 --to-prerelease alpha2""",
 }
 
 Mode = Enum("Mode", " ".join(_parser_modes.keys()))
@@ -218,6 +220,8 @@ class QtBranching:
                 self.sync_repo(repo)
             elif self.mode == Mode["bump"]:
                 self.version_bump_repo(repo)
+            elif self.mode == Mode["bump_prerelease"]:
+                self.prerelease_tag_bump_repo(repo)
             else:
                 assert False, "This mode is not yet implemented"
         except FileNotFoundError:
@@ -373,7 +377,9 @@ class QtBranching:
         except Exception:
             log.exception(f"Could not sync repository: {repo_name}")
 
-    def version_bump(self, file: str, pattern: str, repo: str) -> bool:
+    def version_bump(
+        self, file: str, pattern: str, repo: str, from_version: str, to_version: str
+    ) -> bool:
         with open(file, mode="r", encoding="utf-8") as f:
             content = f.read()
 
@@ -382,18 +388,41 @@ class QtBranching:
             log.warning(f"could not read version in {repo}, {file}, SKIPPING")
             return False
 
-        if match.group(1) != self.fromVersion:
+        if match.group(1) != from_version:
             log.warning(
-                f"--version ({self.fromVersion}) differs the one ({match.group(1)}) "
+                f"Pre-existing version ({from_version}) differs from the one ({match.group(1)}) "
                 f"parsed from {file}, SKIPPING"
             )
             return False
 
-        log.info(f"bump {repo}:{file} from {self.fromVersion} to {self.toBranch}")
+        log.info(f"bump {repo}:{file} from {from_version} to {to_version}")
         i, j = match.span(1)
         with open(file, mode="w", encoding="utf-8") as f:
-            f.write(content[:i] + self.toBranch + content[j:])
+            f.write(content[:i] + to_version + content[j:])
         return True
+
+    def bump_repo(
+        self, repo_name: str, bumpers: Dict[str, str], from_version: str, to_version: str
+    ) -> List[str]:
+        bumped_files: List[str] = []
+        for file, pattern in bumpers.items():
+            try:
+                if self.version_bump(file, pattern, repo_name, from_version, to_version):
+                    bumped_files.append(file)
+            except FileNotFoundError:
+                log.info(f"{repo_name}, {file} does not exist, SKIPPING")
+        return bumped_files
+
+    def commit_version_bump(
+        self, repo: git.Repo, from_version: str, bumped_files: List[str]
+    ) -> None:
+        repo_name = get_repo_name(repo)
+        repo.git.add(bumped_files)
+        if not repo.is_dirty():
+            log.warning(f"nothing to do for {repo_name}, is the version bump already done?")
+            return
+        repo.index.commit(f"Bump version to {self.toBranch}", skip_hooks=self.skip_hooks)
+        self.push(repo_name, from_version)
 
     def version_bump_repo(self, repo: git.Repo) -> None:
         repo_name = get_repo_name(repo)
@@ -418,23 +447,24 @@ class QtBranching:
             conanfile = "qtnetworkauth/([0-9.]+)"
             bumpers.update((str(p), conanfile) for p in Path("examples/").rglob("conanfile.txt"))
 
-        bumped_files = []  # type: List[str]
-        for file, pattern in bumpers.items():
-            try:
-                if self.version_bump(file, pattern, repo_name):
-                    bumped_files.append(file)
-            except FileNotFoundError:
-                log.info(f"{repo_name}, {file} does not exist, SKIPPING")
+        bumped_files = self.bump_repo(repo_name, bumpers, self.fromVersion, self.toBranch)
 
         if repo_name == "qtbase":
             bumped_files.extend(self.bump_qtbase_datastream())
+        self.commit_version_bump(repo, self.fromBranch, bumped_files)
 
-        repo.git.add(bumped_files)
-        if not repo.is_dirty():
-            log.warning(f"nothing to do for {repo_name}, is the version bump already done?")
-            return
-        repo.index.commit(f"Bump version to {self.toBranch}", skip_hooks=self.skip_hooks)
-        self.push(repo_name, self.fromBranch)
+    def prerelease_tag_bump_repo(self, repo: git.Repo) -> None:
+        repo_name = get_repo_name(repo)
+        bumpers = {
+            ".cmake.conf": r'^^set\(QT_REPO_MODULE_PRERELEASE_VERSION_SEGMENT "(.*)"\)$',
+        }
+        bumped_files = self.bump_repo(
+            repo_name,
+            bumpers,
+            self.from_prerelease_version_segment,
+            self.to_prerelease_version_segment,
+        )
+        self.commit_version_bump(repo, self.fromBranch, bumped_files)
 
     def push(self, project: str, branch: str) -> None:
         # In case user wants to use direct push
@@ -574,6 +604,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--from", "-f", required=True, type=str, dest="fromBranch")
     parser.add_argument("--version", "-v", required=False, type=str, dest="fromVersion")
     parser.add_argument("--to", "-t", required=True, type=str, dest="toBranch")
+    parser.add_argument("--from-prerelease", type=str, dest="from_prerelease_version_segment")
+    parser.add_argument("--to-prerelease", type=str, dest="to_prerelease_version_segment")
     parser.add_argument(
         "--pretend",
         action="store_true",
