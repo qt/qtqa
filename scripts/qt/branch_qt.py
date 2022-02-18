@@ -25,7 +25,21 @@ from pathlib import Path
 import git  # type: ignore
 
 
-Mode = Enum("Mode", "branch sync merge bump")
+_parser_modes = {
+    "branch": """start soft branching: create the "to" branch based on the "from" branch
+     branch_qt.py -m branch --from 5.12 --to 5.12.4
+         Now 5.12.4 will exist, based on 5.12.""",
+    "sync": """intermediate sync, to update a branch during soft-branching
+     branch_qt.py -m sync --from 5.12 --to 5.12.4
+         Move the new branch fast-forward, assuming only 5.12 has new commits.""",
+    "merge": """down-merge
+     branch_qt.py -m merge --from 5.12 --to 5.12.4
+         Merges 5.12 into 5.12.4.""",
+    "bump": """version bump, to move from 5.12.3 to 5.12.4:
+     branch_qt.py -m bump --from dev --version 5.12.0 --to 5.13.0""",
+}
+
+Mode = Enum("Mode", " ".join(_parser_modes.keys()))
 
 qt5_extra_repositories = [
     "qt/qtcoap",
@@ -547,6 +561,7 @@ def parse_args() -> argparse.Namespace:
         formatter_class=argparse.RawTextHelpFormatter,
         description="Do various merge operations on Qt repositories",
     )
+
     parser.add_argument(
         "--mode",
         "-m",
@@ -554,20 +569,7 @@ def parse_args() -> argparse.Namespace:
         dest="_mode",
         choices=[m.name for m in Mode],
         required=True,
-        help=dedent(
-            """\
-            branch - start soft branching: create the "to" branch based on the "from" branch
-                branch_qt.py -m branch --from 5.12 --to 5.12.4
-                    Now 5.12.4 will exist, based on 5.12.
-            sync - intermediate sync, to update a branch during soft-branching
-                branch_qt.py -m sync --from 5.12 --to 5.12.4
-                    Move the new branch fast-forward, assuming only 5.12 has new commits.
-            merge - down-merge
-                branch_qt.py -m merge --from 5.12 --to 5.12.4
-                    Merges 5.12 into 5.12.4.
-            bump - version bump, to move from 5.12.3 to 5.12.4:
-                branch_qt.py -m bump --from dev --version 5.12.0 --to 5.13.0"""
-        ),
+        help="\n".join(f"{k} - {v}" for k, v in _parser_modes.items()),
     )
     parser.add_argument("--from", "-f", required=True, type=str, dest="fromBranch")
     parser.add_argument("--version", "-v", required=False, type=str, dest="fromVersion")
