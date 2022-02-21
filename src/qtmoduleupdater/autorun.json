@@ -1,5 +1,0 @@
-{
-    "$schema": "./autorun_schema.json",
-    "version": 1,
-    "branches": ["dev"]
-}
