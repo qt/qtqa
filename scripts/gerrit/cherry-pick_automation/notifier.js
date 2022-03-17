@@ -36,7 +36,7 @@ exports.registerCustomListener = registerCustomListener;
 function envOrConfig(ID, configFile) {
   if (process.env[ID]) {
     return process.env[ID];
-  } else if (configFile) {
+  } else if (configFile && fs.existsSync(configFile)) {
     const config = require(configFile);
     return config[ID];
   }

@@ -46,14 +46,6 @@ to restore any in-process items and listeners upon restarting the service.
        conflicts and should not have any direct dependencies on
        any other changes.
 
-
-
-### What this proof-of-concept does NOT (yet) do
-1. This does not currently listen for an automatically staged cherry-pick
-   to pass or fail integration.
-2. Branch validation does not currently verify that the target branch
-   is open to receiving changes.
-
 ### Installation and running
 
 #### Pre-requisites
