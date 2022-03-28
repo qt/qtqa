@@ -42,6 +42,7 @@ Qt Package testing script for testing Qt for Python wheels
 PYINSTALLER_EXAMPLE_6 = 'widgets/tetrix/tetrix.py'
 PYINSTALLER_EXAMPLE_2 = 'widgets/widgets/tetrix.py'
 OPCUAVIEWER = 'opcua/opcuaviewer/main.py'
+WEBENGINE_EXAMPLE = 'webenginewidgets/tabbedbrowser/main.py'
 
 
 VERSION = (0, 0, 0)
@@ -75,7 +76,7 @@ def pyside2_examples():
             'webenginewidgets/tabbedbrowser/main.py']
 
 
-def commercial_examples(examples_root):
+def get_commercial_examples(examples_root):
     result = []
     if os.path.exists(os.path.join(examples_root, OPCUAVIEWER)):
         result.append(OPCUAVIEWER)
@@ -84,19 +85,27 @@ def commercial_examples(examples_root):
 
 def examples(examples_root):
     """Compile a list of examples to be tested"""
+    commercial_examples = get_commercial_examples(examples_root)
     if VERSION[0] < 6:
-        return pyside2_examples() + commercial_examples(examples_root)
+        return pyside2_examples() + commercial_examples
 
-    result = ['widgets/mainwindows/mdi/mdi.py',
-              'declarative/extending/chapter5-listproperties/listproperties.py',
-              '3d/simple3d/simple3d.py']
-    if VERSION[1] >= 1:
-        result.extend(['charts/chartthemes/main.py',
-                       'datavisualization/bars3d/bars3d.py'])
-    if VERSION[1] >= 2:
-        result.extend(['multimedia/player/player.py',
-                       'webenginewidgets/tabbedbrowser/main.py'])
-    return result + commercial_examples(examples_root)
+    essential_examples = ['widgets/mainwindows/mdi/mdi.py',
+                          'declarative/extending/chapter5-listproperties/listproperties.py']
+    addon_examples = ['3d/simple3d/simple3d.py',
+                      'charts/chartthemes/main.py',
+                      'datavisualization/bars3d/bars3d.py',
+                      'multimedia/player/player.py',
+                      WEBENGINE_EXAMPLE]
+    result = essential_examples
+    if VERSION[1] < 3:
+        result += addon_examples
+    else:
+        if os.path.exists(os.path.join(examples_root, WEBENGINE_EXAMPLE)):
+            print('Addons detected')
+            result += addon_examples
+        else:
+            print('Essentials detected')
+    return result + commercial_examples
 
 
 def execute(args):
