@@ -65,3 +65,33 @@ cd $QTDIR/../qtdeclarative/tests/auto/bic/data
 $QTDIR/../qtqa/tests/postbuild/bic/gen.sh "QtQml QtQuick QtQuickTest" 5.4.0.linux-gcc-amd64
 
 To verify, run the test as described above.
+
+The new way
+-----------
+
+It's also possible to test multiple modules at once. This avoids the problem
+we've had occasionally in Qt 6, namely that modules can include headers from
+other modules, and then those cross-module includes may later be refactored
+away. This used to cause false positives in BiC tests, because the symbols
+are no longer there when tested against old data that had them.
+
+This is facilitated by running the test with QTDIR set as explained above,
+and then listing all the modules in QT_MODULE_TO_TEST, while also providing
+the directory where the test data resides (the old way automatically
+gets the test data location from the module directory, in the new way we
+need to provide the location). Looks like this:
+
+QT_MODULE_TO_TEST="qt=QtConcurrent,QtCore,QtDBus,QtDesigner,QtGui,QtHelp,QtNetwork,QtOpenGL,QtPrintSupport,QtQml,QtQuick,QtQuickTest,QtSql,QtSvg,QtTest,QtWidgets,QtXml;/your-qt-sources/qtbase" ./tst_bic
+
+In other words, the format of QT_MODULE_TEST is
+qt=module1,module1;path-to-test-data
+
+The corresponding new way to generate test data is similar; you again
+set QTDIR, and then invoke the script with slightly different
+arguments:
+
+gen.sh qt=QtConcurrent,QtCore,QtDBus,QtDesigner,QtGui,QtHelp,QtNetwork,QtOpenGL,QtPrintSupport,QtQml,QtQuick,QtQuickTest,QtSql,QtSvg,QtTest,QtWidgets,QtXml 6.3.0.linux-gcc-amd64
+
+The format of the invocation is
+
+gen.sh qt=mod1,mod2,... platform

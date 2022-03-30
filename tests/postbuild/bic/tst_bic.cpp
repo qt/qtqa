@@ -174,6 +174,9 @@ private slots:
 private:
     QBic bic;
     QString qtModuleDir;
+    QString qtDir;
+    QString qtSourceDir;
+    QStringList qtModules;
     QHash<QString, QString> modules;
     QStringList incPaths;
     QString m_compiler;
@@ -361,10 +364,25 @@ void tst_Bic::initTestCase()
 
     qWarning("This test needs the correct qmake in PATH, we need it to generate INCPATH for qt modules.");
 
-    qtModuleDir = QDir::cleanPath(QFile::decodeName(qgetenv(moduleVar)));
-    if (qtModuleDir.isEmpty()) {
-        QSKIP("$QT_MODULE_TO_TEST is unset - nothing to test.  "
-              "Set QT_MODULE_TO_TEST to the absolute path of a Qt module to test.");
+    QString moduleEnvVar = QFile::decodeName(qgetenv(moduleVar));
+    bool qt = moduleEnvVar.startsWith(QLatin1String("qt="));
+    if (qt) {
+        qtDir = QFile::decodeName(qgetenv("QTDIR"));
+        if (qtDir.isEmpty())
+            QSKIP("QTDIR is unset. QTDIR must point to Qt headers when testing in qt mode.");
+        QStringList qtComponents = moduleEnvVar.split(QLatin1Char(';'));
+        QStringList qtSplit = qtComponents[0].split(QLatin1Char('='));
+        if (qtSplit.size() == 2) {
+            qtModules = qtSplit[1].split(QLatin1Char(','));
+            if (qtComponents.size() == 2)
+                qtSourceDir = qtComponents[1];
+        }
+    } else {
+        qtModuleDir = QDir::cleanPath(QFile::decodeName(qgetenv(moduleVar)));
+        if (qtModuleDir.isEmpty()) {
+            QSKIP("$QT_MODULE_TO_TEST is unset - nothing to test.  "
+                  "Set QT_MODULE_TO_TEST to the absolute path of a Qt module to test.");
+        }
     }
     if (m_compiler != QLatin1String("g++")) {
         const QString message = QLatin1String("Support for \"")
@@ -375,23 +393,25 @@ void tst_Bic::initTestCase()
     if (qgetenv("PATH").contains("teambuilder"))
         qWarning("This test might not work with teambuilder, consider switching it off.");
 
-    QString configFile = qtModuleDir + "/tests/global/global.cfg";
+    if (!qt) {
+        QString configFile = qtModuleDir + "/tests/global/global.cfg";
 
-    if (!QFile(configFile).exists()) {
-        QSKIP(
-            qPrintable(QString(
-                "%1 does not exist.  Create it if you want to run this test."
-            ).arg(configFile))
-        );
-    }
+        if (!QFile(configFile).exists()) {
+            QSKIP(
+                  qPrintable(QString(
+                      "%1 does not exist.  Create it if you want to run this test."
+                  ).arg(configFile))
+            );
+        }
 
-    QString workDir = qtModuleDir + QStringLiteral("/tests/global");
-    modules = qt_tests_shared_global_get_modules(workDir, configFile);
+        QString workDir = qtModuleDir + QStringLiteral("/tests/global");
+        modules = qt_tests_shared_global_get_modules(workDir, configFile);
 
-    if (!modules.size())
-        QSKIP("No modules found.");
-
-    incPaths = qt_tests_shared_global_get_include_paths(workDir, modules);
+        if (!modules.size())
+            QSKIP("No modules found.");
+        incPaths = qt_tests_shared_global_get_include_paths(workDir, modules);
+    } else
+        incPaths << QLatin1String("-I") + qtDir + QLatin1String("/include");
 
     QVERIFY2(incPaths.size() > 0, "Parse INCPATH failed.");
     m_compilerArguments = compilerArguments(m_compiler, incPaths);
@@ -445,12 +465,16 @@ void tst_Bic::sizesAndVTables_data()
     QTest::addColumn<QString>("oldLib");
     QTest::addColumn<bool>("isPatchRelease");
 
-    const QStringList keys = modules.keys();
+    QStringList keys;
+    if (qtModules.isEmpty())
+        keys = modules.keys();
+    else
+        keys << QLatin1String("qt");
     int major = QT_VERSION_MAJOR;
     int minor = QT_VERSION_MINOR;
     int patch = QT_VERSION_PATCH;
 
-    QFile qmakeConf(qtModuleDir + "/.qmake.conf");
+    QFile qmakeConf(qtSourceDir.isEmpty() ? qtModuleDir : qtSourceDir + "/.qmake.conf");
     if (qmakeConf.open(QIODevice::ReadOnly)) {
         const QString contents = QString::fromUtf8(qmakeConf.readAll());
         qmakeConf.close();
@@ -478,7 +502,7 @@ void tst_Bic::sizesAndVTables_data()
                 QTest::newRow(key.toLatin1() + ":5." + QByteArray::number(i))
 #endif
                     << key
-                    << (QString(qtModuleDir + "/tests/auto/bic/data/%1.")
+                    << (QString(qtSourceDir.isEmpty() ? qtModuleDir : qtSourceDir + "/tests/auto/bic/data/%1.")
                         + QString::number(major)
                         + QLatin1Char('.')
                         + QString::number(i)
@@ -500,7 +524,13 @@ QBic::Info tst_Bic::getCurrentInfo(const QString &libName)
     tmpQFile.open();
     QString tmpFileName = tmpQFile.fileName();
 
-    QByteArray tmpFileContents = "#include<" + libName.toLatin1() + "/" + libName.toLatin1() + ">\n";
+    QByteArray tmpFileContents;
+    if (qtModules.isEmpty()) {
+        tmpFileContents = "#include<" + libName.toLatin1() + "/" + libName.toLatin1() + ">\n";
+    } else {
+        for (auto &&x : qtModules)
+            tmpFileContents += "#include<" + x.toLatin1() + "/" + x.toLatin1() + ">\n";
+    }
     tmpQFile.write(tmpFileContents);
     tmpQFile.flush();
 
