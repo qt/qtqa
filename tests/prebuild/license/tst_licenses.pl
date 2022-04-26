@@ -243,6 +243,7 @@ my @mandatoryFiles=(
 
 my $QT_MODULE_TO_TEST;
 my $moduleName;
+my $repositoryLicenseType = 'legacy';
 
 #
 # These regexes define the expected patterns for the various parts of a
@@ -362,7 +363,7 @@ sub msgMismatch
 # Check whether the nominated file has a valid license header with legal text
 # that matches one of the reference licenses.
 #
-sub checkLicense
+sub checkLicense_legacy
 {
     my $filename = shift;
 
@@ -535,6 +536,96 @@ sub checkLicense
     return 1;
 }
 
+sub checkSPDXLicenseIdentifier
+{
+    my $expression = shift;
+    my $shortfilename = shift;
+    $expression =~ s/[^:]+:\s*//;    # remove the "SPDX-License-Identifier: " prefix
+    foreach (split(/\s+/, $expression)) {
+        # Skip operators in the expression.
+        if (/OR|AND|WITH/) {
+            next;
+        }
+
+        # Check whether we know this license.
+        if (!exists($licenseFiles{$_})) {
+            fail("error: $shortfilename uses unknown license " . $_ . "\n");
+            return 0;
+        }
+    }
+    return 1;
+}
+
+#
+# Check whether the nominated file has a valid license header with legal text
+# that matches one of the reference licenses.
+#
+sub checkLicense_SPDX
+{
+    my $filename = shift;
+
+    # Use short filename for reporting purposes (remove useless noise from failure message)
+    my $shortfilename = $filename;
+    $shortfilename =~ s/^\Q$QT_MODULE_TO_TEST\E\///;
+
+    # Read in the whole file
+    my $fileHandle;
+    if (!open($fileHandle, '<', $filename)) {
+        fail("error: Cannot open $filename");
+        return 0;
+    }
+    my @lines = <$fileHandle>;
+    close $fileHandle;
+
+    my $currentLine = 0;
+    my $yearRegEx = qr/2[0-9][0-9][0-9]/;
+    my $copyrightRegEx = qr/\s\b((?:Copyright \(C\) $yearRegEx.*)|(?:SPDX-FileCopyrightText: $yearRegEx.*))/;
+    my $licenseIdRegEx = qr/\s\b((?:SPDX-License-Identifier:\s*[a-zA-Z0-9.\- ]+))/;
+
+    my @copyrightTags = ();
+    my @licenseIdentifiers = ();
+
+    while ($currentLine <= $#lines) {
+        $_ = $lines[$currentLine];
+        $currentLine++;
+
+        chomp;
+        s/\r$//;    # Strip DOS carriage return if present
+
+        if (/$copyrightRegEx/) {
+            push @copyrightTags, $1;
+        } elsif (/$licenseIdRegEx/) {
+            push @licenseIdentifiers, $1;
+        }
+    }
+
+    # Be more lenient towards empty or very small files.
+    if ($#lines > 2) {
+        # Did we find any copyright tags?
+        if (!@copyrightTags) {
+            fail("error: $shortfilename lacks an SPDX copyright tag");
+            return;
+        }
+
+        # Did we find any licenses?
+        if (!@licenseIdentifiers) {
+            fail("error: $shortfilename does not appear to contain a license header");
+            return;
+        }
+    }
+
+    # Check the license identifiers we've found.
+    foreach (@licenseIdentifiers) {
+        if (!checkSPDXLicenseIdentifier($_, $shortfilename)) {
+            return 0;
+        }
+    }
+
+    pass($shortfilename);
+    return 1;
+}
+
+
 #
 # Decide whether the nominated file needs to be scanned for a license header.
 # We will scan the file if it is obliged to have a license header (i.e. it is
@@ -573,7 +664,7 @@ sub shouldScan
     my @lines = <$fileHandle>;
     close $fileHandle;
 
-    return grep(/QT_BEGIN_LICENSE/, @lines);
+    return grep(/QT_BEGIN_LICENSE|SPDX-License-Identifier:/, @lines);
 }
 
 # This function reads line based regular expressions into a list.
@@ -642,24 +733,49 @@ sub run
         }
     }
 
+    # Check if we're dealing with a repository that has been ported to use SPDX.
+    if (-d "$QT_MODULE_TO_TEST/LICENSES") {
+        print "SPDX compliant repository detected.\n";
+        $repositoryLicenseType = 'SPDX';
+
+        # Store what's in the LICENSES directory.
+        foreach (glob "$QT_MODULE_TO_TEST/LICENSES/*.txt") {
+            my $id = basename($_);
+            $id =~ s/\.txt$//;
+            $licenseFiles{$id} = $_;
+        }
+    }
+
     #
     # Phase 2: Read the reference license texts
     #
     # Load reference license headers from qtqa/tests/prebuild/license/templates/
-    my $current_dir = dirname(__FILE__);
-    foreach (glob "$current_dir/templates/header.*") {
-        loadLicense($_) || return;
-    }
+    if ($repositoryLicenseType eq 'legacy') {
+        my $current_dir = dirname(__FILE__);
+        foreach (glob "$current_dir/templates/header.*") {
+            loadLicense($_) || return;
+        }
 
-    # Also load all header.* files in the module's root, in case the module has special requirements
-    foreach (glob "$QT_MODULE_TO_TEST/header.*") {
-        loadLicense($_) || return;
-    }
+        # Also load all header.* files in the module's root, in case the module has special
+        # requirements
+        foreach (glob "$QT_MODULE_TO_TEST/header.*") {
+            loadLicense($_) || return;
+        }
 
-    my $numLicenses = keys %licenseTexts;
-    if ($numLicenses == 0) {
-        fail("No reference licenses were found.");
-        return;
+        my $numLicenses = keys %licenseTexts;
+        if ($numLicenses == 0) {
+            fail("No reference licenses were found.");
+            return;
+        }
+    } elsif ($repositoryLicenseType eq 'SPDX') {
+        # Make sure that the repo does not contain extra license header files.
+        my @repoLicenseHeaders = glob "$QT_MODULE_TO_TEST/header.*";
+        if (@repoLicenseHeaders) {
+            my $message = sprintf("A Qt repository ported to SPDX should not contain license header"
+                                  . " templates:\n  %s", join("\n  ", @repoLicenseHeaders));
+            fail($message);
+            return;
+        }
     }
 
     #
@@ -707,8 +823,12 @@ sub run
         plan skip_all => "Module $moduleName appears to have no files that must be scanned";
     } else {
         plan tests => $#filesToScan + 1;
+        my $checkLicense = \&checkLicense_legacy;
+        if ($repositoryLicenseType eq 'SPDX') {
+            $checkLicense = \&checkLicense_SPDX;
+        }
         foreach ( @filesToScan ) {
-            checkLicense($_);
+            &$checkLicense($_);
         }
     }
 }
