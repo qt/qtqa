@@ -351,6 +351,10 @@ tst_Bic::tst_Bic(const char *appFilePath)
     bic.addBlacklistedClass(QLatin1String("Vk*"));
     /* vtable churn */
     bic.addBlacklistedClass(QLatin1String("QNativeInterface::QEGLContext"));
+    /* deliberately removed */
+    bic.addBlacklistedClass(QLatin1String("QNativeInterface::QSGVulkanTexture*"));
+    /* allowed to grow */
+    bic.addBlacklistedClass(QLatin1String("QSGMaterialShader::GraphicsPipelineState"));
 }
 
 void tst_Bic::initTestCase()
