@@ -58,8 +58,8 @@ build_fuzzer() {
     local dictionary=${4-""}
     local exeName="${srcDir##*/}"
     local targetName="${module}_${srcDir//\//_}"
-    mkdir build_fuzzer
-    pushd build_fuzzer
+    mkdir "build_$targetName"
+    pushd "build_$targetName"
     $WORK/qt/bin/qt-cmake -S "$SRC/$module/tests/libfuzzer/$srcDir" -GNinja
     VERBOSE=1 cmake --build . --parallel
 
@@ -71,7 +71,7 @@ build_fuzzer() {
         cp "$dictionary" "$OUT/$targetName.dict"
     fi
     popd
-    rm -r build_fuzzer
+    rm -r "build_$targetName"
 }
 
 build_fuzzer "qtbase" "corelib/serialization/qcborstreamreader/next" "cbor"
