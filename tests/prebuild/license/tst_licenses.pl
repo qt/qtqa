@@ -637,6 +637,7 @@ sub checkLicense_SPDX
 sub shouldScan
 {
     my $fullPath = shift;
+    my $repositoryLicenseType = shift;
 
     # Is this an existing file?
     return 0 unless (-f $fullPath);
@@ -666,7 +667,10 @@ sub shouldScan
     my @lines = <$fileHandle>;
     close $fileHandle;
 
-    return grep(/QT_BEGIN_LICENSE|SPDX-License-Identifier:/, @lines);
+    if ($repositoryLicenseType eq "SPDX") {
+        return grep(/SPDX-License-Identifier:/, @lines);
+    }
+    return grep(/QT_BEGIN_LICENSE/, @lines);
 }
 
 # This function reads line based regular expressions into a list.
@@ -804,13 +808,15 @@ sub run
 
         foreach (@allFiles) {
             chomp;
-            shouldScan("$QT_MODULE_TO_TEST/$_") && push @filesToScan, "$QT_MODULE_TO_TEST/$_";
+            shouldScan("$QT_MODULE_TO_TEST/$_", $repositoryLicenseType)
+                    && push @filesToScan, "$QT_MODULE_TO_TEST/$_";
         }
         chdir $oldpwd;
     } else {
         # We're scanning something other than a git repo, examine all files
         find( sub{
-            shouldScan($File::Find::name) && push @filesToScan, $File::Find::name;
+            shouldScan($File::Find::name, $repositoryLicenseType)
+                    && push @filesToScan, $File::Find::name;
         }, $QT_MODULE_TO_TEST);
     }
 
