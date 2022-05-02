@@ -37,8 +37,8 @@ typedef QPair<int, int> Version;
 
 static QString compiler()
 {
-#if defined(Q_CC_INTEL)
-    return QLatin1String("icc");
+#if defined(Q_CC_CLANG) && defined(__INTEL_CLANG_COMPILER)
+    return QLatin1String("icx");
 #elif defined(Q_CC_CLANG)
     return QLatin1String("clang++");
 #elif defined(Q_CC_GNU)
@@ -124,7 +124,7 @@ static QString fileSuffix(const QString &compiler, const Version &compilerVersio
     Q_UNUSED(compiler);
     Q_UNUSED(compilerVersion);
     QString result;
-#if !defined(Q_CC_GNU) || defined(Q_CC_INTEL)
+#if !defined(Q_CC_GNU)
     return result;
 #endif
 
@@ -556,7 +556,7 @@ QBic::Info tst_Bic::getCurrentInfo(const QString &libName)
 
 void tst_Bic::sizesAndVTables()
 {
-#if !defined(Q_CC_GNU) || defined(Q_CC_INTEL)
+#if !defined(Q_CC_GNU)
     QSKIP("Test not implemented for this compiler/platform");
 #elif defined(QT_NO_PROCESS)
     QSKIP("This Qt build does not have QProcess support");

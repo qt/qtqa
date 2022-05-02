@@ -481,9 +481,6 @@ void tst_Symbols::prefix()
         }
     }
 
-#if defined(Q_CC_INTEL)
-    QEXPECT_FAIL("", "linux-icc* incorrectly exports some QtWebkit symbols, waiting for a fix from Intel.", Continue);
-#endif
     QVERIFY2(!isFailed, "Libraries contain non-prefixed symbols. See Debug output above.");
 }
 #endif
