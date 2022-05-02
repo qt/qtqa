@@ -100,6 +100,9 @@ my %excludedFiles = (
     "all"            => [
                           # Do not scan the header templates themselves
                           qr{^header\.[\w-]*$},
+                          # Third-party license headers are handled upstream
+                          qr{/3rdparty/},
+                          qr{^3rdparty/},
                         ],
     "qtwayland"      => [
                           # XML files for protocol (the license checker fails to
@@ -142,9 +145,6 @@ my %optionalFiles = (
                           qr{^tests/},
                           # change logs
                           qr{^dist/},
-                          # Third-party files are not expected to have a Qt license
-                          qr{/3rdparty/},
-                          qr{^3rdparty/},
                           # Don't look at git's metadata
                           qr{^\.git/},
                           # These are qt5 third-party files.
@@ -797,7 +797,7 @@ sub run
             return;
         }
 
-        my @allFiles = grep(!/\/3rdparty\//,`git ls-files`);
+        my @allFiles = `git ls-files`;
 
         if ($? != 0) {
             fail("There was a problem running 'git ls-files' on the repository");
