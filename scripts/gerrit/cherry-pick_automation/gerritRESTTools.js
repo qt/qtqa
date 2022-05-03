@@ -296,7 +296,8 @@ function postGerritComment(
 }
 
 // Query gerrit project to make sure a target cherry-pick branch exists.
-exports.validateBranch = function (parentUuid, project, branch, customAuth, callback) {
+exports.validateBranch = validateBranch;
+function validateBranch (parentUuid, project, branch, customAuth, callback) {
   let url = `${gerritBaseURL("projects")}/${encodeURIComponent(project)}/branches/${
     encodeURIComponent(branch)}`;
   logger.log(`GET request to: ${url}`, "debug", parentUuid);
@@ -337,7 +338,7 @@ exports.validateBranch = function (parentUuid, project, branch, customAuth, call
 
 // Query gerrit commit for it's relation chain. Returns a list of changes.
 exports.queryRelated = function (parentUuid, fullChangeID, customAuth, callback) {
-  let url = `${gerritBaseURL("changes")}/${fullChangeID} /revisions/current/related`;
+  let url = `${gerritBaseURL("changes")}/${fullChangeID}/revisions/current/related`;
   logger.log(`GET request to: ${url}`, "debug", parentUuid);
   axios.get(url, { auth: customAuth || gerritAuth })
     .then(function (response) {
@@ -711,4 +712,20 @@ function checkAccessRights(uuid, repo, branch, user, permission, customAuth, cal
       }
       callback(false, data);
     });
+}
+
+// Validate branch and check access in one action.
+// Callback called with params (branchExists: bool,  PermissionAllowed: bool, data: str|undefined)
+exports.checkBranchAndAccess = checkBranchAndAccess;
+function checkBranchAndAccess(uuid, repo, branch, user, permission, customAuth, callback) {
+ validateBranch(uuid, repo, branch, customAuth, function(success, data) {
+    if (success && data != "retry") {
+      logger.log(`${repo}:${branch} exists. Checking permissions...`, "info", uuid);
+      checkAccessRights(uuid, repo, branch, user, permission, customAuth, function(hasRights, err) {
+          callback(true, hasRights, hasRights ? data : err); // data from validateBranch contains a SHA.
+      });
+    } else {
+      callback(false, false, data);
+    }
+  });
 }
