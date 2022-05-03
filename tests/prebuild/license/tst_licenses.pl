@@ -581,8 +581,8 @@ sub checkLicense_SPDX
 
     my $currentLine = 0;
     my $yearRegEx = qr/2[0-9][0-9][0-9]/;
-    my $copyrightRegEx = qr/\s\b((?:Copyright \(C\) $yearRegEx.*)|(?:SPDX-FileCopyrightText: $yearRegEx.*))/;
-    my $licenseIdRegEx = qr/\s\b((?:SPDX-License-Identifier:\s*[a-zA-Z0-9.\- ]+))/;
+    my $copyrightRegEx = qr/\b((?:Copyright \([cC]\) $yearRegEx.*)|(?:SPDX-FileCopyrightText: $yearRegEx.*))/;
+    my $licenseIdRegEx = qr/\b((?:SPDX-License-Identifier:\s*[a-zA-Z0-9.\- ]+))/;
 
     my @copyrightTags = ();
     my @licenseIdentifiers = ();
