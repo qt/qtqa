@@ -53,6 +53,63 @@ function trimResponse(response) {
 // Splice out the "Pick-to: keyword from the old commit message, but keep the rest."
 exports.generateCherryPick = generateCherryPick;
 function generateCherryPick(changeJSON, parent, destinationBranch, customAuth, callback) {
+
+  function doPick() {
+    logger.log(
+      `New commit message for ${changeJSON.change.branch}:\n${newCommitMessage}`,
+      "verbose", changeJSON.uuid
+    );
+    logger.log(
+      `POST request to: ${url}\nRequest Body: ${safeJsonStringify(data)}`,
+      "debug", changeJSON.uuid
+    );
+    axios({ method: "post", url: url, data: data, auth: customAuth || gerritAuth })
+      .then(function (response) {
+        // Send an update with only the branch before trying to parse the raw response.
+        // If the parse is bad, then at least we stored a status with the branch.
+        toolbox.addToCherryPickStateUpdateQueue(
+          changeJSON.uuid, { branch: destinationBranch, statusDetail: "pickCreated" },
+          "validBranchReadyForPick"
+        );
+        let parsedResponse = JSON.parse(trimResponse(response.data));
+        toolbox.addToCherryPickStateUpdateQueue(
+          changeJSON.uuid,
+          { branch: destinationBranch, cherrypickID: parsedResponse.id,
+            statusDetail: "pickCreated" },
+          "validBranchReadyForPick"
+        );
+        callback(true, parsedResponse);
+      })
+      .catch(function (error) {
+        if (error.response) {
+          // The server responded with a code outside of 2xx. Something's
+          // actually wrong with the cherrypick request.
+          logger.log(
+            `An error occurred in POST to "${url}". Error ${error.response.status}: ${
+              error.response.data}`,
+            "error", changeJSON.uuid
+          );
+          if (error.response.status == 409
+              && error.response.data.includes("com.google.gerrit.git.LockFailureException"))
+            callback(false, "retry");
+          else
+            callback(false, { statusDetail: error.response.data,
+                              statusCode: error.response.status });
+        } else if (error.request) {
+          // The server failed to respond. Try the pick later.
+          callback(false, "retry");
+        } else {
+          // Something unexpected happened in generating the HTTP request itself.
+          logger.log(
+            `UNKNOWN ERROR posting cherry-pick for ${destinationBranch}: ${error}`,
+            "error", changeJSON.uuid
+          );
+          callback(false, error.message);
+        }
+      }
+    );
+  }
+
   const newCommitMessage = changeJSON.change.commitMessage
     .replace(/^Pick-to:.+\s?/gm, "")
     .concat(`(cherry picked from commit ${changeJSON.patchSet.revision})`);
@@ -69,54 +126,22 @@ function generateCherryPick(changeJSON, parent, destinationBranch, customAuth, c
     notify: "NONE", base: parent, keep_reviewers: false,
     allow_conflicts: true // Add conflict markers to files in the resulting cherry-pick.
   };
-  logger.log(
-    `New commit message for ${changeJSON.change.branch}:\n${newCommitMessage}`,
-    "verbose", changeJSON.uuid
-  );
-  logger.log(
-    `POST request to: ${url}\nRequest Body: ${safeJsonStringify(data)}`,
-    "debug", changeJSON.uuid
-  );
-  axios({ method: "post", url: url, data: data, auth: customAuth || gerritAuth })
-    .then(function (response) {
-      // Send an update with only the branch before trying to parse the raw response.
-      // If the parse is bad, then at least we stored a status with the branch.
-      toolbox.addToCherryPickStateUpdateQueue(
-        changeJSON.uuid, { branch: destinationBranch, statusDetail: "pickCreated" },
-        "validBranchReadyForPick"
-      );
-      let parsedResponse = JSON.parse(trimResponse(response.data));
-      toolbox.addToCherryPickStateUpdateQueue(
-        changeJSON.uuid,
-        { branch: destinationBranch, cherrypickID: parsedResponse.id, statusDetail: "pickCreated" },
-        "validBranchReadyForPick"
-      );
-      callback(true, parsedResponse);
-    })
-    .catch(function (error) {
-      if (error.response) {
-        // The server responded with a code outside of 2xx. Something's
-        // actually wrong with the cherrypick request.
-        logger.log(
-          `An error occurred in POST to "${url}". Error ${error.response.status}: ${
-            error.response.data}`,
-          "error", changeJSON.uuid
-        );
-        if (error.response.status == 409
-            && error.response.data.includes("com.google.gerrit.git.LockFailureException"))
-          callback(false, "retry");
-        else
-          callback(false, { statusDetail: error.response.data, statusCode: error.response.status });
-      } else if (error.request) {
-        // The server failed to respond. Try the pick later.
+
+  queryChangeTopic(changeJSON.uuid, changeJSON.fullChangeID, customAuth,
+    function (success, topic) {
+      if (success) {
+        if (topic)
+          data["topic"] = topic;  // Only populate topic field if the original change had one.
+        doPick();
+      } else if (!success && topic == "retry") {
         callback(false, "retry");
       } else {
-        // Something unexpected happened in generating the HTTP request itself.
+        // Something unexpected happened when trying to get the Topic.
         logger.log(
-          `UNKNOWN ERROR posting cherry-pick for ${destinationBranch}: ${error}`,
+          `UNKNOWN ERROR querying topic for change ${changeJSON.fullChangeID}: ${error}`,
           "error", changeJSON.uuid
         );
-        callback(false, error.message);
+        callback(false, error);
       }
     });
 }
@@ -374,6 +399,42 @@ exports.queryChange = function (parentUuid, fullChangeID, fields, customAuth, ca
           );
           callback(false, { statusCode: error.response.status, statusDetail: error.response.data });
         }
+      } else if (error.request) {
+        // Gerrit failed to respond, try again later and resume the process.
+        callback(false, "retry");
+      } else {
+        // Something happened in setting up the request that triggered an Error
+        logger.log(
+          `Error in HTTP request while trying to query ${fullChangeID}. ${error}`,
+          "error", parentUuid
+        );
+        callback(false, error.message);
+      }
+    });
+};
+
+// Query gerrit for a change's topic
+exports.queryChangeTopic = queryChangeTopic
+function queryChangeTopic(parentUuid, fullChangeID, customAuth, callback) {
+  let url = `${gerritBaseURL("changes")}/${fullChangeID}/topic`;
+  logger.log(`Querying gerrit for ${url}`, "debug", parentUuid);
+  axios.get(url, { auth: customAuth || gerritAuth })
+    .then(function (response) {
+      logger.log(`Raw response: ${response.data}`, "debug", parentUuid);
+       // Topic responses are always double-quoted, and a double-quote is
+       // otherwise not permitted in topics, so a blind replacement is safe.
+      let topic = trimResponse(response.data).replace(/"/g, '');
+      callback(true, topic);
+    })
+    .catch(function (error) {
+      if (error.response) {
+        // Some other error was returned
+        logger.log(
+          `An error occurred in GET "${url}". Error ${error.response.status}: ${
+            error.response.data}`,
+          "error", parentUuid
+        );
+        callback(false, { statusCode: error.response.status, statusDetail: error.response.data });
       } else if (error.request) {
         // Gerrit failed to respond, try again later and resume the process.
         callback(false, "retry");
