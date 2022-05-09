@@ -24,11 +24,16 @@ $SRC/qtbase/configure -opensource -confirm-license -prefix $PWD \
                       -DCMAKE_CXX_FLAGS_RELEASE="-O1" -DQT_USE_DEFAULT_CMAKE_OPTIMIZATION_FLAGS=ON
 VERBOSE=1 cmake --build . --parallel
 
-# build qtsvg
-mkdir $WORK/build-qtsvg
-cd $WORK/build-qtsvg
-$WORK/qt/bin/qt-cmake -S $SRC/qtsvg -GNinja
-VERBOSE=1 cmake --build . --parallel
+# build additional modules
+for module in qtimageformats \
+              qtsvg
+do
+    mkdir "$WORK/build-$module"
+    pushd "$WORK/build-$module"
+    $WORK/qt/bin/qt-cmake -S "$SRC/$module" -GNinja
+    VERBOSE=1 cmake --build . --parallel
+    popd
+done
 
 # prepare corpus files
 zip -j $WORK/cbor $SRC/qtqa/fuzzing/testcases/cbor/*
@@ -47,7 +52,7 @@ zip -j $WORK/xml $SRC/qtqa/fuzzing/testcases/xml/* $SRC/afltestcases/others/xml/
 # prepare merged dictionaries
 mkdir $WORK/merged_dicts
 cat $SRC/afldictionaries/{css,html_tags}.dict > "$WORK/merged_dicts/css_and_html.dict"
-cat $SRC/afldictionaries/{bmp,exif,gif,jpeg,png,svg,tiff,webp}.dict > "$WORK/merged_dicts/images.dict"
+cat $SRC/afldictionaries/{bmp,dds,exif,gif,icns,jpeg,png,svg,tiff,webp}.dict > "$WORK/merged_dicts/images.dict"
 
 # build fuzzers
 
