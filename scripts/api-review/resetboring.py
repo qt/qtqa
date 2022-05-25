@@ -2,7 +2,7 @@
 # Usage: see api-review-gen.
 #############################################################################
 ##
-## Copyright (C) 2020 The Qt Company Ltd.
+## Copyright (C) 2022 The Qt Company Ltd.
 ## Contact: https://www.qt.io/licensing/
 ##
 ## This file is part of the release tools of the Qt Toolkit.
@@ -146,13 +146,14 @@ class Selector(object): # Select interesting changes, discard boring.
         assert len(sha1) == 40, "Expected 40-byte SHA1 digest as name of blob"
         return tuple(store[sha1].as_raw_string().decode().split('\n'))
 
-    # Note: marker deliberately obfuscated so tools scanning *this*
-    # file aren't mislead by it !
+    # Note: oldMarker and spdxHeader deliberately obfuscated so tools
+    # scanning *this* file aren't mislead by them !
     @staticmethod
-    def __end_copyright(seq, marker='_'.join(('$QT', 'END', 'LICENSE$'))):
+    def __end_copyright(seq, oldMarker='_'.join(('$QT', 'END', 'LICENSE$')),
+                        spdxHeader='-'.join(('SPDX', 'License', 'Identifier:'))):
         """Line number of the end of the copyright banner"""
         for i, line in enumerate(seq):
-            if marker in line:
+            if spdxHeader in line or oldMarker in line:
                 return i
         return 0
 
