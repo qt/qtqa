@@ -59,6 +59,7 @@ qt6_extra_repositories = [
     "qt/qtapplicationmanager",
     "qt/tqtc-qmlcompilerplus",
     "qt/tqtc-android-automotive",
+    "qt/tqtc-qtvncserver",
 ]
 
 
