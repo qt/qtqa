@@ -746,6 +746,44 @@ class Selector(object): # Select interesting changes, discard boring.
                 return tokens
             yield test, purge
 
+            # qSwap(x, y) -> x.swap(y) is boring
+            # if only because it's always in a function body, not an API.
+            swap = (('qSwap', '(', None, ',', None, ')'),
+                    (None, '.', 'swap', '(', None, ')'))
+            def find(tokens, sought=swap[1]):
+                start = 0
+                try:
+                    while start + len(sought) < len(tokens):
+                        close = match = tokens.index(sought[1], start + 1)
+                        if tuple(tokens[match + 1:][:2]) == sought[2:][:2]:
+                            try:
+                                close = tokens.index(sought[5], match + 3)
+                                if sought[3] not in tokens[match + 3:close]:
+                                    yield (match, close)
+                            except ValueError:
+                                pass
+                        start = close + 1
+                except ValueError:
+                    pass
+            def test(tokens, seek=find):
+                # If we have any matches say yes:
+                for triad in seek(tokens):
+                    return True
+                return False
+            def edit(tokens, replace=swap[0], seek=find):
+                for dot, close in seek(tokens):
+                    assert 0 < dot < close < len(tokens)
+                    this = tokens[dot - 1]
+                    other = tuple(tokens[dot + 3 : close])
+                    yield dot - 1, close + 1, replace[:2] + (this, replace[3]) + other + replace[5:]
+            def purge(tokens, work=edit):
+                edits = list(work(tokens))
+                while edits:
+                    start, stop, replace = edits.pop()
+                    tokens[start : stop] = replace
+                return tokens
+            yield test, purge
+
             # Complications (involving optional tokens or tokens with
             # alternate forms) should go after all others, to avoid
             # needlessly exercising them:
