@@ -138,6 +138,9 @@ then
 else
     die "I expect to be run in the top level directory of a module (see --help)."
 fi
+MODULE=`/bin/pwd`
+MODULE=`basename "$MODULE"`
+
 THERE=`dirname $0`
 [ -n "$THERE" -a -x "$THERE/resetboring.py" ] || \
     die "I don't know where resetboring.py is: please run me via an explicit path."
@@ -338,8 +341,7 @@ else
     commit () { run git commit "$@"; }
 fi
 
-# It's a WIP to discourage any unwitting actual merge !
-( echo "WIP: API comparison from $PRIOR to $RELNAME"
+( echo "$MODULE: API comparison from $PRIOR to $RELNAME"
   echo
   git status | grep 'deleted:' | tr '\t' ' '
   git diff | wc | python3 -c 'import sys; row = sys.stdin.readline().split(); print(); \
