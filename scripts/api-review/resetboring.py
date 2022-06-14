@@ -115,10 +115,12 @@ class Selector(object): # Select interesting changes, discard boring.
     @staticmethod
     def __end_copyright(seq, oldMarker='_'.join(('$QT', 'END', 'LICENSE$')),
                         spdxHeader='-'.join(('SPDX', 'License', 'Identifier:'))):
-        """Line number of the end of the copyright banner"""
-        for i, line in enumerate(seq):
-            if spdxHeader in line or oldMarker in line:
+        """Line number just after the end of the copyright banner"""
+        for i, line in enumerate(seq, 1):
+            if spdxHeader in line:
                 return i
+            if oldMarker in line:
+                return i + 2
         return 0
 
     from difflib import SequenceMatcher
@@ -265,10 +267,20 @@ class Selector(object): # Select interesting changes, discard boring.
             if startNew < self.__headNew and startOld < self.__headOld:
                 # This hunk is *partially* copyright.
                 # Take copyright header part from old, ...
-                if endOld > self.__headOld:
+                if endOld >= self.__headOld:
                     self.__hybrid += self.__old[startOld:self.__headOld]
                     startOld, startNew = self.__headOld, self.__headNew
-                assert endOld > startOld or endNew > startNew
+                    # <Kludge>: before the SPDX conversion, some copyright
+                    # headers sequed straight into a "generated file" banner, so
+                    # a comment start was inserted.
+                    tail = self.__new[startNew]
+                    if (self.__hybrid[-1] == '**'
+                        and tail.startswith('/*') and tail.rstrip('*') == '/'
+                        and self.__new[startNew + 1] == self.__old[startOld]):
+                        # Skip over the comment marker, tail.
+                        startNew += 1
+                    # </Kludge> (except for the next line's >= to accommodate the kludge)
+                assert endOld > startOld or endNew >= startNew
                 # ... put the (rest of the) block back in the queue:
             hunk.insert(0, (tag, startOld, endOld, startNew, endNew))
 
