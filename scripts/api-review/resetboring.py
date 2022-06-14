@@ -658,6 +658,32 @@ class Selector(object): # Select interesting changes, discard boring.
                     return tokens[:-size]
                 yield test, purge
 
+            # QLatin1Char('x') -> u'x'
+            def find(tokens):
+                start = 0
+                try:
+                    close = u = tokens.index('u', start)
+                    if tokens[u + 1] == "'" and "'" in tokens[u + 2:][:2]:
+                        close = u + (2 if tokens[u + 2] == "'" else 3)
+                        yield u, close
+                    start = close + 1
+                except ValueError:
+                    pass
+            def test(tokens, seek=find):
+                for pair in seek(tokens):
+                    return True
+                return False
+            def edit(tokens, seek=find):
+                for u, c in seek(tokens):
+                    yield u, c + 1, ('QLatin1Char', '(') + tuple(tokens[u + 1:c + 1]) + (')',)
+            def purge(tokens, work=edit):
+                edits = list(work(tokens))
+                while edits:
+                    start, stop, replace = edits.pop()
+                    tokens[start : stop] = replace
+                return tokens
+            yield test, purge
+
             # QVariant::value<> -> qvariant_cast<>
             # expr.value<type>() -> qvariant_cast<type>(expr) or
             # expr->value<type>() -> qvariant_cast<type>(*expr)
