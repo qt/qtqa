@@ -613,6 +613,7 @@ class Selector(object): # Select interesting changes, discard boring.
                          ('Q_ALIGNOF', 'alignof'),
                          ('Q_DECL_ALIGN', 'alignas'),
                          ('QVector', 'QList'),
+                         ('QLatin1String', 'QLatin1StringView'),
                          ):
                 def test(words, k=pair[1]):
                     return k in words
@@ -623,7 +624,7 @@ class Selector(object): # Select interesting changes, discard boring.
             # Don't ignore constexpr or nothrow; can't retract once added to an API.
             # Don't ignore explicit; it matters.
             # Words to ignore:
-            for key in ('Q_NORETURN', # ? 'inline',
+            for key in ('Q_NORETURN', 'Q_CONSTINIT',
                         'Q_DECL_CONST_FUNCTION', 'Q_ALWAYS_INLINE'):
                 def test(words, k=key):
                     return k in words
@@ -739,7 +740,9 @@ class Selector(object): # Select interesting changes, discard boring.
             # 5.10: common switch from while (0) to while (false)
             # 5.12: Q_DECL_EQ_DELETE -> = delete
             # 5.14: qMove -> std::move, Q_DECL_NOEXCEPT_EXPR(...) -> noexcept(...)
+            # 6.4: Q_FOREVER -> for (;;)
             for swap in ((('while', '(', '0', ')'), ('while', '(', 'false', ')')),
+                         (('Q_FOREVER',), ('for', '(', ';', ';', ')')),
                          (('Q_DECL_EQ_DELETE', ';'), ('=', 'delete', ';')),
                          (('qMove',), ('std', '::', 'move')),
                          (('Q_REQUIRED_RESULT',), ('[[', 'nodiscard', ']]')),
