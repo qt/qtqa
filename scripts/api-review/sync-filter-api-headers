@@ -83,7 +83,7 @@ my @allheaders = ();
 while (<STDIN>) {
     chomp;
     normalizePath(\$_);
-    next if $ignore_headers{$_} || $qpa_headers{$_};
+    next if $ignore_headers{basename($_)} || $qpa_headers{$_};
     push @allheaders, $_ if $_;
 }
 
