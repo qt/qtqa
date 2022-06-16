@@ -618,6 +618,7 @@ class Selector(object): # Select interesting changes, discard boring.
                          ('Q_DECL_ALIGN', 'alignas'),
                          ('QVector', 'QList'),
                          ('QLatin1String', 'QLatin1StringView'),
+                         ('qSwap', 'qt_pointer_swap'),
                          ):
                 def test(words, k=pair[1]):
                     return k in words
@@ -775,6 +776,7 @@ class Selector(object): # Select interesting changes, discard boring.
                          (('Q_FOREVER',), ('for', '(', ';', ';', ')')),
                          (('Q_DECL_EQ_DELETE', ';'), ('=', 'delete', ';')),
                          (('qMove',), ('std', '::', 'move')),
+                         (('qSwap',), ('std', '::', 'swap')),
                          (('Q_REQUIRED_RESULT',), ('[[', 'nodiscard', ']]')),
                          # Needs to happen before handling of Q_DECL_NOEXCEPT
                          # (as both replace "noexcept"):
