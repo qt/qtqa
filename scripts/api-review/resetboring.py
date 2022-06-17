@@ -415,6 +415,10 @@ class Selector(object): # Select interesting changes, discard boring.
         @classmethod
         def harmonize(cls, old, new):
             """Return new, cleaned in whatever ways make it more like old."""
+            # If old and new have a common "plausible precursor", the change is all boring:
+            if any(candidate in cls.minimize(old) for candidate in cls.minimize(new)):
+                return old
+
             olds, news = cls.__split(old), cls.__split(new)
             for test, purge in cls.recipe:
                 if test(news) and not test(olds):
