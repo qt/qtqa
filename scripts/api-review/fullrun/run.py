@@ -6,7 +6,6 @@
 
 import os
 import json
-import pprint
 import subprocess
 
 import gitfunctions as gf
@@ -15,17 +14,19 @@ import config as c
 
 ### Helpers
 
-def run_list(cmd : [], **kwargs):
+def run_list(cmd: [], **kwargs):
     print(' '.join(cmd))
     #cmd = cmd.replace('"', '').split(' ')
     return subprocess.run(cmd, **kwargs)
 
+
 # Basic run wrapper for commands. Will not work for command elements with spaces
-def run(cmd : str, **kwargs):
+def run(cmd: str, **kwargs):
     return run_list(cmd.split(' '), **kwargs)
 
+
 # Get the path to the hooks of the specified repo
-def get_hooks_dir(repo : str = '.') -> str:
+def get_hooks_dir(repo: str = '.') -> str:
     cwd = os.getcwd()
     os.chdir(repo)
 
@@ -36,6 +37,7 @@ def get_hooks_dir(repo : str = '.') -> str:
 
     return output
 
+
 # Get the absolute path of the api review script
 def get_api_review_script() -> str:
     relative_path = os.path.join(
@@ -44,13 +46,15 @@ def get_api_review_script() -> str:
 
     return os.path.abspath(relative_path)
 
+
 # Write module data to json file
-def export_modules(modules : {}, filename : str):
+def export_modules(modules: {}, filename: str):
     outfile = open(filename, 'w')
     outfile.write(json.dumps(modules, indent=4))
     outfile.close()
 
-def branch_exists(branch : str, repo : str = '.') -> bool:
+
+def branch_exists(branch: str, repo: str = '.') -> bool:
     cwd = os.getcwd()
 
     os.chdir(repo)
@@ -61,8 +65,9 @@ def branch_exists(branch : str, repo : str = '.') -> bool:
 
     return branch in result
 
+
 # diffs the given change and returns if its empty or not
-def is_nonempty_change(module : str, previous_version : str) -> bool:
+def is_nonempty_change(module: str, previous_version: str) -> bool:
     cwd = os.getcwd()
 
     module_path = os.path.join(c.qt5_repo, module)
@@ -76,6 +81,7 @@ def is_nonempty_change(module : str, previous_version : str) -> bool:
     os.chdir(cwd)
 
     return result != ''
+
 
 # maps the module to which version API review should be based on
 def map_modules() -> {}:
@@ -113,8 +119,9 @@ def map_modules() -> {}:
 
 ### Main steps
 
+
 def update_repo():
-    print(f'### Updating repo...')
+    print('### Updating repo...')
     cwd = os.getcwd()
 
     if os.path.exists(c.qt5_repo):
@@ -134,8 +141,9 @@ def update_repo():
 
     os.chdir(cwd)
 
+
 # Updates specified submodule, and fetch given previous version
-def update_module(module : str, previous_version : str):
+def update_module(module: str, previous_version: str):
     print(f'### Updating module {module}...')
     cwd = os.getcwd()
 
@@ -164,8 +172,9 @@ def update_module(module : str, previous_version : str):
 
     os.chdir(cwd)
 
+
 # Generate and upload the Gerrit change for specified module and version
-def generate_change(module : str, previous_version : str):
+def generate_change(module: str, previous_version: str):
     print(f'### Generating change for {module}...')
 
     cwd = os.getcwd()
@@ -188,7 +197,8 @@ def generate_change(module : str, previous_version : str):
 
     os.chdir(cwd)
 
-def review_change(module : str, previous_version : str):
+
+def review_change(module: str, previous_version: str):
     print(f'### Reviewing change for {module}...')
 
     cwd = os.getcwd()
@@ -205,7 +215,8 @@ def review_change(module : str, previous_version : str):
 
     os.chdir(cwd)
 
-def ask_to_upload(module : str) -> bool:
+
+def ask_to_upload(module: str) -> bool:
     while True:
         r = input(f'Upload change for {module}? [y/n] > ')
 
@@ -214,7 +225,8 @@ def ask_to_upload(module : str) -> bool:
 
         print('Invalid response. Expected y or n.')
 
-def upload_change(module : str, previous_version : str):
+
+def upload_change(module: str, previous_version: str):
     print(f'### Uploading change for {module}...')
 
     cwd = os.getcwd()
@@ -231,7 +243,8 @@ def upload_change(module : str, previous_version : str):
 
     os.chdir(cwd)
 
-def reset_module(module : str):
+
+def reset_module(module: str):
     print(f'### Resetting module {module}...')
 
     cwd = os.getcwd()
@@ -244,6 +257,7 @@ def reset_module(module : str):
     run(f'git checkout {c.next_version}')
 
     os.chdir(cwd)
+
 
 def main():
     update_repo()
@@ -262,6 +276,7 @@ def main():
             print(f'Change for {module} in uninteresting. Skipping.')
 
         reset_module(module)
+
 
 if __name__ == '__main__':
     main()
