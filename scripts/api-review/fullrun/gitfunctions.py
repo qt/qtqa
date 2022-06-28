@@ -7,8 +7,9 @@
 import os
 import subprocess
 
+
 # get the current branch of git repo
-def get_branch(git_repo : str = '.') -> str:
+def get_branch(git_repo: str = '.') -> str:
     cwd = os.getcwd()
 
     os.chdir(git_repo)
@@ -17,15 +18,14 @@ def get_branch(git_repo : str = '.') -> str:
     completed_process = subprocess.run(cmd, capture_output=True)
     output = completed_process.stdout.decode('utf-8').strip()
 
-    #print(output)
-
     os.chdir(cwd)
 
     return output
 
+
 # Gets a list of submodules from given git repo path and optionally, branch
 # Where each module is represented by a dict
-def get_submodules(git_repo : str = '.', branch : str = 'current') -> {}:
+def get_submodules(git_repo: str = '.', branch: str = 'current') -> {}:
     cwd = os.getcwd()
 
     os.chdir(git_repo)
@@ -71,8 +71,9 @@ def get_submodules(git_repo : str = '.', branch : str = 'current') -> {}:
 
     return modules
 
+
 # Returns a list of active submodules for the given repo and branch
-def get_active_submodules(git_repo : str = '.', branch : str = 'current') -> []:
+def get_active_submodules(git_repo: str = '.', branch: str = 'current') -> []:
     modules = []
 
     for module_name, module in get_submodules(git_repo, branch).items():
