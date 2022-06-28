@@ -49,9 +49,8 @@ def get_api_review_script() -> str:
 
 # Write module data to json file
 def export_modules(modules: {}, filename: str):
-    outfile = open(filename, 'w')
-    outfile.write(json.dumps(modules, indent=4))
-    outfile.close()
+    with open(filename, 'w') as outfile:
+        outfile.write(json.dumps(modules, indent=4))
 
 
 def branch_exists(branch: str, repo: str = '.') -> bool:

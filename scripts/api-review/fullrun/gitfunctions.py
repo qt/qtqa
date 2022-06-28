@@ -42,27 +42,27 @@ def get_submodules(git_repo: str = '.', branch: str = 'current') -> {}:
         print(f'Error: {modules_path} not found')
         return modules
 
-    modules_file = open(modules_path, 'r')
 
     read_state = 0
     current_module = {}
 
-    for line in modules_file:
-        if line.startswith('[submodule'):
-            if 'name' in current_module:
-                modules[current_module['name']] = current_module
+    with open(modules_path) as modules_file:
+        for line in modules_file:
+            if line.startswith('[submodule'):
+                if 'name' in current_module:
+                    modules[current_module['name']] = current_module
 
-            read_state = 1
-            module_name = line.split(' ')[1].replace('"', '').replace(']', '').strip()
+                read_state = 1
+                module_name = line.split(' ')[1].replace('"', '').replace(']', '').strip()
 
-            current_module = {'name': module_name}
-        elif read_state == 1:
-            if '=' in line:
-                elements = line.split('=')
-                key = elements[0].strip()
-                value = elements[1].strip()
+                current_module = {'name': module_name}
+            elif read_state == 1:
+                if '=' in line:
+                    elements = line.split('=')
+                    key = elements[0].strip()
+                    value = elements[1].strip()
 
-                current_module[key] = value
+                    current_module[key] = value
 
     if branch != 'current':
         os.system(f'git checkout {current_branch}')
