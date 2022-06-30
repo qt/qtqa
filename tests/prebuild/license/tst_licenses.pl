@@ -81,11 +81,13 @@ my %excludedModules = (
     'qtrepotools' => [],
     'qtwebkit' => [],
     'test262' => [],
-    'qtwebengine' => [],
     '3rdparty' => [],
     'qtqa' => [],
     'pyside-setup' => ['5.6']
 );
+
+# These modules are excluded if the repository License Type is not SPDX
+my @SPDXonlyModules = ( "qtwebengine" );
 
 # If you add to the following lists of regexes, please
 # make the patterns as specific as possible to avoid excluding more files
@@ -725,8 +727,25 @@ sub run
     # Remove possible 'tqtc-' prefix from the module name
     substr($moduleName, 0, 5, "") if (index($moduleName,"tqtc-") == 0);
 
-    # Skip the test (and return success) if we don't want to scan this module
+    # Check if we're dealing with a repository that has been ported to use SPDX.
+    if (-d "$QT_MODULE_TO_TEST/LICENSES") {
+        print "SPDX compliant repository detected.\n";
+        $repositoryLicenseType = 'SPDX';
+        # Store what's in the LICENSES directory.
+        foreach (glob "$QT_MODULE_TO_TEST/LICENSES/*.txt") {
+            my $id = basename($_);
+            $id =~ s/\.txt$//;
+            $licenseFiles{$id} = $_;
+        }
+    }
 
+    if (grep(/$moduleName/, @SPDXonlyModules) && $repositoryLicenseType ne "SPDX") {
+        plan skip_all => $moduleName .
+        ' is excluded from license checks (because it is not SPDX compliant)';
+        return;
+    }
+
+    # Skip the test (and return success) if we don't want to scan this module
     if ($optForceTest == 0) {
         my $excludedBranches = $excludedModules{$moduleName};
         if (defined($excludedBranches)) {
@@ -745,18 +764,6 @@ sub run
         }
     }
 
-    # Check if we're dealing with a repository that has been ported to use SPDX.
-    if (-d "$QT_MODULE_TO_TEST/LICENSES") {
-        print "SPDX compliant repository detected.\n";
-        $repositoryLicenseType = 'SPDX';
-
-        # Store what's in the LICENSES directory.
-        foreach (glob "$QT_MODULE_TO_TEST/LICENSES/*.txt") {
-            my $id = basename($_);
-            $id =~ s/\.txt$//;
-            $licenseFiles{$id} = $_;
-        }
-    }
 
     #
     # Phase 2: Read the reference license texts
