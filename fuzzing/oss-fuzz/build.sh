@@ -15,44 +15,54 @@
 #
 ################################################################################
 
+# setup Qt source folder
+SOURCES="$SRC/qt"
+if [ ! -d "$SOURCES" ]; then
+    SOURCES=$SRC
+fi
+
 # build qtbase
-mkdir $WORK/qt
+mkdir -p $WORK/qt
 cd $WORK/qt
-$SRC/qtbase/configure -opensource -confirm-license -prefix $PWD \
-                      -platform linux-clang-libc++ -release -static \
-                      -qt-libmd4c -no-opengl -no-widgets -- \
-                      -DCMAKE_CXX_FLAGS_RELEASE="-O1" -DQT_USE_DEFAULT_CMAKE_OPTIMIZATION_FLAGS=ON
+
+$SOURCES/qtbase/configure -opensource -confirm-license -prefix $PWD \
+                          -platform linux-clang-libc++ -release -static \
+                          -qt-libmd4c -no-opengl -no-widgets -- \
+                          -DCMAKE_CXX_FLAGS_RELEASE="-O1" -DQT_USE_DEFAULT_CMAKE_OPTIMIZATION_FLAGS=ON
 VERBOSE=1 cmake --build . --parallel
 
 # build additional modules
 for module in qtimageformats \
               qtsvg
 do
-    mkdir "$WORK/build-$module"
-    pushd "$WORK/build-$module"
-    $WORK/qt/bin/qt-cmake -S "$SRC/$module" -GNinja
+    buildDir="$WORK/build-$module"
+    mkdir -p $buildDir
+    pushd $buildDir
+    $WORK/qt/bin/qt-cmake -S "$SOURCES/$module" -GNinja
     VERBOSE=1 cmake --build . --parallel
     popd
 done
 
 # prepare corpus files
-zip -j $WORK/cbor $SRC/qtqa/fuzzing/testcases/cbor/*
-zip -j $WORK/datetime $SRC/qtqa/fuzzing/testcases/datetime/*
-zip -j $WORK/html $SRC/qtqa/fuzzing/testcases/html/*
-zip -j $WORK/icc $SRC/qtqa/fuzzing/testcases/icc/*
-zip -j $WORK/images $SRC/qtqa/fuzzing/testcases/{bmp,gif,icns,ico,jpg,png,svg,xbm,xpm}/* $SRC/afltestcases/images/*/*
-zip -j $WORK/json $SRC/qtqa/fuzzing/testcases/json/*
-zip -j $WORK/markdown $SRC/qtqa/fuzzing/testcases/markdown/*
-zip -j $WORK/regexp.zip $SRC/qtqa/fuzzing/testcases/regexp/*
-zip -j $WORK/ssl.pem.zip $SRC/qtqa/fuzzing/testcases/ssl.pem/*
-zip -j $WORK/svg $SRC/qtqa/fuzzing/testcases/svg/*
-zip -j $WORK/text $SRC/qtqa/fuzzing/testcases/text/* $SRC/afltestcases/others/text/*
-zip -j $WORK/xml $SRC/qtqa/fuzzing/testcases/xml/* $SRC/afltestcases/others/xml/*
+testcasesPath="$SOURCES/qtqa/fuzzing/testcases"
+zip -j $WORK/cbor $testcasesPath/cbor/*
+zip -j $WORK/datetime $testcasesPath/datetime/*
+zip -j $WORK/html $testcasesPath/html/*
+zip -j $WORK/icc $testcasesPath/icc/*
+zip -j $WORK/images $testcasesPath/{bmp,gif,icns,ico,jpg,png,svg,xbm,xpm}/* $SRC/afltestcases/images/*/*
+zip -j $WORK/json $testcasesPath/json/*
+zip -j $WORK/markdown $testcasesPath/markdown/*
+zip -j $WORK/regexp.zip $testcasesPath/regexp/*
+zip -j $WORK/ssl.pem.zip $testcasesPath/ssl.pem/*
+zip -j $WORK/svg $testcasesPath/svg/*
+zip -j $WORK/text $testcasesPath/text/* $SRC/afltestcases/others/text/*
+zip -j $WORK/xml $testcasesPath/xml/* $SRC/afltestcases/others/xml/*
 
 # prepare merged dictionaries
-mkdir $WORK/merged_dicts
-cat $SRC/afldictionaries/{css,html_tags}.dict > "$WORK/merged_dicts/css_and_html.dict"
-cat $SRC/afldictionaries/{bmp,dds,exif,gif,icns,jpeg,png,svg,tiff,webp}.dict > "$WORK/merged_dicts/images.dict"
+mergedDictsPath="$WORK/merged_dicts"
+mkdir -p $mergedDictsPath
+cat $SRC/afldictionaries/{css,html_tags}.dict > "$mergedDictsPath/css_and_html.dict"
+cat $SRC/afldictionaries/{bmp,dds,exif,gif,icns,jpeg,png,svg,tiff,webp}.dict > "$mergedDictsPath/images.dict"
 
 # build fuzzers
 
@@ -63,9 +73,10 @@ build_fuzzer() {
     local dictionary=${4-""}
     local exeName="${srcDir##*/}"
     local targetName="${module}_${srcDir//\//_}"
-    mkdir "build_$targetName"
-    pushd "build_$targetName"
-    $WORK/qt/bin/qt-cmake -S "$SRC/$module/tests/libfuzzer/$srcDir" -GNinja
+    local buildFolder="build_$targetName"
+    mkdir -p $buildFolder
+    pushd $buildFolder
+    $WORK/qt/bin/qt-cmake -S "$SOURCES/$module/tests/libfuzzer/$srcDir" -GNinja
     VERBOSE=1 cmake --build . --parallel
 
     mv "$exeName" "$OUT/$targetName"
@@ -76,7 +87,7 @@ build_fuzzer() {
         cp "$dictionary" "$OUT/$targetName.dict"
     fi
     popd
-    rm -r "build_$targetName"
+    rm -r $buildFolder
 }
 
 build_fuzzer "qtbase" "corelib/serialization/qcborstreamreader/next" "cbor"
