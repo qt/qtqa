@@ -5,12 +5,33 @@
 exports.id = "gerritRESTTools";
 
 const axios = require("axios");
+const axiosRetry = require('axios-retry');
 const safeJsonStringify = require("safe-json-stringify");
 
 const toolbox = require("./toolbox");
 const config = require("./config.json");
 const Logger = require("./logger");
 const logger = new Logger();
+
+
+axiosRetry(axios, {
+  retries: 3,
+  // Random delay in ms between 1 and 6 sec. Helps reduce load on gerrit.
+  retryDelay: function() {Math.floor(Math.random() * 5 * 1000) + 1},
+  shouldResetTimeout: true,
+  retryCondition: (error) => {
+    let status = error.response.status;
+    let text = error.response.data;
+
+    if (
+      axiosRetry.isNetworkOrIdempotentRequestError(error)  // The default retry behavior
+      || (status == 409 && text.includes("com.google.gerrit.git.LockFailureException"))
+      || status == 408  // "Server Deadline Exceeded" Hit the anti-DDoS timeout threshold.
+    )
+      return true;
+  },
+});
+
 
 // Set default values with the config file, but prefer environment variable.
 function envOrConfig(ID) {
@@ -89,12 +110,7 @@ function generateCherryPick(changeJSON, parent, destinationBranch, customAuth, c
               error.response.data}`,
             "error", changeJSON.uuid
           );
-          if (error.response.status == 409
-              && error.response.data.includes("com.google.gerrit.git.LockFailureException"))
-            callback(false, "retry");
-          else
-            callback(false, { statusDetail: error.response.data,
-                              statusCode: error.response.status });
+          callback(false, { statusDetail: error.response.data, statusCode: error.response.status });
         } else if (error.request) {
           // The server failed to respond. Try the pick later.
           callback(false, "retry");
@@ -180,11 +196,7 @@ function setApproval(
             error.response.data}`,
           "error", parentUuid
         );
-        if (error.response.status == 409
-            && error.response.data.includes("com.google.gerrit.git.LockFailureException"))
-          callback(false, "retry");
-        else
-          callback(false, error.response.status);
+        callback(false, error.response.status);
       } else if (error.request) {
         // The request was made but no response was received
         callback(false, "retry");
@@ -227,11 +239,7 @@ function stageCherryPick(parentUuid, cherryPickJSON, customAuth, callback) {
               error.response.data}`,
             "error", parentUuid
           );
-          if (error.response.status == 409
-            && error.response.data.includes("com.google.gerrit.git.LockFailureException"))
-            callback(false, "retry");
-          else
-            callback(false, { status: error.response.status, data: error.response.data });
+          callback(false, { status: error.response.status, data: error.response.data });
         } else if (error.request) {
         // The request was made but no response was received. Retry it later.
           callback(false, "retry");
@@ -276,11 +284,7 @@ function postGerritComment(
             error.response.status}: ${error.response.data}`,
           "error", parentUuid
         );
-        if (error.response.status == 409
-            && error.response.data.includes("com.google.gerrit.git.LockFailureException"))
-          callback(false, "retry");
-        else
-          callback(false, error.response);
+        callback(false, error.response);
       } else if (error.request) {
         // The request was made but no response was received
         callback(false, "retry");
@@ -531,11 +535,7 @@ function addToAttentionSet(parentUuid, changeJSON, user, customAuth, callback) {
                   error.response.data}`,
                 "error", parentUuid
               );
-              if (error.response.status == 409
-                  && error.response.data.includes("com.google.gerrit.git.LockFailureException"))
-                callback(false, "retry");
-              else
-                callback(false, { status: error.response.status, data: error.response.data });
+              callback(false, { status: error.response.status, data: error.response.data });
             } else if (error.request) {
               // The request was made but no response was received. Retry it later.
               callback(false, "retry");
