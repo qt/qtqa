@@ -13,7 +13,7 @@ qt_internal_add_test(tst_guiapplauncher
         windowmanager.cpp windowmanager.h
     DEFINES
         SRCDIR=\\\"${CMAKE_CURRENT_SOURCE_DIR}/\\\"
-    PUBLIC_LIBRARIES
+    LIBRARIES
         Qt::Gui
 )
 
@@ -24,13 +24,13 @@ qt_internal_add_test(tst_guiapplauncher
 #####################################################################
 
 qt_internal_extend_target(tst_guiapplauncher CONDITION WIN32
-    PUBLIC_LIBRARIES
+    LIBRARIES
         user32
 )
 
 qt_internal_extend_target(tst_guiapplauncher CONDITION QT_FEATURE_xlib # special case
     DEFINES
         Q_WS_X11
-    PUBLIC_LIBRARIES
+    LIBRARIES
         X11
 )
