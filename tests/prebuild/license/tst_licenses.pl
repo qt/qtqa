@@ -104,6 +104,12 @@ my %excludedFiles = (
                           qr{/3rdparty/},
                           qr{^3rdparty/},
                         ],
+    "qtbase"         => [
+                          # XML file from Khronos taken as-is, no control over the
+                          # license and copyright syntax in this one. The checker
+                          # gets confused with newer upstream versions, so skip.
+                          qr{^src/gui/vulkan/vk\.xml$},
+                        ],
     "qtwayland"      => [
                           # XML files for protocol (the license checker fails to
                           # recognize the copyright headers in these)
