@@ -15,6 +15,7 @@ import re
 import requests
 import subprocess
 import sys
+import uuid
 
 from typing import List, Iterable, Any, Dict, Union
 from configparser import ConfigParser
@@ -136,6 +137,11 @@ def versionCompare(version1: str, version2: str) -> int:
         return (a > b) - (a < b)
 
     return cmp(normalize(version1), normalize(version2))
+
+
+def make_change_id() -> str:
+    """Create a Change-Id that Gerrit will accept"""
+    return "I" + uuid.uuid4().hex + uuid.uuid4().hex[:8]
 
 
 class QtBranching:
@@ -440,7 +446,11 @@ class QtBranching:
         if not repo.is_dirty():
             log.warning(f"nothing to do for {repo_name}, is the version bump already done?")
             return
-        repo.index.commit(f"Bump version to {self.toBranch}", skip_hooks=self.skip_hooks)
+        change_id_str = ""
+        if not self.direct:
+            change_id_str = f"\n\nChange-Id: {make_change_id()}"
+        repo.index.commit(f"Bump version to {self.toBranch}{change_id_str}",
+                          skip_hooks=self.skip_hooks)
         self.push(repo_name, from_version)
 
     def version_bump_repo(self, repo: git.Repo) -> None:
