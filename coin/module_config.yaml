@@ -8,8 +8,4 @@ instructions:
   Build:
     - !include "{{qt/qtbase}}/coin_module_build_template_v2.yaml"
 
-  Test:
-    - type: EnvironmentVariable
-      variableName: Dummy
-      variableValue: dummy
-
+  Test: []
