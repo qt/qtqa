@@ -67,10 +67,10 @@ class integration_monitor {
     );
   }
 
-  doAddToAttentionSet(req, user, comment) {
+  doAddToAttentionSet(req, user, reason) {
     let _this = this;
     gerritTools.addToAttentionSet(
-      req.uuid, req.change, user, undefined,
+      req.uuid, req.change, user, reason, undefined,
       function (success, msg) {
         // No need to do anything after adding.
       }
@@ -84,7 +84,7 @@ class integration_monitor {
       "info", req.uuid
     );
     req.change.fullChangeID = req.fullChangeID // Tack on the full change ID so it gets used
-    _this.doAddToAttentionSet(req, author);
+    _this.doAddToAttentionSet(req, author, "Change author");
   }
 
   handlePatchsetCreated(req, uploader) {
@@ -93,66 +93,18 @@ class integration_monitor {
       `Received patchset-created by ${uploader} for cherry-picked change ${req.change.project}`,
       "info", req.uuid
     );
-
     // Patchset-created does not include a full change ID. Assemble one.
     req.fullChangeID = encodeURIComponent(`${req.change.project}~${req.change.branch}~${req.change.id}`);
     req.change.fullChangeID = req.fullChangeID;
-    // Query the cherry-pick's original branch change to identify the original
-    // author.
-    let ReviewRegex = /^Reviewed-by: .+<(.+)>$/m;
-    let commitMessage = req.change.commitMessage;
-    let originalApprover = undefined;
-    try {
-      originalApprover = commitMessage.match(ReviewRegex)[1];
-    } catch {
-      // Should really never fail, since cherry-picks should always be created
-      // with the original Review footers intact.
-      _this.logger.log(`Failed to locate a reviewer from commit message:\n${commitMessage}`,
-      "error", req.uuid);
-    }
-    if (originalApprover && originalApprover != uploader) {
-      // The approver from the original change should be able to help.
-      gerritTools.setChangeReviewers(req.uuid, req.change.fullChangeID, [originalApprover], undefined,
-        function(){})
-      _this.doAddToAttentionSet(req, originalApprover,
-         `Attention set updated: Added original patch Approver: ${originalApprover}`);
-      return;
-    }
-    // This insane regex is the same as used in the commit message sanitizer,
-    // So it should always find the right footer which references the
-    // picked-from sha.
-    let cherryPickRegex = /^\((?:partial(?:ly)? )?(?:cherry[- ]pick|(?:back-?)?port|adapt)(?:ed)?(?: from| of)?(?: commit)? (\w+\/)?([0-9a-fA-F]{7,40})/m;
-    let originSha = undefined;
-    try{
-      originSha = commitMessage.match(cherryPickRegex)[0];
-    } catch {
-      _this.logger.log(`Failed to match a cherry-pick footer for ${req.change.fullChangeID}`,
-       "error", req.uuid);
-      return // No point in continuing. Log the error and move on.
-    }
-    gerritTools.queryChange(req.uuid, originSha, undefined, undefined,
-      function(success, changeData) {
-        if (success) {
-          let originalAuthor = changeData.revisions[changeData.current_revision].commit.author.email;
-          if (uploader != originalAuthor) {
-            // Add the author of the original change's final patchset to the
-            // attention set of the cherry-pick.
-            gerritTools.setChangeReviewers(req.uuid, req.change.fullChangeID, [originalAuthor],
-              undefined, function(){})
-            _this.doAddToAttentionSet(req, originalAuthor,
-              `Attention set updated: Added original patch author: ${originalAuthor}`);
-          } else {
-            // Now we have a problem. The uploader is the original author, but
-            // they also appear to have self-approved the original patch.
-            // Try to copy all the reviewers from the original change (hopefully there are some).
-            // Adding them as a reviewer will also add them to the attention set.
-            gerritTools.copyChangeReviewers(req.uuid, changeData.id, req.change.fullChangeID);
-          }
-        } else {
-          _this.logger.log(`Failed to query gerrit for ${originSha}`, "error", req.uuid);
-        }
+    gerritTools.locateDefaultAttentionUser(req.uuid, req.change, uploader, (user, fallbackId) => {
+      if (user == "copyReviewers")
+        gerritTools.copyChangeReviewers(req.uuid, fallbackId, req.change.fullChangeID);
+      else {
+        gerritTools.setChangeReviewers(req.uuid, req.change.fullChangeID, [user], undefined,
+          function(){})
+        _this.doAddToAttentionSet(req, user, "Original reviewer");
       }
-    );
+    });
   }
 }
 

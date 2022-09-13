@@ -819,24 +819,50 @@ class requestProcessor extends EventEmitter {
       );
       // Internal emitter in case anything needs to know about conflicts on this change.
       _this.emit(`mergeConflict_${cherryPickJSON.id}`);
-      let owner = parentJSON.change.owner.email || parentJSON.change.owner.username
-      gerritTools.addToAttentionSet(
-        parentJSON.uuid, cherryPickJSON, owner, parentJSON.customGerritAuth,
-        function (success, data) {
-          if (!success) {
-            _this.logger.log(
-              `Failed to add "${safeJsonStringify(parentJSON.change.owner)}" to the attention`
-              + ` set on ${cherryPickJSON.id}.\nReason: ${safeJsonStringify(data)}`,
-              "warn", parentJSON.uuid
-            );
-            _this.gerritCommentHandler(
-              parentJSON.uuid, cherryPickJSON.id, undefined,
-              `Unable to add ${owner} to the attention set of this issue.\nReason: ${data}`,
-              "NONE"
-            );
+      let owner = parentJSON.change.owner.email || parentJSON.change.owner.username;
+      gerritTools.checkAccessRights(parentJSON.uuid, parentJSON.change.project,
+        cherryPickJSON.branch, owner, "read", undefined,
+        (canRead) => {
+          if (canRead) {
+            gerritTools.setChangeReviewers(parentJSON.uuid, cherryPickJSON.id, [owner], undefined,
+              () =>{
+                gerritTools.addToAttentionSet(
+                  parentJSON.uuid, cherryPickJSON, owner, "Original change owner",
+                  parentJSON.customGerritAuth,
+                  function (success, data) {
+                    if (!success) {
+                      _this.logger.log(
+                        `Failed to add "${safeJsonStringify(parentJSON.change.owner)}" to the attention`
+                        + ` set on ${cherryPickJSON.id}.\nReason: ${safeJsonStringify(data)}`,
+                        "warn", parentJSON.uuid
+                      );
+                      _this.gerritCommentHandler(
+                        parentJSON.uuid, cherryPickJSON.id, undefined,
+                        `Unable to add ${owner} to the attention set of this issue.\n`
+                        + `Reason: ${safeJsonStringify(data)}`,
+                        "NONE"
+                      );
+                    }
+                  }
+              );
+            });
+          } else {
+            gerritTools.locateDefaultAttentionUser(parentJSON.uuid, cherryPickJSON,
+              cherryPickJSON.currentPatchSet.uploader.email,
+              (user) => {
+                if (user == "copyReviewers")
+                  return;  // Copying users is done later regardless of attention set users.
+                else {
+                  gerritTools.setChangeReviewers(parentJSON.uuid, cherryPickJSON.id,
+                    [user], undefined, function(){
+                      gerritTools.addToAttentionSet(
+                        parentJSON.uuid, cherryPickJSON, owner, "Original Reviewer",
+                        undefined, function(){});
+                    });
+                }
+            } )
           }
-        }
-      );
+        });
       gerritTools.copyChangeReviewers(
         parentJSON.uuid, parentJSON.fullChangeID, cherryPickJSON.id, parentJSON.customGerritAuth,
         function (success, failedItems) {
@@ -935,7 +961,7 @@ class requestProcessor extends EventEmitter {
           );
           gerritTools.addToAttentionSet(
             parentJSON.uuid, cherryPickJSON,
-            parentJSON.change.owner.email || parentJSON.change.owner.username,
+            parentJSON.change.owner.email || parentJSON.change.owner.username, "Original Owner",
             parentJSON.customGerritAuth,
             function (success, data) {
               if (!success) {
@@ -1007,7 +1033,7 @@ class requestProcessor extends EventEmitter {
           );
           gerritTools.addToAttentionSet(
             parentJSON.uuid, cherryPickJSON,
-            parentJSON.change.owner.email || parentJSON.change.owner.username,
+            parentJSON.change.owner.email || parentJSON.change.owner.username, "Original Owner",
             parentJSON.customGerritAuth,
             function (success, data) {
               if (!success) {

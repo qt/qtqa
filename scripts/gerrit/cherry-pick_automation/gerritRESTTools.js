@@ -494,7 +494,7 @@ exports.queryProjectCommit = function (parentUuid, project, commit, customAuth, 
 
 // Add a user to the attention set of a change
 exports.addToAttentionSet = addToAttentionSet;
-function addToAttentionSet(parentUuid, changeJSON, user, customAuth, callback) {
+function addToAttentionSet(parentUuid, changeJSON, user, reason, customAuth, callback) {
   checkAccessRights(
     parentUuid, changeJSON.project, changeJSON.branch || changeJSON.change.branch,
     user, "push", customAuth || gerritAuth,
@@ -507,13 +507,13 @@ function addToAttentionSet(parentUuid, changeJSON, user, customAuth, callback) {
         if (botAssignee && newAssignee != botAssignee) {
           logger.log(`Falling back to GERRIT_USER (${botAssignee}) as assignee...`);
           addToAttentionSet(
-            parentUuid, changeJSON, botAssignee, customAuth,
+            parentUuid, changeJSON, botAssignee, "fallback to bot", customAuth,
             function () {}
           );
         }
       } else {
-        let url = `${gerritBaseURL("changes", changeJSON.fullChangeID || changeJSON.id)}/attention`;
-        let data = { user: user, "reason": "Original author of change" };
+        let url = `${gerritBaseURL("changes")}/${changeJSON.fullChangeID || changeJSON.id}/attention`;
+        let data = { user: user, "reason": reason || "Update Attention Set" };
         logger.log(
           `POST request to: ${url}\nRequest Body: ${safeJsonStringify(data)}`,
           "debug", parentUuid
@@ -666,6 +666,83 @@ function copyChangeReviewers(parentUuid, fromChangeID, toChangeID, customAuth, c
         callback(false, []);
     }
   });
+}
+
+// Locate an appropriate user to try adding as reviewer and to the attention set.
+exports.locateDefaultAttentionUser = locateDefaultAttentionUser;
+function locateDefaultAttentionUser(uuid, cherryPickChange, uploader, callback) {
+  // Query the cherry-pick's original branch change to identify the original
+  // author.
+  let ReviewRegex = /^Reviewed-by: .+<(.+)>$/m;
+  let commitMessage = cherryPickChange.commitMessage;
+  let originalApprover = undefined;
+
+
+  function tryFallback() {
+    // This insane regex is the same as used in the commit message sanitizer,
+    // So it should always find the right footer which references the
+    // picked-from sha.
+    let cherryPickRegex = /^\((?:partial(?:ly)? )?(?:cherry[- ]pick|(?:back-?)?port|adapt)(?:ed)?(?: from| of)?(?: commit)? (\w+\/)?([0-9a-fA-F]{7,40})/m;
+    let originSha = undefined;
+    try{
+      originSha = commitMessage.match(cherryPickRegex)[0];
+    } catch {
+      _this.logger.log(`Failed to match a cherry-pick footer for ${cherryPickChange.fullChangeID}`,
+      "error", uuid);
+      callback(false); // No point in continuing. Log the error and move on.
+      return;
+    }
+    gerritTools.queryChange(uuid, originSha, undefined, undefined,
+      function(success, changeData) {
+        if (success) {
+          let originalAuthor = changeData.revisions[changeData.current_revision]
+            .commit.author.email;
+          if (uploader != originalAuthor) {
+            // Add the author of the original change's final patchset to the
+            // attention set of the cherry-pick.
+            checkAccessRights(uuid, cherryPickChange.project, cherryPickChange.branch,
+              originalApprover, "read", undefined,
+              (canRead) => {
+                if (canRead)
+                  callback(originalAuthor);
+                else {
+                  // Now we have a problem. The uploader is the original author, but
+                  // they also appear to have self-approved the original patch.
+                  // Try to copy all the reviewers from the original change
+                  // (hopefully there are some).
+                  // Adding them as a reviewer will also add them to the attention set.
+                  callback("copyReviewers", changeData.id);
+                }
+              });
+            }
+        } else {
+          _this.logger.log(`Failed to query gerrit for ${originSha}`, "error", uuid);
+        }
+      }
+    );
+  }
+
+
+  try {
+    originalApprover = commitMessage.match(ReviewRegex)[1];
+  } catch {
+    // Should really never fail, since cherry-picks should always be created
+    // with the original Review footers intact.
+    _this.logger.log(`Failed to locate a reviewer from commit message:\n${commitMessage}`,
+    "error", uuid);
+  }
+  if (originalApprover && originalApprover != uploader) {
+    // The approver from the original change should be able to help.
+    checkAccessRights(uuid, cherryPickChange.project, cherryPickChange.branch, originalApprover,
+      "read", undefined,
+      (canRead) => {
+        if (canRead)
+          callback(originalApprover);
+        else
+          tryFallback();
+      }
+    );
+  }
 }
 
 // Check permissions for a branch. Returns Bool.

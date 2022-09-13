@@ -112,7 +112,7 @@ class submodule_update_watcher {
       function (success, data) {
         if (envOrConfig("SUBMODULE_UPDATE_FAILED_ATTENTION_USER")) {
           gerritTools.addToAttentionSet(
-            req.uuid, req, envOrConfig("SUBMODULE_UPDATE_FAILED_ATTENTION_USER"),
+            req.uuid, req, envOrConfig("SUBMODULE_UPDATE_FAILED_ATTENTION_USER"), undefined,
             req.customGerritAuth,
             function () {
               _this.notifier.requestProcessor.emit(
