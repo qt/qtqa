@@ -64,8 +64,12 @@ def examples(examples_root):
     if VERSION[0] < 6:
         return pyside2_examples() + commercial_examples
 
-    essential_examples = ['widgets/mainwindows/mdi/mdi.py',
-                          'declarative/extending/chapter5-listproperties/listproperties.py']
+    essential_examples = ['widgets/mainwindows/mdi/mdi.py']
+    if VERSION[1] >= 4:
+        essential_examples.append('qml/tutorials/extending/chapter5-listproperties/listproperties.py')
+    else:
+        essential_examples.append('declarative/extending/chapter5-listproperties/listproperties.py')
+
     addon_examples = ['3d/simple3d/simple3d.py',
                       'charts/chartthemes/main.py',
                       'datavisualization/bars3d/bars3d.py',
