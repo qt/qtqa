@@ -54,6 +54,7 @@ my $optModuleName;
 # Qt license headers.  They are entirely excluded from license checking.
 my %excludedModules = (
     'qtrepotools' => [],
+    'qttools' => ['6.2', '6.3'],
     'qtwebkit' => [],
     'test262' => [],
     '3rdparty' => [],
