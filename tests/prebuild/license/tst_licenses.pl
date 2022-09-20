@@ -276,6 +276,15 @@ sub gitBranch
     return '';
 }
 
+sub moduleBranch
+{
+    my $branch = $ENV{TESTED_MODULE_BRANCH_COIN};
+    if (!defined($branch)) {
+        $branch = gitBranch();
+    }
+    return $branch;
+}
+
 sub loadLicense {
     my $licenseFile = shift;
 
@@ -724,7 +733,7 @@ sub run
         my $excludedBranches = $excludedModules{$moduleName};
         if (defined($excludedBranches)) {
             if (scalar(@$excludedBranches) > 0) {
-                my $branch = gitBranch();
+                my $branch = moduleBranch();
                 my $quotedBranch = quotemeta($branch);
                 if ($branch ne '' && grep(/$quotedBranch/, @$excludedBranches)) {
                     plan skip_all => 'Branch ' . $branch . ' of ' . $moduleName
