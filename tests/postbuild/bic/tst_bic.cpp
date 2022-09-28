@@ -303,6 +303,7 @@ tst_Bic::tst_Bic(const char *appFilePath)
     /* this class is not used in a way that requires its size to be stable,
        but it has grown between releases */
     bic.addBlacklistedClass(QLatin1String("QQmlPrivate::AOTCompiledFunction"));
+    bic.addBlacklistedClass(QLatin1String("QQmlPrivate::TypedFunction"));
 
     /* according to Thiago this is a false positive */
     bic.addBlacklistedClass(QLatin1String("QLoggingCategory::AtomicBools"));
