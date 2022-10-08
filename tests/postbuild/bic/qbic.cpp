@@ -28,7 +28,7 @@ bool QBic::isBlacklisted(const QString &className) const
     if (className.contains('<'))
         return true;
 
-    for (int i = 0; i < blackList.count(); ++i)
+    for (int i = 0; i < blackList.size(); ++i)
         if (blackList[i].match(className).hasMatch())
             return true;
     return false;
@@ -38,7 +38,7 @@ static bool qualifiedTailMatch(const QString &expectedTail, const QString &symbo
 {
     if (symbol == expectedTail)
         return true;
-    const QString tail = symbol.right(expectedTail.length() - 2);
+    const QString tail = symbol.right(expectedTail.size() - 2);
     if (!tail.startsWith(QLatin1String("::")))
         return false;
     return tail.endsWith(expectedTail);
@@ -46,8 +46,8 @@ static bool qualifiedTailMatch(const QString &expectedTail, const QString &symbo
 
 static QString innerClassVTableSymbol(const QString &outerClass, const QString &innerClass)
 {
-    return (QLatin1String("_ZTVN") + QString::number(outerClass.length()) + outerClass
-            + QString::number(innerClass.length()) + innerClass + QLatin1Char('E'));
+    return (QLatin1String("_ZTVN") + QString::number(outerClass.size()) + outerClass
+            + QString::number(innerClass.size()) + innerClass + QLatin1Char('E'));
 }
 
 static QStringList nonVirtualThunkToDestructorSymbols(const QString &className)
@@ -55,9 +55,9 @@ static QStringList nonVirtualThunkToDestructorSymbols(const QString &className)
 
     const QString symbolTemplate = QString::fromLatin1("%1::_ZThn%2_N%3%4");
     QStringList candidates;
-    candidates << symbolTemplate.arg(className).arg(16).arg(className.length()).arg(className)
-               << symbolTemplate.arg(className).arg(32).arg(className.length()).arg(className)
-               << symbolTemplate.arg(className).arg(40).arg(className.length()).arg(className)
+    candidates << symbolTemplate.arg(className).arg(16).arg(className.size()).arg(className)
+               << symbolTemplate.arg(className).arg(32).arg(className.size()).arg(className)
+               << symbolTemplate.arg(className).arg(40).arg(className.size()).arg(className)
                ;
 
     QStringList result;
@@ -117,7 +117,7 @@ static QStringList normalizedVTable(const QStringList &entry)
     QString className = entry.at(1).section(QLatin1Char(' '), 0, 0);
     className.chop(1);
 
-    for (int i = 2; i < entry.count(); ++i) {
+    for (int i = 2; i < entry.size(); ++i) {
         const QString line = entry.at(i).simplified();
         bool isOk = false;
         int num = line.left(line.indexOf(QLatin1Char(' '))).toInt(&isOk);
@@ -175,7 +175,7 @@ QBic::Info QBic::parseOutput(const QByteArray &ba) const
 
     foreach(QString str, source) {
         QStringList entry = str.split('\n');
-        if (entry.count() < 2)
+        if (entry.size() < 2)
             continue;
         if (entry.at(0).startsWith("Class ")) {
             const QString className = entry.at(0).mid(6);
@@ -242,13 +242,13 @@ QBic::VTableDiff QBic::diffVTables(const Info &oldLib, const Info &newLib) const
         }
         const QStringList oldVTable = oldLib.classVTables.value(it.key());
         const QStringList vTable = it.value();
-        if (vTable.count() != oldVTable.count()) {
+        if (vTable.size() != oldVTable.size()) {
             result.modifiedVTables.append(QPair<QString, QString>(it.key(),
                         QLatin1String("size mismatch")));
             continue;
         }
 
-        for (int i = 0; i < vTable.count(); ++i) {
+        for (int i = 0; i < vTable.size(); ++i) {
             VTableDiffResult diffResult = diffVTableEntry(vTable.at(i), oldVTable.at(i));
             switch (diffResult) {
             case Match:

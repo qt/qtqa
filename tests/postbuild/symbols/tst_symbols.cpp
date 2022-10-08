@@ -408,8 +408,8 @@ void tst_Symbols::prefix()
 
             QStringList fields = symbol.split(' ');
             // the last two fields are address and size and the third last field is the symbol type
-            QVERIFY(fields.count() > 3);
-            QString type = fields.at(fields.count() - 3);
+            QVERIFY(fields.size() > 3);
+            QString type = fields.at(fields.size() - 3);
             // weak symbol
             if (type == QLatin1String("W")) {
                 if (symbol.contains("qAtomic"))
@@ -431,7 +431,7 @@ void tst_Symbols::prefix()
                     continue;
 
                 QString plainSymbol;
-                for (int i = 0; i < fields.count() - 3; ++i) {
+                for (int i = 0; i < fields.size() - 3; ++i) {
                     if (i > 0)
                         plainSymbol += QLatin1Char(' ');
                     plainSymbol += fields.at(i);
