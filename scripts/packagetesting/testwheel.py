@@ -4,7 +4,9 @@
 
 
 from argparse import ArgumentParser, RawTextHelpFormatter
+from pathlib import Path
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -14,7 +16,8 @@ import tempfile
 Qt Package testing script for testing Qt for Python wheels
 """
 
-PYINSTALLER_EXAMPLE_6 = 'widgets/tetrix/tetrix.py'
+PYINSTALLER_EXAMPLE_6 = "widgets/mainwindows/mdi/mdi.py"  # Sth with "About Qt"
+PYINSTALLER_EXAMPLE_6_2 = "widgets/tetrix/tetrix.py"
 PYINSTALLER_EXAMPLE_2 = 'widgets/widgets/tetrix.py'
 OPCUAVIEWER = 'opcua/opcuaviewer/main.py'
 WEBENGINE_EXAMPLE = 'webenginewidgets/tabbedbrowser/main.py'
@@ -128,6 +131,31 @@ def has_module(name):
     return False
 
 
+def test_deploy(example):
+    """Test pyside6-deploy."""
+    base_name = example.name
+    name = example.stem
+    print(f"Running deploy test of {name}")
+    current_dir = Path.cwd()
+    result = False
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        try:
+            os.chdir(tmpdirname)
+            for py_file in example.parent.glob("*.py"):
+                shutil.copy(py_file, tmpdirname)
+            cmd = ["pyside6-deploy", "-f", base_name]
+            execute(cmd)
+            suffix = "exe" if sys.platform == "win32" else "bin"
+            binary = f"{tmpdirname}/{name}.{suffix}"
+            execute([binary])
+            result = True
+        except RuntimeError as e:
+            print(str(e))
+        finally:
+            os.chdir(os.fspath(current_dir))
+    return result
+
+
 def test_cxfreeze(example):
     name = os.path.splitext(os.path.basename(example))[0]
     print('Running CxFreeze test of {}'.format(name))
@@ -220,12 +248,22 @@ if __name__ == "__main__":
         print("Launching Qt Designer. Please check the custom widgets.")
         execute([f'pyside{VERSION[0]}-designer'])
 
-    if VERSION[0] >= 6:
+    if VERSION >= (6, 4, 0):
+        if not has_module("Nuitka"):
+            print("Nuitka not found, skipping test")
+            sys.exit(0)
+
+        if test_deploy(Path(root_ex) / PYINSTALLER_EXAMPLE_6):
+            print("\ndeploy test successful")
+        else:
+            print("\nProblem running deploy")
+            sys.exit(1)
+    elif VERSION[0] >= 6:
         if not has_module('cx-Freeze'):
             print('cx_Freeze not found, skipping test')
             sys.exit(0)
 
-        if test_cxfreeze(os.path.join(root_ex, PYINSTALLER_EXAMPLE_6)):
+        if test_cxfreeze(os.path.join(root_ex, PYINSTALLER_EXAMPLE_6_2)):
             print("\ncx_Freeze test successful")
         else:
             print("\nProblem running cx_Freeze")
