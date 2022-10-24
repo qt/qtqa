@@ -376,7 +376,9 @@ exports.queryRelated = function (parentUuid, fullChangeID, customAuth, callback)
 };
 
 // Query gerrit for a change and return it along with the current revision if it exists.
-exports.queryChange = function (parentUuid, fullChangeID, fields, customAuth, callback) {
+
+exports.queryChange = queryChange;
+function queryChange(parentUuid, fullChangeID, fields, customAuth, callback) {
   let url = `${gerritBaseURL("changes")}/${fullChangeID}/?o=CURRENT_COMMIT&o=CURRENT_REVISION`;
   // Tack on any additional fields requested
   if (fields)
@@ -504,7 +506,7 @@ function addToAttentionSet(parentUuid, changeJSON, user, reason, customAuth, cal
         logger.log(msg, "warn", parentUuid);
         callback(false, msg);
         let botAssignee = envOrConfig("GERRIT_USER");
-        if (botAssignee && newAssignee != botAssignee) {
+        if (botAssignee && user != botAssignee) {
           logger.log(`Falling back to GERRIT_USER (${botAssignee}) as assignee...`);
           addToAttentionSet(
             parentUuid, changeJSON, botAssignee, "fallback to bot", customAuth,
@@ -685,14 +687,14 @@ function locateDefaultAttentionUser(uuid, cherryPickChange, uploader, callback) 
     let cherryPickRegex = /^\((?:partial(?:ly)? )?(?:cherry[- ]pick|(?:back-?)?port|adapt)(?:ed)?(?: from| of)?(?: commit)? (\w+\/)?([0-9a-fA-F]{7,40})/m;
     let originSha = undefined;
     try{
-      originSha = commitMessage.match(cherryPickRegex)[0];
+      originSha = commitMessage.match(cherryPickRegex)[2];
     } catch {
-      _this.logger.log(`Failed to match a cherry-pick footer for ${cherryPickChange.fullChangeID}`,
+      logger.log(`Failed to match a cherry-pick footer for ${cherryPickChange.fullChangeID}`,
       "error", uuid);
       callback(false); // No point in continuing. Log the error and move on.
       return;
     }
-    gerritTools.queryChange(uuid, originSha, undefined, undefined,
+    queryChange(uuid, originSha, undefined, undefined,
       function(success, changeData) {
         if (success) {
           let originalAuthor = changeData.revisions[changeData.current_revision]
@@ -706,17 +708,23 @@ function locateDefaultAttentionUser(uuid, cherryPickChange, uploader, callback) 
                 if (canRead)
                   callback(originalAuthor);
                 else {
-                  // Now we have a problem. The uploader is the original author, but
-                  // they also appear to have self-approved the original patch.
-                  // Try to copy all the reviewers from the original change
-                  // (hopefully there are some).
-                  // Adding them as a reviewer will also add them to the attention set.
-                  callback("copyReviewers", changeData.id);
+                  if (changeData.owner._account_id == 1007413 // Cherry-pick bot
+                    && /^(tqtc(?:%2F|\/)lts-)/.test(changeData.branch)) {
+                    // LTS release manager
+                    callback(envOrConfig("TQTC_LTS_NOTIFY_FALLBACK_USER"));
+                  } else {
+                    // Now we have a problem. The uploader is the original author, but
+                    // they also appear to have self-approved the original patch.
+                    // Try to copy all the reviewers from the original change
+                    // (hopefully there are some).
+                    // Adding them as a reviewer will also add them to the attention set.
+                    callback("copyReviewers", changeData.id);
+                  }
                 }
               });
             }
         } else {
-          _this.logger.log(`Failed to query gerrit for ${originSha}`, "error", uuid);
+          logger.log(`Failed to query gerrit for ${originSha}`, "error", uuid);
         }
       }
     );
@@ -728,7 +736,7 @@ function locateDefaultAttentionUser(uuid, cherryPickChange, uploader, callback) 
   } catch {
     // Should really never fail, since cherry-picks should always be created
     // with the original Review footers intact.
-    _this.logger.log(`Failed to locate a reviewer from commit message:\n${commitMessage}`,
+    logger.log(`Failed to locate a reviewer from commit message:\n${commitMessage}`,
     "error", uuid);
   }
   if (originalApprover && originalApprover != uploader) {

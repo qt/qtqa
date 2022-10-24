@@ -44,7 +44,7 @@ class integration_monitor {
                 notifier.server.emit("integration_monitor_failed", req, author);
               }
             } else {
-              logger.log(`Failed to query gerrit for ${req.fullChangeID}`, "error", req.uuid);
+              this.logger.log(`Failed to query gerrit for ${req.fullChangeID}`, "error", req.uuid);
             }
           }
         );
@@ -67,12 +67,13 @@ class integration_monitor {
     );
   }
 
-  doAddToAttentionSet(req, user, reason) {
+  doAddToAttentionSet(req, user, reason, callback) {
     let _this = this;
     gerritTools.addToAttentionSet(
       req.uuid, req.change, user, reason, undefined,
       function (success, msg) {
-        // No need to do anything after adding.
+        if (callback)
+          callback(success);
       }
     );
   }
@@ -84,7 +85,20 @@ class integration_monitor {
       "info", req.uuid
     );
     req.change.fullChangeID = req.fullChangeID // Tack on the full change ID so it gets used
-    _this.doAddToAttentionSet(req, author, "Change author");
+    _this.doAddToAttentionSet(req, author, "Change author", (success) => {
+      if (!success) {
+        gerritTools.locateDefaultAttentionUser(req.uuid, req.change, req.change.patchSet.uploader.email,
+          (user, fallbackId) => {
+          if (user == "copyReviewers")
+            gerritTools.copyChangeReviewers(req.uuid, fallbackId, req.change.fullChangeID);
+          else {
+            gerritTools.setChangeReviewers(req.uuid, req.change.fullChangeID, [user], undefined,
+              function(){})
+            _this.doAddToAttentionSet(req, user, "Original reviewer");
+          }
+        });
+      }
+    });
   }
 
   handlePatchsetCreated(req, uploader) {
