@@ -124,6 +124,7 @@ make "qtbase"
 cd ..
 
 # other modules
+buildQtModule qt5compat $QtVersion $BuildCores
 buildQtModule qtdeclarative $qtdeclarative_branch $BuildCores
 buildQtModule qtquickcontrols $QtVersion $BuildCores
 buildQtModule qtquickcontrols2 $QtVersion $BuildCores
