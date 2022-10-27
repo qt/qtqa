@@ -46,6 +46,7 @@ PYINSTALLER_EXAMPLE_6_2 = "widgets/tetrix/tetrix.py"
 PYINSTALLER_EXAMPLE_2 = 'widgets/widgets/tetrix.py'
 OPCUAVIEWER = 'opcua/opcuaviewer/main.py'
 WEBENGINE_EXAMPLE = 'webenginewidgets/tabbedbrowser/main.py'
+PROJECT_TOOL = "pyside6-project"
 
 
 VERSION = (0, 0, 0)
@@ -227,6 +228,24 @@ def test_pyinstaller(example):
     return result
 
 
+def test_project_generation():
+    print("Testing project generation and deployment")
+    result = False
+    current_dir = os.getcwd()
+    project_name = "test"
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        try:
+            os.chdir(tmpdirname)
+            execute([PROJECT_TOOL, "new-ui", project_name])
+            execute([PROJECT_TOOL, "build", project_name])
+            result = test_deploy(Path(tmpdirname) / project_name / "main.py")
+        except RuntimeError as e:
+            print(str(e))
+        finally:
+            os.chdir(current_dir)
+    return result
+
+
 if __name__ == "__main__":
     parser = ArgumentParser(description='Qt for Python package tester',
                             formatter_class=RawTextHelpFormatter)
@@ -278,7 +297,11 @@ if __name__ == "__main__":
             print("Nuitka not found, skipping test")
             sys.exit(0)
 
-        if test_deploy(Path(root_ex) / PYINSTALLER_EXAMPLE_6):
+        if VERSION >= (6, 4, 1):
+            result = test_project_generation()
+        else:
+            result = test_deploy(Path(root_ex) / PYINSTALLER_EXAMPLE_6)
+        if result:
             print("\ndeploy test successful")
         else:
             print("\nProblem running deploy")
