@@ -47,7 +47,9 @@ PYINSTALLER_EXAMPLE_2 = 'widgets/widgets/tetrix.py'
 OPCUAVIEWER = 'opcua/opcuaviewer/main.py'
 WEBENGINE_EXAMPLE = 'webenginewidgets/tabbedbrowser/main.py'
 PROJECT_TOOL = "pyside6-project"
-
+TOOLS = ["deploy", "genpyi", ("lrelease", "-help"), "lupdate", "metaobjectdump",
+         "project", "qml", "qmlformat", "qmlimportscanner", "qmllint",
+         "qmlls","qmltyperegistrar", "qtpy2cpp", "rcc", "uic"]
 
 VERSION = (0, 0, 0)
 
@@ -246,6 +248,31 @@ def test_project_generation():
     return result
 
 
+def test_tools():
+    result = True
+    print("\nTesting command line tools...")
+    for tool in TOOLS:
+        if isinstance(tool, tuple):
+            binary =f"pyside6-{tool[0]}"
+            help_option = tool[1]
+        else:
+           binary =f"pyside6-{tool}"
+           help_option = "--help"
+        exit_code = 0
+        error = ""
+        try:
+            exit_code, error = run_process([binary, help_option])
+        except Exception as e:
+            error = str(e)
+            exit_code = 1
+        if exit_code == 0:
+            print(f"  {binary}: succeeded.")
+        else:
+            result = False
+            print(f"  {binary}: FAILED: {error}")
+    return result
+
+
 if __name__ == "__main__":
     parser = ArgumentParser(description='Qt for Python package tester',
                             formatter_class=RawTextHelpFormatter)
@@ -282,6 +309,10 @@ if __name__ == "__main__":
         print(m)
         sys.exit(1)
     print('Detected PySide{} at {}.'.format(VERSION, root))
+
+    if VERSION >= (6, 4, 0):
+        test_tools()
+
     for e in examples(root_ex):
         run_example(root_ex, e)
 
