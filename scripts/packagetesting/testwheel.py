@@ -50,7 +50,7 @@ OPCUAVIEWER = 'opcua/opcuaviewer/main.py'
 WEBENGINE_EXAMPLE = 'webenginewidgets/tabbedbrowser/main.py'
 PROJECT_TOOL = "pyside6-project"
 TOOLS = ["deploy", "genpyi", ("lrelease", "-help"), "lupdate", "metaobjectdump",
-         "project", "qml", "qmlformat", "qmlimportscanner", "qmllint",
+         "project", "qml", "qmlformat", ("qmlimportscanner", "-importPath", "."), "qmllint",
          "qmlls","qmltyperegistrar", "qtpy2cpp", "rcc", "uic"]
 
 VERSION = (0, 0, 0)
@@ -305,15 +305,17 @@ def test_tools():
     print("\nTesting command line tools...")
     for tool in TOOLS:
         if isinstance(tool, tuple):
-            binary =f"pyside6-{tool[0]}"
-            help_option = tool[1]
+            tool_name, *arguments = tool
+            binary =f"pyside6-{tool_name}"
         else:
            binary =f"pyside6-{tool}"
-           help_option = "--help"
+           arguments = ["--help"]
         exit_code = 0
         error = ""
         try:
-            exit_code, error = run_process([binary, help_option])
+            cmd = [binary]
+            cmd.extend(arguments)
+            exit_code, error = run_process(cmd)
         except Exception as e:
             error = str(e)
             exit_code = 1
