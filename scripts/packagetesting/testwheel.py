@@ -73,6 +73,19 @@ def get_pyside_version_from_import():
     return 0, 0, 0
 
 
+def list_modules():
+    """List the installed Qt modules."""
+    if VERSION[0] > 5:
+        import PySide6
+        installed_modules = PySide6.__dict__["__all__"]
+    else:
+        import PySide2
+        installed_modules = PySide2.__dict__["__all__"]
+    installed_modules.sort()
+    module_string = ", ".join(installed_modules)
+    print(f"\nInstalled_modules ({len(installed_modules)}): {module_string}\n")
+
+
 def pyside2_examples():
     """List of examples to be tested (PYSIDE 2)"""
     return ['widgets/mainwindows/mdi/mdi.py',
@@ -309,6 +322,8 @@ if __name__ == "__main__":
         print(m)
         sys.exit(1)
     print('Detected PySide{} at {}.'.format(VERSION, root))
+
+    list_modules()
 
     if VERSION >= (6, 4, 0):
         test_tools()
