@@ -229,6 +229,7 @@ tst_Bic::tst_Bic(const char *appFilePath)
     bic.addBlacklistedClass(QLatin1String("QDebug::Stream"));
     bic.addBlacklistedClass(QLatin1String("QtPrivate::StreamStateSaver"));
     bic.addBlacklistedClass(QLatin1String("QtPrivate::big_"));
+    bic.addBlacklistedClass(QLatin1String("QtPrivate::q_relocate_overlap_n_left_move"));
 
     /* Jambi-related classes in Designer */
     bic.addBlacklistedClass(QLatin1String("QDesignerLanguageExtension"));
