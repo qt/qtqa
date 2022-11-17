@@ -343,7 +343,7 @@ if __name__ == "__main__":
             print("Nuitka not found, skipping test")
             sys.exit(0)
 
-        if VERSION >= (6, 4, 1):
+        if VERSION >= (6, 5, 0):
             result = test_project_generation()
         else:
             result = test_deploy(Path(root_ex) / PYINSTALLER_EXAMPLE_6)
