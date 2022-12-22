@@ -167,7 +167,7 @@ def has_module(name):
     code, lines = run_process([sys.executable, "-m", "pip", "list"])
     for l in lines:
         tokens = l.split(' ')
-        if len(tokens) >= 1 and tokens[0] == name:
+        if len(tokens) >= 1 and tokens[0].lower() == name.lower():
             return True
     return False
 
@@ -331,12 +331,12 @@ if __name__ == "__main__":
     for e in examples(root_ex):
         run_example(root_ex, e)
 
-    if not do_pyinst:
-        sys.exit(0)
-
     if VERSION >= (6, 1, 0):
         print("Launching Qt Designer. Please check the custom widgets.")
         execute([f'pyside{VERSION[0]}-designer'])
+
+    if not do_pyinst:
+        sys.exit(0)
 
     if VERSION >= (6, 4, 0):
         if not has_module("Nuitka"):
