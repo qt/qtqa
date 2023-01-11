@@ -984,7 +984,7 @@ class Selector(object): # Select interesting changes, discard boring.
                 """Iterate indices in words of each blah in 'defined(blah)'"""
                 if any(a != b for a, b in zip(words, ('#', 'if'))):
                     return
-                ind, ans = 0, []
+                ind = 0
                 while True:
                     try:
                         ind = words.index('defined', ind)
