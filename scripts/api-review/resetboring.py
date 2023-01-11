@@ -614,7 +614,7 @@ class Selector(object): # Select interesting changes, discard boring.
             """
 
             # Fatuous substitutions (see below for Q_DECL_OVERRIDE):
-            for pair in (('Q_QDOC', 'Q_CLANG_QDOC'),
+            for pair in (('Q_CLANG_QDOC', 'Q_QDOC'),
                          ('Q_DECL_FINAL', 'final'),
                          (('Q_CONSTEXPR',
                            'Q_DECL_CONSTEXPR',
@@ -825,8 +825,10 @@ class Selector(object): # Select interesting changes, discard boring.
             for swap in ((('while', '(', '0', ')'), ('while', '(', 'false', ')')),
                          (('Q_FOREVER',), ('for', '(', ';', ';', ')')),
                          (('Q_DECL_EQ_DELETE', ';'), ('=', 'delete', ';')),
+                         (('count', '(', ')'), ('size', '(', ')'),
                          (('qMove',), ('std', '::', 'move')),
                          (('qSwap',), ('std', '::', 'swap')),
+                         (('qAsConst',), ('std', '::', 'as_const')),
                          (('Q_REQUIRED_RESULT',), ('[[', 'nodiscard', ']]')),
                          # Needs to happen before handling of Q_DECL_NOEXCEPT
                          # (as both replace "noexcept"):
