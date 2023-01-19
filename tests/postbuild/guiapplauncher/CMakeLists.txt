@@ -12,7 +12,7 @@ qt_internal_add_test(tst_guiapplauncher
         tst_guiapplauncher.cpp
         windowmanager.cpp windowmanager.h
     DEFINES
-        SRCDIR=\\\"${CMAKE_CURRENT_SOURCE_DIR}/\\\"
+        SRCDIR="${CMAKE_CURRENT_SOURCE_DIR}/"
     LIBRARIES
         Qt::Gui
 )

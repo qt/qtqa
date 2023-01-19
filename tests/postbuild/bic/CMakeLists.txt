@@ -35,7 +35,7 @@ qt_internal_add_test(tst_bic
         qbic.cpp qbic.h
         tst_bic.cpp
     DEFINES
-        SRCDIR=\\\"${CMAKE_CURRENT_SOURCE_DIR}/\\\"
+        SRCDIR="${CMAKE_CURRENT_SOURCE_DIR}/"
     INCLUDE_DIRECTORIES
         ..
 )
