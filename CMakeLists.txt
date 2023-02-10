@@ -19,7 +19,7 @@ find_package(Qt6 ${PROJECT_VERSION} QUIET CONFIG OPTIONAL_COMPONENTS Gui Widgets
 # special case begin
 qt_build_repo_begin()
 
-if(BUILD_TESTING)
+if(QT_BUILD_TESTS)
     add_subdirectory(scripts)
     add_subdirectory(tests)
 
