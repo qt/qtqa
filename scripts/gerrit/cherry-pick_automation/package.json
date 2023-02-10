@@ -23,7 +23,7 @@
     "net": "1.0.2",
     "node-cleanup": "2.1.2",
     "node-fetch": "^2.6.5",
-    "nodemailer": "6.4.17",
+    "nodemailer": "6.6.1",
     "nodemailer-ses-transport": "1.5.1",
     "pg": "8.5.1",
     "portfinder": "1.0.28",
