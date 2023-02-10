@@ -7,6 +7,7 @@ const path = require('path');
 const onExit = require("node-cleanup");
 let autoload = require("auto-load")
 let fs = require('fs');
+const toBool = require("to-bool");
 
 const Logger = require("./logger");
 const logger = new Logger();
@@ -68,7 +69,7 @@ let plugin_bots = autoload('plugin_bots');
 let initialized_bots = {};
 Object.keys(plugin_bots).forEach((bot) => {
   if (
-    envOrConfig(`${bot.toUpperCase()}_ENABLED`, path.resolve("plugin_bots", bot, "config.json"))
+    toBool(envOrConfig(`${bot.toUpperCase()}_ENABLED`, path.resolve("plugin_bots", bot, "config.json")))
   ) {
     initialized_bots[bot] = new plugin_bots[bot][bot](this);
     logger.log(`plugin "${bot}" loaded`);

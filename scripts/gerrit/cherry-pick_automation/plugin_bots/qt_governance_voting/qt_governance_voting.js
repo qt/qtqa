@@ -106,11 +106,11 @@ class qt_governance_voting {
     this.retryProcessor = notifier.retryProcessor;
     this.requestProcessor = notifier.requestProcessor;
     //Parse URL-encoded bodies
-    this.notifier.server.server.use(express.urlencoded({ extended: true }));
+    this.notifier.server.app.use(express.urlencoded({ extended: true }));
     // Add new endpoints to the cental webserver
-    this.notifier.server.server.use("/templates", express.static(`${__dirname}/templates/`));
-    this.notifier.server.server.get("/voting", (req, res) => this.serve_voting_page(req, res));
-    this.notifier.server.server.post("/voting", (req, res) => this.process_vote(req, res));
+    this.notifier.server.app.use("/templates", express.static(`${__dirname}/templates/`));
+    this.notifier.server.app.get("/voting", (req, res) => this.serve_voting_page(req, res));
+    this.notifier.server.app.post("/voting", (req, res) => this.process_vote(req, res));
 
     if (globals.voting_open) {
       if (globals.voting_deadline == "Invalid Date") {

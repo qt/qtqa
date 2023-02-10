@@ -67,7 +67,7 @@ class submodule_update_watcher {
         }
       }
     );
-    this.notifier.server.server.post("/pause-submodule-updates", express.json(),
+    this.notifier.server.app.post("/pause-submodule-updates", express.json(),
      (req, res) => {
       req = req.body;
       req["customGerritAuth"] = gerritAuth;
@@ -75,7 +75,7 @@ class submodule_update_watcher {
       req["jenkinsAuth"] = jenkinsAuth;
       this.pause_updates(req, res);
      })
-    this.notifier.server.server.post("/resume-submodule-updates", express.json(),
+    this.notifier.server.app.post("/resume-submodule-updates", express.json(),
      (req, res) => {
       req = req.body;
       req["customGerritAuth"] = gerritAuth;
@@ -83,7 +83,7 @@ class submodule_update_watcher {
       req["jenkinsAuth"] = jenkinsAuth;
       this.resume_updates(req, res);
     })
-    this.notifier.server.server.post("/reset-submodule-updates", express.json(),
+    this.notifier.server.app.post("/reset-submodule-updates", express.json(),
      (req, res) => {
       req = req.body;
       req["customGerritAuth"] = gerritAuth;
@@ -91,7 +91,7 @@ class submodule_update_watcher {
       req["jenkinsAuth"] = jenkinsAuth;
       this.reset_updates(req, res);
     })
-    this.notifier.server.server.post("/retry-submodule-updates", express.json(),
+    this.notifier.server.app.post("/retry-submodule-updates", express.json(),
      (req, res) => {
       req = req.body;
       req["customGerritAuth"] = gerritAuth;

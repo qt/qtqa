@@ -816,3 +816,33 @@ function checkBranchAndAccess(uuid, repo, branch, user, permission, customAuth, 
     }
   });
 }
+
+exports.findIntegrationIDFromChange = findIntegrationIDFromChange;
+function findIntegrationIDFromChange(uuid, fullChangeID, customAuth, callback) {
+  let url = `${gerritBaseURL("changes")}/${fullChangeID}/messages`;
+  logger.log(`GET request for ${url}`, "debug", uuid);
+  axios
+    .get(url, { auth: customAuth || gerritAuth })
+    .then(function (response) {
+      // logger.log(`Raw Response: ${response.data}`, "silly", uuid);
+      const messages = JSON.parse(trimResponse(response.data));
+      messages.reverse();
+      for (let i=0; i < messages.length; i++) {  // CI passed messages are usually near the end.
+        if (messages[i].message.includes("Continuous Integration: Passed")) {
+          // Capture the integration ID or return false.
+          // Though a change with the above line should never *not*
+          // have an IntegrationID
+          try {
+            callback(messages[i].message.match(/^Details:.+\/tasks\/(.+)$/m)[1], new Date(messages[i].date));
+          } catch {
+            callback(false);
+          }
+          break;
+        }
+      }
+    })
+    .catch((error) => {
+      logger.log(`Failed to get IntegrationId for ${fullChangeID}\n${error}`, "error", uuid);
+      callback(false);
+    })
+}

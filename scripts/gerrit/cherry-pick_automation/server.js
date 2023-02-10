@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
 
 const express = require("express");
+const http = require("http");
 const EventEmitter = require("events");
 const net = require("net");
 const uuidv1 = require("uuidv1");
@@ -39,7 +40,8 @@ class webhookListener extends EventEmitter {
     super();
     this.logger = logger;
     this.requestProcessor = requestProcessor;
-    this.server = express()
+    this.app = express();
+    this.server = http.createServer(this.app);
 
     /* Holds objects describing events which should be emitted by
     receiveEvent.
@@ -143,11 +145,11 @@ class webhookListener extends EventEmitter {
   // Set up a server and start listening on a given port.
   startListening() {
     let _this = this;
-    _this.server.use(express.json()); // Set Express to use JSON parsing by default.
-    _this.server.enable("trust proxy", true);
+    _this.app.use(express.json()); // Set Express to use JSON parsing by default.
+    _this.app.enable("trust proxy", true);
 
     // Create a custom error handler for Express.
-    _this.server.use(function (err, req, res, next) {
+    _this.app.use(function (err, req, res, next) {
       if (err instanceof SyntaxError) {
         // Send the bad request to gerrit admins so it can either be manually processed
         // or fixed if there's a bug.
@@ -192,13 +194,13 @@ class webhookListener extends EventEmitter {
     }
 
     // Set up the listening endpoint
-    _this.logger.log("Starting server.");
-    _this.server.post("/gerrit-events", (req, res) => {
+    _this.logger.log("Starting app.");
+    _this.app.post("/gerrit-events", (req, res) => {
       if (validateOrigin(req, res))
         _this.emit("newRequest", req.body);
     });
-    _this.server.get("/status", (req, res) => _this.send_status(req, res));
-    _this.server.get("/", (req, res) => res.send("Nothing to see here."));
+    _this.app.get("/status", (req, res) => _this.send_status(req, res));
+    _this.app.get("/", (req, res) => res.send("Nothing to see here."));
     portfinder
       .getPortPromise()
       .then((port) => {

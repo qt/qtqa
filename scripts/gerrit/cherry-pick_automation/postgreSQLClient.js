@@ -72,14 +72,12 @@ function end(callback) {
 }
 
 exports.insert = insert;
-function insert(table, columns, values, callback) {
-  let valuecount_string;
-  if (table == "processing_queue")
-    valuecount_string = "$1,$2,$3,$4,$5,$6";
-  else if (table == "retry_queue")
-    valuecount_string = "$1,$2,$3";
-  else if (table == "governance_voting")
-    valuecount_string = "$1,$2,$3"
+function insert(table, columns, values, callback, processNextQueuedUpdate) {
+  let valuecount_string = "";
+  for (let  i = 0; i < columns.length; i++) {
+    // Form a string like "$1,$2,$3,$4,$5,$6" based on count of columns.
+    valuecount_string += `$${i+1}${i < columns.length-1 ? ',' : ''}`;  // No trailing comma.
+  }
   const query = {
     name: `insert-row-${table}`,
     text: `INSERT INTO ${table}(${columns}) VALUES(${valuecount_string})`,
@@ -91,11 +89,13 @@ function insert(table, columns, values, callback) {
       logger.log(`Database error: ${err.message}\n${Error().stack}`, "error", "DATABASE");
     if (callback)
       callback(!err, err || data);
+    if (processNextQueuedUpdate)
+      processNextQueuedUpdate(undefined, values.at(0), undefined, undefined, true);
   });
 }
 
 exports.query = query;
-function query(table, fields, keyName, keyValue, operator, callback) {
+function query(table, fields, keyName, keyValue, operator, callback, processNextQueuedUpdate) {
   const query = {
     name: `query-${keyName}-${fields}`,
     text: `SELECT ${fields || "*"} FROM ${table} WHERE ${keyName} ${
@@ -107,10 +107,15 @@ function query(table, fields, keyName, keyValue, operator, callback) {
   logger.log(`Running query: ${safeJsonStringify(query)}`, "silly", "DATABASE");
   pool.query(query, (err, data) => {
     if (err)
-      logger.log(`Database error: ${err}\nQuery: ${query}\n${Error().stack}`, "error", "DATABASE");
+      logger.log(`Database error: ${err}\nQuery: ${safeJsonStringify(query)}\n${Error().stack}`, "error", "DATABASE");
     if (callback)
       callback(!err, err || data.rows);
 
+    // If the queuing function was passed, call it with the unlock parameter.
+    // This will process the next item in queue or globally unlock the status
+    // update lockout.
+    if (processNextQueuedUpdate)
+      processNextQueuedUpdate(undefined, keyValue, undefined, undefined, true);
   });
 }
 
@@ -137,7 +142,7 @@ function update(table, keyName, keyValue, changes, callback, processNextQueuedUp
     // This will process the next item in queue or globally unlock the status
     // update lockout.
     if (processNextQueuedUpdate)
-      processNextQueuedUpdate(undefined, undefined, undefined, undefined, true);
+      processNextQueuedUpdate(undefined, keyValue, undefined, undefined, true);
   });
 }
 
