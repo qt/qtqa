@@ -175,7 +175,8 @@ QStringList qt_tests_shared_run_qmake(const QString &workDir,
 
     QFile::remove(makeFile);
 #else
-    Q_UNUSED(modules);
+    Q_UNUSED(proFileContent);
+    Q_UNUSED(makeFileParser);
 #endif // QT_NO_PROCESS
 
     return result;
