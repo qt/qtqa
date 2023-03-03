@@ -108,12 +108,13 @@ def examples(examples_root):
 
 def execute(args):
     """Execute a command and print output"""
-    log_string = '[{}] {}'.format(os.path.basename(os.getcwd()),
-                                  ' '.join(args))
+    dir = os.path.basename(os.getcwd())
+    arg_string = ' '.join(args)
+    log_string = f'[{dir}] {arg_string}'
     print(log_string)
     exit_code = subprocess.call(args)
     if exit_code != 0:
-        raise RuntimeError('FAIL({}): {}'.format(exit_code, log_string))
+        raise RuntimeError(f'FAIL({exit_code}): {log_string}')
 
 def run_process(args):
     """Execute a command and return a tuple of exit code/stdout"""
@@ -132,9 +133,9 @@ def run_process_output(args):
 
 
 def run_example(root, path):
-    print('Launching {}'.format(path))
-    exit_code = run_process_output([sys.executable, os.path.join(root, path)])
-    print('{} returned {}\n\n'.format(path, exit_code))
+    print(f'Launching {path}')
+    exit_code = run_process_output([sys.executable, os.fspath(root / path)])
+    print(f'{path} returned {exit_code}\n\n')
 
 
 def has_module(name):
@@ -173,16 +174,16 @@ def test_deploy(example):
 
 
 def test_cxfreeze(example):
-    name = os.path.splitext(os.path.basename(example))[0]
-    print('Running CxFreeze test of {}'.format(name))
+    assert(example.is_file())
+    print(f'Running CxFreeze test of {example.stem}')
     current_dir = os.getcwd()
     result = False
     with tempfile.TemporaryDirectory() as tmpdirname:
         try:
             os.chdir(tmpdirname)
-            cmd = ['cxfreeze', example]
+            cmd = ['cxfreeze', os.fspath(example)]
             execute(cmd)
-            binary = os.path.join(tmpdirname, 'dist', name)
+            binary = os.path.join(tmpdirname, 'dist', example.stem)
             if sys.platform == "win32":
                 binary += '.exe'
             execute([binary])
@@ -195,18 +196,18 @@ def test_cxfreeze(example):
 
 
 def test_pyinstaller(example):
-    name = os.path.splitext(os.path.basename(example))[0]
-    print('Running PyInstaller test of {}'.format(name))
+    assert(example.is_file())
+    print(f'Running PyInstaller test of {example.stem}')
     current_dir = os.getcwd()
     result = False
     with tempfile.TemporaryDirectory() as tmpdirname:
         try:
             os.chdir(tmpdirname)
             level = "CRITICAL" if sys.platform == "darwin" else "WARN"
-            cmd = ['pyinstaller', '--name={}'.format(name),
-                   '--log-level=' + level, example]
+            cmd = ['pyinstaller', f'--name={example.stem}'
+                   '--log-level=' + level, os.fspath(example)]
             execute(cmd)
-            binary = os.path.join(tmpdirname, 'dist', name, name)
+            binary = os.path.join(tmpdirname, 'dist', example.stem, example.stem)
             if sys.platform == "win32":
                 binary += '.exe'
             execute([binary])
@@ -278,27 +279,27 @@ if __name__ == "__main__":
         do_pyinst = False
     root = None
     path_version = 0
-    for p in sys.path:
-        if os.path.basename(p) == 'site-packages':
-            root = os.path.join(p, 'PySide6')
-            if os.path.exists(root):
+    for p in map(Path, sys.path):
+        if p.name == 'site-packages':
+            root = p / 'PySide6'
+            if root.is_dir():
                 path_version = 6
             else:
-                root = os.path.join(p, 'PySide2')
+                root = p / 'PySide2'
                 path_version = 2
-            root_ex = os.path.join(root, 'examples')
+            root_ex = root / 'examples'
             break
     if VERSION[0] == 0:
         VERSION[0] == path_version
     print('Detected Qt version ', VERSION)
-    if not root or not os.path.exists(root):
+    if not root or not root.is_dir():
         print('Could not locate any PySide module.')
         sys.exit(1)
-    if not os.path.exists(root_ex):
-        m = "PySide{} module found without examples. Did you forget to install wheels?".format(VERSION)
+    if not root_ex.is_dir():
+        m = f"PySide{VERSION} module found without examples. Did you forget to install wheels?"
         print(m)
         sys.exit(1)
-    print('Detected PySide{} at {}.'.format(VERSION, root))
+    print(f'Detected PySide{VERSION} at {root}.')
 
     list_modules()
 
@@ -323,7 +324,7 @@ if __name__ == "__main__":
         if VERSION >= (6, 5, 0):
             result = test_project_generation()
         else:
-            result = test_deploy(Path(root_ex) / PYINSTALLER_EXAMPLE_6)
+            result = test_deploy(root_ex / PYINSTALLER_EXAMPLE_6)
         if result:
             print("\ndeploy test successful")
         else:
@@ -334,7 +335,7 @@ if __name__ == "__main__":
             print('cx_Freeze not found, skipping test')
             sys.exit(0)
 
-        if test_cxfreeze(os.path.join(root_ex, PYINSTALLER_EXAMPLE_6_2)):
+        if test_cxfreeze(root_ex / PYINSTALLER_EXAMPLE_6_2):
             print("\ncx_Freeze test successful")
         else:
             print("\nProblem running cx_Freeze")
@@ -344,7 +345,7 @@ if __name__ == "__main__":
             print('PyInstaller not found, skipping test')
             sys.exit(0)
 
-        if test_pyinstaller(os.path.join(root_ex, PYINSTALLER_EXAMPLE_2)):
+        if test_pyinstaller(root_ex / PYINSTALLER_EXAMPLE_2):
             print("\nPyInstaller test successful")
         else:
             print("\nProblem running PyInstaller")
