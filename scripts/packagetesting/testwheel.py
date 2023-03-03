@@ -292,9 +292,12 @@ if __name__ == "__main__":
                             formatter_class=RawTextHelpFormatter)
     parser.add_argument('--no-pyinstaller', '-p', action='store_true',
                         help='Skip pyinstaller test')
+    parser.add_argument("--examples", "-e", action="store",
+                        help="Examples directory")
 
     options = parser.parse_args()
     do_pyinst = not options.no_pyinstaller
+    root_ex = Path(options.examples) if options.examples else None
 
     VERSION = get_pyside_version_from_import()
     if do_pyinst and sys.version_info[0] < 3:  # Note: PyInstaller no longer supports Python 2
@@ -310,7 +313,8 @@ if __name__ == "__main__":
             else:
                 root = p / 'PySide2'
                 path_version = 2
-            root_ex = root / 'examples'
+            if not root_ex:
+                root_ex = root / 'examples'
             break
     if VERSION[0] == 0:
         VERSION[0] == path_version
