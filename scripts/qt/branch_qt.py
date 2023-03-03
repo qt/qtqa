@@ -62,6 +62,7 @@ qt6_extra_repositories = [
     "qt/tqtc-android-automotive",
     "qt/tqtc-qtvncserver",
     "qt/tqtc-qtinsighttracker",
+    "qt/qtdltlogging",
 ]
 
 
