@@ -4,6 +4,7 @@
 
 
 from argparse import ArgumentParser, RawTextHelpFormatter
+from functools import cache
 from pathlib import Path
 import os
 import shutil
@@ -59,6 +60,23 @@ def list_modules():
     installed_modules.sort()
     module_string = ", ".join(installed_modules)
     print(f"\nInstalled_modules ({len(installed_modules)}): {module_string}\n")
+
+
+@cache
+def get_installed_modules():
+    """Return installed modules"""
+    result = []
+    _, lines = run_process([sys.executable, "-m", "pip", "list"])
+    for l in lines:
+        tokens = l.split(' ')
+        if len(tokens) >= 1:
+            result.append(tokens[0].lower())
+    return result
+
+
+def has_module(name):
+    """Checks for a module"""
+    return name.lower() in get_installed_modules()
 
 
 def pyside2_examples():
@@ -136,16 +154,6 @@ def run_example(root, path):
     print(f'Launching {path}')
     exit_code = run_process_output([sys.executable, os.fspath(root / path)])
     print(f'{path} returned {exit_code}\n\n')
-
-
-def has_module(name):
-    """Checks for a module"""
-    code, lines = run_process([sys.executable, "-m", "pip", "list"])
-    for l in lines:
-        tokens = l.split(' ')
-        if len(tokens) >= 1 and tokens[0].lower() == name.lower():
-            return True
-    return False
 
 
 def test_deploy(example):
