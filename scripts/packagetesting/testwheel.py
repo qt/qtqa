@@ -4,6 +4,7 @@
 
 
 from argparse import ArgumentParser, RawTextHelpFormatter
+from enum import Enum
 from functools import cache
 from pathlib import Path
 import os
@@ -28,6 +29,12 @@ TOOLS = ["deploy", "genpyi", ("lrelease", "-help"), "lupdate", "metaobjectdump",
          "qmlls","qmltyperegistrar", "qtpy2cpp", "rcc", "uic"]
 
 VERSION = (0, 0, 0)
+
+
+class InstalledWheels(Enum):
+    Essentials = 0
+    AddOns = 1
+    M2M = 2
 
 
 def get_pyside_version_from_import():
@@ -79,6 +86,31 @@ def has_module(name):
     return name.lower() in get_installed_modules()
 
 
+def get_installed_wheels(examples_root):
+    """Determine install type."""
+    # 6.5: Examples are no longer in wheels
+    if VERSION >= (6, 5, 0):
+        if has_module("PySide6-M2M"):
+            return InstalledWheels.M2M
+        if has_module("PySide6-Addons"):
+            return InstalledWheels.AddOns
+        return InstalledWheels.Essentials
+
+    # Check M2M
+    if (examples_root / OPCUAVIEWER).is_file():
+        return InstalledWheels.M2M
+
+    # Wheel split in 6.3.0
+    if VERSION < (6, 3, 0):
+        return InstalledWheels.AddOns
+
+    # 6.4: Check existence of add-ons
+    if (examples_root / WEBENGINE_EXAMPLE).is_file():
+        return InstalledWheels.AddOns
+
+    return InstalledWheels.Essentials
+
+
 def pyside2_examples():
     """List of examples to be tested (PYSIDE 2)"""
     return ['widgets/mainwindows/mdi/mdi.py',
@@ -88,40 +120,38 @@ def pyside2_examples():
             'webenginewidgets/tabbedbrowser/main.py']
 
 
-def get_commercial_examples(examples_root):
-    result = []
-    if os.path.exists(os.path.join(examples_root, OPCUAVIEWER)):
-        result.append(OPCUAVIEWER)
-    return result
+def get_addon_examples():
+    datavis_example = ('examples/datavisualization/graphgallery/main.py'
+                       if VERSION >= (6, 5, 0) else
+                       'datavisualization/bars3d/bars3d.py')
+    return ['3d/simple3d/simple3d.py', 'charts/chartthemes/main.py',
+            datavis_example, 'multimedia/player/player.py',
+            WEBENGINE_EXAMPLE]
+
+
+def get_m2m_examples():
+    return [OPCUAVIEWER]
 
 
 def examples(examples_root):
     """Compile a list of examples to be tested"""
-    commercial_examples = get_commercial_examples(examples_root)
+
+    wheels = get_installed_wheels(examples_root)
+    print(f"\nDetected: {wheels}\n")
+
     if VERSION[0] < 6:
-        return pyside2_examples() + commercial_examples
+        result = pyside2_examples()
+        if wheels == InstalledWheels.M2M:
+            result.extend(get_m2m_examples())
+        return result
 
-    essential_examples = ['widgets/mainwindows/mdi/mdi.py']
-    if VERSION[1] >= 4:
-        essential_examples.append('qml/tutorials/extending/chapter5-listproperties/listproperties.py')
-    else:
-        essential_examples.append('declarative/extending/chapter5-listproperties/listproperties.py')
-
-    addon_examples = ['3d/simple3d/simple3d.py',
-                      'charts/chartthemes/main.py',
-                      'datavisualization/bars3d/bars3d.py',
-                      'multimedia/player/player.py',
-                      WEBENGINE_EXAMPLE]
-    result = essential_examples
-    if VERSION[1] < 3:
-        result += addon_examples
-    else:
-        if os.path.exists(os.path.join(examples_root, WEBENGINE_EXAMPLE)):
-            print('Addons detected')
-            result += addon_examples
-        else:
-            print('Essentials detected')
-    return result + commercial_examples
+    result = ['widgets/mainwindows/mdi/mdi.py',
+              'qml/tutorials/extending/chapter5-listproperties/listproperties.py']
+    if wheels != InstalledWheels.Essentials:
+        result.extend(get_addon_examples())
+    if wheels == InstalledWheels.M2M:
+        result.extend(get_m2m_examples())
+    return result
 
 
 def execute(args):
@@ -308,7 +338,9 @@ if __name__ == "__main__":
         print('Could not locate any PySide module.')
         sys.exit(1)
     if not root_ex.is_dir():
-        m = f"PySide{VERSION} module found without examples. Did you forget to install wheels?"
+        m = f"PySide{VERSION} module found without examples. "
+        m += ("Specify --examples <dir>." if VERSION >= (6, 5, 0)
+              else "Did you forget to install wheels?")
         print(m)
         sys.exit(1)
     print(f'Detected PySide{VERSION} at {root}.')
