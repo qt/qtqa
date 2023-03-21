@@ -51,7 +51,7 @@ WEBENGINE_EXAMPLE = 'webenginewidgets/tabbedbrowser/main.py'
 PROJECT_TOOL = "pyside6-project"
 TOOLS = ["deploy", "genpyi", ("lrelease", "-help"), "lupdate", "metaobjectdump",
          "project", "qml", "qmlformat", ("qmlimportscanner", "-importPath", "."), "qmllint",
-         "qmlls","qmltyperegistrar", "qtpy2cpp", "rcc", "uic"]
+         "qmlls", "qmltyperegistrar", "qtpy2cpp", "rcc", "uic"]
 
 VERSION = (0, 0, 0)
 
@@ -189,6 +189,7 @@ def execute(args):
     if exit_code != 0:
         raise RuntimeError(f'FAIL({exit_code}): {log_string}')
 
+
 def run_process(args):
     """Execute a command and return a tuple of exit code/stdout"""
     popen = subprocess.Popen(args, universal_newlines=1,
@@ -209,6 +210,7 @@ def run_example(root, path):
     print(f'Launching {path}')
     exit_code = run_process_output([sys.executable, os.fspath(root / path)])
     print(f'{path} returned {exit_code}\n\n')
+    return exit_code == 0
 
 
 def test_deploy(example):
@@ -306,10 +308,10 @@ def test_tools():
     for tool in TOOLS:
         if isinstance(tool, tuple):
             tool_name, *arguments = tool
-            binary =f"pyside6-{tool_name}"
+            binary = f"pyside6-{tool_name}"
         else:
-           binary =f"pyside6-{tool}"
-           arguments = ["--help"]
+            binary = f"pyside6-{tool}"
+            arguments = ["--help"]
         exit_code = 0
         error = ""
         try:
@@ -324,6 +326,46 @@ def test_tools():
         else:
             result = False
             print(f"  {binary}: FAILED: {error}")
+    return result
+
+
+def test_deployment(examples_root):
+    if VERSION >= (6, 4, 0):
+        if not has_module("Nuitka"):
+            print("Nuitka not found, skipping test")
+            return True
+
+        if VERSION >= (6, 5, 0):
+            result = test_project_generation()
+        else:
+            result = test_deploy(examples_root / PYINSTALLER_EXAMPLE_6)
+        if result:
+            print("\ndeploy test successful")
+        else:
+            print("\nProblem running deploy")
+        return result
+
+    if VERSION[0] >= 6:
+        if not has_module('cx-Freeze'):
+            print('cx_Freeze not found, skipping test')
+            return True
+
+        result = test_cxfreeze(examples_root / PYINSTALLER_EXAMPLE_6_2)
+        if result:
+            print("\ncx_Freeze test successful")
+        else:
+            print("\nProblem running cx_Freeze")
+        return result
+
+    if not has_module('PyInstaller'):
+        print('PyInstaller not found, skipping test')
+        return True
+
+    result = test_pyinstaller(examples_root / PYINSTALLER_EXAMPLE_2)
+    if result:
+        print("\nPyInstaller test successful")
+    else:
+        print("\nProblem running PyInstaller")
     return result
 
 
@@ -372,50 +414,21 @@ if __name__ == "__main__":
 
     list_modules()
 
+    exit_code = 0
     if VERSION >= (6, 4, 0):
-        test_tools()
+        if not test_tools():
+            exit_code += 1
 
     for e in examples(root_ex):
-        run_example(root_ex, e)
+        if not run_example(root_ex, e):
+            exit_code += 1
 
     if VERSION >= (6, 1, 0):
         print("Launching Qt Designer. Please check the custom widgets.")
         execute([f'pyside{VERSION[0]}-designer'])
 
-    if not do_pyinst:
-        sys.exit(0)
+    if do_pyinst and not test_deployment(root_ex):
+        exit_code += 1
 
-    if VERSION >= (6, 4, 0):
-        if not has_module("Nuitka"):
-            print("Nuitka not found, skipping test")
-            sys.exit(0)
-
-        if VERSION >= (6, 5, 0):
-            result = test_project_generation()
-        else:
-            result = test_deploy(root_ex / PYINSTALLER_EXAMPLE_6)
-        if result:
-            print("\ndeploy test successful")
-        else:
-            print("\nProblem running deploy")
-            sys.exit(1)
-    elif VERSION[0] >= 6:
-        if not has_module('cx-Freeze'):
-            print('cx_Freeze not found, skipping test')
-            sys.exit(0)
-
-        if test_cxfreeze(root_ex / PYINSTALLER_EXAMPLE_6_2):
-            print("\ncx_Freeze test successful")
-        else:
-            print("\nProblem running cx_Freeze")
-            sys.exit(1)
-    else:
-        if not has_module('PyInstaller'):
-            print('PyInstaller not found, skipping test')
-            sys.exit(0)
-
-        if test_pyinstaller(root_ex / PYINSTALLER_EXAMPLE_2):
-            print("\nPyInstaller test successful")
-        else:
-            print("\nProblem running PyInstaller")
-            sys.exit(1)
+    print("Success" if exit_code == 0 else "Failure")
+    sys.exit(exit_code)
