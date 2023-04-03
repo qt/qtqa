@@ -31,6 +31,9 @@ TOOLS = ["deploy", "genpyi", ("lrelease", "-help"), "lupdate", "metaobjectdump",
 VERSION = (0, 0, 0)
 
 
+DESIGNER_PATH_VAR = "PYSIDE_DESIGNER_PLUGINS"
+
+
 class InstalledWheels(Enum):
     Essentials = 0
     AddOns = 1
@@ -354,7 +357,17 @@ if __name__ == "__main__":
 
     options = parser.parse_args()
     do_pyinst = not options.no_pyinstaller
-    root_ex = Path(options.examples) if options.examples else None
+    root_ex = None
+    if options.examples:
+        root_ex = Path(options.examples)
+        # Set path to Qt Designer plugins
+        wiggly_dir = os.fspath(root_ex / 'widgetbinding')
+        taskmenu_dir = os.fspath(root_ex / 'designer' / 'taskmenuextension')
+        new_path = f"{wiggly_dir}:{taskmenu_dir}"
+        designer_path = os.environ.get(DESIGNER_PATH_VAR, "")
+        if designer_path:
+            new_path += f":{designer_path}"
+        os.environ[DESIGNER_PATH_VAR] = new_path
 
     VERSION = get_pyside_version_from_import()
     if do_pyinst and sys.version_info[0] < 3:  # Note: PyInstaller no longer supports Python 2
