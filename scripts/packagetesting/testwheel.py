@@ -47,7 +47,7 @@ PYINSTALLER_EXAMPLE_6 = "widgets/mainwindows/mdi/mdi.py"  # Sth with "About Qt"
 PYINSTALLER_EXAMPLE_6_2 = "widgets/tetrix/tetrix.py"
 PYINSTALLER_EXAMPLE_2 = 'widgets/widgets/tetrix.py'
 OPCUAVIEWER = 'opcua/opcuaviewer/main.py'
-WEBENGINE_EXAMPLE = 'webenginewidgets/tabbedbrowser/main.py'
+WEBENGINE_TABBED_BROWSER = 'webenginewidgets/tabbedbrowser/main.py'
 PROJECT_TOOL = "pyside6-project"
 TOOLS = ["deploy", "genpyi", ("lrelease", "-help"), "lupdate", "metaobjectdump",
          "project", "qml", "qmlformat", ("qmlimportscanner", "-importPath", "."), "qmllint",
@@ -133,7 +133,7 @@ def get_installed_wheels(examples_root):
         return InstalledWheels.AddOns
 
     # 6.4: Check existence of add-ons
-    if (examples_root / WEBENGINE_EXAMPLE).is_file():
+    if (examples_root / WEBENGINE_TABBED_BROWSER).is_file():
         return InstalledWheels.AddOns
 
     return InstalledWheels.Essentials
@@ -149,12 +149,16 @@ def pyside2_examples():
 
 
 def get_addon_examples():
-    datavis_example = ('examples/datavisualization/graphgallery/main.py'
-                       if VERSION >= (6, 5, 0) else
-                       'datavisualization/bars3d/bars3d.py')
-    return ['3d/simple3d/simple3d.py', 'charts/chartthemes/main.py',
-            datavis_example, 'multimedia/player/player.py',
-            WEBENGINE_EXAMPLE]
+    result = []
+    if VERSION >= (6, 5, 1):
+        result.append('datavisualization/graphgallery/main.py')
+        result.append('webenginewidgets/simplebrowser/main.py')
+    else:
+        result.append('datavisualization/bars3d/bars3d.py')
+        result.append(WEBENGINE_TABBED_BROWSER)
+    result.extend(['3d/simple3d/simple3d.py', 'charts/chartthemes/main.py',
+                   'multimedia/player/player.py'])
+    return result
 
 
 def get_m2m_examples():
