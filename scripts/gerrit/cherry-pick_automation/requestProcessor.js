@@ -69,23 +69,74 @@ class requestProcessor extends EventEmitter {
       });
 
       // Parse the commit message and look for branches to pick to
-      const branches = toolbox.findPickToBranches(incoming.uuid, incoming.change.commitMessage);
-      if (branches.size == 0) {
-        _this.logger.log(`Nothing to cherry-pick. Discarding`, "verbose", incoming.uuid);
-        // The change did not have a "Pick To: " keyword or "Pick To:" did not include any branches.
-        toolbox.setDBState(incoming.uuid, "discarded");
-      } else {
-        _this.logger.log(
-          `Found ${branches.size} branches to pick to for ${incoming.uuid}`,
-          "info", uuid
-        );
-        toolbox.setPickCountRemaining(incoming.uuid, branches.size, function (success, data) {
-          // The change has a Pick-to label with at least one branch.
-          // Next, determine if it's part of a relation chain and handle
-          // it as a member of that chain.
-          _this.emit("determineProcessingPath", incoming, branches);
-        });
-      }
+      let allBranches = toolbox.findPickToBranches(incoming.uuid, incoming.change.commitMessage);
+      toolbox.findMissingTargets(incoming.uuid, incoming.fullChangeID, incoming.project.name || incoming.project,
+        allBranches, (error, _change, missing) => {
+          if (missing.length > 0) {
+            missing.forEach(allBranches.add, allBranches);
+          }
+          const suggestedPicks = Array.from(allBranches);
+          const morePicks = suggestedPicks.length > 0;
+          if (error) {
+            allBranches.delete(_change.branch);
+            const message = ` ${_change.branch} was identified as a missing target based on this change's commit message.\n`
+              + `WARN: Cherry-pick bot cannot pick this change to ${_change.branch} because`
+              + ` a change already exists on ${_change.branch} which is in status: ${_change.status}.\n`
+              + `Cherry-pick bot will only proceed automatically for any release branch targets of this branch. (${incoming.change.branch})\n`
+              + (morePicks ? `It is recommended to update the existing change with further pick-to targets.\n\n` : "\n\n")
+              + `    Change ID: ${_change.change_id}\n`
+              + `    Subject: ${_change.subject}\n`
+              + (morePicks
+                ? `    Suggested Pick-to: ${suggestedPicks.join(" ")}\n\n`
+                : "\n\n")
+              + `Link: ${gerritTools.gerritResolvedURL}/c/${_change.project}/+/${_change._number}`;
+            gerritTools.locateDefaultAttentionUser(incoming.uuid, incoming,
+              incoming.change.owner.email, (user) => {
+                gerritTools.addToAttentionSet(incoming.uuid, incoming, user, undefined, undefined, () => {
+                  const notifyScope = "ALL";
+                  _this.gerritCommentHandler(
+                    incoming.uuid, incoming.fullChangeID, undefined,
+                    message, notifyScope
+                  );
+                });
+              }
+            );
+            _this.logger.log(`Aborting non-release cherry picking due to unpickable primary target`
+              + ` on ${_change.branch}`, "error", uuid);
+            let thisStableBranch = incoming.change.branch.split(".")
+            if (thisStableBranch.length >= 2) {
+              thisStableBranch.pop();
+              thisStableBranch = thisStableBranch.join("\\.");
+              const restring = new RegExp(`^${thisStableBranch}\\.\\d+$`);
+              // Filter out all branches except releases of the current branch.
+              //Does not apply to dev.
+              allBranches = new Set(Array.from(allBranches).filter(
+                (branch) => branch.match(restring)));
+            } else {
+              // Non numeric branches cannot have release branches. Delete all targets.
+              allBranches.clear();
+            }
+          }
+          const picks = toolbox.waterfallCherryPicks(incoming.uuid, allBranches);
+          const pickCount = Object.keys(picks).length;
+          if (pickCount == 0) {
+            _this.logger.log(`Nothing to cherry-pick. Discarding`, "verbose", incoming.uuid);
+            // The change did not have a "Pick To: " keyword or "Pick To:"
+            // did not include any branches.
+            toolbox.setDBState(incoming.uuid, "discarded");
+          } else {
+            _this.logger.log(
+              `Found ${pickCount} branches to pick to for ${incoming.uuid}`,
+              "info", uuid
+            );
+            toolbox.setPickCountRemaining(incoming.uuid, pickCount, function (success, data) {
+              // The change has a Pick-to label with at least one branch.
+              // Next, determine if it's part of a relation chain and handle
+              // it as a member of that chain.
+              _this.emit("determineProcessingPath", incoming, picks);
+            });
+          }
+      });
     });
   }
 
@@ -152,7 +203,57 @@ class requestProcessor extends EventEmitter {
 
     function done(responseSignal, incoming, branch, success, data, message) {
       if (success) {
-        _this.emit(responseSignal, incoming, branch, data);
+        // Check to see if a change already exists on the target branch.
+        // If it does, abort the cherry-pick and notify the owner.
+        gerritTools.queryChange(incoming.uuid,
+          encodeURIComponent(`${incoming.change.project}~${branch}~${incoming.change.id}`),
+          undefined, undefined, function (exists, changeData) {
+          if (exists && changeData.status != "MERGED") {
+            _this.logger.log(
+              `A change already exists on ${branch} for ${incoming.change.id}`
+              + ` and is ${changeData.status}`, "verbose", incoming.uuid);
+            let targets = toolbox.findPickToBranches(incoming.uuid, incoming.change.commitMessage);
+            targets.delete(branch);
+            const suggestedPicks = Array.from(targets);
+            const morePicks = suggestedPicks.length > 0;
+            let message = `WARN: Cherry-pick bot cannot pick this change to ${branch} because`
+              + ` a change already exists on ${branch} which is in status: ${changeData.status}.\n`
+              + `Cherry-pick bot will not proceed automatically.\n`
+              + (morePicks ? `It is recommended to update the existing change with further pick-to targets.\n\n` : "\n\n")
+              + `    Change ID: ${incoming.change.id}\n`
+              + `    Subject: ${incoming.change.subject}\n`
+              + (morePicks
+                  ? `    Suggested Pick-to: ${suggestedPicks.join(" ")}\n\n`
+                  : "\n\n")
+              + `Link: ${gerritTools.gerritResolvedURL}/c/${changeData.project}/+/${changeData._number}`;
+            gerritTools.locateDefaultAttentionUser(incoming.uuid, incoming,
+              incoming.change.owner.email, (user) => {
+                gerritTools.addToAttentionSet(incoming.uuid, incoming, user, undefined, undefined, () => {
+                  _this.gerritCommentHandler(
+                    incoming.uuid, incoming.fullChangeID, undefined,
+                    message, "OWNER"
+                  );
+                });
+              });
+            toolbox.addToCherryPickStateUpdateQueue(
+              incoming.uuid,
+              { branch: branch, statusDetail: `OpenOrAbandonedExistsOnTarget`, args: [] },
+              "done_targetExistsIsOpen",
+              function () {
+                toolbox.decrementPickCountRemaining(incoming.uuid);
+              }
+            );
+          } else if (data == "retry") {
+            _this.retryProcessor.addRetryJob(
+              incoming.uuid, "validateBranch",
+              [incoming, branch, responseSignal]
+            );
+          } else {
+            // Success (Change on target branch may not exist or is already merged)
+            _this.emit(responseSignal, incoming, branch, data);
+          }
+        });
+        // _this.emit(responseSignal, incoming, branch, data);
       } else if (data == "retry") {
         _this.retryProcessor.addRetryJob(
           incoming.uuid, "validateBranch",
@@ -721,6 +822,30 @@ class requestProcessor extends EventEmitter {
   // Generate a cherry pick and call the response signal.
   doCherryPick(incoming, branch, newParentRev, responseSignal) {
     let _this = this;
+
+    function _doPickAlreadyExists(data, message) {
+      toolbox.addToCherryPickStateUpdateQueue(
+        incoming.uuid,
+        {
+          branch: branch, statusCode: data.statusCode, statusDetail: data.statusDetail, args: []
+        },
+        "done_pickAlreadyExists",
+        function () {
+          toolbox.decrementPickCountRemaining(incoming.uuid);
+          gerritTools.locateDefaultAttentionUser(incoming.uuid, incoming,
+            incoming.change.owner.email, (user) => {
+              gerritTools.addToAttentionSet(incoming.uuid, incoming, user, undefined, undefined, () => {
+                const notifyScope = "ALL";
+                _this.gerritCommentHandler(
+                  incoming.uuid, incoming.fullChangeID, undefined,
+                  message, notifyScope
+                );
+              });
+            }
+          );
+        });
+    }
+
     _this.logger.log(
       `Performing cherry-pick to ${branch} from ${incoming.fullChangeID}`,
       "info", incoming.uuid
@@ -755,22 +880,95 @@ class requestProcessor extends EventEmitter {
           // Result looks okay, let's see what to do next.
           _this.emit(responseSignal, incoming, data);
         } else if (data.statusCode) {
-        // Failed to cherry pick to target branch. Post a comment on the original change
-        // and stop paying attention to this pick.
-          toolbox.addToCherryPickStateUpdateQueue(
-            incoming.uuid,
-            {
-              branch: branch, statusCode: data.statusCode, statusDetail: data.statusDetail, args: []
-            },
-            "done_pickFailed",
-            function () {
-              toolbox.decrementPickCountRemaining(incoming.uuid);
+          // Failed to cherry pick to target branch. Post a comment on the original change
+          // and stop paying attention to this pick.
+          if (data.statusCode == 400 && data.statusDetail.includes("could not update the existing change")) {
+            // The cherry-pick failed because the change already exists. This can happen if
+            // the pick-targets are user-specified and the user has already cherry-picked
+            // to the target branch.
+            // Pretend that the target branch has just merged and emit a change-merged signal.
+
+
+            let remainingPicks = toolbox.findPickToBranches(incoming.uuid, incoming.change.commitMessage);
+            remainingPicks.delete(branch);  // Delete this branch from the list of remaining picks.
+            // Parse the status from the statusDetail. It exists as the last word in the string,
+            // wrapped in ().
+            let changeStatus = data.statusDetail.match(/\(([^)]+)\)(?:\\n)?/)[1];
+            // Parse the change number for the existing change. It is surrounded by "change" and "in destination"
+            // in the statusDetail.
+            let existingChangeNumber = data.statusDetail.match(/change (\d+) in destination/)[1];
+            let existingChangeURL = `${gerritTools.gerritResolvedURL}/c/${incoming.project.name || incoming.project}/+/${existingChangeNumber}`;
+            _this.logger.log(
+              `Cherry-pick to ${branch} already exists in state ${changeStatus}.`,
+              "info", incoming.uuid
+            );
+            if (changeStatus == "MERGED") {
+              if (remainingPicks.size == 0) {
+                // No more picks to do. Just post a comment.
+                _doPickAlreadyExists(data,
+                  `A closed change already exists on ${branch} with the same change ID.\n`
+                  + `No further picks are necessary. Please verify that the existing change`
+                  + ` is correct.\n\n`
+                  + `Link: ${existingChangeURL}`
+                  );
+              } else {
+              // Mock up a change-merged signal and re-emit it as though the target
+              // branch just merged.
+              _this.logger.log(`Mocking Merge on ${branch}.`, "info", incoming.uuid);
+                toolbox.mockChangeMergedFromOther(incoming.uuid, incoming, branch, remainingPicks, (mockObject) => {
+                  if (mockObject) {
+                    _this.emit("mock-change-merged", mockObject);
+                  }
+                  _doPickAlreadyExists(data,
+                    `A closed change already exists on ${branch} with this change ID.\n`
+                    + `Picks to ${Array.from(remainingPicks).join(", ")} will be performed using`
+                    + ` that change as a base.\n`
+                    + `Please verify that the existing change and resulting picks are correct.\n\n`
+                    + `    Change ID: ${mockObject.change.change_id}\n`
+                    + `    Subject: ${mockObject.change.subject}\n\n`
+                    + `Link: ${mockObject.change.url}`
+                  );
+                });
+              }
+            } else if (changeStatus == "ABANDONED" || changeStatus == "DEFERRED") {
+              _doPickAlreadyExists(data,
+                `An abandoned change already exists on ${branch} with this change ID .\n`
+                + `WARN: Cherry-pick bot cannot continue.\n`
+                + `Picks to ${Array.from(remainingPicks).join(", ")} will not be performed automatically.\n\n`
+                + `Link: ${existingChangeURL}`
+              );
+            } else if (changeStatus == "INTEGRATING" || changeStatus == "STAGED") {
+              _doPickAlreadyExists(data,
+                `A change in in state ${changeStatus} already exists on ${branch} with this change ID .\n`
+                + `WARN: Cherry-pick bot cannot continue.\n`
+                + `Picks to ${Array.from(remainingPicks).join(", ")} will not be performed automatically from this change.\n`
+                + `Picks from the ${changeStatus} change on ${branch} will execute normally upon merge.`
+                + ` Please review that change's Pick-to: for correctness.`
+                + `Link: ${existingChangeURL}`
+              );
+            } else {
+              _doPickAlreadyExists(data,
+                `A change in in state ${changeStatus} already exists on ${branch} with this change ID .\n`
+                + `WARN: Cherry-pick bot cannot continue. Please report this issue to gerrit admins.\n`
+                + `Cherry-pick bot does not know how to handle changes in ${changeStatus} state.`
+              );
             }
-          );
-          _this.gerritCommentHandler(
-            incoming.uuid, incoming.fullChangeID, undefined,
-            `Failed to cherry pick to ${branch}.\nReason: ${data.statusCode}: ${data.statusDetail}`
-          );
+          } else {
+            toolbox.addToCherryPickStateUpdateQueue(
+              incoming.uuid,
+              {
+                branch: branch, statusCode: data.statusCode, statusDetail: data.statusDetail, args: []
+              },
+              "done_pickFailed",
+              function () {
+                toolbox.decrementPickCountRemaining(incoming.uuid);
+              }
+            );
+            _this.gerritCommentHandler(
+              incoming.uuid, incoming.fullChangeID, undefined,
+              `Failed to cherry pick to ${branch}.\nReason: ${data.statusCode}: ${data.statusDetail}`
+            );
+          }
         } else if (data == "retry") {
         // Do nothing. This callback function will be called again on retry.
           toolbox.addToCherryPickStateUpdateQueue(
@@ -856,7 +1054,7 @@ class requestProcessor extends EventEmitter {
             });
           } else {
             gerritTools.locateDefaultAttentionUser(parentJSON.uuid, cherryPickJSON,
-              cherryPickJSON.currentPatchSet.uploader.email,
+              parentJSON.patchSet.uploader.email,
               (user) => {
                 if (user == "copyReviewers")
                   return;  // Copying users is done later regardless of attention set users.
@@ -1039,17 +1237,29 @@ class requestProcessor extends EventEmitter {
             `Failed to stage ${cherryPickJSON.id}. Reason: ${safeJsonStringify(data)}`,
             "error", parentJSON.uuid
           );
-          gerritTools.addToAttentionSet(
-            parentJSON.uuid, cherryPickJSON,
-            parentJSON.change.owner.email || parentJSON.change.owner.username, "Original Owner",
-            parentJSON.customGerritAuth,
-            function (success, data) {
-              if (!success) {
-                _this.logger.log(
-                  `Failed to add "${safeJsonStringify(parentJSON.change.owner)}" to the`
-                  + ` attention set of ${cherryPickJSON.id}\nReason: ${safeJsonStringify(data)}`,
-                  "error", parentJSON.uuid
-                );
+          gerritTools.locateDefaultAttentionUser(parentJSON.uuid, cherryPickJSON,
+            parentJSON.patchSet.uploader.email, function(user) {
+              if (user && user == "copyReviewers") {
+                gerritTools.copyChangeReviewers(parentJSON.uuid, parentJSON.fullChangeID,
+                  cherryPickJSON.id);
+              } else {
+                gerritTools.setChangeReviewers(parentJSON.uuid, cherryPickJSON.id,
+                  [user], undefined, function() {
+                    gerritTools.addToAttentionSet(
+                      parentJSON.uuid, cherryPickJSON, user, "Relevant user",
+                      parentJSON.customGerritAuth,
+                      function (success, data) {
+                        if (!success) {
+                          _this.logger.log(
+                            `Failed to add "${safeJsonStringify(parentJSON.change.owner)}" to the`
+                            + ` attention set of ${cherryPickJSON.id}\n`
+                            + `Reason: ${safeJsonStringify(data)}`,
+                            "error", parentJSON.uuid
+                          );
+                        }
+                      }
+                    );
+                  });
               }
             }
           );

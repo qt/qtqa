@@ -52,6 +52,7 @@ let gerritResolvedURL = /^https?:\/\//g.test(gerritURL)
   ? gerritURL
   : `${gerritPort == 80 ? "http" : "https"}://${gerritURL}`;
 gerritResolvedURL += gerritPort != 80 && gerritPort != 443 ? ":" + gerritPort : "";
+exports.gerritResolvedURL = gerritResolvedURL;
 
 // Return an assembled url to use as a base for requests to gerrit.
 function gerritBaseURL(api) {
@@ -77,7 +78,7 @@ function generateCherryPick(changeJSON, parent, destinationBranch, customAuth, c
 
   function doPick() {
     logger.log(
-      `New commit message for ${changeJSON.change.branch}:\n${newCommitMessage}`,
+      `New commit message for ${destinationBranch}:\n${newCommitMessage}`,
       "verbose", changeJSON.uuid
     );
     logger.log(
@@ -126,8 +127,7 @@ function generateCherryPick(changeJSON, parent, destinationBranch, customAuth, c
     );
   }
 
-  const newCommitMessage = changeJSON.change.commitMessage
-    .replace(/^Pick-to:.+\s?/gm, "")
+  let newCommitMessage = changeJSON.change.commitMessage
     .concat(`(cherry picked from commit ${changeJSON.patchSet.revision})`);
   let url;
   if (/^(tqtc(?:%2F|\/)lts-)/.test(changeJSON.change.branch)) {
@@ -154,10 +154,10 @@ function generateCherryPick(changeJSON, parent, destinationBranch, customAuth, c
       } else {
         // Something unexpected happened when trying to get the Topic.
         logger.log(
-          `UNKNOWN ERROR querying topic for change ${changeJSON.fullChangeID}: ${error}`,
+          `UNKNOWN ERROR querying topic for change ${changeJSON.fullChangeID}: ${topic}`,
           "error", changeJSON.uuid
         );
-        callback(false, error);
+        callback(false, topic);
       }
     });
 }
@@ -338,7 +338,61 @@ function validateBranch (parentUuid, project, branch, customAuth, callback) {
         callback(false, error.message);
       }
     });
-};
+}
+
+exports.queryBranchesRe = queryBranchesRe;
+function queryBranchesRe(uuid, project, bypassTqtc, searchRegex, customAuth, callback) {
+  // Prefix the project with tqtc- if it's not already prefixed,
+  // but respect the bypassTqtc flag. This is so that we can get the
+  // latest branches prefixed with tqtc/lts- for comparison.
+  let tqtcProject = project;
+  if (!bypassTqtc) {
+    tqtcProject = project.includes("qt/tqtc-") ? project : project.replace("qt/", "qt/tqtc-");
+  }
+  let url = `${gerritBaseURL("projects")}/${encodeURIComponent(tqtcProject)}`
+    + `/branches?r=${searchRegex}`;
+  logger.log(`GET request to: ${url}`, "debug", uuid);
+  axios.get(url, { auth: customAuth || gerritAuth })
+    .then(function (response) {
+      // Execute callback and return the list of changes
+      logger.log(`Raw Response:\n${response.data}`, "debug", uuid);
+      let branches = [];
+      const parsed = JSON.parse(trimResponse(response.data));
+      for (let i=0; i < parsed.length; i++) {
+        branches.push(parsed[i].ref.slice(11,).replace("tqtc/lts-", "")); // trim "refs/heads/"
+      }
+      callback(true, branches);
+    })
+    .catch(function (error) {
+      if (error.response) {
+        if (error.response.status == 404 && !project.includes("qt/tqtc") && !bypassTqtc) {
+          // The tqtc- project doesn't exist, try again with the original prefix.
+          logger.log(`Project ${tqtcProject} doesn't exist, trying ${project}`, "debug", uuid);
+          queryBranchesRe(uuid, project, true, searchRegex, customAuth, callback);
+          return;
+        }
+        // An error here would be unexpected. A query with no results should
+        // still return an empty list.
+        callback(false, error.response);
+        logger.log(
+          `An error occurred in GET "${url}". Error ${error.response.status}: ${
+            error.response.data}`,
+          "error", uuid
+        );
+      } else if (error.request) {
+        // Gerrit failed to respond, try again later and resume the process.
+        callback(false, "retry");
+      } else {
+        // Something happened in setting up the request that triggered an Error
+        logger.log(
+          `Error in HTTP request while trying to query branches in ${project} with regex `
+          + `${searchRegex}. Error: ${safeJsonStringify(error)}`,
+          "error", uuid
+        );
+        callback(false, error.message);
+      }
+    });
+}
 
 // Query gerrit commit for it's relation chain. Returns a list of changes.
 exports.queryRelated = function (parentUuid, fullChangeID, latestPatchNum, customAuth, callback) {
@@ -420,7 +474,7 @@ function queryChange(parentUuid, fullChangeID, fields, customAuth, callback) {
         callback(false, error.message);
       }
     });
-};
+}
 
 // Query gerrit for a change's topic
 exports.queryChangeTopic = queryChangeTopic
@@ -456,7 +510,7 @@ function queryChangeTopic(parentUuid, fullChangeID, customAuth, callback) {
         callback(false, error.message);
       }
     });
-};
+}
 
 // Query gerrit for a change and return it along with the current revision if it exists.
 exports.queryProjectCommit = function (parentUuid, project, commit, customAuth, callback) {
@@ -499,12 +553,13 @@ exports.queryProjectCommit = function (parentUuid, project, commit, customAuth, 
 // Add a user to the attention set of a change
 exports.addToAttentionSet = addToAttentionSet;
 function addToAttentionSet(parentUuid, changeJSON, user, reason, customAuth, callback) {
+  let project = changeJSON.project.name ? changeJSON.project.name : changeJSON.project;
   checkAccessRights(
-    parentUuid, changeJSON.project, changeJSON.branch || changeJSON.change.branch,
+    parentUuid, project, changeJSON.branch || changeJSON.change.branch,
     user, "push", customAuth || gerritAuth,
     function (success, data) {
       if (!success) {
-        let msg = `User "${user}" cannot push to ${changeJSON.project}:${changeJSON.branch}.`
+        let msg = `User "${user}" cannot push to ${project}:${changeJSON.branch}.`
         logger.log(msg, "warn", parentUuid);
         callback(false, msg);
         let botAssignee = envOrConfig("GERRIT_USER");
@@ -602,7 +657,9 @@ function getChangeReviewers(parentUuid, fullChangeID, customAuth, callback) {
 exports.setChangeReviewers = setChangeReviewers;
 function setChangeReviewers(parentUuid, fullChangeID, reviewers, customAuth, callback) {
   let failedItems = [];
-  let project = /^(\w+(?:%2F|\/)\w+-?\w+)~/.exec(fullChangeID).pop();
+  if (reviewers.length == 0)  // This function is a no-op if there are no reviewers.
+    callback(failedItems);
+  let project = /^((?:\w+-?)+(?:%2F|\/)(?:-?\w)+)/.exec(fullChangeID).pop();
   let branch = /~(.+)~/.exec(fullChangeID).pop();
   function postReviewer(reviewer) {
     checkAccessRights(
@@ -678,9 +735,42 @@ function locateDefaultAttentionUser(uuid, cherryPickChange, uploader, callback) 
   // Query the cherry-pick's original branch change to identify the original
   // author.
   let ReviewRegex = /^Reviewed-by: .+<(.+)>$/m;
-  let commitMessage = cherryPickChange.commitMessage;
+  let commitMessage = "";
   let originalApprover = undefined;
+  try {
+    commitMessage = cherryPickChange.commitMessage || cherryPickChange.change.commitMessage;
+    doMain();
+  } catch {
+    queryChange(uuid, cherryPickChange.fullChangeID || cherryPickChange.id, undefined, undefined,
+       (success, data) => {
+        commitMessage = data.revisions[data.current_revision].commit.message;
+        doMain();
+        }
+    );
+  }
 
+  function doMain() {
+    try {
+      originalApprover = commitMessage.match(ReviewRegex)[1];
+    } catch {
+      logger.log(`Failed to locate a reviewer from commit message:\n${commitMessage}`,
+      "warn", uuid);
+    }
+    if (originalApprover && originalApprover != uploader) {
+      // The approver from the original change should be able to help.
+      checkAccessRights(uuid, cherryPickChange.project, cherryPickChange.branch, originalApprover,
+        "read", undefined,
+        (canRead) => {
+          if (canRead)
+            callback(originalApprover);
+          else
+            tryFallback();
+        }
+      );
+    } else {
+      callback(uploader);
+    }
+  }
 
   function tryFallback() {
     // This insane regex is the same as used in the commit message sanitizer,
@@ -691,10 +781,10 @@ function locateDefaultAttentionUser(uuid, cherryPickChange, uploader, callback) 
     try{
       originSha = commitMessage.match(cherryPickRegex)[2];
     } catch {
+      // Seems this isn't a cherry-pick. Perhaps this is being called for a standalone change.
       logger.log(`Failed to match a cherry-pick footer for ${cherryPickChange.fullChangeID}`,
-      "error", uuid);
-      callback(false); // No point in continuing. Log the error and move on.
-      return;
+      "warn", uuid);
+      originSha = cherryPickChange.change.current_revision || cherryPickChange.newRev;
     }
     queryChange(uuid, originSha, undefined, undefined,
       function(success, changeData) {
@@ -728,28 +818,6 @@ function locateDefaultAttentionUser(uuid, cherryPickChange, uploader, callback) 
         } else {
           logger.log(`Failed to query gerrit for ${originSha}`, "error", uuid);
         }
-      }
-    );
-  }
-
-
-  try {
-    originalApprover = commitMessage.match(ReviewRegex)[1];
-  } catch {
-    // Should really never fail, since cherry-picks should always be created
-    // with the original Review footers intact.
-    logger.log(`Failed to locate a reviewer from commit message:\n${commitMessage}`,
-    "error", uuid);
-  }
-  if (originalApprover && originalApprover != uploader) {
-    // The approver from the original change should be able to help.
-    checkAccessRights(uuid, cherryPickChange.project, cherryPickChange.branch, originalApprover,
-      "read", undefined,
-      (canRead) => {
-        if (canRead)
-          callback(originalApprover);
-        else
-          tryFallback();
       }
     );
   }

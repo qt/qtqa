@@ -7,6 +7,7 @@ exports.id = "relationChainManager";
 const safeJsonStringify = require("safe-json-stringify");
 
 const toolbox = require("./toolbox");
+const gerritTools = require("./gerritRESTTools");
 
 class relationChainManager {
   constructor(logger, retryProcessor, requestProcessor) {
@@ -56,13 +57,20 @@ class relationChainManager {
     this.requestProcessor.addListener("relationChain_stagingDone", this.handleStagingDone);
   }
 
-  start(currentJSON, branches) {
+  start(currentJSON, picks) {
     let _this = this;
 
     _this.logger.log(
       `Starting RelationChain Manager process for ${currentJSON.fullChangeID}`,
       "verbose", currentJSON.uuid
     );
+
+    function emit(parentJSON, branch) {
+      _this.requestProcessor.emit(
+        "validateBranch", parentJSON, branch,
+        "relationChain_checkLtsTarget"
+      );
+    }
 
     // Determine if this change is the top-level change.
     let positionInChain = currentJSON.relatedChanges.findIndex((i) =>
@@ -74,18 +82,69 @@ class relationChainManager {
         `Change ${currentJSON.fullChangeID} is the top level in it's relation chain`,
         "debug", currentJSON.uuid
       );
-      _this.requestProcessor.emit("processAsSingleChange", currentJSON, branches);
+      _this.requestProcessor.emit("processAsSingleChange", currentJSON, picks);
     } else {
       // This change is dependent on a parent in the chain. Begin the process.
       _this.logger.log(
-        `Kicking off the process for each branch in  ${safeJsonStringify(Array.from(branches))}`,
+        `Kicking off the process for each branch in  ${safeJsonStringify(Object.keys(picks))}`,
         "verbose", currentJSON.uuid
       );
-      branches.forEach(function (branch) {
-        _this.requestProcessor.emit(
-          "validateBranch", _this.requestProcessor.toolbox.deepCopy(currentJSON), branch,
-          "relationChain_checkLtsTarget"
-        );
+      Object.keys(picks).forEach(function (branch) {
+        let parentCopy = _this.requestProcessor.toolbox.deepCopy(currentJSON)
+        if (picks[branch].length > 0) {
+          const originalPicks = Array.from(toolbox.findPickToBranches(parentCopy.uuid,
+            parentCopy.change.commitMessage));
+          let missing = picks[branch].filter(x => !originalPicks.includes(x));
+          // Check the target branch itself since it may not be in originalPicks and could have been
+          // added by the bot.
+          if (!originalPicks.includes(branch))
+            missing.push(branch);
+          if (missing.length > 0) {
+            gerritTools.locateDefaultAttentionUser(parentCopy.uuid, parentCopy,
+              parentCopy.patchSet.uploader.email, function(user) {
+                function postComment() {
+                  const plural = missing.length > 1;
+                  _this.requestProcessor.gerritCommentHandler(parentCopy.uuid,
+                    parentCopy.fullChangeID, undefined,
+                    `Automatic cherry-picking detected missing Pick-to targets.`
+                    +`\nTarget${plural ? 's' : ''} "${missing.join(", ")}"`
+                    + ` ${plural ? "have" : "has"} been automatically added to the`
+                    + ` cherry-pick for ${branch}.\nPlease review for correctness.`);
+                }
+
+                if (user && user == "copyReviewers") {
+                  // Do nothing since we don't have a default attention user.
+                  // This typically means the change was self-approved.
+                } else {
+                  gerritTools.setChangeReviewers(parentCopy.uuid, parentCopy.fullChangeID,
+                    [user], undefined, function() {
+                      gerritTools.addToAttentionSet(
+                        parentCopy.uuid, parentCopy, user, "Relevant user",
+                        parentCopy.customGerritAuth,
+                        function (success, data) {
+                          if (!success) {
+                            _this.logger.log(
+                              `Failed to add "${safeJsonStringify(parentCopy.change.owner)}" to the`
+                              + ` attention set of ${parentCopy.id}\n`
+                              + `Reason: ${safeJsonStringify(data)}`,
+                              "error", parentCopy.uuid
+                            );
+                          }
+                          postComment();
+                        }
+                      );
+                    });
+                }
+              });
+            }
+          parentCopy.change.commitMessage = parentCopy.change.commitMessage
+            .replace(/^Pick-to:.+$/gm, `Pick-to: ${picks[branch].join(" ")}`);
+          emit(parentCopy, branch);
+        } else {
+          parentCopy.change.commitMessage = parentCopy.change.commitMessage
+            .replace(/^Pick-to:.+$\n/gm, "");
+          emit(parentCopy, branch);
+        }
       });
     }
   }

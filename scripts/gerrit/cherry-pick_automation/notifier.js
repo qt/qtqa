@@ -107,6 +107,12 @@ server.on("newRequest", (reqBody) => {
   server.receiveEvent(reqBody);
 });
 
+// Emitted by requestProcessor when there is a need to simulate a change-merged event.
+// Results in processing the request as if it were a fresh change-merged event.
+requestProcessor.on("mock-change-merged", (reqBody) => {
+  server.receiveEvent(reqBody);
+});
+
 // Emitted by the server when the incoming request has been written to the database.
 server.on("newRequestStored", (uuid) => {
   requestProcessor.processMerge(uuid);
