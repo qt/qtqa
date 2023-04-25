@@ -328,6 +328,10 @@ tst_Bic::tst_Bic(const char *appFilePath)
     bic.addBlacklistedClass(QLatin1String("QNativeInterface::QEGLContext"));
     /* deliberately removed */
     bic.addBlacklistedClass(QLatin1String("QNativeInterface::QSGVulkanTexture*"));
+    /* deliberately added in a patch release */
+    bic.addBlacklistedClass(QLatin1String("QVulkanLayer"));
+    bic.addBlacklistedClass(QLatin1String("QVulkanExtension"));
+    bic.addBlacklistedClass(QLatin1String("QVulkanInstance"));
     /* allowed to grow */
     bic.addBlacklistedClass(QLatin1String("QSGMaterialShader::GraphicsPipelineState"));
 }
