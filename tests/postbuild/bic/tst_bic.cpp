@@ -324,6 +324,8 @@ tst_Bic::tst_Bic(const char *appFilePath)
     bic.addBlacklistedClass(QLatin1String("QBindingStatus"));
     /* don't bic-test Vulkan types */
     bic.addBlacklistedClass(QLatin1String("Vk*"));
+    /* don't bic-test Vulkan video codec types */
+    bic.addBlacklistedClass(QLatin1String("StdVideo*"));
     /* vtable churn */
     bic.addBlacklistedClass(QLatin1String("QNativeInterface::QEGLContext"));
     /* deliberately removed */
