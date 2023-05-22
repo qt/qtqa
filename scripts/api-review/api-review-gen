@@ -23,22 +23,15 @@ manager or 'pip install dulwich' if managing python packages with pip.
 
 Options:
 
- -u
- --usage   Print simple usage summary (first line above) and exit.
+ -a
+ --amend   Amend existing commit rather than extending the review
+           branch, if it exists already.
 
  -h
  --help    Print this help and exit.
 
- -t ID
- --task ID
- --task-number ID
-           Include a Task-number: in the commit message, with the
-           given id, ID, of the bug-tracker issue being used to keep
-           track of the API change review.
-
- -a
- --amend   Amend existing commit rather than extending the review
-           branch, if it exists already.
+ -q
+ --quiet   Don't mention anything but errors.
 
  --replace Replace existing branch, if present, re-using its last
            Change-Id, rather than updating it.  (Conflicts with
@@ -53,11 +46,18 @@ Options:
            for it doesn't match (e.g. when preparing a review on dev,
            before the release branch is created).
 
+ -t ID
+ --task ID
+ --task-number ID
+           Include a Task-number: in the commit message, with the
+           given id, ID, of the bug-tracker issue being used to keep
+           track of the API change review.
+
+ -u
+ --usage   Print simple usage summary (first line above) and exit.
+
  -v
  --verbose Say what's happening as it happens.
-
- -q
- --quiet   Don't mention anything but errors.
 
  --        End option processing.
 
