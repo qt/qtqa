@@ -104,6 +104,19 @@ second () {
     echo "$2"
 }
 
+modules () {
+    # Scan for CMakeLists.txt files defining non-Private, non-plugin Qt modules:
+    # Known variants on qt_internal_add_*_module: protobuf, qml
+    find src -type d -name .git -prune -o -type f -name CMakeLists.txt -print \
+        | xargs grep 'qt_internal_add\(_[a-z][a-z]*\)\?_module(' \
+        | grep -wv 'qt_internal_add.*module([A-Za-z0-9]*Private' \
+        | grep -wv 'qt_internal_add.*module([A-Za-z0-9]*plugin' \
+        | sed -e 's/: *qt_internal_add.*_module(/ /' \
+        | while read file module ignore
+    do echo $module $file
+    done
+}
+
 # Parse command-line:
 RELNAME=
 CHATTY=
@@ -127,17 +140,9 @@ do  case "$1" in
 done
 
 # Check basic expectations of context:
-if [ -d src -a -f sync.profile ]
-then
-    SYNC='sync.profile'
-    SRCDIR=src
-elif [ -f Source/sync.profile ] # qtwebkit/'s eccentric layout ...
-then
-    SYNC='Source/sync.profile'
-    SRCDIR=Source
-else
+[ -d src ] || \
     die "I expect to be run in the top level directory of a module (see --help)."
-fi
+
 MODULE=`/bin/pwd`
 MODULE=`basename "$MODULE"`
 
@@ -175,6 +180,12 @@ case "$CHATTY" in
 esac
 retire () { mention "$@"; exit; }
 checkout () { run git checkout $QUIET "$@"; }
+
+headers () {
+    # usage: headers rev file module
+    # If the file did not exist at the given revision, output is empty.
+    git show "$1:$2" 2>/dev/null | $THERE/cmakescan.py "$3" "$2"
+}
 
 # Get API headers of $RELEASE checked out on a branch off $PRIOR:
 BRANCH="api-review-$PRIOR-$RELNAME"
@@ -256,35 +267,9 @@ fi
 # apiheaders commit
 # Echoes one header name per line
 apiheaders () {
-    # Preliminary file-list, to be filtered:
-    git ls-tree -r --name-only "$1" \
-        | grep "^$SRCDIR"'/[-a-zA-Z0-9_/]*\.h$' \
-        | grep -vi '^src/tools/' \
-        | grep -v _p/ \
-        | grep -v '_\(p\|pch\)\.h$' \
-        | grep -v '/qt[a-z0-9][a-z0-9]*-config\.h$' \
-        | grep -v '/\.' \
-        | grep -vi '/\(private\|doc\|tests\|examples\|build\)/' \
-        | grep -v '/ui_[^/]*\.h$' \
-  | if git checkout "$1" -- $SYNC >&2
-    then
-        mutter "Using $SYNC's list of API headers"
-        "$THERE"/sync-filter-api-headers \
-            || warn "Failed ($?) to filter header list for $1"
-    else
-        mutter "No $SYNC in $1: falling back on filtered git ls-tree"
-        while read f # Add some further kludgy filtering:
-        do case "$f" in
-                # qtbase just has to be different:
-                src/plugins/platforms/eglfs/api/*) echo "$f" ;;
-                src/3rdparty/angle/include/*) echo "$f" ;;
-                # Otherwise, plugins and 3rdparty aren't API:
-                src/plugins/*) ;;
-                */3rdparty/*) ;;
-                *) echo "$f" ;;
-           esac
-        done
-    fi
+    modules | while read QTMODULE CMakeList
+    do headers $1 $CMakeList $QTMODULE
+    done
 }
 
 # Make sure any sub-submodules are in their right states:
