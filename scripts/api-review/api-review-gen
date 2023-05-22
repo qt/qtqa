@@ -30,6 +30,13 @@ Options:
  -h
  --help    Print this help and exit.
 
+ -m mod
+ --module mod
+           Limit to Qt modules (libraries) specified likewise with -m;
+           by default all Qt modules are checked for API changes, but
+           specifying this option limits the scan to only those so
+           specified. Names are matched case-insensitively.
+
  -q
  --quiet   Don't mention anything but errors.
 
@@ -83,12 +90,13 @@ commit.
 After a first pass of review, if prior or soon has changed (and been
 fetched), it is possible to rebase the review branch onto prior and
 re-run this script to update the review.  If you pass the --amend
-option and there was a prior commit on the branch, that commit shall
-be amended rather than a new commit added to the branch.  Otherwise,
-any change shall be recorded as a fresh commit - which you can always
-squash onto an earlier commit later, after reviewing it, if you prefer
-that work-flow so left out --amend.  Either way, you can then push the
-squashed or amended commit to Gerrit for re-review, as usual.
+option and there was a prior commit on the branch, the last such
+commit shall be amended rather than a new commit added to the branch.
+Otherwise, any change shall be recorded as a fresh commit - which you
+can always squash onto an earlier commit later, after reviewing it, if
+you prefer that work-flow so left out --amend.  Either way, you can
+then push the squashed or amended commit to Gerrit for re-review, as
+usual.
 EOF
 }
 warn () { echo "$@" >&2; }
@@ -116,6 +124,7 @@ modules () {
 }
 
 # Parse command-line:
+MODULES=
 RELNAME=
 CHATTY=
 AMEND=
@@ -126,6 +135,7 @@ do  case "$1" in
         -u|--usage) usage; exit 0 ;;
         -h|--help) help; exit 0 ;;
         -a|--amend) AMEND=--amend; shift ;;
+        -m|--module) M=`second "$@"`; MODULES="$MODULES $M"; shift 2 ;;
         --replace) AMEND=--replace; shift ;;
         -r|--release) RELNAME=`second "$@"`; shift 2 ;;
         -t|--task|--task-number) TASK=`second "$@"`; shift 2 ;;
@@ -342,6 +352,10 @@ BORED="../.bored-$PROC"
 modules | consume "$NEWMODS" - | $THERE/modunite | grep . | while read QTMODULE CMakeLists
 # For each module, create a commit:
 do
+    # If --module was specified, limit to modules named by it:
+    [ -z "$MODULES" ] || (echo " $MODULES" | grep -iwq "$QTMODULE") || continue
+    mutter "Checking for API changes in $QTMODULE ($CMakeLists)"
+
     mutter "Purging obsolete headers for $QTMODULE"
     # To ensure renames get detected and handled correctly:
     echo $CMakeLists | tr ' ' '\n' | headers "$PRIOR" $QTMODULE | \
