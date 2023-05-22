@@ -143,8 +143,8 @@ done
 [ -d src ] || \
     die "I expect to be run in the top level directory of a module (see --help)."
 
-MODULE=`/bin/pwd`
-MODULE=`basename "$MODULE"`
+GITMODULE=`/bin/pwd`
+GITMODULE=`basename "$GITMODULE"`
 
 THERE=`dirname $0`
 [ -n "$THERE" -a -x "$THERE/resetboring.py" ] || \
@@ -178,7 +178,6 @@ case "$CHATTY" in
         ;;
     *) ;;
 esac
-retire () { mention "$@"; exit; }
 checkout () { run git checkout $QUIET "$@"; }
 
 headers () {
@@ -264,45 +263,10 @@ fi
 # mentioning that they're restored in the second (albeit any change in
 # them shall show up in the diff).
 
-# apiheaders commit
-# Echoes one header name per line
-apiheaders () {
-    modules | while read QTMODULE CMakeList
-    do headers $1 $CMakeList $QTMODULE
-    done
-}
-
 # Make sure any sub-submodules are in their right states:
 git submodule update --checkout
 
-mutter "Purging obsolete headers" # so renames get detected and handled correctly:
-apiheaders HEAD | while read h
-# Update former API headers, remove them if removed:
-do git checkout $UNQUIET "$RELEASE" -- "$h" || git rm $UNQUIET -f -- "$h"
-done 2>&1 | grep -wv "error: pathspec '.*' did not match any"
-mutter "Checking out $RELNAME's API headers"
-apiheaders "$RELEASE" | tr '\n' '\0' | \
-    xargs -0r git checkout "$RELEASE" -- || die "Failed new header checkout"
-
-git diff --quiet || die "All changes should initially be staged."
-if git diff --quiet --cached
-then
-    mutter "Clearing away unused branch and restoring $RESTORE"
-    git checkout $QUIET "$RESTORE"
-    git branch -D "$BRANCH"
-    retire "No changes to API (not even boring ones)"
-fi
-
-mutter "Reverting the boring bits"
-run "$THERE/resetboring.py" --disclaim | while read f
-do git checkout $QUIET "$PRIOR" -- "$f" || logged rm -f "$f"
-done
-
-if git diff --quiet --cached
-then retire "All the change here looks boring: check with git diff -D"
-fi
-
-# Find a good place to prepare our commit message
+# Find a good place to prepare our commit messages
 if [ -f .git ]
 then GITDIR=`cut -d ' ' -f 2 <.git`
 else GITDIR=.git
@@ -315,27 +279,58 @@ then
     mv $GITDIR/hooks/pre-commit $PRECOMMIT
 
     # But put it back when we're done:
-    commit () {
-        mutter "Running: git commit $@"
-        git commit "$@"
-        STAT=$?
-        mv $PRECOMMIT $GITDIR/hooks/pre-commit
-        [ $STAT -eq 0 ] || die "Failed ($STAT): $@"
-    }
-else
-    commit () { run git commit "$@"; }
+    rehook () { mv $PRECOMMIT $GITDIR/hooks/pre-commit; }
+    trap rehook EXIT
 fi
 
-( echo "$MODULE: API comparison from $PRIOR to $RELNAME"
-  echo
-  git status | grep 'deleted:' | tr '\t' ' '
-  git diff | wc | python3 -c 'import sys; row = sys.stdin.readline().split(); print(); \
-        print("Excluded {} lines ({} words, {} bytes) of boring changes.".format(*row) \
-              if any(int(x) != 0 for x in row) else "Found nothing boring to ignore.")'
-  cat <<EOF
+# Note: the loop is in a sub-shell, so can't change script variables.
+# It can, however, write to local temp files:
+PROC="$$-$GITMODULE"
+COMMITTED="../.committed-$PROC"
+BORED="../.bored-$PROC"
+# For each module, create a commit:
+modules | while read QTMODULE CMakeList
+do
+    mutter "Purging obsolete headers for $QTMODULE"
+    # To ensure renames get detected and handled correctly:
+    headers "$PRIOR" $CMakeList $QTMODULE | \
+        while read h # Update former API headers, remove them if removed:
+        do git checkout $UNQUIET "$RELEASE" -- "$h" || git rm $UNQUIET -f -- "$h"
+        done 2>&1 | grep -wv "error: pathspec '.*' did not match any"
+    mutter "Checking out $RELNAME's API headers for $QTMODULE"
+    headers "$RELEASE" $CMakeList $QTMODULE \
+        | tr '\n' '\0' | xargs -0r git checkout "$RELEASE" -- \
+        || die "Failed new header checkout"
 
-NOTE: Please review the appropriate documentation
-and make sure it is correct!
+    if git diff --quiet --cached
+    then
+        mutter "No changes to $QTMODULE API (not even boring ones)"
+        continue
+    fi
+
+    mutter "Reverting the boring changes to $QTMODULE"
+    run "$THERE/resetboring.py" --disclaim | while read f
+    do git checkout $QUIET "$PRIOR" -- "$f" || logged rm -f "$f"
+    done
+
+    if git diff --quiet --cached
+    then
+        echo "$QTMODULE" >> "$BORED"
+        continue
+    fi
+
+    ( echo "$QTMODULE: API comparison from $PRIOR to $RELNAME in $GITMODULE"
+      echo
+      git status | grep 'deleted:' | tr '\t' ' '
+      git diff | wc | python3 -c 'import sys; \
+          row = sys.stdin.readline().split(); \
+          print(); \
+          print("Excluded {} lines ({} words, {} bytes) of boring changes.".format(*row) \
+                if any(int(x) != 0 for x in row) else "Found nothing boring to ignore.")'
+      cat <<EOF
+
+NOTE: Please review the appropriate documentation and make sure it is
+correct, too!
 
 Note to reviewers: if you know of other changes to API, not covered by
 this review, fetch this from Gerrit - see its checkout instructions;
@@ -361,15 +356,39 @@ of course, to restore any changes you think aren't boring.
 Remember that the parent of this commit is $PRIOR, not $RELEASE, despite
 the review being sent to the latter in Gerrit.
 EOF
-  [ -z "$CHANGEID$TASK" ] || echo
-  [ -z "$TASK" ] || echo "Task-number: $TASK"
-  [ -z "$CHANGEID" ] || echo "Change-Id: $CHANGEID"
-  ) > "$GITDIR/COMMIT_EDITMSG"
-# The git status in that holds a lock that precludes the git commit;
-# so we can't just pipe the message and use -F - to deliver it.
-commit $QUIET $AMEND -F "$GITDIR/COMMIT_EDITMSG"
+      [ -z "$CHANGEID$TASK" ] || echo
+      [ -z "$TASK" ] || echo "Task-number: $TASK"
+      [ -z "$CHANGEID" ] || echo "Change-Id: $CHANGEID"
+    ) > "$GITDIR/COMMIT_EDITMSG"
+    # The git status in that holds a lock that precludes the git commit;
+    # so we can't just pipe the message and use -F - to deliver it.
+    mention "Committing change for $QTMODULE"
+    run git commit $QUIET $AMEND -F "$GITDIR/COMMIT_EDITMSG"
 
-mention "I recommend you review that what git diff -D reports (now) *is* boring."
-mention "(If any of it isn't, you can git add -p it and git commit --amend.)"
-mention "Then you can: git push gerrit $BRANCH:refs/for/$RELEASE%topic=api-change-review-$RELNAME"
-[ -n "$TASK" ] || warn "Warning: no Task-number: footer specified."
+    echo "$QTMODULE" >> "$COMMITTED"
+done
+
+consume () {
+    if [ -f "$1" ]
+    then
+        cat "$1"
+        rm "$1"
+    fi
+}
+COMMITS="`consume "$COMMITTED"`"
+BORES="`consume "$BORED"`"
+
+if [ -n "$COMMITS" ]
+then
+   mention "I recommend you review that what git diff -D reports (now) *is* boring."
+   mention "(If any of it isn't, you can git add -p it and git commit --amend, during a rebase.)"
+   mention "Then you can: git push gerrit $BRANCH:refs/for/$RELEASE%topic=api-change-review-$RELNAME"
+   [ -n "$TASK" ] || warn "Warning: no Task-number: footer specified."
+elif [ -n "$BORES" ]
+then mention "All the change here looks boring: check with git diff -D"
+else
+    mutter "Clearing away unused branch and restoring $RESTORE"
+    git checkout $QUIET "$RESTORE"
+    git branch -D "$BRANCH"
+    mention "No changes to API"
+fi
