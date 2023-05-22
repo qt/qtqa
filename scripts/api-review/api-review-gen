@@ -93,8 +93,6 @@ EOF
 }
 warn () { echo "$@" >&2; }
 die () { warn "$@"; exit 1; }
-run () { mutter "Running: $@"; eval "$@" || die "Failed ($?): $@"; }
-logged () { mention "Running: $@"; eval "$@"; }
 second () {
     if [ $# -lt 2 ]
     then die "No argument supplied for $1"
@@ -178,6 +176,8 @@ case "$CHATTY" in
         ;;
     *) ;;
 esac
+run () { mutter "Running: $@"; eval "$@" || die "Failed ($?): $@"; }
+logged () { mention "Running: $@"; eval "$@"; }
 checkout () { run git checkout $QUIET "$@"; }
 
 headers () {
