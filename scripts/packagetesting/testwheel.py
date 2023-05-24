@@ -177,8 +177,12 @@ def examples(examples_root):
             result.extend(get_m2m_examples())
         return result
 
-    result = ['widgets/mainwindows/mdi/mdi.py',
-              'qml/tutorials/extending/chapter5-listproperties/listproperties.py']
+    result = ['widgets/mainwindows/mdi/mdi.py']
+    if VERSION[1] >= 5:
+        result.append("qml/tutorials/extending-qml/chapter5-listproperties/listproperties.py")
+    else:
+        result.append("qml/tutorials/extending/chapter5-listproperties/listproperties.py")
+
     if wheels != InstalledWheels.Essentials:
         result.extend(get_addon_examples())
     if wheels == InstalledWheels.M2M:
