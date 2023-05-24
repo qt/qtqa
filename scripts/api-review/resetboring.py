@@ -825,7 +825,7 @@ class Selector(object): # Select interesting changes, discard boring.
             for swap in ((('while', '(', '0', ')'), ('while', '(', 'false', ')')),
                          (('Q_FOREVER',), ('for', '(', ';', ';', ')')),
                          (('Q_DECL_EQ_DELETE', ';'), ('=', 'delete', ';')),
-                         (('count', '(', ')'), ('size', '(', ')'),
+                         (('count', '(', ')'), ('size', '(', ')')),
                          (('qMove',), ('std', '::', 'move')),
                          (('qSwap',), ('std', '::', 'swap')),
                          (('qAsConst',), ('std', '::', 'as_const')),
