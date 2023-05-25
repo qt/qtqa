@@ -300,7 +300,7 @@ apiheaders "$RELEASE" | tr '\n' '\0' | \
     xargs -0r git checkout "$RELEASE" -- || die "Failed new header checkout"
 
 git diff --quiet || die "All changes should initially be staged."
-if git diff --quiet --cached "$PRIOR"
+if git diff --quiet --cached
 then
     mutter "Clearing away unused branch and restoring $RESTORE"
     git checkout $QUIET "$RESTORE"
@@ -313,7 +313,7 @@ run "$THERE/resetboring.py" --disclaim | while read f
 do git checkout $QUIET "$PRIOR" -- "$f" || logged rm -f "$f"
 done
 
-if git diff --quiet --cached "$PRIOR"
+if git diff --quiet --cached
 then retire "All the change here looks boring: check with git diff -D"
 fi
 
