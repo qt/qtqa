@@ -371,10 +371,10 @@ if __name__ == "__main__":
         # Set path to Qt Designer plugins
         wiggly_dir = os.fspath(root_ex / 'widgetbinding')
         taskmenu_dir = os.fspath(root_ex / 'designer' / 'taskmenuextension')
-        new_path = f"{wiggly_dir}:{taskmenu_dir}"
+        new_path = f"{wiggly_dir}{os.pathsep}{taskmenu_dir}"
         designer_path = os.environ.get(DESIGNER_PATH_VAR, "")
         if designer_path:
-            new_path += f":{designer_path}"
+            new_path += f"{os.pathsep}{designer_path}"
         os.environ[DESIGNER_PATH_VAR] = new_path
 
     VERSION = get_pyside_version_from_import()
