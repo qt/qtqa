@@ -272,15 +272,40 @@ then GITDIR=`cut -d ' ' -f 2 <.git`
 else GITDIR=.git
 fi
 
-# Suppress clang-format pre-commit hook:
+# Suppress clang-format pre-commit hook and inane post-commit hook:
 if [ -e $GITDIR/hooks/pre-commit ]
 then
     PRECOMMIT=$GITDIR/hooks/isolated-pre-commit
     mv $GITDIR/hooks/pre-commit $PRECOMMIT
 
+    if [ -e $GITDIR/hooks/post-commit ]
+    then
+        POSTCOMMIT=$GITDIR/hooks/isolated-post-commit
+        mv $GITDIR/hooks/post-commit $POSTCOMMIT
+
+        # But put it back when we're done:
+        rehook () {
+            mv $PRECOMMIT $GITDIR/hooks/pre-commit;
+            mv $POSTCOMMIT $GITDIR/hooks/post-commit;
+        }
+        trap rehook EXIT
+    else
+        # But put it back when we're done:
+        reclang () {
+            mv $PRECOMMIT $GITDIR/hooks/pre-commit;
+        }
+        trap reclang EXIT
+    fi
+elif [ -e $GITDIR/hooks/post-commit ]
+then
+    POSTCOMMIT=$GITDIR/hooks/isolated-post-commit
+    mv $GITDIR/hooks/post-commit $POSTCOMMIT
+
     # But put it back when we're done:
-    rehook () { mv $PRECOMMIT $GITDIR/hooks/pre-commit; }
-    trap rehook EXIT
+    resane () {
+        mv $POSTCOMMIT $GITDIR/hooks/post-commit;
+    }
+    trap resane EXIT
 fi
 
 # Note: the loop is in a sub-shell, so can't change script variables.
