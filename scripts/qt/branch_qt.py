@@ -502,8 +502,7 @@ class QtBranching:
         if self.direct:
             # TODO: make this work for projects that don't have 'qt' as namespace
             query = {
-                "q": f"project:qt/{project} branch:{branch} "
-                "(status:staging OR status:staged OR status:integrating)"
+                "q": f"project:qt/{project} branch:{branch} (status:staged OR status:integrating)"
             }
             response = requests.get(f"{GERRIT_REST_URL}/changes/", params=query)
             response.raise_for_status()
