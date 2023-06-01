@@ -336,7 +336,7 @@ do
     mutter "Reverting the boring changes to $QTMODULE"
     run "$THERE/resetboring.py" --disclaim | while read f
     do git checkout $QUIET "$PRIOR" -- "$f" || logged rm -f "$f"
-    done
+    done 2>&1 | grep -wv "error: pathspec '.*' did not match any"
 
     if git diff --quiet --cached
     then
