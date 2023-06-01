@@ -181,10 +181,19 @@ logged () { mention "Running: $@"; eval "$@"; }
 checkout () { run git checkout $QUIET "$@"; }
 
 headers () {
-    # usage: headers rev file module
-    # If the file did not exist at the given revision, output is empty.
-    git show "$1:$2" 2>/dev/null | $THERE/cmakescan.py "$3" "$2"
+    # usage: pipe CMake files one per line into | headers rev module
+    # If a file did not exist at the given revision, it produces no output.
+    while read f
+    do git show "$1:$f" 2>/dev/null | $THERE/cmakescan.py "$2" "$f" \
+            || die "Failed to scan $f for $2 at $1"
+    done
 }
+
+# We need to know both the new modules and the old:
+PROC="$$-$GITMODULE"
+NEWMODS="../.modules-$PROC"
+checkout "$RELEASE"
+modules >"$NEWMODS"
 
 # Get API headers of $RELEASE checked out on a branch off $PRIOR:
 BRANCH="api-review-$PRIOR-$RELNAME"
@@ -308,24 +317,41 @@ then
     trap resane EXIT
 fi
 
+# consume file ...
+# Removes the first-named file, if present, after streaming its contents.
+# Follows that with what cat produces for any further arguments.
+consume () {
+    if [ -f "$1" ]
+    then
+        cat "$@"
+        rm "$1"
+    elif [ $# -gt 1 ]
+    then
+        shift
+        cat "$@"
+    fi
+}
+
 # Note: the loop is in a sub-shell, so can't change script variables.
 # It can, however, write to local temp files:
-PROC="$$-$GITMODULE"
 COMMITTED="../.committed-$PROC"
 BORED="../.bored-$PROC"
+
+# We need to include deleted and new Qt modules;
+# and moved ones may involve more than one
+modules | consume "$NEWMODS" - | $THERE/modunite | grep . | while read QTMODULE CMakeLists
 # For each module, create a commit:
-modules | while read QTMODULE CMakeList
 do
     mutter "Purging obsolete headers for $QTMODULE"
     # To ensure renames get detected and handled correctly:
-    headers "$PRIOR" $CMakeList $QTMODULE | \
+    echo $CMakeLists | tr ' ' '\n' | headers "$PRIOR" $QTMODULE | \
         while read h # Update former API headers, remove them if removed:
         do git checkout $UNQUIET "$RELEASE" -- "$h" || git rm $UNQUIET -f -- "$h"
         done 2>&1 | grep -wv "error: pathspec '.*' did not match any"
     mutter "Checking out $RELNAME's API headers for $QTMODULE"
-    headers "$RELEASE" $CMakeList $QTMODULE \
-        | tr '\n' '\0' | xargs -0r git checkout "$RELEASE" -- \
-        || die "Failed new header checkout"
+    echo $CMakeLists | tr ' ' '\n' | headers "$RELEASE" $QTMODULE \
+        | tr '\n' '\0' | xargs -0r git checkout "$RELEASE" -- 2>&1 \
+        | grep -wv "error: pathspec '.*' did not match any"
 
     if git diff --quiet --cached
     then
@@ -393,13 +419,6 @@ EOF
     echo "$QTMODULE" >> "$COMMITTED"
 done
 
-consume () {
-    if [ -f "$1" ]
-    then
-        cat "$1"
-        rm "$1"
-    fi
-}
 COMMITS="`consume "$COMMITTED"`"
 BORES="`consume "$BORED"`"
 
