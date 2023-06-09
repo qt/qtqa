@@ -1,0 +1,215 @@
+#!/bin/bash
+# A (hacky) script for generating API reviews usage:
+# ./doApiReview.sh oldVersionTag newVersionTag gerritUserName email name
+# Example: ./doApiReview.sh v6.2.3 v6.3.0-alpha1 example.user example.user@qt.io "Example User"
+
+# WARNING: This script runs rm -rf quite a lot, best run it in a separate jail where it can only wreck its immediate environment
+
+set -e
+
+QT_GIT_REPO=https://code.qt.io/qt/qt5.git
+
+BASE_MODULES=(qtshadertools qtdeclarative)
+API_REVIEWS_FOR=(qtsensors qtpositioning qtwebchannel qtscxml qtcharts qt3d qtquick3d qtwayland qtwebengine)
+
+checkout_qt_version() {
+   mod_list=$(printf ",%s" "${API_REVIEWS_FOR[@]}")
+   mod_list=${mod_list:1}
+
+   if [ -d "$1" ]; then
+      echo "'$1' already exists, skipping"
+      return 0
+   fi
+
+   mkdir $1 && cd $1
+   git clone $QT_GIT_REPO src
+   cd src
+   git checkout $1
+   perl init-repository --module-subset=qtbase,qtdeclarative,qtshadertools,$mod_list --codereview-username=$2
+   cd ../..
+   return 0 || return 1
+}
+
+build_qt_version() {
+   cd "$1"
+
+   found_all=1
+   for module in "${BASE_MODULES[@]}"; do
+      if [ ! -d "build/$module" ]; then
+          echo "Didn't find base module $module in $1"
+          found_all=0
+          break
+      fi
+   done
+
+   for module in "${API_REVIEWS_FOR[@]}"; do
+      if [ ! -d "build/$module" ]; then
+          echo "Didn't find $module in $1"
+          found_all=0
+          break
+      fi
+      if [ ! -d "$module-qml" ]; then
+          echo "Didn't find $module in $1"
+          found_all=0
+          break
+      fi
+   done
+
+   if [ $found_all -eq 1 ]; then
+      echo "All modules are built, skipping"
+      cd ..
+      return
+   fi
+
+   rm -rf build install base-install base-build *-qml && mkdir build && cd build
+   mkdir qtbase && cd qtbase
+   ../../src/qtbase/configure -release -opensource -confirm-license -prefix ../../install
+   ninja install
+   cd ..
+   for module in "${BASE_MODULES[@]}"; do
+      mkdir $module
+      cd $module
+      ../../install/bin/qt-configure-module $(pwd)/../../src/$module
+      ninja install
+      cd ..
+   done
+   cp -r ../install ../base-install && cp -r ../build ../base-build
+   for module in "${API_REVIEWS_FOR[@]}"; do
+      rm -rf $(pwd)/../install && cp -r $(pwd)/../base-install $(pwd)/../install && cp -r $(pwd)/../base-build $(pwd)/../build
+      mkdir $module
+      cd $module
+      if [ "$module" == "qt3d" ]; then
+     echo "Qt3D"
+         $(pwd)/../../install/bin/qt-configure-module $(pwd)/../../src/$module -no-feature-qt3d-assimp
+      elif [ "$module" == "qtquick3d" ]; then
+     echo "QtQuick3D"
+         $(pwd)/../../install/bin/qt-configure-module $(pwd)/../../src/$module -no-feature-quick3d-assimp
+      else
+         $(pwd)/../../install/bin/qt-configure-module $(pwd)/../../src/$module
+      fi
+      ninja install
+      cd ..
+      cp -r $(pwd)/../install/qml $(pwd)/../$module-qml
+   done
+   cd ../..
+   echo $(pwd)
+}
+
+function do_review() {
+     old=$1
+     new=$2
+
+     username=$3
+     email=$4
+     name=$5
+     module=$6
+
+     cd "$module"
+     gitdir=$(git rev-parse --git-dir);
+
+     # Download and install the gerrit pre-commit hook if it isn't already present
+     # Ideally this should be cached somewhere so we don't prompt every time
+     if [[ ! -f "$gitdir/hooks/commit-msg" ]]; then
+        scp -p -P 29418 $username@codereview.qt-project.org:hooks/commit-msg ${gitdir}/hooks/
+     fi
+
+     # Configure git
+     git config user.email "$email"
+     git config user.name "$name"
+
+     # Discard all unstaged changes
+     git reset --hard HEAD
+
+     # Reset to the latest dev commit
+     git checkout dev
+
+     # Remove any previous API review branch if present and replace it with a new one
+     git branch -D api_review_$1_$2 || true
+     git checkout -b api_review_$1_$2
+
+     # Nuke any left-overs from a previous review attempt and recreate the directory
+     rm -rf $(pwd)/qml-api-review || true
+     mkdir $(pwd)/qml-api-review
+
+     if [[ "$module" == "qtdeclarative" ]]; then
+        # base-install = qtdeclarative, so just copy that over.
+        cp -r $(pwd)/../../../$old/base-install/qml/* $(pwd)/qml-api-review
+     else
+        cp -r $(pwd)/../../../$old/$module-qml/* $(pwd)/qml-api-review
+        base_path=$(pwd)/../../../$old/base-install/qml
+
+        # Remove all files that are also present in the old base install, they should not be reviewed
+        cd qml-api-review; rm -rf $(cd $base_path && find . ! -path .); cd ..
+     fi
+
+     # Strip away binary artifacts
+     find $(pwd)/qml-api-review \( -name '*.dylib' -o -name '*.dll' -o -name '*.so' -o -name '*.png' \) -delete
+
+     qml_files=$(find $(pwd)/qml-api-review -type f -name '*.qml')
+     if [[ $qml_files ]]; then
+        perl -pe 'BEGIN { undef $/; }; s#(^/\*.*?\*/)(\r?\n)*?##ims' -i $qml_files
+     fi
+
+     # Commit API Review base commit
+     git add $(pwd)/qml-api-review
+     git commit -m "WIP: [Ignore] [QML Directory Base] $module $2 QML API Review" -m "This is a $old baseline commit for reviewing $new, please ignore. It has been auto-generated by doApiReview.sh"
+
+     if [ "$module" == "qtdeclarative" ]; then
+        # base-install = qtdeclarative, so just copy that over.
+        cp -r $(pwd)/../../../$new/base-install/qml/* $(pwd)/qml-api-review
+     else
+        cp -r $(pwd)/../../../$new/$module-qml/* $(pwd)/qml-api-review
+        base_path=$(pwd)/../../../$new/base-install/qml
+
+        # Remove all files that are also present in the old base install, they should not be reviewed
+        cd qml-api-review; rm -rf $(cd $base_path && find . ! -path .); cd ..
+     fi
+
+     # Strip away binary artifacts
+     find $(pwd)/qml-api-review \( -name '*.dylib' -o -name '*.dll' -o -name '*.so' -o -name '*.png' \) -delete
+
+     # Placeholder file in case we don't have any actual changes to commit
+     echo "Review file. If this is the only file then there are no changes for this module." > $(pwd)/qml-api-review/REVIEW-FILE
+
+     qml_files=$(find $(pwd)/qml-api-review/ -type f -name '*.qml')
+     if [[ $qml_files ]]; then
+        perl -pe 'BEGIN { undef $/; }; s#(^/\*.*?\*/)(\r?\n)*?##ims' -i $qml_files
+     fi
+
+     # Commit API Review
+     git add $(pwd)/qml-api-review
+     git commit -m "WIP: $module $new QML API Review" -m "This is a commit for reviewing the QML API of $module $new. It has been auto-generated by doApiReview.sh"
+     cd ..
+}
+
+function create_reviews() {
+   cd $(pwd)/dev/src
+   do_review "$1" "$2" "$3" "$4" "$5" "qtdeclarative"
+
+   for module in "${API_REVIEWS_FOR[@]}"; do
+     do_review "$1" "$2" "$3" "$4" "$5" "$module"
+   done
+
+   cd ../..
+}
+
+STEPS=3
+
+OLD_VERSION=$1
+NEW_VERSION=$2
+CODEREVIEW_USERNAME=$3
+EMAIL=$4
+NAME=$5
+
+echo "Reviewing $1 vs $2"
+
+echo "[1/$STEPS] Preparing repositories..."
+checkout_qt_version "$OLD_VERSION" "$CODEREVIEW_USERNAME"
+checkout_qt_version "$NEW_VERSION" "$CODEREVIEW_USERNAME"
+checkout_qt_version "dev" "$CODEREVIEW_USERNAME"
+echo "[2/$STEPS] Building modules..."
+build_qt_version "$OLD_VERSION"
+build_qt_version "$NEW_VERSION"
+echo "[3/$STEPS] Creating reviews..."
+create_reviews "$OLD_VERSION" "$NEW_VERSION" "$CODEREVIEW_USERNAME" "$EMAIL" "$NAME"
+echo "You can now find all the generated reviews in dev/src/MODULE_NAME. Please review them manually before pushing them to gerrit."
