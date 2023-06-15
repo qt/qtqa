@@ -83,6 +83,8 @@ my %excludedFiles = (
                           qr{^3rdparty/},
                         ],
     "qtbase"         => [
+                          # Contains content copied from XNU sources, under APSL-2.0
+                          qr{^src/corelib/kernel/qfutex_mac_p.h$},
                           # XML file from Khronos taken as-is, no control over the
                           # license and copyright syntax in this one. The checker
                           # gets confused with newer upstream versions, so skip.
