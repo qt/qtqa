@@ -336,6 +336,8 @@ tst_Bic::tst_Bic(const char *appFilePath)
     bic.addBlacklistedClass(QLatin1String("QVulkanInstance"));
     /* allowed to grow */
     bic.addBlacklistedClass(QLatin1String("QSGMaterialShader::GraphicsPipelineState"));
+    /* intentionally removed */
+    bic.addBlacklistedClass(QLatin1String("QDeferredDeleteEvent"));
 }
 
 void tst_Bic::initTestCase()
