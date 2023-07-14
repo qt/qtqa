@@ -96,7 +96,7 @@ class requestProcessor extends EventEmitter {
     let _this = this;
     _this.logger.log(`Determining processing path...`, "debug", incoming.uuid);
     gerritTools.queryRelated(
-      incoming.uuid, incoming.fullChangeID, incoming.customGerritAuth,
+      incoming.uuid, incoming.fullChangeID, incoming.patchSet.number, incoming.customGerritAuth,
       function (success, data) {
         if (success && data.length > 0) {
         // Update the request in the database with the relation chain.

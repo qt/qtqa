@@ -341,8 +341,10 @@ function validateBranch (parentUuid, project, branch, customAuth, callback) {
 };
 
 // Query gerrit commit for it's relation chain. Returns a list of changes.
-exports.queryRelated = function (parentUuid, fullChangeID, customAuth, callback) {
-  let url = `${gerritBaseURL("changes")}/${fullChangeID}/revisions/current/related`;
+exports.queryRelated = function (parentUuid, fullChangeID, latestPatchNum, customAuth, callback) {
+  // Work around broken relation chains of merged changes by examining current-1.
+  const patchNo = latestPatchNum == 1 ? 1 : latestPatchNum - 1;
+  let url = `${gerritBaseURL("changes")}/${fullChangeID}/revisions/${patchNo}/related`;
   logger.log(`GET request to: ${url}`, "debug", parentUuid);
   axios.get(url, { auth: customAuth || gerritAuth })
     .then(function (response) {
