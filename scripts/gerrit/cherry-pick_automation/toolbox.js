@@ -176,7 +176,7 @@ function addToListenerCacheUpdateQueue(
   timeout, timestamp, messageChangeId,
   messageOnSetup, messageOnTimeout,
   emitterEvent,
-  emitterArgs, originalChangeUuid, persistListener,
+  emitterArgs, originalChangeUuid, persistListener, contextId,
   callback, unlock = false
 ) {
   if (unlock) {
@@ -191,7 +191,7 @@ function addToListenerCacheUpdateQueue(
       timeout, timestamp, messageChangeId,
       messageOnSetup, messageOnTimeout,
       emitterEvent,
-      emitterArgs, originalChangeUuid, persistListener, callback
+      emitterArgs, originalChangeUuid, persistListener, contextId, callback
     ]);
   }
 
@@ -223,6 +223,7 @@ function encodeJSONtoBase64(json) {
   return Buffer.from(safeJsonStringify(json)).toString("base64");
 }
 
+let listeners = {};
 // Set up an event listener on ${source}, which can also be accompanied by
 // a gerrit comment on setup and/or timeout. Listeners are stored in the
 // database until consumed, tied to the original change-merged event
@@ -234,13 +235,19 @@ function setupListener(
   timeout, timestamp, messageChangeId,
   messageOnSetup, messageOnTimeout,
   emitterEvent,
-  emitterArgs, originalChangeUuid, persistListener, isRestoredListener
+  emitterArgs, originalChangeUuid, persistListener, contextId, isRestoredListener
 ) {
+  const listenerId = `${listenerEvent}~${contextId}`;
+  const messageTriggerId = `${listenerEvent}~${messageTriggerEvent}~${contextId}`;
+  const messageCancelTriggerId = `${listenerEvent}~${messageCancelTriggerEvent}~${contextId}`;
+
   // Check to make sure we don't register the same listener twice.
-  // Event listeners should be unique and never called from different
-  // places in the application, so there's no need to worry about
-  // updating the listener with new data.
-  if (source.eventNames().includes(listenerEvent)) {
+  // Event listeners should be unique and the same source should never call
+  // setupListener() twice for the same event.
+  // The same listenerEvent may be subscribed to from multiple sources, however.
+  // This is why the listenerId is a combination of the listenerEvent and the
+  // contextId.
+  if (listeners[listenerId]) {
     logger.log(
       `Ignoring listener setup request: ${
         source.constructor.name} already has a listener for ${listenerEvent}`,
@@ -260,7 +267,6 @@ function setupListener(
   let newTimeout = timeout;
   if (!timestamp)
     timestamp = Date.now();
-
 
   if (isRestoredListener) {
     elapsed = Date.now() - timestamp;
@@ -284,7 +290,7 @@ function setupListener(
         undefined, undefined, undefined,
         undefined, undefined,
         undefined,
-        undefined, originalChangeUuid, false
+        undefined, originalChangeUuid, false, contextId
       );
       // Do not execute the rest of the listener setup.
       return;
@@ -297,9 +303,15 @@ function setupListener(
   let timeoutHandle;
   if (listenerEvent && newTimeout) {
     timeoutHandle = setTimeout(() => {
-      source.removeAllListeners(listenerEvent);
-      source.removeAllListeners(messageTriggerEvent);
-      source.removeAllListeners(messageCancelTriggerEvent);
+      if (listeners[listenerId])
+        source.removeListener(listenerEvent, listeners[listenerId]);
+      if (listeners[messageTriggerId])
+        source.removeListener(messageTriggerEvent, listeners[messageTriggerId]);
+      if (listeners[messageCancelTriggerId])
+        source.removeListener(messageCancelTriggerEvent, listeners[messageCancelTriggerId]);
+      delete listeners[listenerId];
+      delete listeners[messageTriggerId];
+      delete listeners[messageCancelTriggerId];
       // Post a message to gerrit on timeout if set.
       if (messageOnTimeout && !messageTriggerEvent) {
         source.emit(
@@ -318,7 +330,7 @@ function setupListener(
           "info", originalChangeUuid
         );
       }
-      source.once(messageTriggerEvent, function () {
+      listeners[messageTriggerId] = function () {
         logger.log(`Event trigger ${messageTriggerEvent} received.`, "debug", originalChangeUuid);
         if (persistListener) {
           addToListenerCacheUpdateQueue(
@@ -327,15 +339,17 @@ function setupListener(
             timeout, timestamp, messageChangeId,
             messageOnSetup, messageOnTimeout,
             emitterEvent,
-            emitterArgs, originalChangeUuid, persistListener
+            emitterArgs, originalChangeUuid, persistListener, contextId
           );
         }
-        source.removeAllListeners(messageCancelTriggerEvent);
+        if (listeners[messageCancelTriggerId])
+          source.removeListener(messageCancelTriggerEvent, listeners[messageCancelTriggerId]);
         source.emit(
           "postGerritComment", originalChangeUuid, messageChangeId, undefined, messageOnSetup,
           "OWNER"
         );
-      });
+      };
+      source.once(messageTriggerEvent, listeners[messageTriggerId]);
     } else if (!isRestoredListener) {
       source.emit(
         "postGerritComment", originalChangeUuid, messageChangeId, undefined, messageOnSetup,
@@ -348,48 +362,56 @@ function setupListener(
         `Requested message cancel trigger listener setup of ${messageCancelTriggerEvent}`,
         "info", originalChangeUuid
       );
-      source.once(messageCancelTriggerEvent, () => {
+      listeners[messageCancelTriggerId] = function () {
         logger.log(
           `Event trigger ${messageCancelTriggerEvent} received.`,
           "debug", originalChangeUuid
         );
         clearTimeout(timeoutHandle);
-        source.removeAllListeners(listenerEvent);
-        source.removeAllListeners(messageTriggerEvent);
+        if (listeners[listenerId])
+          source.removeListener(listenerEvent, listeners[listenerId]);
+        if (listeners[messageTriggerId])
+          source.removeListener(messageTriggerEvent, listeners[messageTriggerId]);
+        delete listeners[listenerId];
+        delete listeners[messageTriggerId];
+        delete listeners[messageCancelTriggerId];
         addToListenerCacheUpdateQueue(
           "delete", undefined, listenerEvent, undefined, undefined,
           undefined, undefined, undefined,
           undefined, undefined,
           undefined,
-          undefined, originalChangeUuid, false
+          undefined, originalChangeUuid, false, contextId
         );
-      });
+      };
+      source.once(messageCancelTriggerEvent, listeners[messageCancelTriggerId]);
     }
   }
 
   // Listen for event only once. The listener is consumed if triggered, and
   // should also be deleted from the database.
   if (listenerEvent) {
-    source.once(
-      listenerEvent,
-      function () {
-        clearTimeout(timeoutHandle);
-        source.removeAllListeners(messageTriggerEvent);
-        source.removeAllListeners(messageCancelTriggerEvent);
-        logger.log(`Received event for listener ${listenerEvent}`);
-        setTimeout(function () {
-          source.emit(emitterEvent, ...emitterArgs);
-          addToListenerCacheUpdateQueue(
-            "delete", undefined, listenerEvent, undefined, undefined,
-            undefined, undefined, undefined,
-            undefined, undefined,
-            undefined,
-            undefined, originalChangeUuid, false
-          );
-        }, 1000);
-      },
-      1000
-    );
+    listeners[listenerId] = function () {
+      clearTimeout(timeoutHandle);
+      if (listeners[messageTriggerId])
+        source.removeListener(messageTriggerEvent, listeners[messageTriggerId]);
+      if (listeners[messageCancelTriggerId])
+        source.removeListener(messageCancelTriggerEvent, listeners[messageCancelTriggerId]);
+      logger.log(`Received event for listener ${listenerEvent}`);
+      setTimeout(function () {
+        source.emit(emitterEvent, ...emitterArgs);
+        delete listeners[listenerId];
+        delete listeners[messageTriggerId];
+        delete listeners[messageCancelTriggerId];
+        addToListenerCacheUpdateQueue(
+          "delete", undefined, listenerEvent, undefined, undefined,
+          undefined, undefined, undefined,
+          undefined, undefined,
+          undefined,
+          undefined, originalChangeUuid, false, contextId
+        );
+      }, 1000);
+    };
+    source.once(listenerEvent, listeners[listenerId]);
     logger.log(
       `Set up listener for ${listenerEvent} with remaining timeout ${newTimeout}`,
       "info", originalChangeUuid
@@ -411,7 +433,7 @@ function setupListener(
       timeout, timestamp, messageChangeId,
       messageOnSetup, messageOnTimeout,
       emitterEvent,
-      emitterArgs, originalChangeUuid, persistListener
+      emitterArgs, originalChangeUuid, persistListener, contextId
     );
   }
 }
@@ -489,7 +511,7 @@ function updateDBListenerCache(
   timeout, timestamp, messageChangeId,
   messageOnSetup, messageOnTimeout,
   emitterEvent,
-  emitterArgs, originalChangeUuid, persistListener, callback
+  emitterArgs, originalChangeUuid, persistListener, contextId, callback
 ) {
   function doNext() {
     // call the queue manager again with only unlock. This will pop
@@ -500,7 +522,7 @@ function updateDBListenerCache(
       undefined, undefined, undefined,
       undefined, undefined,
       undefined,
-      undefined, undefined, undefined, undefined, true
+      undefined, undefined, undefined, undefined, undefined, true, undefined
     );
   }
 
@@ -519,17 +541,17 @@ function updateDBListenerCache(
           dataJSON = {};
         switch (action) {
         case "add":
-          dataJSON[listenerEvent] =
+          dataJSON[listenerEvent + '~' + contextId] =
             [
               source, listenerEvent, messageTriggerEvent, messageCancelTriggerEvent,
               timeout, timestamp, messageChangeId,
               messageOnSetup, messageOnTimeout,
               emitterEvent,
-              emitterArgs, originalChangeUuid, persistListener
+              emitterArgs, originalChangeUuid, persistListener, contextId
             ];
           break;
         case "delete":
-          delete dataJSON[listenerEvent];
+          delete dataJSON[listenerEvent + '~' + contextId];
           if (Object.keys(dataJSON).length === 0 && dataJSON.constructor === Object) {
             // Deleting the listener caused the list to be empty.
             // Write a [null] to the database instead of {}.

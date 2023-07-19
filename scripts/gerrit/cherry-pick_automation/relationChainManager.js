@@ -179,14 +179,14 @@ class relationChainManager {
             48 * 60 * 60 * 1000, undefined, undefined,
             undefined, undefined,
             undefined,
-            undefined, currentJSON.uuid, true
+            undefined, currentJSON.uuid, true, "relationChain"
           );
           toolbox.setupListener(
             _this.requestProcessor, `abandon_${detail.unmergedChangeID}`, undefined, undefined,
             48 * 60 * 60 * 1000, undefined, undefined,
             undefined, undefined,
             undefined,
-            undefined, currentJSON.uuid, true
+            undefined, currentJSON.uuid, true, "relationChain"
           );
         } else {
           // The direct parent doesn't include the branch that this
@@ -359,7 +359,7 @@ class relationChainManager {
         listenTimeout, undefined, gerritMessageChangeID,
         gerritMessage, gerritMessageOnTimeout,
         "relationChain_validBranchVerifyParent",
-        [currentJSON, branch], currentJSON.uuid, true
+        [currentJSON, branch], currentJSON.uuid, true, "relationChain"
       );
     }
 
@@ -430,7 +430,8 @@ class relationChainManager {
         listenTimeout, undefined, cherryPickJSON.id,
         gerritMessage, gerritMessageOnTimeout,
         "relationChain_checkStageEligibility",
-        [originalRequestJSON, cherryPickJSON], originalRequestJSON.uuid, true
+        [originalRequestJSON, cherryPickJSON], originalRequestJSON.uuid, true,
+        "relationChain_waitParentStage"
       );
     } else if (parentStatus == "INTEGRATING") {
       gerritMessage = `This cherry-pick is ready to be automatically staged, but it's parent is`
@@ -446,7 +447,8 @@ class relationChainManager {
         listenTimeout, undefined, cherryPickJSON.id,
         gerritMessage, gerritMessageOnTimeout,
         "relationChain_checkStageEligibility",
-        [originalRequestJSON, cherryPickJSON], originalRequestJSON.uuid, true
+        [originalRequestJSON, cherryPickJSON], originalRequestJSON.uuid, true,
+        "relationChain_waitParentMerge"
       );
     }
     toolbox.setupListener(
@@ -454,7 +456,8 @@ class relationChainManager {
       listenTimeout, undefined, undefined,
       undefined, undefined,
       "relationChain_checkStageEligibility",
-      [originalRequestJSON, cherryPickJSON], originalRequestJSON.uuid, true
+      [originalRequestJSON, cherryPickJSON], originalRequestJSON.uuid, true,
+      "relationChain_waitParentAbandon"
     );
   }
 

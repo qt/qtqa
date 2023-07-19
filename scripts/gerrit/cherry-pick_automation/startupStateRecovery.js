@@ -90,7 +90,7 @@ class startupStateRecovery extends EventEmitter {
         data.forEach((element) => {
           let jsonData = toolbox.decodeBase64toJSON(element.listener_cache);
           if (Object.keys(jsonData).length > 0) {
-            for (var listenerData in jsonData) {
+            for (let listenerData in jsonData) {
               _this.logger.log(
                 `restoring listener ${listenerData}`,
                 "info", jsonData[listenerData][11]
