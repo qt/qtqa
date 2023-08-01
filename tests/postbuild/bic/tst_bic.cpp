@@ -338,6 +338,9 @@ tst_Bic::tst_Bic(const char *appFilePath)
     bic.addBlacklistedClass(QLatin1String("QSGMaterialShader::GraphicsPipelineState"));
     /* intentionally removed */
     bic.addBlacklistedClass(QLatin1String("QDeferredDeleteEvent"));
+
+    /* an override added in a patch release */
+    bic.addBlacklistedClass(QLatin1String("QDialogButtonBox"));
 }
 
 void tst_Bic::initTestCase()
