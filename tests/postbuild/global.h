@@ -65,7 +65,7 @@ QHash<QString, QString> qt_tests_shared_global_get_modules(const QString &workDi
 QByteArray qt_tests_shared_global_get_modules_pro_lines(const QHash<QString, QString> &modules)
 {
     QByteArray result;
-    foreach (QString moduleName, modules.values()) {
+    for (const auto & [_, moduleName] : modules.asKeyValueRange()) {
         QByteArray module = moduleName.toLatin1();
         result += "qtHaveModule(" + module + ") {\n" +
                   "    QT += " + module + "\n" +
