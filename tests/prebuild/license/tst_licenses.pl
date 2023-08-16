@@ -116,6 +116,10 @@ my %excludedFiles = (
                                   qr{^src/qtadv/doc/src/qtadv.*$},
                                   qr{^src/qtadv/qdoc_wrapper.bat$},
                                 ],
+    'qttools'        => [
+                          # Exclude QDoc's golden output in tests
+                          qr{^src/qdoc/qdoc/tests/generatedoutput/expected_output/},
+                        ],
 );
 
 # The following regex patterns designate directories and files for which
