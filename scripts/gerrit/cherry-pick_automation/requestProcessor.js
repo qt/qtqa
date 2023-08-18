@@ -185,6 +185,68 @@ class requestProcessor extends EventEmitter {
       }
     }
 
+    function tryLTS() {
+      // The target branch existed in the project, but was closed for new changes.
+      // So if either the branch or the project is not currently tqtc private, search for
+      // a public lts branch first in the passed repo, then search the possible
+      // tqtc- repo for a matching tqtc/ branch.
+      _this.logger.log("Checking if a public LTS branch exists", "info", incoming.uuid);
+      let publicLtsBranch = `lts-${branch}`;
+      gerritTools.checkBranchAndAccess(incoming.uuid, incoming.change.project,
+        publicLtsBranch, gerrit_user, "push", incoming.customGerritAuth,
+        function(validPublicLts, canPushPublicLts, data) {
+          if (validPublicLts && canPushPublicLts) {
+            // A non-tqtc marked lts- branch was found.
+            _this.logger.log(`Using public branch ${publicLtsBranch}.`, "verbose",
+                              incoming.uuid);
+            done(responseSignal, incoming, publicLtsBranch, true, data);
+          } else {
+            // It doesn't matter if the bot user is blocked on the branch
+            // or it simply doesn't exist, fall back to searching for a
+            // tqtc repo and search for the LTS branch there.
+            let privateProject = incoming.change.project;
+            let privateBranch = branch;
+            if (!privateProject.includes("tqtc-")) {
+              let projectSplit = privateProject.split('/');
+              privateProject = projectSplit.slice(0, -1);
+              privateProject.push(`tqtc-${projectSplit.slice(-1)}`);
+              privateProject = privateProject.join('/');
+            }
+            if (!branch.includes("tqtc/lts-"))
+              privateBranch = `tqtc/${publicLtsBranch}`;
+            gerritTools.checkBranchAndAccess(incoming.uuid, privateProject, privateBranch,
+              gerrit_user, "push", incoming.customGerritAuth,
+              function(validPrivateLTS, canPushPrivateLTS, data) {
+                let message;
+                if (validPrivateLTS && canPushPrivateLTS) {
+                  // Modify the original object so the bot treats it like it's always been
+                  // on tqtc/* with an LTS branch target.
+                  incoming.change.project = privateProject;
+                  incoming.change.branch = privateBranch;
+                } else if (validPrivateLTS) {
+                  // Valid private branch, but closed for changes.
+                  let errMsg = `Unable to cherry-pick this change to ${branch} or`
+                  + ` ${privateBranch} because the branch is closed for new changes.`
+                  _this.logger.log(errMsg, "error", incoming.uuid);
+                  message =  errMsg + "\n" + closedBranchMsg;
+                } else {
+                    // No private lts branch exists.
+                    let errMsg = `Unable to cherry-pick this change to ${branch}`
+                    + ` because the branch is closed for new changes and`
+                    + validPublicLts ? ` ${publicLtsBranch} is also closed for new changes.`
+                                      : " no private LTS branch exists."
+                  _this.logger.log(errMsg, "error", incoming.uuid);
+                  message = errMsg + "\n" + closedBranchMsg;
+                }
+                done(responseSignal, incoming, incoming.change.branch,
+                      validPrivateLTS && canPushPrivateLTS, data, message);
+              }
+            )
+          }
+        }
+      )
+    }
+
     incoming.originalProject = incoming.change.project;
     incoming.originalBranch = incoming.change.branch;
     let closedBranchMsg = "If you need this change in a closed branch, please contact the"
@@ -196,12 +258,16 @@ class requestProcessor extends EventEmitter {
       function(validBranch, canPush, data) {
         let tqtcBranch = /tqtc\//.test(branch);
         if (!validBranch && !tqtcBranch) {
-          // Invalid branch specified in Pick-to: footer or some other critical failure
-          let message = `Failed to cherry pick to ${incoming.change.project}:${branch} due`
-          + ` to an unknown problem with the target branch.`
-          + `\nPlease contact the gerrit admins.`;
-          done(responseSignal, incoming, branch, false, data, message);
-          return;
+          if (incoming.change.project.includes("/tqtc-")) {
+            tryLTS();
+          } else {
+            // Invalid branch specified in Pick-to: footer or some other critical failure
+            let message = `Failed to cherry pick to ${incoming.change.project}:${branch} due`
+            + ` to an unknown problem with the target branch.`
+            + `\nPlease contact the gerrit admins.`;
+            done(responseSignal, incoming, branch, false, data, message);
+            return;
+          }
         }
         if (canPush) {
           // The incoming branch and project targets are available for pushing new changes.
@@ -221,65 +287,7 @@ class requestProcessor extends EventEmitter {
             + ` because the branch is closed for new changes.\n${closedBranchMsg}`;
           done(responseSignal, incoming, branch, false, data, message);
         } else {
-          // The target branch existed in the project, but was closed for new changes.
-          // So if either the branch or the project is not currently tqtc private, search for
-          // a public lts branch first in the passed repo, then search the possible
-          // tqtc- repo for a matching tqtc/ branch.
-          _this.logger.log("Checking if a public LTS branch exists", "info", incoming.uuid);
-          let publicLtsBranch = `lts-${branch}`;
-          gerritTools.checkBranchAndAccess(incoming.uuid, incoming.change.project,
-            publicLtsBranch, gerrit_user, "push", incoming.customGerritAuth,
-            function(validPublicLts, canPushPublicLts, data) {
-              if (validPublicLts && canPushPublicLts) {
-                // A non-tqtc marked lts- branch was found.
-                _this.logger.log(`Using public branch ${publicLtsBranch}.`, "verbose",
-                                  incoming.uuid);
-                done(responseSignal, incoming, publicLtsBranch, true, data);
-              } else {
-                // It doesn't matter if the bot user is blocked on the branch
-                // or it simply doesn't exist, fall back to searching for a
-                // tqtc repo and search for the LTS branch there.
-                let privateProject = incoming.change.project;
-                let privateBranch = branch;
-                if (!privateProject.includes("tqtc-")) {
-                  let projectSplit = privateProject.split('/');
-                  privateProject = projectSplit.slice(0, -1);
-                  privateProject.push(`tqtc-${projectSplit.slice(-1)}`);
-                  privateProject = privateProject.join('/');
-                }
-                if (!branch.includes("tqtc/lts-"))
-                  privateBranch = `tqtc/${publicLtsBranch}`;
-                gerritTools.checkBranchAndAccess(incoming.uuid, privateProject, privateBranch,
-                  gerrit_user, "push", incoming.customGerritAuth,
-                  function(validPrivateLTS, canPushPrivateLTS, data) {
-                    let message;
-                    if (validPrivateLTS && canPushPrivateLTS) {
-                      // Modify the original object so the bot treats it like it's always been
-                      // on tqtc/* with an LTS branch target.
-                      incoming.change.project = privateProject;
-                      incoming.change.branch = privateBranch;
-                    } else if (validPrivateLTS) {
-                      // Valid private branch, but closed for changes.
-                      let errMsg = `Unable to cherry-pick this change to ${branch} or`
-                      + ` ${privateBranch} because the branch is closed for new changes.`
-                      _this.logger.log(errMsg, "error", incoming.uuid);
-                      message =  errMsg + "\n" + closedBranchMsg;
-                    } else {
-                        // No private lts branch exists.
-                        let errMsg = `Unable to cherry-pick this change to ${branch}`
-                        + ` because the branch is closed for new changes and`
-                        + validPublicLts ? ` ${publicLtsBranch} is also closed for new changes.`
-                                          : " no private LTS branch exists."
-                      _this.logger.log(errMsg, "error", incoming.uuid);
-                      message = errMsg + "\n" + closedBranchMsg;
-                    }
-                    done(responseSignal, incoming, incoming.change.branch,
-                          validPrivateLTS && canPushPrivateLTS, data, message);
-                  }
-                )
-              }
-            }
-          )
+          tryLTS();
         }
       }
     );
