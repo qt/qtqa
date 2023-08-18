@@ -21,6 +21,7 @@ qt_build_repo_begin()
 
 if(QT_BUILD_TESTS)
     add_subdirectory(scripts)
+    qt_build_repo_post_process()
     add_subdirectory(tests)
 
     if(NOT QT_BUILD_TESTS_BY_DEFAULT)
