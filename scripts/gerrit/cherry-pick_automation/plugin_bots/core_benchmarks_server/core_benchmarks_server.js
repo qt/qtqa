@@ -69,14 +69,15 @@ function envOrConfig(ID) {
 postgreSQLClient.pool.query(`CREATE TABLE IF NOT EXISTS core_benchmarks
   (
     integration_id TEXT PRIMARY KEY,
-    work_sha TEXT,
     integration_timestamp TIMESTAMP WITHOUT TIME ZONE,
+    integration_url TEXT,
+    integration_data TEXT,
+    branch TEXT,
+    work_sha TEXT,
     agents TEXT[],
     done BOOL[],
     job_done BOOL,
-    timestamp TIMESTAMP WITHOUT TIME ZONE,
-    integration_data TEXT,
-    integration_url TEXT
+    timestamp TIMESTAMP WITHOUT TIME ZONE
   )
 `);
 
@@ -102,14 +103,14 @@ const Status = {
 class Work {
   constructor(o={}) {
     this.integrationId = o.integrationId;
-    this.integrationURL = o.integrationURL,
     this.integrationTimestamp = o.integrationTimestamp;
-    this.sha = o.sha;
+    this.integrationURL = o.integrationURL,
+    this.integrationData = o.integrationData;
     this.branch = o.branch;
+    this.sha = o.sha;
     this.status = o.status || Status.Idle;
     this.detailMessage = o.detailMessage;
     this.updateTimestamp = o.updateTimestamp;
-    this.integrationData = o.integrationData;
   }
 }
 
@@ -256,24 +257,30 @@ function getWorkFromIntegration(uuid, integrationId, timestamp, isRetry) {
             url: `https://codereview.qt-project.org/c/qt%2Fqtbase/+/${task.tested_changes[change].change_number}`
           })
         }
+        let work = new Work({
+          integrationId: integrationId,
+          integrationTimestamp: timestamp,
+          integrationURL: task.self_url,
+          integrationData: integrationData,
+          branch: task.branch,
+          sha: task.final_sha
+        })
         enqueueDBAction(uuid, integrationId, postgreSQLClient.update,
           [
             "core_benchmarks", "integration_id", integrationId,
             {
-              work_sha: task.final_sha,
-              integration_data: Buffer.from(safeJsonStringify(integrationData)).toString('base64')
+              integration_id: work.integrationId,
+              integration_timestamp: work.integrationTimestamp,
+              integration_url: work.integrationURL,
+              integration_data: Buffer.from(safeJsonStringify(integrationData)).toString('base64'),
+              branch: work.branch,
+              work_sha: work.sha
             },
             null
           ])
         console.log(`resolving work for ${integrationId}, timestamp: ${timestamp}`);
-        resolve(new Work({
-          integrationId: integrationId,
-          sha: task.final_sha,
-          branch: task.branch,
-          integrationTimestamp: timestamp,
-          integrationData: integrationData,
-          integrationURL: task.self_url
-        }));
+        console.log("work object: ", work)
+        resolve(work);
       } else if (isRetry) {
         reject(`No final_sha in COIN after 30 seconds.`);
       } else {
@@ -305,7 +312,7 @@ class core_benchmarks_server {
     // +!+!+!+!+!+!+! DEVELOPMENT BLOCK. REMOVE! +!+!+!+!+!+!+!+!+!+!
     {
       cors: {
-        origin: "http://192.168.50.152:3000",
+        origin: "https://qt-bots-status-site.herokuapp.com",
         methods: ["GET", "POST"]
       }
     }
@@ -379,11 +386,11 @@ class core_benchmarks_server {
                     enqueueWork(sorted[i].agents[j],
                       new Work({
                         integrationId: sorted[i].integration_id,
-                        sha: sorted[i].work_sha,
-                        branch: sorted[i].branch,
-                        integrationURL: sorted[i].integration_url,
                         integrationTimestamp: sorted[i].integration_timestamp,
-                        integrationData: JSON.parse(Buffer.from(sorted[i].integration_data, 'base64'))
+                        integrationURL: sorted[i].integration_url,
+                        integrationData: JSON.parse(Buffer.from(sorted[i].integration_data, 'base64')),
+                        branch: sorted[i].branch,
+                        sha: sorted[i].work_sha
                       }));
                     } catch (e) {
                       console.log(e, safeJsonStringify(sorted[i]));
@@ -474,9 +481,9 @@ class core_benchmarks_server {
         [
           "core_benchmarks", "agents,done", "integration_id", status.integrationId,
           "=",
-          (error, rows) => {
-            if (error || !rows.length) {
-              console.log(`Error querying for ${status.integrationId}: ${error}`);
+          (success, rows) => {
+            if (!success || !rows.length) {
+              console.log(`Error querying for ${status.integrationId}: ${rows}`);
               return;
             } else {
               let data = rows[0];
