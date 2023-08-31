@@ -476,109 +476,163 @@ class requestProcessor extends EventEmitter {
       );
     }
 
+    function queryParent(immediateParent) {
+      // Query for the immediate parent to get its change ID.
+      gerritTools.queryChange(
+        currentJSON.uuid, immediateParent, undefined, currentJSON.customGerritAuth,
+        function (exists, data) {
+          if (exists) {
+            let targetPickParent = `${encodeURIComponent(currentJSON.change.project)}~${
+              encodeURIComponent(branch)}~${data.change_id}`;
+            _this.logger.log(
+              `Set target pick parent for ${branch} to ${targetPickParent}`,
+              "debug", currentJSON.uuid
+            );
+            // Success - Found the parent (change ID) of the current change.
+            if (data.status == "ABANDONED") {
+              // The parent is an abandoned state. Send the error signal.
+              _this.logger.log(
+                `Immediate parent (${immediateParent}) for ${
+                  currentJSON.fullChangeID} is in state: ${data.status}`,
+                "warn", currentJSON.uuid
+              );
+              _this.emit(
+                errorSignal, currentJSON, branch,
+                { error: data.status, parentJSON: data, isRetry: isRetry }
+              );
+            } else if (["NEW", "STAGED", "INTEGRATING"].some((element) => data.status == element)) {
+              // The parent has not yet been merged.
+              // Fire the error signal with the parent's state.
+              _this.logger.log(
+                `Immediate parent (${immediateParent}) for ${
+                  currentJSON.fullChangeID} is in state: ${data.status}`,
+                "verbose", currentJSON.uuid
+              );
+              _this.emit(errorSignal, currentJSON, branch, {
+                error: data.status,
+                unmergedChangeID: `${
+                  encodeURIComponent(currentJSON.change.project)}~${
+                  encodeURIComponent(data.branch)}~${data.change_id}`,
+                targetPickParent: targetPickParent, parentJSON: data, isRetry: isRetry
+              });
+            } else {
+              // The status of the parent should be MERGED at this point.
+              // Try to see if it was picked to the target branch.
+              _this.logger.log(
+                `Immediate parent (${immediateParent}) for ${
+                  currentJSON.fullChangeID} is in state: ${data.status}`,
+                "debug", currentJSON.uuid
+              );
+              gerritTools.queryChange(
+                currentJSON.uuid, targetPickParent, undefined, currentJSON.customGerritAuth,
+                function (exists, targetData) {
+                  if (exists) {
+                    _this.logger.log(
+                      `Target pick parent ${
+                        targetPickParent} exists and will be used as the the parent for ${branch}`,
+                      "debug", currentJSON.uuid
+                    );
+                    // Success - The target exists and can be set as the parent.
+                    _this.emit(
+                      responseSignal, currentJSON, branch,
+                      { target: targetData.current_revision, isRetry: isRetry }
+                    );
+                  } else if (targetData == "retry") {
+                  // Do nothing. This callback function will be called again on retry.
+                    retryThis();
+                  } else {
+                  // The target change ID doesn't exist on the branch specified.
+                    _this.logger.log(
+                      `Target pick parent ${targetPickParent} does not exist on ${branch}`,
+                      "debug", currentJSON.uuid
+                    );
+                    toolbox.addToCherryPickStateUpdateQueue(
+                      currentJSON.uuid,
+                      { branch: branch, statusDetail: "parentMergedNoPick" },
+                      "verifyParentPickExists",
+                      function () {
+                        _this.emit(
+                          errorSignal, currentJSON, branch,
+                          {
+                            error: "notPicked",
+                            parentChangeID: data.id,
+                            parentJSON: data, targetPickParent: targetPickParent, isRetry: isRetry
+                          }
+                        );
+                      }
+                    );
+                  }
+                }
+              );
+            } // End of target pick parent queryChange call
+          } else if (data == "retry") {
+            // Do nothing. This callback function will be called again on retry.
+            retryThis();
+          } else {
+            fatalError(data);
+          }
+        }
+      ); // End of parent change queryChange call
+    }
+
     // Query for the current change to get a list of its parents.
     gerritTools.queryChange(
       currentJSON.uuid, currentJSON.fullChangeID, undefined, currentJSON.customGerritAuth,
       function (exists, data) {
         if (exists) {
-        // Success - Locate the parent revision (SHA) to the current change.
-          let immediateParent = data.revisions[data.current_revision].commit.parents[0].commit;
-          gerritTools.queryChange(
-            currentJSON.uuid, immediateParent, undefined, currentJSON.customGerritAuth,
-            function (exists, data) {
-              if (exists) {
-                let targetPickParent = `${encodeURIComponent(currentJSON.change.project)}~${
-                  encodeURIComponent(branch)}~${data.change_id}`;
-                _this.logger.log(
-                  `Set target pick parent for ${branch} to ${targetPickParent}`,
-                  "debug", currentJSON.uuid
-                );
-                // Success - Found the parent (change ID) of the current change.
-                if (data.status == "ABANDONED") {
-                  // The parent is an abandoned state. Send the error signal.
-                  _this.logger.log(
-                    `Immediate parent (${immediateParent}) for ${
-                      currentJSON.fullChangeID} is in state: ${data.status}`,
-                    "warn", currentJSON.uuid
-                  );
-                  _this.emit(
-                    errorSignal, currentJSON, branch,
-                    { error: data.status, parentJSON: data, isRetry: isRetry }
-                  );
-                } else if (["NEW", "STAGED", "INTEGRATING"].some((element) => data.status == element)) {
-                  // The parent has not yet been merged.
-                  // Fire the error signal with the parent's state.
-                  _this.logger.log(
-                    `Immediate parent (${immediateParent}) for ${
-                      currentJSON.fullChangeID} is in state: ${data.status}`,
-                    "verbose", currentJSON.uuid
-                  );
-                  _this.emit(errorSignal, currentJSON, branch, {
-                    error: data.status,
-                    unmergedChangeID: `${
-                      encodeURIComponent(currentJSON.change.project)}~${
-                      encodeURIComponent(data.branch)}~${data.change_id}`,
-                    targetPickParent: targetPickParent, parentJSON: data, isRetry: isRetry
-                  });
-                } else {
-                  // The status of the parent should be MERGED at this point.
-                  // Try to see if it was picked to the target branch.
-                  _this.logger.log(
-                    `Immediate parent (${immediateParent}) for ${
-                      currentJSON.fullChangeID} is in state: ${data.status}`,
-                    "debug", currentJSON.uuid
-                  );
-                  gerritTools.queryChange(
-                    currentJSON.uuid, targetPickParent, undefined, currentJSON.customGerritAuth,
-                    function (exists, targetData) {
-                      if (exists) {
-                        _this.logger.log(
-                          `Target pick parent ${
-                            targetPickParent} exists and will be used as the the parent for ${branch}`,
-                          "debug", currentJSON.uuid
-                        );
-                        // Success - The target exists and can be set as the parent.
-                        _this.emit(
-                          responseSignal, currentJSON, branch,
-                          { target: targetData.current_revision, isRetry: isRetry }
-                        );
-                      } else if (targetData == "retry") {
-                      // Do nothing. This callback function will be called again on retry.
-                        retryThis();
-                      } else {
-                      // The target change ID doesn't exist on the branch specified.
-                        _this.logger.log(
-                          `Target pick parent ${targetPickParent} does not exist on ${branch}`,
-                          "debug", currentJSON.uuid
-                        );
-                        toolbox.addToCherryPickStateUpdateQueue(
-                          currentJSON.uuid,
-                          { branch: branch, statusDetail: "parentMergedNoPick" },
-                          "verifyParentPickExists",
-                          function () {
-                            _this.emit(
-                              errorSignal, currentJSON, branch,
-                              {
-                                error: "notPicked",
-                                parentChangeID: data.id,
-                                parentJSON: data, targetPickParent: targetPickParent, isRetry: isRetry
-                              }
-                            );
-                          }
-                        );
-                      }
-                    }
-                  );
-                } // End of target pick parent queryChange call
-              } else if (data == "retry") {
-                // Do nothing. This callback function will be called again on retry.
-                retryThis();
-              } else {
-                fatalError(data);
-              }
+          let immediateParent;
+          // Success - Locate the parent revision (SHA) to the current change.
+          // If the current change is part of a relation chain and is not the last change
+          // in the list, use the previous change in the chain as the parent.
+          // The retrieve the current revision of that parent.
+          if (currentJSON.relatedChanges.length > 0) {
+            let next = [...currentJSON.relatedChanges].reverse().findIndex((i) =>
+              i.change_id === currentJSON.change.id) - 1;
+            if (next >= 0) {
+              _this.logger.log(
+                `This change is part of a relation chain. Using the previous change in the chain as the parent.`,
+                "verbose", currentJSON.uuid
+              );
+              const repo_branch = currentJSON.fullChangeID.split('~').slice(0, 2).join('~');
+              let parentChangeId = `${repo_branch}~${currentJSON.relatedChanges[next].change_id}`;
+              // Query for the parent change ID to get the current revision.
+              gerritTools.queryChange(
+                currentJSON.uuid, parentChangeId, undefined, currentJSON.customGerritAuth,
+                function (exists, data) {
+                  if (exists) {
+                    _this.logger.log(
+                      `Found the parent change ID for ${currentJSON.fullChangeID}: ${
+                        data.current_revision}`,
+                      "debug", currentJSON.uuid
+                    );
+                    immediateParent = data.current_revision;
+                    queryParent(immediateParent);
+                  } else if (data == "retry") {
+                  // Do nothing. This callback function will be called again on retry.
+                    retryThis();
+                  } else {
+                    fatalError(data);
+                  }
+                }); // End of parent change queryChange call
+            } else {
+              _this.logger.log(
+                `This change is part of a relation chain, but is the first change in the chain.`
+                + ` Using the latest patchset's parent as the parent.`,
+                "verbose", currentJSON.uuid
+              );
+              immediateParent = data.revisions[data.current_revision].commit.parents[0].commit;
+              queryParent(immediateParent);
             }
-          ); // End of parent change queryChange call
-        } else if (data == "retry") {
+          } else {
+            _this.logger.log(
+              `This change is not part of a relation chain.`
+              + ` Using the latest patchset's parent as the parent.`,
+              "verbose", currentJSON.uuid
+            );
+            immediateParent = data.revisions[data.current_revision].commit.parents[0].commit;
+            queryParent(immediateParent);
+          }
+      } else if (data == "retry") {
         // Do nothing. This callback function will be called again on retry.
           retryThis();
         } else {

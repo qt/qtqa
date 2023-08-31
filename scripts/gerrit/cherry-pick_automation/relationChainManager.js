@@ -232,14 +232,28 @@ class relationChainManager {
 
         if (parentPickBranches.has(branch)) {
           // The parent is suitable, just needs to be merged so it can be
-          // cherry-picked.
-          toolbox.setupListener(
-            _this.requestProcessor, `merge_${detail.unmergedChangeID}`, undefined, undefined,
-            48 * 60 * 60 * 1000, undefined, undefined,
-            undefined, undefined,
-            undefined,
-            undefined, currentJSON.uuid, true, "relationChain"
-          );
+          // cherry-picked as handled above. But if the parent becomes abandoned,
+          // we need to pick to the nearest available parent anyway.
+          pickToNearestParent = true;
+          gerritMessage = `A dependent to this change also had a cherry-pick footer for`
+          + ` ${sanitizedBranch}, but this change is still ${detail.error}.`
+          + `\n If this change is picked to ${branch} in the next`
+          + ` 48 hours and retains the same Change-Id, the dependent change's cherry-pick will`
+          + ` be reparented automatically if it has not yet been staged/merged.`
+          + `\n\nDependent change information:`
+          + `\nSubject: ${currentJSON.change.subject}`
+          + `\nChange Number: ${currentJSON.change.number}`
+          + `\nLink: ${currentJSON.change.url}`;
+
+          gerritMessageOnTimeout = `An automatic pick request for a dependent of this change to`
+          + ` ${sanitizedBranch} has expired.\nPlease process the cherry-pick manually if required.`
+          + `\n\nDependent change information:`
+          + `\nSubject: ${currentJSON.change.subject}`
+          + `\nChange Number: ${currentJSON.change.number}`
+          + `\nLink: ${currentJSON.change.url}`;
+          messageTriggerEvent = `mergeConflict_${targetPickID}`;
+          messageCancelTriggerEvent = `staged_${targetPickID}`;
+
           toolbox.setupListener(
             _this.requestProcessor, `abandon_${detail.unmergedChangeID}`, undefined, undefined,
             48 * 60 * 60 * 1000, undefined, undefined,
@@ -308,7 +322,7 @@ class relationChainManager {
                 "relationChain_targetParentNotPicked",
                 true
               );
-            }, 8000);
+            }, 10000);
           } else if (detail.isRetry) {
             // We already retried once. The target isn't going to exist
             // now if didn't on the first retry. Post a comment on gerrit.
