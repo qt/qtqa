@@ -261,41 +261,74 @@ function postGerritComment(
   parentUuid, fullChangeID, revision, message,
   notifyScope, customAuth, callback
 ) {
-  let url = `${gerritBaseURL("changes")}/${fullChangeID}/revisions/${
-    revision || "current"}/review`;
-  let data = { message: message, notify: notifyScope || "OWNER_REVIEWERS" };
+  function _postComment() {
+    let url = `${gerritBaseURL("changes")}/${fullChangeID}/revisions/${
+      revision || "current"}/review`;
+    let data = { message: message, notify: notifyScope || "OWNER_REVIEWERS" };
 
-  logger.log(
-    `POST request to: ${url}\nRequest Body: ${safeJsonStringify(data)}`,
-    "debug", parentUuid
-  );
+    logger.log(
+      `POST request to: ${url}\nRequest Body: ${safeJsonStringify(data)}`,
+      "debug", parentUuid
+    );
 
-  axios({ method: "post", url: url, data: data, auth: customAuth || gerritAuth })
+    axios({ method: "post", url: url, data: data, auth: customAuth || gerritAuth })
+      .then(function (response) {
+        logger.log(`Posted comment "${message}" to change "${fullChangeID}"`, "info", parentUuid);
+        callback(true, undefined);
+      })
+      .catch(function (error) {
+        if (error.response) {
+          // The request was made and the server responded with a status code
+          // that falls out of the range of 2xx
+          logger.log(
+            `An error occurred in POST (gerrit comment) to "${url}". Error ${
+              error.response.status}: ${error.response.data}`,
+            "error", parentUuid
+          );
+          callback(false, error.response);
+        } else if (error.request) {
+          // The request was made but no response was received
+          callback(false, "retry");
+        } else {
+          // Something happened in setting up the request that triggered an Error
+          logger.log(
+            `Error in HTTP request while posting comment. Error: ${safeJsonStringify(error)}`,
+            "error", parentUuid
+          );
+          callback(false, error.message);
+        }
+      });
+  }
+
+  // Query the change first to see if we've posted the same comment on the current revision before
+  const message_url = `${gerritBaseURL("changes")}/${fullChangeID}/messages`;
+  logger.log(`GET request to: ${message_url}`, "debug", parentUuid);
+  axios({ method: "get", url: message_url, auth: customAuth || gerritAuth })
     .then(function (response) {
-      logger.log(`Posted comment "${message}" to change "${fullChangeID}"`, "info", parentUuid);
-      callback(true, undefined);
-    })
-    .catch(function (error) {
-      if (error.response) {
-        // The request was made and the server responded with a status code
-        // that falls out of the range of 2xx
-        logger.log(
-          `An error occurred in POST (gerrit comment) to "${url}". Error ${
-            error.response.status}: ${error.response.data}`,
-          "error", parentUuid
-        );
-        callback(false, error.response);
-      } else if (error.request) {
-        // The request was made but no response was received
-        callback(false, "retry");
-      } else {
-        // Something happened in setting up the request that triggered an Error
-        logger.log(
-          `Error in HTTP request while posting comment. Error: ${safeJsonStringify(error)}`,
-          "error", parentUuid
-        );
-        callback(false, error.message);
+      let parsedResponse = JSON.parse(trimResponse(response.data));
+      let messages = parsedResponse
+        .filter((message) => message.author.name == "Qt Cherry-pick Bot")
+        .map((message) => message.message);
+      if (messages.length == 0) {
+        // If there are no messages, then the bot hasn't posted a comment yet.
+        _postComment();
+        return;
       }
+      let patchset = parsedResponse[parsedResponse.length - 1]._revision_number;
+      // Reverse messages so that we can find the most recent comment first.
+      // Then iterate and check for message in the current patchset.
+      for (let i = messages.length - 1; i >= 0; i--) {
+        if (messages[i].includes(message) && messages[i].includes(`Patch Set ${patchset}:`)) {
+          logger.log(
+            `Comment "${message}" already posted on patchset ${patchset} of ${fullChangeID}`,
+            "verbose", parentUuid
+          );
+          callback(true, undefined);
+          return;
+        }
+      }
+      // If we get here, then the comment hasn't been posted yet.
+      _postComment();
     });
 }
 
