@@ -361,6 +361,7 @@ class requestProcessor extends EventEmitter {
         if (!validBranch && !tqtcBranch) {
           if (incoming.change.project.includes("/tqtc-")) {
             tryLTS();
+            return;
           } else {
             // Invalid branch specified in Pick-to: footer or some other critical failure
             let message = `Failed to cherry pick to ${incoming.change.project}:${branch} due`
