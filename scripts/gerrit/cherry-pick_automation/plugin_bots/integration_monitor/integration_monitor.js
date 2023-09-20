@@ -87,7 +87,7 @@ class integration_monitor {
     req.change.fullChangeID = req.fullChangeID // Tack on the full change ID so it gets used
     _this.doAddToAttentionSet(req, author, "Change author", (success) => {
       if (!success) {
-        gerritTools.locateDefaultAttentionUser(req.uuid, req.change, req.change.patchSet.uploader.email,
+        gerritTools.locateDefaultAttentionUser(req.uuid, req.change, req.change.owner.email,
           (user, fallbackId) => {
           if (user == "copyReviewers")
             gerritTools.copyChangeReviewers(req.uuid, fallbackId, req.change.fullChangeID);

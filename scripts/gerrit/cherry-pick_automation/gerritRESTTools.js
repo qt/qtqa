@@ -661,11 +661,13 @@ function setChangeReviewers(parentUuid, fullChangeID, reviewers, customAuth, cal
     callback(failedItems);
   let project = /^((?:\w+-?)+(?:%2F|\/)(?:-?\w)+)/.exec(fullChangeID).pop();
   let branch = /~(.+)~/.exec(fullChangeID).pop();
+  let doneCount = 0;
   function postReviewer(reviewer) {
     checkAccessRights(
       parentUuid, project, branch, reviewer, "read", customAuth,
       function (success, data) {
         if (!success) {
+          doneCount++;
           logger.log(`Dropping reviewer ${reviewer} from cherry-pick to ${
             branch} because they can't view it.`, "info", parentUuid);
           logger.log(`Reason: ${data}`, "debug", parentUuid);
@@ -683,8 +685,14 @@ function setChangeReviewers(parentUuid, fullChangeID, reviewers, customAuth, cal
                 `Success adding ${reviewer} to ${fullChangeID}\n${response.data}`,
                 "info", parentUuid
               );
+              doneCount++;
+              if (doneCount == reviewers.length)
+                callback(failedItems);
             })
             .catch(function (error) {
+              doneCount++;
+              if (doneCount == reviewers.length)
+                callback(failedItems);
               if (error.response) {
                 // The request was made and the server responded with a status code
                 // that falls out of the range of 2xx
@@ -708,8 +716,49 @@ function setChangeReviewers(parentUuid, fullChangeID, reviewers, customAuth, cal
 
   // Not possible to batch reviewer adding into a single request. Iterate through
   // the list instead.
-  reviewers.forEach(postReviewer);
-  callback(failedItems);
+  setReadyForReview(parentUuid, fullChangeID, customAuth, function () {
+    // Even if setting Ready fails, still attempt to post the reviewers.
+    reviewers.forEach(postReviewer);
+  });
+}
+
+exports.setReadyForReview = setReadyForReview;
+function setReadyForReview(parentUuid, fullChangeID, customAuth, callback) {
+  let url = `${gerritBaseURL("changes")}/${fullChangeID}/ready`;
+  axios({ method: "post", url: url, data: {}, auth: customAuth || gerritAuth })
+    .then(function (response) {
+      logger.log(`Successfully set ready for review on change ${fullChangeID}`, "verbose", parentUuid);
+      callback(true, undefined);
+    })
+    .catch(function (error) {
+      if (error.response) {
+        // 409 is expected if the change is not WIP.
+        if (error.response.status == 409) {
+          logger.log(`Change ${fullChangeID} is not WIP.`, "debug", parentUuid);
+          callback(true, undefined);
+        } else {
+          // The request was made and the server responded with a status code
+          // that falls out of the range of 2xx
+          logger.log(
+            `An error occurred in POST to "${url}". Error ${error.response.status}: ${
+              error.response.data}`,
+            "error", parentUuid
+          );
+          callback(false, error.response.status);
+        }
+      } else if (error.request) {
+        // The request was made but no response was received
+        callback(false, "retry");
+      } else {
+        // Something happened in setting up the request that triggered an Error
+        logger.log(
+          `UNKNOWN ERROR while setting ready for review on ${
+            fullChangeID}: ${safeJsonStringify(error)}`,
+          "error", parentUuid
+        );
+        callback(false, error.message);
+      }
+    });
 }
 
 // Copy reviewers from one change ID to another
@@ -758,13 +807,19 @@ function locateDefaultAttentionUser(uuid, cherryPickChange, uploader, callback) 
     }
     if (originalApprover && originalApprover != uploader) {
       // The approver from the original change should be able to help.
-      checkAccessRights(uuid, cherryPickChange.project, cherryPickChange.branch, originalApprover,
+      let project = typeof cherryPickChange.project === "string"
+        ? cherryPickChange.project
+        : cherryPickChange.change.project;
+      let branch = cherryPickChange.branch
+        ? cherryPickChange.branch
+        : cherryPickChange.change.branch;
+      checkAccessRights(uuid, project, branch, originalApprover,
         "read", undefined,
         (canRead) => {
           if (canRead)
             callback(originalApprover);
           else
-            tryFallback();
+            tryFallback(project, branch);
         }
       );
     } else {
@@ -772,7 +827,7 @@ function locateDefaultAttentionUser(uuid, cherryPickChange, uploader, callback) 
     }
   }
 
-  function tryFallback() {
+  function tryFallback(project, branch) {
     // This insane regex is the same as used in the commit message sanitizer,
     // So it should always find the right footer which references the
     // picked-from sha.
@@ -794,8 +849,8 @@ function locateDefaultAttentionUser(uuid, cherryPickChange, uploader, callback) 
           if (uploader != originalAuthor) {
             // Add the author of the original change's final patchset to the
             // attention set of the cherry-pick.
-            checkAccessRights(uuid, cherryPickChange.project, cherryPickChange.branch,
-              originalApprover, "read", undefined,
+            checkAccessRights(uuid, project, branch,
+              originalAuthor, "read", undefined,
               (canRead) => {
                 if (canRead)
                   callback(originalAuthor);

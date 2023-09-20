@@ -1305,7 +1305,7 @@ class requestProcessor extends EventEmitter {
                       function (success, data) {
                         if (!success) {
                           _this.logger.log(
-                            `Failed to add "${safeJsonStringify(parentJSON.change.owner)}" to the`
+                            `Failed to add "${user}" to the`
                             + ` attention set of ${cherryPickJSON.id}\n`
                             + `Reason: ${safeJsonStringify(data)}`,
                             "error", parentJSON.uuid
