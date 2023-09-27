@@ -125,9 +125,12 @@ def pyside2_examples():
 
 def get_addon_examples():
     result = []
-    if VERSION >= (6, 5, 1):
-        result.append('datavisualization/graphgallery/main.py')
+    if VERSION >= (6, 6, 0):
+        result.append('examples/graphs/widgetgallery/main.py')
         result.append('webenginewidgets/simplebrowser/main.py')
+    elif VERSION >= (6, 5, 1):
+        result.append('datavisualization/graphgallery/main.py')
+        result.append('webenginewidgets/widgetsnanobrowser/widgetsnanobrowser.py')
     else:
         result.append('datavisualization/bars3d/bars3d.py')
         result.append(WEBENGINE_TABBED_BROWSER)
