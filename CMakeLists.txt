@@ -21,7 +21,9 @@ qt_build_repo_begin()
 
 if(QT_BUILD_TESTS)
     add_subdirectory(scripts)
-    qt_build_repo_post_process()
+    if(Qt6Core_VERSION VERSION_GREATER_EQUAL 6.7.0)
+        qt_build_repo_post_process()
+    endif()
     add_subdirectory(tests)
 
     if(NOT QT_BUILD_TESTS_BY_DEFAULT)
