@@ -151,6 +151,7 @@ def pyside2_examples():
 def get_addon_examples():
     result = []
     if VERSION >= (6, 6, 0):
+        result.append('async/minimal/minimal_asyncio.py')
         result.append('examples/graphs/widgetgallery/main.py')
         result.append('webenginewidgets/simplebrowser/main.py')
     elif VERSION >= (6, 5, 1):
