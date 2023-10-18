@@ -1,0 +1,1 @@
+%benchmarkers ALL=NOPASSWD:/usr/bin/renice,NOPASSWD:/usr/local/bin/prep_bench,NOPASSWD:/usr/local/bin/unprep_bench
