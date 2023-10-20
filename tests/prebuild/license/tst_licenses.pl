@@ -119,6 +119,7 @@ my %excludedFiles = (
     'qttools'        => [
                           # Exclude QDoc's golden output in tests
                           qr{^src/qdoc/qdoc/tests/generatedoutput/expected_output/},
+                          qr{^src/qdoc/qdoc/src/qdoc/clang/AST/QualTypeNames.h},
                         ],
 );
 
