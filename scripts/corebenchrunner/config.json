@@ -1,15 +1,15 @@
 {
     "coordinator_info": {
-        "url": "https://qt-cherry-pick-bot-staging.herokuapp.com",
-        "secret": "1234"
+        "url": "https://qt-cherry-pick-bot.herokuapp.com/",
+        "secret": ""
     },
     "database_info": {
         "server_url": "https://testresults.qt.io/influxdb",
-        "database_name": "",
+        "database_name": "core_benchmarks",
         "username": "",
         "password": ""
     },
     "qtbase_git_remote": {
-        "url": "ssh://QtCoreBenchmarksBot@codereview.qt-project.org:29418/qt/qtbase"
+        "url": "ssh://codereview.qt-project.org/qt/qtbase"
     }
 }
