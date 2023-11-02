@@ -97,6 +97,7 @@ const Status = {
   Test: 'test',
   Results: 'results',
   Done: 'done',
+  Error: 'error',
   Idle: 'idle'
 }
 
@@ -308,15 +309,13 @@ class core_benchmarks_server {
     this.onConnection = this.onConnection.bind(this);
 
     this.io = socketio(notifier.server.server,
-    // +!+!+!+!+!+!+! DEVELOPMENT BLOCK. REMOVE! +!+!+!+!+!+!+!+!+!+!
-    // +!+!+!+!+!+!+! DEVELOPMENT BLOCK. REMOVE! +!+!+!+!+!+!+!+!+!+!
     {
+      // Cors for the web viewer.
       cors: {
         origin: "https://qt-bots-status-site.herokuapp.com",
         methods: ["GET", "POST"]
       }
     }
-    // +!+!+!+!+!+!+! END DEVELOPMENT BLOCK. +!+!+!+!+!+!+!+!+!+!
     );
     this.io.use((socket, next) => {
       if (socket.handshake.auth.clientType == "agent") {
@@ -476,7 +475,7 @@ class core_benchmarks_server {
 
   handleStatusUpdate(agentName, status) {
     console.log(`Status update received from ${agentName} status: ${safeJsonStringify(status)}`);
-    if (status.status == Status.Done.valueOf()) {
+    if (status.status == Status.Done.valueOf() || status.status == Status.Error.valueOf()) {
       enqueueDBAction("CORE_BENCH", status.integrationId, postgreSQLClient.query,
         [
           "core_benchmarks", "agents,done", "integration_id", status.integrationId,
@@ -553,12 +552,10 @@ class core_benchmarks_server {
         }
       });
 
-      // +!+!+!+!+!+!+! DEVELOPMENT BLOCK. REMOVE! +!+!+!+!+!+!+!+!+!+!
       socket.on('queryWork', () => {
         console.log("queryWork called");
           socket.emit('sendWork', agents[agentName].workQueue.at(0));
       });
-      // +!+!+!+!+!+!+! END DEVELOPMENT BLOCK. +!+!+!+!+!+!+!+!+!+!
 
       socket.on('disconnect', (reason) => {
         if (reason && reason == "shutdown") {
