@@ -32,7 +32,7 @@ class Command:
         output_file: Optional[str] = None,
         timeout: Optional[int] = None,
         cwd: Optional[str] = None,
-    ) -> Optional[Error]:
+    ) -> Optional[CommandError]:
         if output_file is None:
             process = await asyncio.create_subprocess_exec(
                 *arguments,
@@ -40,7 +40,7 @@ class Command:
             )
         elif os.path.exists(output_file):
             command = " ".join(arguments)
-            return Error(f'Output file of command "{command}" exists: {output_file}')
+            return CommandError(f'Output file of command "{command}" exists: {output_file}')
         else:
             with open(output_file, "w") as f:
                 process = await asyncio.create_subprocess_exec(
@@ -57,14 +57,14 @@ class Command:
             message = f'Command "{command}" timed out after {timeout} seconds'
             if output_file:
                 message += f"; output was redirected to {output_file}"
-            return Error(message)
+            return CommandError(message)
 
         if process.returncode != 0:
             command = " ".join(arguments)
             message = f'Command "{command} returned non-zero code {process.returncode}'
             if output_file:
                 message += f"; output was redirected to {output_file}"
-            return Error(message)
+            return CommandError(message)
         else:
             return None
 
