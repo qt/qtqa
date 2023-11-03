@@ -1,7 +1,7 @@
 --------------------------
-  QTest Benchmark Runner
+  Core Benchmarks Runner
 --------------------------
-A benchmark runner that runs the QTest benchmarks in the QtBase repository.
+A benchmark runner that runs the benchmarks in the QtBase repository.
 
 It fetches Git revisions from a server, checks them out, runs the benchmarks, and uploads results to
 a database.

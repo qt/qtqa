@@ -1,7 +1,7 @@
 # Copyright (C) 2023 The Qt Company Ltd.
 # SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
 """
-A benchmark runner that runs the QTest benchmarks in the QtBase repository.
+A benchmark runner that runs the benchmarks in the QtBase repository.
 """
 import argparse
 import asyncio
