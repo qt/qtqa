@@ -259,12 +259,11 @@ async def main(argv: List[str]) -> int:
     except Exception:
         error = common.Error(f"Unhandled exception:\n{traceback.format_exc()}")
 
-    match error:
-        case common.Error(message):
-            logger.critical(message)
-            return 1
-
-    return 0
+    if error:
+        logger.critical(error.message)
+        return 1
+    else:
+        return 0
 
 
 async def run(arguments: Arguments, logger: logging.Logger) -> Optional[common.Error]:
@@ -422,9 +421,8 @@ async def run_work_item(
         revision=work_item.revision,
         log_directory=work_item_directory,
     )
-    match error:
-        case common.Error(message):
-            return WorkItemFailure(f"Error resetting the Git repository: {message}")
+    if error:
+        return WorkItemFailure(f"Error resetting the Git repository: {error.message}")
 
     message = "Configuring the QtBase module"
     logger.info(message)
@@ -436,9 +434,8 @@ async def run_work_item(
         repository_directory=git_repository.directory,
         log_directory=work_item_directory,
     )
-    match error:
-        case common.Error(message):
-            return WorkItemFailure(f"Error configuring QtBase: {message}")
+    if error:
+        return WorkItemFailure(f"Error configuring QtBase: {error.message}")
 
     message = "Building the QtBase module"
     logger.info(message)
@@ -467,9 +464,8 @@ async def run_work_item(
     else:
         logger.info("Tuning performance to reduce system noise")
         error = await common.Command.run(["sudo", "prep_bench"])
-        match error:
-            case common.Error(message):
-                return common.Error(f"Failed to tune performance: {message}")
+        if error:
+            return common.Error(f"Failed to tune performance: {error.message}")
 
         try:
             result_files, run_issues = await run_test_files(
@@ -483,9 +479,8 @@ async def run_work_item(
         finally:
             error = await common.Command.run(["sudo", "unprep_bench"])
 
-        match error:
-            case common.Error(message):
-                return common.Error(f"Failed to revert performance tuning: {message}")
+        if error:
+            return common.Error(f"Failed to revert performance tuning: {error.message}")
 
     results, parse_issues = parse_results(result_files=result_files, logger=logger)
 
@@ -499,9 +494,8 @@ async def run_work_item(
         host_info=host_info,
         logger=logger,
     )
-    match error:
-        case common.Error(message):
-            return WorkItemFailure(f"Error storing results: {message}")
+    if error:
+        return WorkItemFailure(f"Error storing results: {error.message}")
 
     return None
 

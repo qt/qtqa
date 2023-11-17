@@ -53,9 +53,8 @@ class Repository:
             timeout=COMMAND_TIMEOUT,
             cwd=self.directory,
         )
-        match error:
-            case common.Error() as error:
-                return error
+        if error:
+            return error
 
         error = await common.Command.run(
             arguments=["git", "clean", "-dfx"],
@@ -63,9 +62,8 @@ class Repository:
             timeout=COMMAND_TIMEOUT,
             cwd=self.directory,
         )
-        match error:
-            case common.Error(message):
-                return common.Error(message)
+        if error:
+            return error
 
         error = await common.Command.run(
             arguments=["git", "reset", "--hard", revision],
@@ -73,8 +71,7 @@ class Repository:
             timeout=COMMAND_TIMEOUT,
             cwd=self.directory,
         )
-        match error:
-            case common.Error(message):
-                return common.Error(message)
+        if error:
+            return error
 
         return None

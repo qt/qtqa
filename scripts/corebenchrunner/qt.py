@@ -37,11 +37,10 @@ class Module:
             timeout=CONFIGURE_TIMEOUT,
             cwd=build_directory,
         )
-        match error:
-            case common.Error() as error:
-                return error
-
-        return None
+        if error:
+            return error
+        else:
+            return None
 
     @staticmethod
     async def build(
@@ -55,9 +54,8 @@ class Module:
             timeout=BUILD_TIMEOUT,
             cwd=build_directory,
         )
-        match error:
-            case common.Error() as error:
-                return error
+        if error:
+            return error
 
         logger.debug("Searching for test files")
         directory = os.path.join(build_directory, "tests", "benchmarks")
