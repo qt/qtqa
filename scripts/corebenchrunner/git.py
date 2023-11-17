@@ -15,10 +15,6 @@ class Remote:
         self.url = url
 
 
-class Error(common.Error):
-    pass
-
-
 class Repository:
     """
     A local repository cloned from a remote repository.
@@ -32,11 +28,11 @@ class Repository:
         remote: Remote,
         parent_directory: str,
         log_directory: str,
-    ) -> Union["Repository", Error]:
+    ) -> Union["Repository", common.Error]:
         try:
             name = remote.url.rsplit("/", maxsplit=1)[1]
         except IndexError:
-            return Error("Failed to extract repository name from remote URL")
+            return common.Error("Failed to extract repository name from remote URL")
 
         directory = os.path.join(parent_directory, name)
         error = await common.Command.run(
@@ -45,12 +41,12 @@ class Repository:
             timeout=COMMAND_TIMEOUT,
         )
         match error:
-            case common.CommandError(message):
-                return Error(message)
+            case common.Error() as error:
+                return error
 
         return Repository(directory)
 
-    async def reset(self, revision: str, log_directory: str) -> Optional[Error]:
+    async def reset(self, revision: str, log_directory: str) -> Optional[common.Error]:
         error = await common.Command.run(
             arguments=["git", "fetch", "origin", revision],
             output_file=os.path.join(log_directory, "fetch.log"),
@@ -58,8 +54,8 @@ class Repository:
             cwd=self.directory,
         )
         match error:
-            case common.CommandError(message):
-                return Error(message)
+            case common.Error() as error:
+                return error
 
         error = await common.Command.run(
             arguments=["git", "clean", "-dfx"],
@@ -68,8 +64,8 @@ class Repository:
             cwd=self.directory,
         )
         match error:
-            case common.CommandError(message):
-                return Error(message)
+            case common.Error(message):
+                return common.Error(message)
 
         error = await common.Command.run(
             arguments=["git", "reset", "--hard", revision],
@@ -78,7 +74,7 @@ class Repository:
             cwd=self.directory,
         )
         match error:
-            case common.CommandError(message):
-                return Error(message)
+            case common.Error(message):
+                return common.Error(message)
 
         return None

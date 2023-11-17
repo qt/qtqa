@@ -15,10 +15,6 @@ BUILD_TIMEOUT = 30 * 60
 TEST_TIMEOUT = 15 * 60
 
 
-class Error(common.Error):
-    pass
-
-
 class Module:
     def __init__(self, test_files: List["TestFile"]) -> None:
         self.test_files = test_files
@@ -26,7 +22,7 @@ class Module:
     @staticmethod
     async def configure(
         build_directory: str, repository_directory: str, log_directory: str
-    ) -> Optional[Error]:
+    ) -> Optional[common.Error]:
         output_file = os.path.join(log_directory, "configure.log")
 
         error = await common.Command.run(
@@ -42,15 +38,15 @@ class Module:
             cwd=build_directory,
         )
         match error:
-            case common.CommandError(message):
-                return Error(message)
+            case common.Error() as error:
+                return error
 
         return None
 
     @staticmethod
     async def build(
         build_directory: str, log_directory: str, test_file: Optional[str], logger: logging.Logger
-    ) -> Union["Module", Error]:
+    ) -> Union["Module", common.Error]:
         target = test_file if test_file is not None else "tests/benchmarks/install/local"
 
         error = await common.Command.run(
@@ -60,14 +56,14 @@ class Module:
             cwd=build_directory,
         )
         match error:
-            case common.CommandError(message):
-                return Error(message)
+            case common.Error() as error:
+                return error
 
         logger.debug("Searching for test files")
         directory = os.path.join(build_directory, "tests", "benchmarks")
         test_files = Module.find_test_files(directory=directory, logger=logger)
         if not test_files:
-            return Error(f"Found no test files in {directory}")
+            return common.Error(f"Found no test files in {directory}")
         else:
             return Module(test_files)
 
@@ -235,7 +231,7 @@ class ResultFileParser:
         test_file = result_file.test_file
         test_case_result = ResultFileParser.parse_file(result_file.path)
         match test_case_result:
-            case common.XmlParserError() as error:
+            case common.Error() as error:
                 return TestFileIssue(
                     test_file=test_file,
                     description=f"Test result file is invalid: {error.message}",
@@ -244,10 +240,10 @@ class ResultFileParser:
         return TestFileResult(test_file=test_file, test_case_result=test_case_result)
 
     @staticmethod
-    def parse_file(file: str) -> Union[TestCaseResult, common.XmlParserError]:
+    def parse_file(file: str) -> Union[TestCaseResult, common.Error]:
         element = common.XmlParser.load(file=file, tag="TestCase")
         match element:
-            case common.XmlParserError() as error:
+            case common.Error() as error:
                 return error
 
         return ResultFileParser.parse_test_case_result(element)
@@ -255,27 +251,27 @@ class ResultFileParser:
     @staticmethod
     def parse_test_case_result(
         element: common.XmlParser,
-    ) -> Union[TestCaseResult, common.XmlParserError]:
+    ) -> Union[TestCaseResult, common.Error]:
         name = element.string_attribute("name")
         match name:
-            case common.XmlParserError() as error:
+            case common.Error() as error:
                 return error
 
         child = element.child("Duration")
         match child:
-            case common.XmlParserError() as error:
+            case common.Error() as error:
                 return error
 
         duration = child.decimal_attribute("msecs")
         match duration:
-            case common.XmlParserError() as error:
+            case common.Error() as error:
                 return error
 
         test_function_results = []
         for child in element.children("TestFunction"):
             result = ResultFileParser.parse_test_function_result(child)
             match result:
-                case common.XmlParserError() as error:
+                case common.Error() as error:
                     return error
 
             test_function_results.append(result)
@@ -287,17 +283,17 @@ class ResultFileParser:
     @staticmethod
     def parse_test_function_result(
         element: common.XmlParser,
-    ) -> Union[TestFunctionResult, common.XmlParserError]:
+    ) -> Union[TestFunctionResult, common.Error]:
         name = element.string_attribute("name")
         match name:
-            case common.XmlParserError() as error:
+            case common.Error() as error:
                 return error
 
         messages = []
         for child in element.children("Message"):
             message = ResultFileParser.parse_message(child)
             match message:
-                case common.XmlParserError() as error:
+                case common.Error() as error:
                     return error
 
             messages.append(message)
@@ -306,7 +302,7 @@ class ResultFileParser:
         for child in element.children("Incident"):
             incident = ResultFileParser.parse_incident(child)
             match incident:
-                case common.XmlParserError() as error:
+                case common.Error() as error:
                     return error
 
             incidents.append(incident)
@@ -315,7 +311,7 @@ class ResultFileParser:
         for child in element.children("BenchmarkResult"):
             benchmark_result = ResultFileParser.parse_benchmark_result(child)
             match benchmark_result:
-                case common.XmlParserError() as error:
+                case common.Error() as error:
                     return error
 
             benchmark_results.append(benchmark_result)
@@ -327,36 +323,36 @@ class ResultFileParser:
     @staticmethod
     def parse_benchmark_result(
         element: common.XmlParser,
-    ) -> Union[BenchmarkResult, common.XmlParserError]:
+    ) -> Union[BenchmarkResult, common.Error]:
         tag = element.string_attribute("tag")
         match tag:
-            case common.XmlParserError() as error:
+            case common.Error() as error:
                 return error
 
         data_tag = tag if tag != "" else None
 
         metric = element.string_attribute("metric")
         match metric:
-            case common.XmlParserError() as error:
+            case common.Error() as error:
                 return error
 
         iterations = element.integer_attribute("iterations")
         match iterations:
-            case common.XmlParserError() as error:
+            case common.Error() as error:
                 return error
 
         value = element.decimal_attribute("value")
         match value:
-            case common.XmlParserError() as error:
+            case common.Error() as error:
                 return error
 
         return BenchmarkResult(data_tag=data_tag, metric=metric, iterations=iterations, value=value)
 
     @staticmethod
-    def parse_incident(element: common.XmlParser) -> Union[Incident, common.XmlParserError]:
+    def parse_incident(element: common.XmlParser) -> Union[Incident, common.Error]:
         incident_type = element.string_attribute("type")
         match incident_type:
-            case common.XmlParserError() as error:
+            case common.Error() as error:
                 return error
 
         children = element.children("DataTag")
@@ -365,15 +361,15 @@ class ResultFileParser:
         elif len(children) == 1:
             data_tag = children[0].element.text
         else:
-            return common.XmlParserError("Incident has multiple DataTag children")
+            return common.Error("Incident has multiple DataTag children")
 
         return Incident(incident_type=incident_type, data_tag=data_tag)
 
     @staticmethod
-    def parse_message(element: common.XmlParser) -> Union[Message, common.XmlParserError]:
+    def parse_message(element: common.XmlParser) -> Union[Message, common.Error]:
         message_type = element.string_attribute("type")
         match message_type:
-            case common.XmlParserError() as error:
+            case common.Error() as error:
                 return error
 
         children = element.children("DataTag")
@@ -382,15 +378,15 @@ class ResultFileParser:
         elif len(children) == 1:
             data_tag = children[0].element.text
         else:
-            return common.XmlParserError("Message has multiple DataTag children")
+            return common.Error("Message has multiple DataTag children")
 
         child = element.child("Description")
         match child:
-            case common.XmlParserError() as error:
+            case common.Error() as error:
                 return error
 
         description = child.element.text
         if description is None:
-            return common.XmlParserError("Message has no text")
+            return common.Error("Message has no text")
 
         return Message(message_type=message_type, data_tag=data_tag, description=description)

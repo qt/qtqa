@@ -7,6 +7,7 @@ from typing import Any, Dict, List, Optional, Union
 import influxdb_client  # type: ignore
 from influxdb_client.client.influxdb_client_async import InfluxDBClientAsync  # type: ignore
 
+import common
 import coordinator
 import host
 import qt
@@ -56,7 +57,7 @@ class Environment(storage.Environment):
         work_item: coordinator.WorkItem,
         host_info: host.Info,
         logger: logging.Logger,
-    ) -> Optional[storage.Error]:
+    ) -> Optional[common.Error]:
         logger.debug("Preparing results for upload")
         data_points = self.prepare_data(
             results=results,
@@ -66,7 +67,7 @@ class Environment(storage.Environment):
             logger=logger,
         )
         match data_points:
-            case storage.Error() as error:
+            case common.Error() as error:
                 return error
 
         logger.info("Uploading results")
@@ -75,7 +76,7 @@ class Environment(storage.Environment):
                 bucket=f"{self.database_name}/autogen", record=data_points
             )
         except Exception as exception:
-            return storage.Error(f"InfluxDB exception: {repr(exception)}")
+            return common.Error(f"InfluxDB exception: {repr(exception)}")
 
         return None
 
@@ -86,7 +87,7 @@ class Environment(storage.Environment):
         work_item: coordinator.WorkItem,
         host_info: host.Info,
         logger: logging.Logger,
-    ) -> Union[List[influxdb_client.Point], storage.Error]:
+    ) -> Union[List[influxdb_client.Point], common.Error]:
         """
         Prepare data for upload.
 
@@ -116,7 +117,7 @@ class Environment(storage.Environment):
         )
 
         if not benchmark_results:
-            return storage.Error("No data points in test results")
+            return common.Error("No data points in test results")
         else:
             return benchmark_run + test_file_issues + benchmark_results
 

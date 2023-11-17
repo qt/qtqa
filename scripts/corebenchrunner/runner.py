@@ -26,12 +26,6 @@ import storage
 OUTPUT_NAME = "runner"
 
 
-class Error(common.Error):
-    """
-    An error that causes the runner to exit.
-    """
-
-
 class Arguments:
     """
     Command-line arguments that are parsed by the runner.
@@ -200,7 +194,7 @@ class Configuration:
         self.git_remote = git_remote
 
     @staticmethod
-    def load(file: str, skip_upload: bool) -> Union["Configuration", Error]:
+    def load(file: str, skip_upload: bool) -> Union["Configuration", common.Error]:
         """
         Load a configuration from file and validate it.
         """
@@ -209,7 +203,7 @@ class Configuration:
             with open(file) as f:
                 dictionary = json.load(f)
         except json.JSONDecodeError as decode_error:
-            return Error(f"Failed to load configuration file: {decode_error}")
+            return common.Error(f"Failed to load configuration file: {decode_error}")
 
         errors = []
 
@@ -240,7 +234,7 @@ class Configuration:
             errors.append("Git remote URL is empty")
 
         if errors:
-            return Error("\n\t".join(["Configuration file contains errors:"] + errors))
+            return common.Error("\n\t".join(["Configuration file contains errors:"] + errors))
         else:
             return Configuration(
                 coordinator_info=coordinator_info, storage_mode=storage_mode, git_remote=git_remote
@@ -263,28 +257,28 @@ async def main(argv: List[str]) -> int:
     try:
         error = await run(arguments=arguments, logger=logger)
     except Exception:
-        error = Error(f"Unhandled exception:\n{traceback.format_exc()}")
+        error = common.Error(f"Unhandled exception:\n{traceback.format_exc()}")
 
     match error:
-        case Error(message):
+        case common.Error(message):
             logger.critical(message)
             return 1
 
     return 0
 
 
-async def run(arguments: Arguments, logger: logging.Logger) -> Optional[Error]:
+async def run(arguments: Arguments, logger: logging.Logger) -> Optional[common.Error]:
     """
     Connect to servers and do work.
     """
-    error: Optional[Error]
+    error: Optional[common.Error]
 
     logger.info("Loading the configuration")
     configuration = Configuration.load(
         file=arguments.configuration_file, skip_upload=arguments.runner_mode.skip_upload
     )
     match configuration:
-        case Error() as error:
+        case common.Error() as error:
             return error
 
     logger.info("Creating the output directory")
@@ -295,8 +289,8 @@ async def run(arguments: Arguments, logger: logging.Logger) -> Optional[Error]:
     logger.info("Gathering host information")
     host_info = await host.Info.gather()
     match host_info:
-        case host.Error(message):
-            return Error(f"Failed to gather host information: {message}")
+        case common.Error(message):
+            return common.Error(f"Failed to gather host information: {message}")
 
     logger.info("Connecting to the work server")
     async with coordinator.Connection(
@@ -313,8 +307,8 @@ async def run(arguments: Arguments, logger: logging.Logger) -> Optional[Error]:
                 log_directory=arguments.output_directory,
             )
             match git_repository:
-                case git.Error(message):
-                    return Error(f"Failed to clone the Git repository: {message}")
+                case common.Error(message):
+                    return common.Error(f"Failed to clone the Git repository: {message}")
 
             return await run_work_items(
                 output_directory=arguments.output_directory,
@@ -337,7 +331,7 @@ async def run_work_items(
     storage_environment: storage.Environment,
     git_repository: git.Repository,
     logger: logging.Logger,
-) -> Optional[Error]:
+) -> Optional[common.Error]:
     for ordinal in itertools.count(1):
         logger.info(f"Fetching work item {ordinal}")
         work_item = await coordinator_connection.fetch_work(
@@ -386,7 +380,7 @@ async def run_work_items(
         )
 
         match result:
-            case Error() as error:
+            case common.Error() as error:
                 return error
 
             case WorkItemFailure() as failure:
@@ -418,18 +412,18 @@ async def run_work_item(
     storage_environment: storage.Environment,
     git_repository: git.Repository,
     logger: logging.Logger,
-) -> Union[WorkItemFailure, Error, None]:
+) -> Union[WorkItemFailure, common.Error, None]:
     message = "Resetting the QtBase repository"
     logger.info(message)
     await coordinator_connection.send_status(
         status="git", message=message, work_item=work_item, logger=logger
     )
-    git_error = await git_repository.reset(
+    error = await git_repository.reset(
         revision=work_item.revision,
         log_directory=work_item_directory,
     )
-    match git_error:
-        case git.Error(message):
+    match error:
+        case common.Error(message):
             return WorkItemFailure(f"Error resetting the Git repository: {message}")
 
     message = "Configuring the QtBase module"
@@ -437,13 +431,13 @@ async def run_work_item(
     await coordinator_connection.send_status(
         status="configure", message=message, work_item=work_item, logger=logger
     )
-    module_error = await qt.Module.configure(
+    error = await qt.Module.configure(
         build_directory=build_directory,
         repository_directory=git_repository.directory,
         log_directory=work_item_directory,
     )
-    match module_error:
-        case qt.Error(message):
+    match error:
+        case common.Error(message):
             return WorkItemFailure(f"Error configuring QtBase: {message}")
 
     message = "Building the QtBase module"
@@ -458,7 +452,7 @@ async def run_work_item(
         logger=logger,
     )
     match module:
-        case qt.Error(message):
+        case common.Error(message):
             return WorkItemFailure(f"Error building QtBase: {message}")
 
     if runner_mode.skip_tuning:
@@ -472,10 +466,10 @@ async def run_work_item(
         )
     else:
         logger.info("Tuning performance to reduce system noise")
-        command_error = await common.Command.run(["sudo", "prep_bench"])
-        match command_error:
-            case common.CommandError(message):
-                return Error(f"Failed to tune performance: {message}")
+        error = await common.Command.run(["sudo", "prep_bench"])
+        match error:
+            case common.Error(message):
+                return common.Error(f"Failed to tune performance: {message}")
 
         try:
             result_files, run_issues = await run_test_files(
@@ -487,11 +481,11 @@ async def run_work_item(
                 logger=logger,
             )
         finally:
-            command_error = await common.Command.run(["sudo", "unprep_bench"])
+            error = await common.Command.run(["sudo", "unprep_bench"])
 
-        match command_error:
-            case common.CommandError(message):
-                return Error(f"Failed to revert performance tuning: {message}")
+        match error:
+            case common.Error(message):
+                return common.Error(f"Failed to revert performance tuning: {message}")
 
     results, parse_issues = parse_results(result_files=result_files, logger=logger)
 
@@ -506,7 +500,7 @@ async def run_work_item(
         logger=logger,
     )
     match error:
-        case storage.Error(message):
+        case common.Error(message):
             return WorkItemFailure(f"Error storing results: {message}")
 
     return None
@@ -605,7 +599,7 @@ def create_logger(verbose: bool) -> logging.Logger:
     return logger
 
 
-def create_output_directory(path: str, overwrite: bool) -> Optional[Error]:
+def create_output_directory(path: str, overwrite: bool) -> Optional[common.Error]:
     if not os.path.exists(path):
         os.mkdir(path)
         return None
@@ -614,7 +608,7 @@ def create_output_directory(path: str, overwrite: bool) -> Optional[Error]:
         os.mkdir(path)
         return None
     else:
-        return Error("Output directory exists (use --overwrite to remove it)")
+        return common.Error("Output directory exists (use --overwrite to remove it)")
 
 
 if __name__ == "__main__":

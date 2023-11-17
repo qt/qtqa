@@ -9,10 +9,6 @@ import host
 import qt
 
 
-class Error(common.Error):
-    pass
-
-
 class Mode:
     """
     Decides how the runner should store results.
@@ -42,7 +38,7 @@ class Environment:
         work_item: coordinator.WorkItem,
         host_info: host.Info,
         logger: logging.Logger,
-    ) -> Optional[Error]:
+    ) -> Optional[common.Error]:
         raise NotImplementedError()  # Should be overridden by subclasses.
 
 
@@ -73,6 +69,6 @@ class DropEnvironment(Environment):
         work_item: coordinator.WorkItem,
         host_info: host.Info,
         logger: logging.Logger,
-    ) -> Optional[Error]:
+    ) -> Optional[common.Error]:
         logger.warning("Dropping results")
         return None

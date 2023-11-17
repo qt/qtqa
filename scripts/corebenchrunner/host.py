@@ -8,10 +8,6 @@ from typing import Union
 import common
 
 
-class Error(common.Error):
-    pass
-
-
 class Info:
     def __init__(self, name: str, os: str, cpu: str) -> None:
         self.name = name
@@ -19,23 +15,23 @@ class Info:
         self.cpu = cpu
 
     @staticmethod
-    async def gather() -> Union["Info", Error]:
+    async def gather() -> Union["Info", common.Error]:
         name = socket.gethostname()
         os = platform.platform()
         cpu = await Info.get_cpu()
         match cpu:
-            case Error() as error:
+            case common.Error() as error:
                 return error
 
         return Info(name=name, os=os, cpu=cpu)
 
     @staticmethod
-    async def get_cpu() -> Union[str, Error]:
+    async def get_cpu() -> Union[str, common.Error]:
         with open("/proc/cpuinfo") as f:
             match = re.search(
                 pattern=r"^model name\s*: ([^ ].*)$", string=f.read(), flags=re.MULTILINE
             )
         if not match:
-            return Error("Failed to parse /proc/cpuinfo")
+            return common.Error("Failed to parse /proc/cpuinfo")
         else:
             return match[1]

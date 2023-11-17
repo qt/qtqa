@@ -5,6 +5,7 @@ import tempfile
 import unittest
 from typing import cast
 
+import common
 import runner
 
 
@@ -26,6 +27,7 @@ class TestConfiguration(unittest.TestCase):
         with tempfile.NamedTemporaryFile(mode="w") as f:
             json.dump(
                 {
+                    # Empty fields are errors.
                     "coordinator_info": {"url": "https://coordinator.com/", "secret": ""},
                     "qtbase_git_remote": {"url": "ssh://codereview.qt-project.org/qt/qtbase"},
                 },
@@ -34,6 +36,6 @@ class TestConfiguration(unittest.TestCase):
             f.seek(0)
             configuration = runner.Configuration.load(file=f.name, skip_upload=True)
 
-        self.assertIsInstance(configuration, runner.Error)
-        error = cast(runner.Error, configuration)
+        self.assertIsInstance(configuration, common.Error)
+        error = cast(common.Error, configuration)
         self.assertEqual(error.message.splitlines()[0], "Configuration file contains errors:")
