@@ -1,0 +1,7 @@
+extends: spelling
+message: "Did you really mean '%s'?"
+level: error
+filters:
+  # Ignore all alternateCase or AlternateCase words.
+  - '[a-z]+[A-Z][a-z].*\b'
+  - '[A-Z][a-z]+[A-Z].*\b'

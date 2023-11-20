@@ -1,0 +1,7 @@
+[uU]ltralite
+qulrcc
+(?i)qul
+[tT]raveo
+(?i)tvii.*
+layerwarp*
+toolchain[s]
