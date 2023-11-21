@@ -359,6 +359,17 @@ def test_deployment(examples_root):
     return result
 
 
+def setup_designer_env(examples_root):
+    """Set path to Qt Designer plugin"""
+    wiggly_dir = os.fspath(examples_root / 'widgetbinding')
+    taskmenu_dir = os.fspath(examples_root / 'designer' / 'taskmenuextension')
+    new_path = f"{wiggly_dir}{os.pathsep}{taskmenu_dir}"
+    designer_path = os.environ.get(DESIGNER_PATH_VAR, "")
+    if designer_path:
+        new_path += f"{os.pathsep}{designer_path}"
+    os.environ[DESIGNER_PATH_VAR] = new_path
+
+
 if __name__ == "__main__":
     parser = ArgumentParser(description='Qt for Python package tester',
                             formatter_class=RawTextHelpFormatter)
@@ -372,14 +383,6 @@ if __name__ == "__main__":
     root_ex = None
     if options.examples:
         root_ex = Path(options.examples)
-        # Set path to Qt Designer plugins
-        wiggly_dir = os.fspath(root_ex / 'widgetbinding')
-        taskmenu_dir = os.fspath(root_ex / 'designer' / 'taskmenuextension')
-        new_path = f"{wiggly_dir}{os.pathsep}{taskmenu_dir}"
-        designer_path = os.environ.get(DESIGNER_PATH_VAR, "")
-        if designer_path:
-            new_path += f"{os.pathsep}{designer_path}"
-        os.environ[DESIGNER_PATH_VAR] = new_path
 
     VERSION = get_pyside_version_from_import()
     if do_pyinst and sys.version_info[0] < 3:  # Note: PyInstaller no longer supports Python 2
@@ -425,6 +428,7 @@ if __name__ == "__main__":
 
     if VERSION >= (6, 1, 0):
         print("Launching Qt Designer. Please check the custom widgets.")
+        setup_designer_env(root_ex)
         execute([f'pyside{VERSION[0]}-designer'])
 
     if do_pyinst and not test_deployment(root_ex):
