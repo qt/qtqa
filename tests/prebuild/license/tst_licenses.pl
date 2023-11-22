@@ -136,11 +136,6 @@ my %excludedFiles = (
                           # Don't expect license headers in patch files
                           qr{^tools/qscxmlc/moc_patches/.*\.patch$},
                         ],
-    'qtdigitaladvertising'   => [
-                                  qr{^src/imports/qadvertisement/simplecrypt.*$},
-                                  qr{^src/qtadv/doc/src/qtadv.*$},
-                                  qr{^src/qtadv/qdoc_wrapper.bat$},
-                                ],
     'qttools'        => [
                           # Exclude QDoc's golden output in tests
                           qr{^src/qdoc/qdoc/tests/generatedoutput/expected_output/},
