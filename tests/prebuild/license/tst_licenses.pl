@@ -228,12 +228,6 @@ my @mandatoryFiles=(
     qr{\.bat$},
     qr{\.py$},
     qr{\.sh$},
-    qr{\.vert$},
-    qr{\.tesc$},
-    qr{\.tese$},
-    qr{\.geom$},
-    qr{\.frag$},
-    qr{\.comp$},
 );
 
 my $QT_MODULE_TO_TEST;
