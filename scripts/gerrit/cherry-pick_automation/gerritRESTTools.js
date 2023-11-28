@@ -380,6 +380,9 @@ function queryBranchesRe(uuid, project, bypassTqtc, searchRegex, customAuth, cal
   // latest branches prefixed with tqtc/lts- for comparison.
   let tqtcProject = project;
   if (!bypassTqtc) {
+    // Note: this does not work for projects that are not in the qt/ namespace
+    // such as tqtc-boot2qt/ namespaced repos, but there are not currently public
+    // counterparts for these
     tqtcProject = project.includes("qt/tqtc-") ? project : project.replace("qt/", "qt/tqtc-");
   }
   let url = `${gerritBaseURL("projects")}/${encodeURIComponent(tqtcProject)}`

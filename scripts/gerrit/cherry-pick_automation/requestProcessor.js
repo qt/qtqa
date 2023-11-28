@@ -359,7 +359,8 @@ class requestProcessor extends EventEmitter {
       function(validBranch, canPush, data) {
         let tqtcBranch = /tqtc\//.test(branch);
         if (!validBranch && !tqtcBranch) {
-          if (incoming.change.project.includes("/tqtc-")) {
+          // test for "/tqtc-" or ^tqtc- in the project
+          if (incoming.change.project.includes("tqtc-")){
             tryLTS();
             return;
           } else {
@@ -587,7 +588,10 @@ class requestProcessor extends EventEmitter {
           // in the list, use the previous change in the chain as the parent.
           // The retrieve the current revision of that parent.
           if (currentJSON.relatedChanges.length > 0) {
-            let next = [...currentJSON.relatedChanges].reverse().findIndex((i) =>
+            // Work with a reversed relation chain so we don't have to worry about
+            // bounds checking. (The first change in the chain has no parent)
+            const reversed = [...currentJSON.relatedChanges].reverse();
+            let next = reversed.findIndex((i) =>
               i.change_id === currentJSON.change.id) - 1;
             if (next >= 0) {
               _this.logger.log(
@@ -595,7 +599,7 @@ class requestProcessor extends EventEmitter {
                 "verbose", currentJSON.uuid
               );
               const repo_branch = currentJSON.fullChangeID.split('~').slice(0, 2).join('~');
-              let parentChangeId = `${repo_branch}~${currentJSON.relatedChanges[next].change_id}`;
+              let parentChangeId = `${repo_branch}~${reversed[next].change_id}`;
               // Query for the parent change ID to get the current revision.
               gerritTools.queryChange(
                 currentJSON.uuid, parentChangeId, undefined, currentJSON.customGerritAuth,
