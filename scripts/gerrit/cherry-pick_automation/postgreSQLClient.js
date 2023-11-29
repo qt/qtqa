@@ -96,12 +96,14 @@ function insert(table, columns, values, callback, processNextQueuedUpdate) {
 
 exports.query = query;
 function query(table, fields, keyName, keyValue, operator, callback, processNextQueuedUpdate) {
+  // null and explicit false are valid values, but other empty values are not.
+  const hasKeyValue = keyValue !== undefined && keyValue !== "";
   const query = {
     name: `query-${keyName}-${fields}`,
     text: `SELECT ${fields || "*"} FROM ${table} WHERE ${keyName} ${
-      keyValue ? operator + " $1" : operator
+      hasKeyValue ? operator + " $1" : operator
     }`,
-    values: keyValue ? [keyValue] : undefined
+    values: hasKeyValue ? [keyValue] : undefined
   };
 
   logger.log(`Running query: ${safeJsonStringify(query)}`, "silly", "DATABASE");

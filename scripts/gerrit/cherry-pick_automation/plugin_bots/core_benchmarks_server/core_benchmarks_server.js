@@ -147,10 +147,13 @@ const agents = onChange(_agents, () => {
 
 function enqueueWork(agentId, workData) {
   console.log(`enqueue work ${workData.integrationId} to ${agentId}`);
-  if (agents[agentId])
+  if (agents[agentId]) {
     agents[agentId].workQueue.push(workData);
-  else
+    return true;
+  } else {
     console.log(`Cannot enqueue ${workData.integrationId} to ${agentId} because it is stale.`)
+    return false;
+  }
 }
 
 // TODO: Need to be able to queue for agents known, but not currently connected.
@@ -350,7 +353,7 @@ class core_benchmarks_server {
 
   recover() {
     new Promise((resolve, reject) => {
-      postgreSQLClient.query("core_benchmarks_agents", "*", "agent_id", null, "IS NOT NULL",
+      postgreSQLClient.query("core_benchmarks_agents", "*", "agent_id", undefined, "IS NOT NULL",
         (success, rows) => {
           if (success && rows.length) {
             for (const i in rows) {
@@ -372,17 +375,20 @@ class core_benchmarks_server {
         moment().subtract('7 days').toISOString(),
         (success, rows) => {
           console.log(success);  // responds with message DELETE <row count>
-          postgreSQLClient.query("core_benchmarks", "*", "done", null, `&& '{"false"}'`,
+          postgreSQLClient.query("core_benchmarks", "*", "job_done", false, '=',
           (success, rows) => {
             if (success && rows.length) {
               let sorted = rows.sort((a,b) =>
                 Date.parse(a.timestamp) - Date.parse(b.timestamp));
               for (const i in sorted) {
+                let queuedCount = 0;
                 // console.log(`Recovery row: ${safeJsonStringify(sorted[i])}`);
-                integrationIdsInProcess.push(sorted[i].integration_id);
                 for (const j in sorted[i].agents) {
+                  // if the agent is finished, do not enqueue it.
+                  if (sorted[i].done[j])
+                    continue;
                   try {
-                    enqueueWork(sorted[i].agents[j],
+                    let success = enqueueWork(sorted[i].agents[j],
                       new Work({
                         integrationId: sorted[i].integration_id,
                         integrationTimestamp: sorted[i].integration_timestamp,
@@ -390,10 +396,21 @@ class core_benchmarks_server {
                         integrationData: JSON.parse(Buffer.from(sorted[i].integration_data, 'base64')),
                         branch: sorted[i].branch,
                         sha: sorted[i].work_sha
-                      }));
-                    } catch (e) {
-                      console.log(e, safeJsonStringify(sorted[i]));
-                    }
+                      })
+                    );
+                    if (success)
+                      queuedCount++;
+                  } catch (e) {
+                    console.log(e, safeJsonStringify(sorted[i]));
+                  }
+                }
+                if (queuedCount > 0)
+                  integrationIdsInProcess.push(sorted[i].integration_id);
+                else {
+                  console.log(`No agents queued for ${sorted[i].integration_id}`);
+                  enqueueDBAction("CORE_BENCH", sorted[i].integration_id, postgreSQLClient.update,
+                    ["core_benchmarks", "integration_id",
+                      sorted[i].integration_id, {job_done: true}, null]);
                 }
               }
               this.ready();
@@ -406,8 +423,8 @@ class core_benchmarks_server {
         );
         // Also query for the top 20 done integrations.
         // This runs parallel to the above then() block and does not block the server from starting.
-        postgreSQLClient.query("core_benchmarks", "*", "job_done", null,
-          "= true ORDER BY timestamp LIMIT 20", (success, rows) => {
+        postgreSQLClient.query("core_benchmarks", "*", "job_done", undefined,
+          "= true ORDER BY timestamp DESC LIMIT 20", (success, rows) => {
           if (!rows.length)
             return;  // No done work in database.
           for (const i in rows) {
@@ -488,11 +505,21 @@ class core_benchmarks_server {
               let data = rows[0];
               const agentIndex = data.agents.indexOf(agentName);
               data.done[agentIndex] = true;
-              let updates = {done: data.done};
-              if (!data.done.some((e) => e))  // No agents with outstanding work.
+              let updates = {done: data.done, timestamp: new Date(Date.now()).toISOString()};
+              if (data.done.every((e) => e))  // No agents with outstanding work.
                 updates.job_done = true;
               enqueueDBAction("CORE_BENCH", status.integrationId, postgreSQLClient.update,
-                [ "core_benchmarks", "integration_id", status.integrationId, updates, null ]
+                ["core_benchmarks", "integration_id", status.integrationId, updates, () => {
+                  if (updates.job_done) {
+                    integrationIdsInProcess = integrationIdsInProcess.filter((e) => e != status.integrationId);
+                    if (integrationJobsDone.length > 19)
+                      integrationJobsDone.pop();
+                    integrationJobsDone.unshift(data);
+                    console.log("Integration completed testing: " + status.integrationId);
+                    // Set the agent's job to an empty idle job.
+                    agents[agentName].currentJob = new Work();
+                  }
+                }]
               );
             }
           }
