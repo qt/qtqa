@@ -11,8 +11,6 @@ qt_internal_add_test(tst_guiapplauncher
     SOURCES
         tst_guiapplauncher.cpp
         windowmanager.cpp windowmanager.h
-    NO_PCH_SOURCES
-        tst_guiapplauncher.cpp # undef QT_NO_FOREACH
     DEFINES
         SRCDIR="${CMAKE_CURRENT_SOURCE_DIR}/"
     LIBRARIES

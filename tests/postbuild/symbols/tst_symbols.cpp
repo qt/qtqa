@@ -1,8 +1,6 @@
 // Copyright (C) 2017 The Qt Company Ltd.
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR GPL-3.0-only WITH Qt-GPL-exception-1.0
 
-#undef QT_NO_FOREACH // this file contains unported legacy Q_FOREACH uses
-
 #include <QtCore/QtCore>
 #include <QtTest/QtTest>
 
@@ -116,20 +114,21 @@ static QString symbolToLine(const QString &symbol, const QString &lib)
 void tst_Symbols::globalObjects()
 {
     // these are regexps for global objects that are allowed in Qt
-    QStringList whitelist = QStringList()
+    const QRegularExpression whitelist[] = {
         // ignore qInitResources - they are safe to use
-        << "^_Z[0-9]*qInitResources_"
-        << "qrc_.*\\.cpp"
+        QRegularExpression("^_Z[0-9]*qInitResources_"),
+        QRegularExpression("qrc_.*\\.cpp"),
         // ignore qRegisterGuiVariant - it's a safe fallback to register GUI Variants
-        << "qRegisterGuiVariant";
+        QRegularExpression("qRegisterGuiVariant"),
+    };
 
     bool isFailed = false;
 
     QDir dir(qtLibDir, "*.so");
-    QStringList files = dir.entryList();
+    const QStringList files = dir.entryList();
     QVERIFY(!files.isEmpty());
 
-    foreach (QString lib, files) {
+    for (const QString &lib : files) {
         if (!keys.contains(lib))
             continue;
 
@@ -149,9 +148,9 @@ void tst_Symbols::globalObjects()
         QCOMPARE(proc.exitCode(), 0);
         QCOMPARE(QString::fromLocal8Bit(proc.readAllStandardError()), QString());
 
-        QStringList symbols = QString::fromLocal8Bit(proc.readAll()).split("\n");
+        const QStringList symbols = QString::fromLocal8Bit(proc.readAll()).split("\n");
         QVERIFY(!symbols.isEmpty());
-        foreach (QString symbol, symbols) {
+        for (const QString &symbol : symbols) {
             if (symbol.isEmpty())
                 continue;
 
@@ -165,8 +164,8 @@ void tst_Symbols::globalObjects()
             QString cap = match.captured(1);
 
             bool whitelisted = false;
-            foreach (QString white, whitelist) {
-                if (cap.indexOf(QRegularExpression(white)) != -1) {
+            for (const QRegularExpression &white : whitelist) {
+                if (cap.indexOf(white) != -1) {
                     whitelisted = true;
                     break;
                 }
@@ -194,11 +193,13 @@ void tst_Symbols::globalObjects()
 #ifndef QT_CROSS_COMPILED
 void tst_Symbols::prefix()
 {
-    QStringList qtTypes;
-    qtTypes << "QString" << "QChar" << "QWidget" << "QObject" << "QVariant" << "QList"
-            << "QMap" << "QHash" << "QVector" << "QRect" << "QSize" << "QPoint"
-            << "QTextFormat" << "QTextLength" << "QPen" << "QFont" << "QIcon"
-            << "QPixmap" << "QImage" << "QRegion" << "QPolygon";
+    const QString qtTypes[] = {
+        "QString", "QChar", "QWidget", "QObject", "QVariant", "QList",
+        "QMap", "QHash", "QVector", "QRect", "QSize", "QPoint",
+        "QTextFormat", "QTextLength", "QPen", "QFont", "QIcon",
+        "QPixmap", "QImage", "QRegion", "QPolygon",
+    };
+
     QStringList qAlgorithmFunctions;
     qAlgorithmFunctions << "qAbs" << "qMin" << "qMax" << "qBound" << "qSwap"
                         << "qHash" << "qDeleteAll";
@@ -209,24 +210,24 @@ void tst_Symbols::prefix()
                        << "XPoint::~XPoint()"
                        << "glyph_metrics_t::"; // #### Qt 4.2
 
-    QStringList stupidCSymbols;
-    stupidCSymbols << "Add_Glyph_Property"
-                   << "Check_Property"
-                   << "Coverage_Index"
-                   << "Get_Class"
-                   << "Get_Device"
-                   << "rcsid3"
-                   << "sfnt_module_class"
-                   << "t1cid_driver_class"
-                   << "t42_driver_class"
-                   << "winfnt_driver_class"
-                   << "pshinter_module_class"
-                   << "psnames_module_class"
+    const QString stupidCSymbols[] = {
+                   "Add_Glyph_Property",
+                   "Check_Property",
+                   "Coverage_Index",
+                   "Get_Class",
+                   "Get_Device",
+                   "rcsid3",
+                   "sfnt_module_class",
+                   "t1cid_driver_class",
+                   "t42_driver_class",
+                   "winfnt_driver_class",
+                   "pshinter_module_class",
+                   "psnames_module_class",
                    // C symbols from Qt
-                   << "qt_addObject"
-                   << "qt_removeObject"
-                   << "qt_startup_hook"
-                   ;
+                   "qt_addObject",
+                   "qt_removeObject",
+                   "qt_startup_hook",
+    };
 
     QHash<QString,QStringList> excusedPrefixes;
     excusedPrefixes[QString()] =
@@ -304,11 +305,11 @@ void tst_Symbols::prefix()
         QStringList() << ns + "Phonon";
 
     QDir dir(qtLibDir, "*.so");
-    QStringList files = dir.entryList();
+    const QStringList files = dir.entryList();
     QVERIFY(!files.isEmpty());
 
     bool isFailed = false;
-    foreach (QString lib, files) {
+    for (const QString &lib : files) {
         if (!keys.contains(lib))
             continue;
 
@@ -328,12 +329,15 @@ void tst_Symbols::prefix()
         QCOMPARE(proc.exitCode(), 0);
         QCOMPARE(QString::fromLocal8Bit(proc.readAllStandardError()), QString());
 
-        QStringList symbols = QString::fromLocal8Bit(proc.readAll()).split("\n");
-        QVERIFY(!symbols.isEmpty());
-        foreach (QString symbol, symbols) {
-            if (symbol.isEmpty())
+        const auto content = proc.readAll();
+        QVERIFY(!content.isEmpty());
+
+        // treat output as L1, because we only parse ASCII tokens:
+        for (QLatin1StringView line : qTokenize(QLatin1StringView{content}, u'\n')) {
+            if (line.isEmpty())
                 continue;
 
+            QString symbol = QString::fromLocal8Bit(QByteArrayView{line});
             if (symbol.startsWith("unsigned "))
                 // strip modifiers
                 symbol = symbol.mid(symbol.indexOf(' ') + 1);
@@ -388,7 +392,7 @@ void tst_Symbols::prefix()
             for ( ; it != excusedPrefixes.constEnd(); ++it) {
                 if (!lib.contains(it.key()))
                     continue;
-                foreach (QString prefix, it.value())
+                for (const QString &prefix : it.value())
                     if (symbol.startsWith(prefix)) {
                         symbolOk = true;
                         break;
@@ -398,7 +402,7 @@ void tst_Symbols::prefix()
             if (symbolOk)
                 continue;
 
-            foreach (QString cSymbolPattern, stupidCSymbols)
+            for (const QString &cSymbolPattern : stupidCSymbols)
                 if (symbol.contains(cSymbolPattern)) {
                     symbolOk = true;
                     break;
@@ -422,7 +426,8 @@ void tst_Symbols::prefix()
                    )
                     continue;
 
-                foreach (QString acceptedPattern, qAlgorithmFunctions + exceptionalSymbols)
+                const QStringList acceptedPatterns = qAlgorithmFunctions + exceptionalSymbols;
+                for (const QString &acceptedPattern : acceptedPatterns)
                     if (symbol.contains(acceptedPattern)) {
                         symbolOk = true;
                         break;
@@ -437,7 +442,7 @@ void tst_Symbols::prefix()
                         plainSymbol += QLatin1Char(' ');
                     plainSymbol += fields.at(i);
                 }
-                foreach (QString qtType, qtTypes)
+                for (const QString &qtType : qtTypes)
                     if (plainSymbol.contains(qtType)) {
                         symbolOk = true;
                         break;

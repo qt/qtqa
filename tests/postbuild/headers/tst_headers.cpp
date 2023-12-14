@@ -1,8 +1,6 @@
 // Copyright (C) 2017 The Qt Company Ltd.
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR GPL-3.0-only WITH Qt-GPL-exception-1.0
 
-#undef QT_NO_FOREACH // this file contains unported legacy Q_FOREACH uses
-
 #include <QtCore/QtCore>
 #include <QtTest/QtTest>
 
@@ -53,7 +51,7 @@ static QStringList getHeaders(const QString &path)
 
     // Recreate the whole file path so we can open the file from disk
     QStringList result;
-    foreach (QString entry, entries)
+    for (const QString &entry : std::as_const(entries))
         result += path + "/" + entry;
 
     return result;
@@ -76,9 +74,9 @@ static QStringList getModuleHeaders(const QString &moduleRoot)
         "print join(\"\\n\", @searchPaths);");
 
     QString string(captureOutput("perl", QStringList() << "-e" << perlReadSyncProfileExpr << moduleRoot));
-    QStringList entries = string.split("\n");
+    const QStringList entries = string.split("\n");
     QStringList headers;
-    foreach (const QString &headersPath, entries)
+    for (const QString &headersPath : entries)
         headers += getHeaders(headersPath);
     return headers;
 }
@@ -133,7 +131,7 @@ void tst_Headers::allHeadersData()
     if (headers.isEmpty())
         QSKIP("can't find any headers in your $QT_MODULE_TO_TEST/src.");
 
-    foreach (QString hdr, headers) {
+    for (const QString &hdr : std::as_const(headers)) {
         if (hdr.contains("/3rdparty/") || hdr.endsWith("/src/tools/uic/qclass_lib_map.h"))
             continue;
 
@@ -167,8 +165,8 @@ void tst_Headers::privateSlots()
     QFile f(header);
     QVERIFY2(f.open(QIODevice::ReadOnly), qPrintable(f.errorString()));
 
-    QStringList content = QString::fromLocal8Bit(f.readAll()).split("\n");
-    foreach (QString line, content) {
+    const QStringList content = QString::fromLocal8Bit(f.readAll()).split("\n");
+    for (const QString &line : content) {
         if (line.contains("Q_PRIVATE_SLOT(") && !line.contains("define Q_PRIVATE_SLOT"))
             QVERIFY2(line.contains("_q_"), qPrintable(explainPrivateSlot(line)));
     }

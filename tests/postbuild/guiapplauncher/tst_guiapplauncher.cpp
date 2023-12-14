@@ -1,8 +1,6 @@
 // Copyright (C) 2017 The Qt Company Ltd.
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR GPL-3.0-only WITH Qt-GPL-exception-1.0
 
-#undef QT_NO_FOREACH // this file contains unported legacy Q_FOREACH uses
-
 #include "windowmanager.h"
 
 #include <QtCore/QDir>
@@ -188,7 +186,8 @@ static inline QString guiBinary(QString in)
 void tst_GuiAppLauncher::run_data()
 {
     QTest::addColumn<AppLaunchData>("data");
-    foreach(const TestDataEntry &data, testData()) {
+    const TestDataEntries testDataEntries = testData();
+    for (const TestDataEntry &data : testDataEntries) {
         qDebug() << data.first << data.second.binary;
         QTest::newRow(data.first) << data.second;
     }
@@ -356,7 +355,7 @@ bool tst_GuiAppLauncher::runApp(const AppLaunchData &data, QString *errorMessage
     const int exitCode = process.exitCode();
     // check stderr
     const QStringList stderrOutput = QString::fromLocal8Bit(process.readAllStandardOutput()).split(QLatin1Char('\n'));
-    foreach(const QString &stderrLine, stderrOutput) {
+    for (const QString &stderrLine : stderrOutput) {
         // Skip expected QPainter warnings from oxygen.
         if (stderrWhiteList().contains(stderrLine)) {
             qWarning("%s: stderr: %s\n", qPrintable(data.binary), qPrintable(stderrLine));

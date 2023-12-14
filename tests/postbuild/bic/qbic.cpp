@@ -1,8 +1,6 @@
 // Copyright (C) 2017 The Qt Company Ltd.
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR GPL-3.0-only WITH Qt-GPL-exception-1.0
 
-#undef QT_NO_FOREACH // this file contains unported legacy Q_FOREACH uses
-
 #include "qbic.h"
 
 #include "QtCore/qfile.h"
@@ -55,16 +53,16 @@ static QStringList nonVirtualThunkToDestructorSymbols(const QString &className)
 {
 
     const QString symbolTemplate = QString::fromLatin1("%1::_ZThn%2_N%3%4");
-    QStringList candidates;
-    candidates << symbolTemplate.arg(className).arg(16).arg(className.size()).arg(className)
-               << symbolTemplate.arg(className).arg(32).arg(className.size()).arg(className)
-               << symbolTemplate.arg(className).arg(40).arg(className.size()).arg(className)
-               ;
+    const QString candidates[] = {
+        symbolTemplate.arg(className).arg(16).arg(className.size()).arg(className),
+        symbolTemplate.arg(className).arg(32).arg(className.size()).arg(className),
+        symbolTemplate.arg(className).arg(40).arg(className.size()).arg(className)
+    };
 
     QStringList result;
     for (int i = 0; i <= 1; ++i) {
         const QString suffix = QString::fromLatin1("D%1Ev").arg(i);
-        foreach (const QString &candidate, candidates)
+        for (const QString &candidate : candidates)
             result << candidate + suffix;
     }
 
@@ -97,11 +95,12 @@ static bool matchDestructor(const QString &mangledClassName, const QString &symb
     parseClassName(mangledClassName, &className, &qualifiedClassName);
 
     const QString destructor = qualifiedClassName + QLatin1String("::~") + className;
-    QStringList nonVirtualThunkToDestructorSymbolCandidates = nonVirtualThunkToDestructorSymbols(className);
+    const QStringList nonVirtualThunkToDestructorSymbolCandidates
+        = nonVirtualThunkToDestructorSymbols(className);
 
     if (qualifiedTailMatch(destructor, symbol))
         return true;
-    foreach (const QString &candidate, nonVirtualThunkToDestructorSymbolCandidates) {
+    for (const QString &candidate : nonVirtualThunkToDestructorSymbolCandidates) {
         if (qualifiedTailMatch(candidate, symbol))
             return true;
     }
@@ -174,7 +173,7 @@ QBic::Info QBic::parseOutput(const QByteArray &ba) const
     Info info;
     const QStringList source = QString::fromLatin1(ba).split("\n\n");
 
-    foreach(QString str, source) {
+    for (const QString &str : source) {
         QStringList entry = str.split('\n');
         if (entry.size() < 2)
             continue;

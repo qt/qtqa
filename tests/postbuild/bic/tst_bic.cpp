@@ -1,8 +1,6 @@
 // Copyright (C) 2020 The Qt Company Ltd.
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR GPL-3.0-only WITH Qt-GPL-exception-1.0
 
-#undef QT_NO_FOREACH // this file contains unported legacy Q_FOREACH uses
-
 #include <QtCore/QtCore>
 #include <QtTest/QtTest>
 #include "qbic.h"
@@ -606,7 +604,7 @@ void tst_Bic::sizesAndVTables()
     const QBic::Info currentLibInfo = getCurrentInfo(libName);
     QVERIFY(!currentLibInfo.classVTables.isEmpty());
 
-    QBic::VTableDiff diff = bic.diffVTables(oldLibInfo, currentLibInfo);
+    const QBic::VTableDiff diff = bic.diffVTables(oldLibInfo, currentLibInfo);
 
     if (!diff.removedVTables.isEmpty()) {
         qWarning() << "VTables for the following classes were removed" << diff.removedVTables;
@@ -617,7 +615,7 @@ void tst_Bic::sizesAndVTables()
         if (diff.modifiedVTables.size() != 1 ||
             strcmp(QTest::currentDataTag(), "4.4") != 0 ||
             diff.modifiedVTables.at(0).first != "QGraphicsProxyWidget") {
-            foreach(QStringPair entry, diff.modifiedVTables)
+            for (const QStringPair &entry : diff.modifiedVTables)
                 qWarning() << "modified VTable:\n    Old: " << entry.first
                            << "\n    New: " << entry.second;
             isFailed = true;
@@ -631,15 +629,15 @@ void tst_Bic::sizesAndVTables()
     }
 
     if (isPatchRelease && !diff.reimpMethods.isEmpty()) {
-        foreach(QStringPair entry, diff.reimpMethods)
+        for (const QStringPair &entry : diff.reimpMethods)
             qWarning() << "reimplemented virtual in patch release:\n    Old: " << entry.first
                        << "\n    New: " << entry.second;
         isFailed = true;
     }
 
-    QBic::SizeDiff sizeDiff = bic.diffSizes(oldLibInfo, currentLibInfo);
+    const QBic::SizeDiff sizeDiff = bic.diffSizes(oldLibInfo, currentLibInfo);
     if (!sizeDiff.mismatch.isEmpty()) {
-        foreach (QString className, sizeDiff.mismatch)
+        for (QString className : sizeDiff.mismatch)
             qWarning() << "size mismatch for" << className
                        << "old" << oldLibInfo.classSizes.value(className)
                        << "new" << currentLibInfo.classSizes.value(className);
