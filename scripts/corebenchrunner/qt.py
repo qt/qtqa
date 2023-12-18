@@ -129,6 +129,8 @@ class TestFile:
         try:
             await asyncio.wait_for(process.wait(), timeout=TEST_TIMEOUT)
         except asyncio.TimeoutError:
+            process.terminate()
+            await process.wait()
             return TestFileIssue(
                 test_file=self, description=f"Test timed out after {TEST_TIMEOUT} seconds"
             )
