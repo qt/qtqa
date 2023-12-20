@@ -241,15 +241,6 @@ class Configuration:
             )
 
 
-class WorkItemFailure:
-    """
-    The runner aborted a work item.
-    """
-
-    def __init__(self, description: str) -> None:
-        self.description = description
-
-
 async def main(argv: List[str]) -> int:
     arguments = Arguments.parse(argv)
     logger = create_logger(arguments.verbose)
@@ -382,16 +373,11 @@ async def run_work_items(
             case common.Error() as error:
                 return error
 
-            case WorkItemFailure() as failure:
-                logger.error(failure.description)
-                logger.error("Skipping build directory removal")
-
-            case None:
-                if runner_mode.skip_cleaning:
-                    logger.warning("Skipping build directory removal")
-                else:
-                    logger.info("Removing build directory")
-                    shutil.rmtree(build_directory)
+        if runner_mode.skip_cleaning:
+            logger.warning("Skipping build directory removal")
+        else:
+            logger.info("Removing build directory")
+            shutil.rmtree(build_directory)
 
         if runner_mode.single_work_item:
             logger.warning("Exiting after running a single work item")
@@ -411,7 +397,7 @@ async def run_work_item(
     storage_environment: storage.Environment,
     git_repository: git.Repository,
     logger: logging.Logger,
-) -> Union[WorkItemFailure, common.Error, None]:
+) -> Optional[common.Error]:
     message = "Resetting the QtBase repository"
     logger.info(message)
     await coordinator_connection.send_status(
@@ -422,7 +408,7 @@ async def run_work_item(
         log_directory=work_item_directory,
     )
     if error:
-        return WorkItemFailure(f"Error resetting the Git repository: {error.message}")
+        return common.Error(f"Error resetting the Git repository: {error.message}")
 
     message = "Configuring the QtBase module"
     logger.info(message)
@@ -435,7 +421,7 @@ async def run_work_item(
         log_directory=work_item_directory,
     )
     if error:
-        return WorkItemFailure(f"Error configuring QtBase: {error.message}")
+        return common.Error(f"Error configuring QtBase: {error.message}")
 
     message = "Building the QtBase module"
     logger.info(message)
@@ -450,7 +436,7 @@ async def run_work_item(
     )
     match module:
         case common.Error(message):
-            return WorkItemFailure(f"Error building QtBase: {message}")
+            return common.Error(f"Error building QtBase: {message}")
 
     if runner_mode.skip_tuning:
         result_files, run_issues = await run_test_files(
@@ -495,7 +481,7 @@ async def run_work_item(
         logger=logger,
     )
     if error:
-        return WorkItemFailure(f"Error storing results: {error.message}")
+        return common.Error(f"Error storing results: {error.message}")
 
     return None
 
