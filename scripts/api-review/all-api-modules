@@ -208,8 +208,8 @@ relevant () {
     modules | while read stanza
     do vet "$stanza"
     done | while read path
-    # Only those with src/ and a sync.profile matter:
-    do if [ -d "$path/src" -a -f "$path/sync.profile" ]
+    # Only those with src/ and a CMakeLists.txt matter:
+    do if [ -d "$path/src" -a -f "$path/CMakeLists.txt" ]
        # Filter on the desired refs (if any):
        then checkrefs "$path"
        fi
