@@ -178,7 +178,12 @@ class Selector(object): # Select interesting changes, discard boring.
 
     from dulwich.index import IndexEntry
     @staticmethod
-    def __index_entry(mode, size, blobid, entry=IndexEntry):
+    def __index_entry(mode, size, blobid, entry=IndexEntry,
+                      required = (len(IndexEntry._fields)
+                                  # IndexEntry used to be a namedtuple
+                                  if hasattr(IndexEntry, '_fields') else
+                                  # Since dulwich 0.21, IndexEntry is an @dataclass:
+                                  len(IndexEntry.__dataclass_fields__))):
         """Wrap IndexEntry to cope with variably many entries in tuple.
 
         Up to (at least) version 0.20.15, there were ten entries in
@@ -188,7 +193,7 @@ class Selector(object): # Select interesting changes, discard boring.
         """
         # (ctime, mtime, dev, ino, mode, uid, gid, size, sha, flags [, extraflags])
         seq = ((0, 0), (0, 0), 0, 0, mode, 0, 0, size, blobid)
-        seq += (len(entry._fields) - len(seq)) * (0,)
+        seq += (required - len(seq)) * (0,)
         return entry(*seq)
     del IndexEntry
 
