@@ -341,16 +341,33 @@ class Selector(object): # Select interesting changes, discard boring.
 
             old = tuple(origin[m] for m in change.get(new, ()) if m in origin)
             if old:
-                assert all(old), 'Every value of origin is a non-empty list'
-                # TODO: chose which entry in old to use, if more than
-                # one; and which line in that entry to use, if more
-                # than one.
-                hybrid[i] = bore.harmonize(old[0][0], new)
-                # Until then, use the first list in old; and use its
-                # entries in hybrid in the order they had in old (but,
-                # to be on the safe side, don't remove from list;
-                # cycle to the back, in case new has more than old):
-                old[0].append(old[0].pop(0))
+                assert all(old), 'Every value of origin is a non-empty list of lines'
+                # TODO: refine choice of which entry in old to use, if
+                # more than one; and which line in that entry to use,
+                # if more than one. For now look for exact match or,
+                # failing that, first with same indent:
+                x = y = None
+                def indentof(t):
+                    return len(t) - len(t.lstrip())
+                for p, form in enumerate(old):
+                    # Limitation: later entries in old never get their
+                    # lines selected if an earlier one is as good. But
+                    # they have the same minimal form, so are probably
+                    # the same lines anyway.
+                    for q, line in enumerate(form):
+                        if indentof(line) == indentof(new):
+                            if line == new:
+                                x, y = p, q
+                                break
+                            if x is None or y is None:
+                                x, y = p, q
+                x, y = x or 0, y or 0
+                hybrid[i] = bore.harmonize(old[x][y], new)
+                # Prefer to use old's entries in hybrid in the order
+                # they had in old (but, to be on the safe side, don't
+                # remove from list; cycle to the back, in case new has
+                # more than old):
+                old[x].append(old[x].pop(y))
                 continue
 
             # TODO: see if any key of origin is kinda similar to new.
