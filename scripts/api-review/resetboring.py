@@ -295,6 +295,8 @@ class Selector(object): # Select interesting changes, discard boring.
         hybrid = list(self.__new[hunk[0][3]:hunk[-1][4]])
         # Tools to remove boring differences:
         bore = self.Censor()
+        # Lines with only space and punctuators tend to produce false matches:
+        relevant = lambda t: set(t).difference('{\t \n};\\')
 
         # Associate each line, involved in either side of the change,
         # with a canonical form; and some in old with their .strip():
@@ -306,14 +308,20 @@ class Selector(object): # Select interesting changes, discard boring.
                     seq.append(mini)
             if seq:
                 change[line] = tuple(seq)
-            # else: line contains no boring changes
+            elif relevant(line):
+                # No boring changes in line, except maybe to spacing.
+                # Record last (probably only) representation of it, so
+                # we can undo mere spacing changes - but only for
+                # relevant lines, since trivial ones are typically
+                # adjacent to Real Change.
+                change[line] = (mini,)
         for line in self.__old[hunk[0][1]:hunk[-1][2]]:
             for mini in bore.minimize(line):
                 try: seq = origin[mini]
                 except KeyError: seq = origin[mini] = []
                 seq.append(line)
-            # Interesting lines might have merely changed indentation:
-            if set(line).difference('{\t \n};'):
+            # Relevant lines might have merely changed indentation:
+            if relevant(line):
                 key = line.strip()
                 try: was = unstrip[key]
                 except KeyError: unstrip[key] = line
