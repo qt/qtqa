@@ -1356,7 +1356,7 @@ class requestProcessor extends EventEmitter {
   gerritCommentHandler(parentUuid, fullChangeID, revision, message, notifyScope, customGerritAuth) {
     let _this = this;
     gerritTools.postGerritComment(
-      parentUuid, fullChangeID, revision, message, notifyScope, customGerritAuth,
+      parentUuid, fullChangeID, revision, message, undefined, notifyScope, customGerritAuth,
       function (success, data) {
         if (!success && data == "retry") {
           _this.emit(

@@ -258,13 +258,17 @@ function stageCherryPick(parentUuid, cherryPickJSON, customAuth, callback) {
 // Post a comment to the change on the latest revision.
 exports.postGerritComment = postGerritComment;
 function postGerritComment(
-  parentUuid, fullChangeID, revision, message,
+  parentUuid, fullChangeID, revision, message, reviewers,
   notifyScope, customAuth, callback
 ) {
   function _postComment() {
     let url = `${gerritBaseURL("changes")}/${fullChangeID}/revisions/${
       revision || "current"}/review`;
     let data = { message: message, notify: notifyScope || "OWNER_REVIEWERS" };
+    if (reviewers) {
+      // format reviewers as a list of ReviewInput entities
+      data.reviewers = reviewers.map((reviewer) => { return { reviewer: reviewer }; });
+    }
 
     logger.log(
       `POST request to: ${url}\nRequest Body: ${safeJsonStringify(data)}`,
@@ -648,6 +652,37 @@ function addToAttentionSet(parentUuid, changeJSON, user, reason, customAuth, cal
   )
 }
 
+exports.getGroupMembers = getGroupMembers;
+function getGroupMembers(parentUuid, groupId, customAuth, callback) {
+  let url = `${gerritBaseURL("groups")}/${groupId}/members`;
+  logger.log(`GET request to: ${url}`, "debug", parentUuid);
+
+  axios.get(url, { auth: customAuth || gerritAuth })
+  .then(function (response) {
+    logger.log(`Raw response: ${response.data}`, "debug", parentUuid);
+    callback(true, JSON.parse(trimResponse(response.data)));
+  }).catch(function (error) {
+    if (error.response) {
+      // The request was made and the server responded with a status code
+      // that falls out of the range of 2xx
+      logger.log(
+        `An error occurred in GET to "${url}". Error ${error.response.status}: ${
+          error.response.data}`,
+        "error", parentUuid
+      );
+    } else {
+      logger.log(
+        `Failed to get change group members for ${groupId}: ${safeJsonStringify(error)}`,
+        "error", parentUuid
+      );
+    }
+    // Some kind of error occurred. Have the caller take some action to
+    // alert the owner that they need to add reviewers manually.
+    callback(false);
+  });
+
+}
+
 // Query gerrit for the existing reviewers on a change.
 exports.getChangeReviewers = getChangeReviewers;
 function getChangeReviewers(parentUuid, fullChangeID, customAuth, callback) {
@@ -693,12 +728,80 @@ function getChangeReviewers(parentUuid, fullChangeID, customAuth, callback) {
 exports.setChangeReviewers = setChangeReviewers;
 function setChangeReviewers(parentUuid, fullChangeID, reviewers, customAuth, callback) {
   let failedItems = [];
-  if (reviewers.length == 0)  // This function is a no-op if there are no reviewers.
+  if (reviewers.length == 0) { // This function is a no-op if there are no reviewers.
     callback(failedItems);
-  let project = /^((?:\w+-?)+(?:%2F|\/)(?:-?\w)+)/.exec(fullChangeID).pop();
-  let branch = /~(.+)~/.exec(fullChangeID).pop();
+    return
+  }
+  let project = "";
+  let branch = "";
+
+  // Only try to parse strings. If it's not a string, then it's probably
+  // a change number.
+  if (typeof fullChangeID == String) {
+    try {
+      project = /^((?:\w+-?)+(?:%2F|\/)(?:-?\w)+)/.exec(fullChangeID).pop();
+      branch = /~(.+)~/.exec(fullChangeID).pop();
+    } catch (e) {
+      logger.log(
+        `Failed to parse project and branch from ${fullChangeID}: ${e}`,
+        "error", parentUuid
+      );
+      return;
+    }
+  }
+
   let doneCount = 0;
+
   function postReviewer(reviewer) {
+
+    function doPost(url, data) {
+      logger.log(
+        `POST request to ${url}\nRequest Body: ${safeJsonStringify(data)}`,
+        "debug", parentUuid
+      );
+      axios({ method: "post", url: url, data: data, auth: customAuth || gerritAuth })
+        .then(function (response) {
+          logger.log(
+            `Success adding ${reviewer} to ${fullChangeID}\n${response.data}`,
+            "info", parentUuid
+          );
+          doneCount++;
+          if (doneCount == reviewers.length)
+            callback(failedItems);
+        })
+        .catch(function (error) {
+          doneCount++;
+          if (doneCount == reviewers.length)
+            callback(failedItems);
+          if (error.response) {
+            // The request was made and the server responded with a status code
+            // that falls out of the range of 2xx
+            logger.log(
+              `Error in POST to ${url} to add reviewer ${reviewer}: ${
+                error.response.status}: ${error.response.data}`,
+              "error", parentUuid
+            );
+          } else {
+            logger.log(
+              `Error adding a reviewer (${reviewer}) to ${fullChangeID}: ${safeJsonStringify(error)}`,
+              "warn", parentUuid
+            );
+          }
+          failedItems.push(reviewer);
+        });
+      }
+
+    let url = `${gerritBaseURL("changes")}/${fullChangeID}/reviewers`;
+    let data = { reviewer: reviewer };
+
+    if (!project || !branch) {
+      // The fullChangeId passed is probably just a change number.
+      // Try to blindly set the reviewer. The operation will silently fail
+      // if the user does not have rights.
+      doPost(url, data);
+      return;
+    }
+
     checkAccessRights(
       parentUuid, project, branch, reviewer, "read", customAuth,
       function (success, data) {
@@ -709,42 +812,7 @@ function setChangeReviewers(parentUuid, fullChangeID, reviewers, customAuth, cal
           logger.log(`Reason: ${data}`, "debug", parentUuid);
           failedItems.push(reviewer);
         } else {
-          let url = `${gerritBaseURL("changes")}/${fullChangeID}/reviewers`;
-          let data = { reviewer: reviewer };
-          logger.log(
-            `POST request to ${url}\nRequest Body: ${safeJsonStringify(data)}`,
-            "debug", parentUuid
-          );
-          axios({ method: "post", url: url, data: data, auth: customAuth || gerritAuth })
-            .then(function (response) {
-              logger.log(
-                `Success adding ${reviewer} to ${fullChangeID}\n${response.data}`,
-                "info", parentUuid
-              );
-              doneCount++;
-              if (doneCount == reviewers.length)
-                callback(failedItems);
-            })
-            .catch(function (error) {
-              doneCount++;
-              if (doneCount == reviewers.length)
-                callback(failedItems);
-              if (error.response) {
-                // The request was made and the server responded with a status code
-                // that falls out of the range of 2xx
-                logger.log(
-                  `Error in POST to ${url} to add reviewer ${reviewer}: ${
-                    error.response.status}: ${error.response.data}`,
-                  "error", parentUuid
-                );
-              } else {
-                logger.log(
-                  `Error adding a reviewer (${reviewer}) to ${fullChangeID}: ${safeJsonStringify(error)}`,
-                  "warn", parentUuid
-                );
-              }
-              failedItems.push(reviewer);
-            });
+          doPost(url, data);
         }
       }
     );
@@ -1002,6 +1070,59 @@ function findIntegrationIDFromChange(uuid, fullChangeID, customAuth, callback) {
     })
     .catch((error) => {
       logger.log(`Failed to get IntegrationId for ${fullChangeID}\n${error}`, "error", uuid);
+      callback(false);
+    })
+}
+
+exports.getContributorChangeCount = getContributorChangeCount;
+function getContributorChangeCount(uuid, contributor, customAuth, callback) {
+  let url = `${gerritBaseURL("changes")}/?q=owner:${contributor}`;
+  logger.log(`GET request for ${url}`, "debug", uuid);
+  axios
+    .get(url, { auth: customAuth || gerritAuth })
+    .then(function (response) {
+      logger.log(`Raw Response: ${response.data}`, "silly", uuid);
+      const changes = JSON.parse(trimResponse(response.data));
+      callback(true, changes.length);
+    })
+    .catch((error) => {
+      logger.log(`Failed to get change count for ${contributor}\n${error}`, "error", uuid);
+      callback(false);
+    })
+}
+
+exports.setHashtags = setHashtags;
+function setHashtags(uuid, fullChangeID, hashtags, customAuth, callback) {
+  let url = `${gerritBaseURL("changes")}/${fullChangeID}/hashtags`;
+  logger.log(`POST add request for ${url}`, "debug", uuid);
+  if (typeof hashtags == "string")
+    hashtags = [hashtags];
+  axios
+    .post(url, {"add": hashtags}, { auth: customAuth || gerritAuth })
+    .then(function (response) {
+      logger.log(`Raw Response: ${response.data}`, "silly", uuid);
+      callback(true);
+    })
+    .catch((error) => {
+      logger.log(`Failed to set hashtag for ${fullChangeID}\n${error}`, "error", uuid);
+      callback(false);
+    })
+}
+
+exports.removeHashtags = removeHashtags;
+function removeHashtags(uuid, fullChangeID, hashtags, customAuth, callback) {
+  let url = `${gerritBaseURL("changes")}/${fullChangeID}/hashtags`;
+  logger.log(`POST remove request for ${url}`, "debug", uuid);
+  if (typeof hashtags == "string")
+    hashtags = [hashtags];
+  axios
+    .post(url, {"remove": hashtags}, { auth: customAuth || gerritAuth })
+    .then(function (response) {
+      logger.log(`Raw Response: ${response.data}`, "silly", uuid);
+      callback(true);
+    })
+    .catch((error) => {
+      logger.log(`Failed to remove hashtag for ${fullChangeID}\n${error}`, "error", uuid);
       callback(false);
     })
 }

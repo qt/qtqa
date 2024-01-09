@@ -15,7 +15,7 @@ class retryProcessor extends EventEmitter {
     this.requestProcessor = requestProcessor;
   }
 
-  addRetryJob(originalUuid, retryAction, args) {
+  addRetryJob(originalUuid, retryAction, args, delay) {
     let _this = this;
     const retryUuid = uuidv1();
     _this.logger.log(`Setting up ${retryAction}`, "warn", originalUuid);
@@ -27,10 +27,10 @@ class retryProcessor extends EventEmitter {
           `Retry ${retryAction} registered for ${retryUuid}`,
           "verbose", originalUuid
         );
-        // Call retry in 30 seconds.
+        // Call retry in 30 seconds or custom delay time.
         setTimeout(function () {
           _this.emit("processRetry", retryUuid);
-        }, 30000);
+        }, delay || 30000);
       }
     );
   }
@@ -39,7 +39,7 @@ class retryProcessor extends EventEmitter {
   // the process where it left off.
   processRetry(uuid, callback) {
     let _this = this;
-    _this.logger.log(`Processing retry event with uuid ${uuid}`);
+    _this.logger.log(`Processing retry event with uuid ${uuid}`, "debug", "RETRY");
     function deleteRetryRecord() {
       postgreSQLClient.deleteDBEntry("retry_queue", "uuid", uuid, function (success, data) {});
     }
@@ -49,7 +49,7 @@ class retryProcessor extends EventEmitter {
         deleteRetryRecord();
         let args = toolbox.decodeBase64toJSON(rows[0].args);
         _this.logger.log(
-          `Processing retryRequest "${rows[0].retryAction}" for ${uuid} with args: ${args}`,
+          `Processing retryRequest "${rows[0].retryaction}" for ${uuid} with args: ${args}`,
           "debug"
         );
         _this.requestProcessor.emit(rows[0].retryaction, ...args);
