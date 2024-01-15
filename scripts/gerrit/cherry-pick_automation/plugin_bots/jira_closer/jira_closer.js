@@ -551,7 +551,7 @@ class jira_closer {
           logger.log(`FIXES: Error querying for branch ${originalChange.project}`
             + ` ${originalChange.branch}: ${err}`, "error", originalChange.uuid);
         } else if (result.rows.length > 0) {
-          branchesCache[originalChange.project][originalChange.branch] = result.rows[0].first_seen;
+          branchesCache[originalChange.project][originalChange.branch] = moment(result.rows[0].first_seen);
         } else {
           let firstSeen = moment(originalChange.submitted).format("YYYY-MM-DD HH:mm:ss");
           branchesCache[originalChange.project][originalChange.branch] = firstSeen;
