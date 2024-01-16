@@ -112,8 +112,9 @@ my %excludedFiles = (
                           qr{^tools/qscxmlc/moc_patches/.*\.patch$},
                         ],
     'qttools'        => [
-                          # Exclude QDoc's golden output in tests
+                          # Exclude QDoc test data and third party dependencies
                           qr{^src/qdoc/qdoc/tests/generatedoutput/expected_output/},
+                          qr{^src/qdoc/qdoc/tests/validateqdocoutputfiles/testdata/},
                           qr{^src/qdoc/qdoc/src/qdoc/clang/AST/QualTypeNames.h},
                         ],
 );
