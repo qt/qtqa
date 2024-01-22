@@ -114,7 +114,7 @@ modules () {
     # Scan for CMakeLists.txt files defining non-Private, non-plugin Qt modules:
     # Known variants on qt_internal_add_*_module: protobuf, qml
     find src -type d -name .git -prune -o -type f -name CMakeLists.txt -print \
-        | xargs grep 'qt_internal_add\(_[a-z][a-z]*\)\?_module(' \
+        | xargs grep '^[^#]*qt_internal_add\(_[a-z][a-z]*\)\?_module(' \
         | grep -wv 'qt_internal_add.*module([A-Za-z0-9]*Private' \
         | grep -wv 'qt_internal_add.*module([A-Za-z0-9]*plugin' \
         | sed -e 's/: *qt_internal_add.*_module(/ /' \
