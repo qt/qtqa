@@ -7,11 +7,12 @@ help () {
     usage
     cat <<EOF
 
-Prepare a commit for pushing to Gerrit, that expresses the interesting
-changes in API between a prior release (tag or branch) and an imminent
-release (branch).  Certain boring changes are excluded; you can review
-them after this has run with git diff -D; if necessary, you can amend
-the commit to remove any remaining boredom or include anything
+Prepare commits for pushing to Gerrit, one commit for each Qt module
+within the git module, that express the interesting changes in API
+between a prior release (tag or branch) and an imminent release
+(branch). Certain boring changes are excluded; you can review them
+after this has run with git diff -D; if necessary, you can amend
+commits to remove any remaining boredom or include anything
 mis-classified as boring, before pushing to Gerrit.
 
 Run in the top-level directory of a work tree in a clean state; don't
@@ -25,7 +26,10 @@ Options:
 
  -a
  --amend   Amend existing commit rather than extending the review
-           branch, if it exists already.
+           branch, if it exists already. This is done by saving fixup!
+           commits for the new changes and rebasing with autosquash;
+           you'll need to agree to the proposed rebase, so this can
+           only be used interactively.
 
  -h
  --help    Print this help and exit.
@@ -189,6 +193,10 @@ esac
 run () { mutter "Running: $@"; eval "$@" || die "Failed ($?): $@"; }
 logged () { mention "Running: $@"; eval "$@"; }
 checkout () { run git checkout $QUIET "$@"; }
+changeid () {
+    git log --grep "$1: API comparison from $PRIOR to $RELNAME in $GITMODULE" "$PRIOR..$2" \
+        | sed -ne '/Change-Id:/ s/.*: *//p'
+}
 
 headers () {
     # usage: pipe CMake files one per line into | headers rev module
@@ -249,7 +257,6 @@ case `git branch | grep -wF " $BRANCH" | grep "^[* ] $BRANCH"'$'` in
 esac
 
 # Implement --replace and --amend:
-CHANGEID=
 if [ -n "$AMEND" ]
 then
     # Suppress --amend or --replace unless we have a prior commit on $BRANCH:
@@ -257,22 +264,22 @@ then
     then
         mention "Suppressing requested $AMEND: no prior commit on $BRANCH"
         AMEND=
-    else # Read (and validate) last commit's Change-Id:
-        CHANGEID=`git show --summary $BRANCH | sed -ne '/Change-Id:/ s/.*: *//p'`
-        [ -n "$CHANGEID" ] || die "No prior Change-Id from $BRANCH"
-        expr "$CHANGEID" : "^I[0-9a-f]\{40\}$" >/dev/null || \
-            die "Bad prior Change-Id ($CHANGEID) from $BRANCH"
-        # Also preserve Task-number, if present and not over-ridden:
+    else
+        # Read last commit's Task-number, if --task hasn't specified it:
         [ -n "$TASK" ] || TASK=`git show --summary $BRANCH | sed -ne '/Task-number:/ s/.*: *//p'`
     fi
 fi
+
+OLDBRANCH=
 if [ "$AMEND" = '--replace' ]
 then
-    AMEND=
+    OLDBRANCH="$BRANCH-old-$PROC"
     checkout "$RELEASE"
-    run git branch -D "$BRANCH"
+    # Rename old branch, recreate fresh:
+    run git branch -m "$BRANCH" "$OLDBRANCH"
     checkout -b "$BRANCH" "$PRIOR"
 fi
+
 # Even when we do have a prior commit, the headers it reports as
 # deleted are not actually deleted as part of that commit; so their
 # deletion below shall ensure they're reported in the commit message,
@@ -346,6 +353,7 @@ consume () {
 # It can, however, write to local temp files:
 COMMITTED="../.committed-$PROC"
 BORED="../.bored-$PROC"
+FIXED="../.fixed-$PROC"
 
 # We need to include deleted and new Qt modules;
 # and moved ones may involve more than one
@@ -384,15 +392,39 @@ do
         continue
     fi
 
-    ( echo "$QTMODULE: API comparison from $PRIOR to $RELNAME in $GITMODULE"
-      echo
-      git status | grep 'deleted:' | tr '\t' ' '
-      git diff | wc | python3 -c 'import sys; \
-          row = sys.stdin.readline().split(); \
-          print(); \
-          print("Excluded {} lines ({} words, {} bytes) of boring changes.".format(*row) \
-                if any(int(x) != 0 for x in row) else "Found nothing boring to ignore.")'
-      cat <<EOF
+    # We can only amend (via fixup) if the existing branch has a
+    # commit for this Qt module: otherwise, we just create a fresh
+    # commit for it.
+    FIXUP=`[ "$AMEND" != '--amend' ] || changeid "$QTMODULE" "$BRANCH"`
+
+    # Compose commit message:
+    if [ -n "$FIXUP" ]
+    then
+        echo "$QTMODULE" >> "$FIXED"
+        echo "fixup! $QTMODULE: API comparison from $PRIOR to $RELNAME in $GITMODULE"
+    else
+        if [ -n "$OLDBRANCH" ]
+        then
+            CHANGEID=`changeid "$QTMODULE" "$OLDBRANCH"`
+            # This Qt module might not have shown up before:
+            if [ -z "$CHANGEID" ]
+            then warn "No prior Change-Id from $BRANCH for $QTMODULE"
+            else # But insist on well-formed Change-Id, if present:
+                expr "$CHANGEID" : "^I[0-9a-f]\{40\}$" >/dev/null || \
+                    die "Bad prior Change-Id ($CHANGEID) from $BRANCH"
+            fi
+        else CHANGEID=
+        fi
+
+        echo "$QTMODULE: API comparison from $PRIOR to $RELNAME in $GITMODULE"
+        echo
+        git status | grep 'deleted:' | tr '\t' ' '
+        git diff | wc | python3 -c 'import sys; \
+row = sys.stdin.readline().split(); \
+print(); \
+print("Excluded {} lines ({} words, {} bytes) of boring changes.".format(*row) \
+      if any(int(x) != 0 for x in row) else "Found nothing boring to ignore.")'
+        cat <<EOF
 
 NOTE: Please review the appropriate documentation and make sure it is
 correct, too!
@@ -421,17 +453,26 @@ of course, to restore any changes you think aren't boring.
 Remember that the parent of this commit is $PRIOR, not $RELEASE, despite
 the review being sent to the latter in Gerrit.
 EOF
-      [ -z "$CHANGEID$TASK" ] || echo
-      [ -z "$TASK" ] || echo "Task-number: $TASK"
-      [ -z "$CHANGEID" ] || echo "Change-Id: $CHANGEID"
-    ) > "$GITDIR/COMMIT_EDITMSG"
+        [ -z "$CHANGEID$TASK" ] || echo
+        [ -z "$TASK" ] || echo "Task-number: $TASK"
+        [ -z "$CHANGEID" ] || echo "Change-Id: $CHANGEID"
+    fi > "$GITDIR/COMMIT_EDITMSG"
     # The git status in that holds a lock that precludes the git commit;
     # so we can't just pipe the message and use -F - to deliver it.
+
     mention "Committing change for $QTMODULE"
-    run git commit $QUIET $AMEND -F "$GITDIR/COMMIT_EDITMSG"
+    run git commit $QUIET -F "$GITDIR/COMMIT_EDITMSG"
 
     echo "$QTMODULE" >> "$COMMITTED"
 done
+[ -z "$OLDBRANCH" ] || run git branch -D "$OLDBRANCH"
+
+FIXES="`consume "$FIXED"`"
+if [ -n "$FIXES" ]
+then
+    warn "Doing a rebase to make new changes fix up old ones for each Qt module"
+    run git rebase -i --autosquash --autostash "$PRIOR"
+fi
 
 COMMITS="`consume "$COMMITTED"`"
 BORES="`consume "$BORED"`"
