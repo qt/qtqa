@@ -444,9 +444,12 @@ then
    [ -n "$TASK" ] || warn "Warning: no Task-number: footer specified."
 elif [ -n "$BORES" ]
 then mention "All the change here looks boring: check with git diff -D"
-else
+elif [ -n "$NEWBRANCH" ]
+then
     mutter "Clearing away unused branch and restoring $RESTORE"
     git checkout $QUIET "$RESTORE"
     git branch -D "$BRANCH"
     mention "No changes to API"
+else
+    mention "No new changes to API"
 fi
