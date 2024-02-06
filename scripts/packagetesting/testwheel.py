@@ -93,9 +93,9 @@ def get_installed_wheels(examples_root):
     """Determine install type."""
     # 6.5: Examples are no longer in wheels
     if VERSION >= (6, 5, 0):
-        if has_module("PySide6-M2M"):
+        if has_module("PySide6_M2M") or has_module("PySide6-M2M"):
             return InstalledWheels.M2M
-        if has_module("PySide6-Addons"):
+        if has_module("PySide6_Addons") or has_module("PySide6-Addons"):
             return InstalledWheels.AddOns
         return InstalledWheels.Essentials
 
