@@ -14,6 +14,8 @@ use Cwd qw( abs_path getcwd );
 use List::Util qw( first );
 use Pod::Usage;
 use Test::More;
+use JSON;
+use Data::Dumper;
 
 =head1 NAME
 
@@ -530,6 +532,205 @@ sub checkLicense_legacy
     return 1;
 }
 
+
+##########################################################################################
+my $licenseRuleFileName = "licenseRule.json";
+# Format of the license rule json file
+# It's an array
+# Each entry in the array corresponds to a set of rules
+# There are sets of rules for files with certain endings.
+# A file ending cannot be present in two "file_pattern_ending".
+# A more constraining ending (like "special.txt") needs to appear in a "file_pattern_ending"
+# located before the "file_pattern_ending" of a less constraining ending (like ".txt").
+# [
+# {
+#   "file_pattern_ending" : [ "special.txt", ".end1"],
+#   "location" : {
+#       "src/" : {# the location (the directory or file) for which the spdx rule applies
+#           "comment" : "blabla",   # this is optional
+#           "file type" : "module", #corresponding file type in terms of quip18
+#           "spdx"      : ["BDS3"]  # the authorized license expression(s)
+#       },
+#       "src/tools" : {             # the location is checked from the base of $QT_MODULE_TO_TEST.
+#           "file type" : "tools",
+#           "spdx"      : ["first_possibility", "second_possibility"]
+#       }
+#   }
+# },
+# {
+#   "file_pattern_ending" : [ ".txt", "end2"],
+#   "location" : {
+#       "src/a_special_file.txt" : {
+#           "comment" : "Exception",
+#           "file type" : "module",
+#           "spdx"      : ["BDS3"]
+#       }
+#   }
+# },
+# {
+#   "location" : {
+#       "src" : {
+#           "comment" : "blabla",
+#           "file type" : "module",
+#           "spdx"      : ["BDS3"]
+#       },
+#       "src/tools" : {
+#           "file type" : "tools",
+#           "spdx"      : ["first_possibility", "second_possibility"]
+#       }
+#   }
+# }
+#]
+# The last entry does NOT have a "file_pattern_ending"
+# It's the set of rules for the files whose ending does not define the license rule.
+# For those files the license rule only depends on the location of the file in
+# the Qt module repository.
+
+my $keyLocation = "location";
+my $keyFileType = "file type";
+my $keySpdxEpr = "spdx";
+my $keyEnding = "file_pattern_ending";
+
+my $licenseRules;
+my @caseLocationList; # for each case, the list of dir and/or files is ordered
+
+my $licenseRuleValid;
+sub readLicenseRules
+{
+    my $filename = "$QT_MODULE_TO_TEST/$licenseRuleFileName";
+    my $message = "";
+    if (open (my $json_str, $filename)) {
+      local $/ = undef;
+      $licenseRules = decode_json <$json_str>;
+      close($json_str);
+    } else {
+        $message = "$QT_MODULE_TO_TEST/$licenseRuleFileName does not exist.";
+        $message .= " The license usage is not tested.\n";
+        return $message;
+    }
+
+    #for debug
+    #print Data::Dumper->Dump([$licenseRules], [qw(licenseRules)]);
+
+    # this is to check that a given ending appears in only one list of endings
+    my @arrayOfEndings = ();
+
+    my @allCases = @$licenseRules;
+    for (my $index = 0; $index < @allCases; $index++) {
+        my $case = $allCases[$index];
+        # ordering the location, to review the deeper one first in checkLicenseUsage
+        @{$caseLocationList[$index]} = (sort { length $b <=> length $a }
+                                        keys %{%$case{$keyLocation}});
+        if (exists $case->{$keyEnding}) {
+            push(@{$arrayOfEndings[$index]} , @{%$case{$keyEnding}});
+        }
+
+        if (!exists $case->{$keyEnding} and $#allCases > $index) {
+            $message .= "warning: the default case with NO ". $keyEnding
+                       ." needs to appear last.\n";
+        }
+    }
+
+    #print Dumper @arrayOfEndings;
+    # Make sure a file ending appears only once
+    # and that the file endings are logically ordered
+    foreach my $arrayIndex (0 .. ($#arrayOfEndings-1)) {
+        foreach my $compArrayIndex ($arrayIndex+1 .. $#arrayOfEndings) {
+            foreach my $end (@{$arrayOfEndings[$arrayIndex]}) {
+                # If a file_pattern_ending entry matches a subsequent file_pattern_ending entry
+                # the file is considered invalid
+                # in other words, the more restrictive ending should appear in a
+                # file_pattern_ending
+                # that is first in the file
+                # The following is invalid
+                # {
+                #   "file_pattern_ending" : ["doc"]
+                #   ...
+                # },
+                # { "file_pattern_ending" : [".doc"]
+                #  ...
+                # }
+                # two equivalent ending cannot appear in two different file_pattern_ending
+                # The following is invalid
+                # {
+                #   "file_pattern_ending" : [".doc"]
+                #   ...
+                # },
+                # { "file_pattern_ending" : [".doc"]
+                #  ...
+                # }
+                # The following is valid
+                # {
+                #   "file_pattern_ending" : [".doc"]
+                #   ...
+                # },
+                # { "file_pattern_ending" : ["doc"]
+                #  ...
+                # }
+                foreach my $compEnd (@{$arrayOfEndings[$compArrayIndex]}) {
+                    if ($compEnd eq $end) {
+                       $message .= "warning: " . $compEnd
+                                  . " appears in more than one rule set.\n";
+                       last;
+                    }
+                    if ($compEnd =~ qr{\Q$end\E$}) {
+                       $message .= "warning: " . $compEnd
+                                  . " is more restrictive than " . $end . ".\n";
+                       $message .= "The rule set for "
+                                  . $compEnd . " needs to appear first.\n";
+                    }
+                }
+            }
+        }
+    }
+
+    if (length($message)) {
+        $message .= "Please review " . $filename
+                   . "\nwarning: The license usage is not tested.\n";
+    }
+    return $message;
+}
+
+sub checkLicenseUsage
+{
+    my $expression = shift;
+    my $shortfilename = shift;
+    my $index = 0;
+    foreach my $case (@$licenseRules) {
+        # Entering the default case, were no $keyEnding exists.
+        # or
+        # Entering a case if the file ending corresponds to one of the ending
+        # in @{%$case{$keyEnding}}.
+        # $keyEnding entries should be string so the regular expression is built using \Q and \E
+        if (!exists $case->{$keyEnding} or
+            first {$shortfilename =~ qr{\Q$_\E$}} @{%$case{$keyEnding}}) {
+            # using the ordered list of location, to check deeper first
+            foreach my $location (@{$caseLocationList[$index]}) {
+                # location can be expressed as regular expression, for this reason no \Q \E here
+                if ($shortfilename =~ qr{^$location}) {
+                    # the SPDX expression should be entered in the json file as string,
+                    # using \Q \E to convert to regexpr
+                    if (!first {$expression eq $_}
+                        @{%$case{$keyLocation}->{$location}->{$keySpdxEpr}}) {
+                        my $type = %$case{$keyLocation}->{$location}->{$keyFileType};
+                        fail("error: $shortfilename is using wrong license SPDX expression \n"
+                        . $expression . ". \n" . "Please check the rule for " . $type
+                        . " in ".$licenseRuleFileName.".\n");
+                        return 0;
+                    }
+                    return 1;
+                }
+            }
+        }
+        $index++;
+    }
+
+    fail("error: No license rule could be found for $shortfilename Please check "
+         .$licenseRuleFileName.".\n");
+    return 0;
+
+}
+
 sub checkSPDXLicenseIdentifier
 {
     my $expression = shift;
@@ -547,7 +748,14 @@ sub checkSPDXLicenseIdentifier
             return 0;
         }
     }
-    return 1;
+
+    # only checking the license usage if a $licenseRuleFileName has been found
+    # in $QT_MODULE_TO_TEST
+    if (!$licenseRuleValid) {
+        return 1;
+    } else {
+        return checkLicenseUsage($expression, $shortfilename);
+    }
 }
 
 #
@@ -606,11 +814,9 @@ sub checkLicense_SPDX
             fail("error: $shortfilename does not appear to contain a license header");
             return;
         }
-    }
 
-    # Check the license identifiers we've found.
-    foreach (@licenseIdentifiers) {
-        if (!checkSPDXLicenseIdentifier($_, $shortfilename)) {
+        # Checking only the first SPDX tag found
+        if (!checkSPDXLicenseIdentifier($licenseIdentifiers[0], $shortfilename)) {
             return 0;
         }
     }
@@ -781,6 +987,8 @@ sub run
         }
     }
 
+
+
     #
     # Phase 3: Decide which files we are going to scan.
     #
@@ -823,6 +1031,9 @@ sub run
     #
     # Phase 4: Scan the files
     #
+    my $readLicenseRulesMessage = readLicenseRules;
+    $licenseRuleValid = !length($readLicenseRulesMessage);
+
     my $numTests = $#filesToScan + 1;
     if ($numTests <= 0) {
         plan skip_all => "Module $moduleName appears to have no files that must be scanned";
@@ -834,6 +1045,9 @@ sub run
         }
         foreach ( @filesToScan ) {
             &$checkLicense($_);
+        }
+        if (!$licenseRuleValid) {
+            print("$readLicenseRulesMessage");
         }
     }
 }
