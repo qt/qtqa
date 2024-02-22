@@ -214,6 +214,8 @@ class relationChainManager {
     let targetPickID = `${encodeURIComponent(currentJSON.change.project)}~${encodeURIComponent(branch)}~${
       currentJSON.change.id
     }`;
+    let eventActionOnTimeout;
+    let eventActionOnTimeoutArgs;
 
     if (["NEW", "STAGED", "INTEGRATING"].some((element) => detail.error == element)) {
       // The parent has not yet been merged. Set up a listener and
@@ -259,7 +261,7 @@ class relationChainManager {
             48 * 60 * 60 * 1000, undefined, undefined,
             undefined, undefined,
             undefined,
-            undefined, currentJSON.uuid, true, "relationChain"
+            undefined, undefined, undefined, currentJSON.uuid, true, "relationChain"
           );
         } else {
           // The direct parent doesn't include the branch that this
@@ -312,51 +314,33 @@ class relationChainManager {
         if (parentPickBranches.has(sanitizedBranch)) {
           // The target branch is on the parent as well, so there should
           // be a cherry-pick. Maybe it's not done processing in the bot yet.
-          if (!detail.isRetry) {
-            // Run the check again in 8 seconds to be sure we didn't just
-            // miss close-timing.
-            setTimeout(function () {
-              _this.requestProcessor.emit(
-                "verifyParentPickExists", currentJSON, branch,
-                "relationChain_validBranchReadyForPick",
-                "relationChain_targetParentNotPicked",
-                true
-              );
-            }, 10000);
-          } else if (detail.isRetry) {
-            // We already retried once. The target isn't going to exist
-            // now if didn't on the first retry. Post a comment on gerrit.
-            // Also set up a listener to pick up the target branch pick
-            // inside 48 hours.
-            gerritMessage = `A dependent to this change had a cherry-pick footer for`
-            + ` ${sanitizedBranch}, but the pick for this change could not be found on ${branch}.`
-            + `\nIf this change should also be cherry-picked to ${branch}, please do so manually`
-            + ` now.`
-            + `\n\nIf this pick to the target branch is completed in the next 48 hours and retains`
-            + ` the same Change-Id, the dependent change's cherry-pick will be reparented`
-            + ` automatically if it has not yet been staged/merged. A follow-up to this message`
-            + ` will be posted if the automatic process expires.`
-            + `\n\nDependent change information:`
-            + `\nSubject: ${currentJSON.change.subject}`
-            + `\nChange Number: ${currentJSON.change.number}`
-            + `\nLink: ${currentJSON.change.url}`;
-            listenEvent = `cherryPickCreated_${detail.targetPickParent}`;
-            listenTimeout = 48 * 60 * 60 * 1000;
-            gerritMessageChangeID = detail.parentChangeID;
-            gerritMessageOnTimeout = `An automatic pick request for a dependent of this change to`
-            + ` ${sanitizedBranch} has expired.\nPlease process the cherry-pick manually if`
-            + ` required.`
-            + `\n\nDependent change information:`
-            + `\nSubject: ${currentJSON.change.subject}`
-            + `\nChange Number: ${currentJSON.change.number}`
-            + `\nLink: ${currentJSON.change.url}`;
-            messageTriggerEvent = `mergeConflict_${targetPickID}`;
-            messageCancelTriggerEvent = `staged_${targetPickID}`;
-            // Pretty sure this isn't a race condition, so go ahead and
-            // create the pick on the nearest parent with a pick
-            // on the target branch.
-            pickToNearestParent = true;
-          }
+          listenEvent = `cherryPickCreated_${detail.targetPickParent}`;
+          listenTimeout = 48 * 60 * 60 * 1000;
+          gerritMessageChangeID = detail.parentChangeID;
+          gerritMessageOnTimeout = `An automatic pick request for a dependent of this change to`
+          + ` ${sanitizedBranch} has expired becaause it depends on the cherry-pick of this`
+          + ` change.\n The cherry-pick of the dependent change will be performed against`
+          + ` ${sanitizedBranch} HEAD.`
+          + `\n\nDependent change information:`
+          + `\nSubject: ${currentJSON.change.subject}`
+          + `\nChange Number: ${currentJSON.change.number}`
+          + `\nLink: ${currentJSON.change.url}`;
+          eventActionOnTimeout = "locateNearestParent"
+          eventActionOnTimeoutArgs = [currentJSON, undefined, branch,
+          "relationChain_validBranchReadyForPick"];
+
+          pickToNearestParent = false;
+          toolbox.addToCherryPickStateUpdateQueue(
+            currentJSON.uuid,
+            {
+              branch: branch,
+              statusDetail: "valid_parent_merged_not_picked"
+            },
+            "done_waitParent",
+            function () {
+              toolbox.decrementPickCountRemaining(currentJSON.uuid);
+            }
+          );
         } else {
           // The parent had a cherrypick footer, but it didn't have the target
           // branch in it. Alert the owner and set up a 48 hour listener
@@ -432,7 +416,7 @@ class relationChainManager {
         listenTimeout, undefined, gerritMessageChangeID,
         gerritMessage, gerritMessageOnTimeout,
         "relationChain_validBranchVerifyParent",
-        [currentJSON, branch], currentJSON.uuid, true, "relationChain"
+        [currentJSON, branch], eventActionOnTimeout, eventActionOnTimeoutArgs, currentJSON.uuid, true, "relationChain"
       );
     }
 
@@ -510,7 +494,7 @@ class relationChainManager {
         listenTimeout, undefined, cherryPickJSON.id,
         gerritMessage, gerritMessageOnTimeout,
         "relationChain_checkStageEligibility",
-        [originalRequestJSON, cherryPickJSON], originalRequestJSON.uuid, true,
+        [originalRequestJSON, cherryPickJSON], undefined, undefined, originalRequestJSON.uuid, true,
         "relationChain_waitParentStage"
       );
     } else if (parentStatus == "INTEGRATING") {
@@ -527,7 +511,7 @@ class relationChainManager {
         listenTimeout, undefined, cherryPickJSON.id,
         gerritMessage, gerritMessageOnTimeout,
         "relationChain_checkStageEligibility",
-        [originalRequestJSON, cherryPickJSON], originalRequestJSON.uuid, true,
+        [originalRequestJSON, cherryPickJSON], undefined, undefined, originalRequestJSON.uuid, true,
         "relationChain_waitParentMerge"
       );
     }
@@ -536,7 +520,7 @@ class relationChainManager {
       listenTimeout, undefined, undefined,
       undefined, undefined,
       "relationChain_checkStageEligibility",
-      [originalRequestJSON, cherryPickJSON], originalRequestJSON.uuid, true,
+      [originalRequestJSON, cherryPickJSON], undefined, undefined, originalRequestJSON.uuid, true,
       "relationChain_waitParentAbandon"
     );
   }

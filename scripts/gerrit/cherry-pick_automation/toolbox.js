@@ -626,7 +626,8 @@ function addToListenerCacheUpdateQueue(
   timeout, timestamp, messageChangeId,
   messageOnSetup, messageOnTimeout,
   emitterEvent,
-  emitterArgs, originalChangeUuid, persistListener, contextId,
+  emitterArgs, eventActionOnTimeout, eventActionOnTimeoutArgs, originalChangeUuid,
+  persistListener, contextId,
   callback, unlock = false
 ) {
   if (unlock) {
@@ -641,7 +642,8 @@ function addToListenerCacheUpdateQueue(
       timeout, timestamp, messageChangeId,
       messageOnSetup, messageOnTimeout,
       emitterEvent,
-      emitterArgs, originalChangeUuid, persistListener, contextId, callback
+      emitterArgs, eventActionOnTimeout, eventActionOnTimeoutArgs, originalChangeUuid,
+      persistListener, contextId, callback
     ]);
   }
 
@@ -685,7 +687,8 @@ function setupListener(
   timeout, timestamp, messageChangeId,
   messageOnSetup, messageOnTimeout,
   emitterEvent,
-  emitterArgs, originalChangeUuid, persistListener, contextId, isRestoredListener
+  emitterArgs, eventActionOnTimeout, eventActionOnTimeoutArgs, originalChangeUuid,
+  persistListener, contextId, isRestoredListener
 ) {
   const listenerId = `${listenerEvent}~${contextId}`;
   const messageTriggerId = `${listenerEvent}~${messageTriggerEvent}~${contextId}`;
@@ -729,6 +732,10 @@ function setupListener(
           "postGerritComment", originalChangeUuid, messageChangeId, undefined, messageOnTimeout,
           "OWNER"
         );
+        // Emit the eventActionOnTimeout event if set.
+        if (eventActionOnTimeout) {
+          source.emit(eventActionOnTimeout, ...eventActionOnTimeoutArgs);
+        }
       }
       logger.log(
         `Recovered listener is stale: ${
@@ -740,7 +747,8 @@ function setupListener(
         undefined, undefined, undefined,
         undefined, undefined,
         undefined,
-        undefined, originalChangeUuid, false, contextId
+        undefined, undefined, undefined, originalChangeUuid,
+        false, contextId
       );
       // Do not execute the rest of the listener setup.
       return;
@@ -769,6 +777,10 @@ function setupListener(
           "OWNER"
         );
       }
+      // Emit the eventActionOnTimeout event if set.
+      if (eventActionOnTimeout) {
+        source.emit(eventActionOnTimeout, ...eventActionOnTimeoutArgs);
+      }
     }, newTimeout);
   }
 
@@ -789,7 +801,8 @@ function setupListener(
             timeout, timestamp, messageChangeId,
             messageOnSetup, messageOnTimeout,
             emitterEvent,
-            emitterArgs, originalChangeUuid, persistListener, contextId
+            emitterArgs, eventActionOnTimeout, eventActionOnTimeoutArgs, originalChangeUuid,
+            persistListener, contextId
           );
         }
         if (listeners[messageCancelTriggerId])
@@ -830,7 +843,8 @@ function setupListener(
           undefined, undefined, undefined,
           undefined, undefined,
           undefined,
-          undefined, originalChangeUuid, false, contextId
+          undefined, undefined, undefined, originalChangeUuid,
+          false, contextId
         );
       };
       source.once(messageCancelTriggerEvent, listeners[messageCancelTriggerId]);
@@ -857,7 +871,7 @@ function setupListener(
           undefined, undefined, undefined,
           undefined, undefined,
           undefined,
-          undefined, originalChangeUuid, false, contextId
+          undefined, undefined, undefined, originalChangeUuid, false, contextId
         );
       }, 1000);
     };
@@ -883,7 +897,8 @@ function setupListener(
       timeout, timestamp, messageChangeId,
       messageOnSetup, messageOnTimeout,
       emitterEvent,
-      emitterArgs, originalChangeUuid, persistListener, contextId
+      emitterArgs, eventActionOnTimeout, eventActionOnTimeoutArgs, originalChangeUuid,
+      persistListener, contextId
     );
   }
 }
@@ -961,7 +976,8 @@ function updateDBListenerCache(
   timeout, timestamp, messageChangeId,
   messageOnSetup, messageOnTimeout,
   emitterEvent,
-  emitterArgs, originalChangeUuid, persistListener, contextId, callback
+  emitterArgs, eventActionOnTimeout, eventActionOnTimeoutArgs, originalChangeUuid,
+  persistListener, contextId, callback
 ) {
   function doNext() {
     // call the queue manager again with only unlock. This will pop
@@ -972,7 +988,9 @@ function updateDBListenerCache(
       undefined, undefined, undefined,
       undefined, undefined,
       undefined,
-      undefined, undefined, undefined, undefined, undefined, true, undefined
+      undefined, undefined, undefined, undefined,
+      undefined, undefined,
+      undefined, true
     );
   }
 
@@ -997,7 +1015,8 @@ function updateDBListenerCache(
               timeout, timestamp, messageChangeId,
               messageOnSetup, messageOnTimeout,
               emitterEvent,
-              emitterArgs, originalChangeUuid, persistListener, contextId
+              emitterArgs, eventActionOnTimeout, eventActionOnTimeoutArgs, originalChangeUuid,
+              persistListener, contextId
             ];
           break;
         case "delete":
