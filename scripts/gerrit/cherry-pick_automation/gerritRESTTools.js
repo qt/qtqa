@@ -255,6 +255,47 @@ function stageCherryPick(parentUuid, cherryPickJSON, customAuth, callback) {
   }, 5000);
 }
 
+// Submit a conflict-free change directly to the target branch.
+exports.submitCherryPick = submitCherryPick;
+function submitCherryPick(parentUuid, cherryPickJSON, customAuth, callback) {
+  let url =`${
+    gerritBaseURL("changes")}/${cherryPickJSON.id}/revisions/current/submit`;
+
+  logger.log(`POST request to: ${url}`, "debug", parentUuid);
+
+  setTimeout(function () {
+    axios({ method: "post", url: url, data: {}, auth: customAuth || gerritAuth })
+      .then(function (response) {
+        logger.log(`Successfully submitted "${cherryPickJSON.id}"`, "info", parentUuid);
+        callback(true, undefined);
+      })
+      .catch(function (error) {
+        if (error.response) {
+        // The request was made and the server responded with a status code
+        // that falls out of the range of 2xx
+
+          // Call this a permanent failure for staging. Ask the owner to handle it.
+          logger.log(
+            `An error occurred in POST to "${url}". Error ${error.response.status}: ${
+              error.response.data}`,
+            "error", parentUuid
+          );
+          callback(false, { status: error.response.status, data: error.response.data });
+        } else if (error.request) {
+        // The request was made but no response was received. Retry it later.
+          callback(false, "retry");
+        } else {
+        // Something happened in setting up the request that triggered an Error
+          logger.log(
+            `Error in HTTP request while trying to submit. Error: ${safeJsonStringify(error)}`,
+            "error", parentUuid
+          );
+          callback(false, error.message);
+        }
+      });
+  }, 5000);
+}
+
 // Post a comment to the change on the latest revision.
 exports.postGerritComment = postGerritComment;
 function postGerritComment(

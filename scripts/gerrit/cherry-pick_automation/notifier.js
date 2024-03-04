@@ -194,6 +194,11 @@ requestProcessor.on("cherrypickReadyForStage", (parentJSON, cherryPickJSON, resp
   requestProcessor.stageCherryPick(parentJSON, cherryPickJSON, responseSignal);
 });
 
+// Emitted when a cherry pick is approved and ready for automatic submission.
+requestProcessor.on("cherrypickReadyForSubmit", (parentJSON, cherryPickJSON, responseSignal) => {
+  requestProcessor.submitCherryPick(parentJSON, cherryPickJSON, responseSignal);
+});
+
 // Emitted when a comment is requested to be posted to codereview.
 // requestProcessor.gerritCommentHandler handles failure cases and posts
 // this event again for retry. This design is such that the gerritCommentHandler

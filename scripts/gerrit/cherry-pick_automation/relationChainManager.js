@@ -476,10 +476,17 @@ class relationChainManager {
   handleCherrypickReadyForStage(originalRequestJSON, cherryPickJSON, parentChangeID, parentStatus) {
     // The status of the cherry-pick's parent ok. Stage the new cherry-pick.
     let _this = this;
-    _this.requestProcessor.emit(
-      "cherrypickReadyForStage", originalRequestJSON, cherryPickJSON,
-      "relationChain_stagingDone"
-    );
+    if (toolbox.repoUsesStaging(originalRequestJSON.uuid, cherryPickJSON)) {
+      _this.requestProcessor.emit(
+        "cherrypickReadyForStage", originalRequestJSON, cherryPickJSON,
+        "relationChain_stagingDone"
+      );
+    } else {
+      _this.requestProcessor.emit(
+        "cherrypickReadyForSubmit", originalRequestJSON, cherryPickJSON,
+        "relationChain_stagingDone"
+      );
+    }
   }
 
   handleCherrypickWaitForParent(originalRequestJSON, cherryPickJSON, parentChangeID, parentStatus) {

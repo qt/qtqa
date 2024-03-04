@@ -1349,6 +1349,103 @@ class requestProcessor extends EventEmitter {
     );
   }
 
+  // Attempt to submit the cherry-pick directly to the target branch.
+  submitCherryPick(parentJSON, cherryPickJSON, responseSignal) {
+    let _this = this;
+    _this.logger.log(`Starting submit for ${cherryPickJSON.id}`, "verbose", parentJSON.uuid);
+    toolbox.addToCherryPickStateUpdateQueue(
+      parentJSON.uuid,
+      {
+        branch: cherryPickJSON.branch, statusDetail: "stagingStarted",
+        args: [parentJSON, cherryPickJSON, responseSignal]
+      },
+      "cherrypickReadyForSubmit"
+    );
+    gerritTools.submitCherryPick(
+      parentJSON.uuid, cherryPickJSON, parentJSON.customGerritAuth,
+      function (success, data) {
+        if (success) {
+          _this.logger.log(`submitd ${cherryPickJSON.id}`, "info", parentJSON.uuid);
+          toolbox.addToCherryPickStateUpdateQueue(
+            parentJSON.uuid, { branch: cherryPickJSON.branch, statusDetail: "submitted", args: [] },
+            "done_submitted",
+            function () {
+              toolbox.decrementPickCountRemaining(parentJSON.uuid);
+            }
+          );
+          _this.emit(responseSignal, true, parentJSON, cherryPickJSON);
+        } else if (data == "retry") {
+        // Do nothing. This callback function will be called again on retry.
+          _this.logger.log(`Failed to submit cherry pick ${
+            cherryPickJSON.id} due to a network issue. Retrying in a bit.`);
+          _this.retryProcessor.addRetryJob(
+            parentJSON.uuid, "cherrypickReadyForSubmit",
+            [parentJSON, cherryPickJSON, responseSignal]
+          );
+
+          toolbox.addToCherryPickStateUpdateQueue(
+            parentJSON.uuid,
+            { branch: cherryPickJSON.branch, statusDetail: "submitFailedRetryWait" },
+            "cherrypickReadyForSubmit"
+          );
+        } else {
+          _this.logger.log(
+            `Failed to submit ${cherryPickJSON.id}. Reason: ${safeJsonStringify(data)}`,
+            "error", parentJSON.uuid
+          );
+          gerritTools.locateDefaultAttentionUser(parentJSON.uuid, cherryPickJSON,
+            parentJSON.patchSet.uploader.email, function(user) {
+              if (user && user == "copyReviewers") {
+                gerritTools.copyChangeReviewers(parentJSON.uuid, parentJSON.fullChangeID,
+                  cherryPickJSON.id);
+              } else {
+                gerritTools.setChangeReviewers(parentJSON.uuid, cherryPickJSON.id,
+                  [user], undefined, function() {
+                    gerritTools.addToAttentionSet(
+                      parentJSON.uuid, cherryPickJSON, user, "Relevant user",
+                      parentJSON.customGerritAuth,
+                      function (success, data) {
+                        if (!success) {
+                          _this.logger.log(
+                            `Failed to add "${user}" to the`
+                            + ` attention set of ${cherryPickJSON.id}\n`
+                            + `Reason: ${safeJsonStringify(data)}`,
+                            "error", parentJSON.uuid
+                          );
+                        }
+                      }
+                    );
+                  });
+              }
+            }
+          );
+          _this.gerritCommentHandler(
+            parentJSON.uuid, cherryPickJSON.id,
+            undefined,
+            `INFO: The cherry-pick bot failed to automatically submit this change. Please try to submit it manually.\n\nContact gerrit administration if you continue to experience issues.\n\nReason: ${
+              data
+                ? safeJsonStringify(data, undefined, 4)
+                : "Unknown error. Please contact the gerrit admins at gerrit-admin@qt-project.org"
+            }`,
+            "OWNER"
+          );
+          toolbox.addToCherryPickStateUpdateQueue(
+            parentJSON.uuid,
+            {
+              branch: cherryPickJSON.branch, statusDetail: data.data || data.message,
+              statusCode: data.status || "", args: []
+            },
+            "submitFailed",
+            function () {
+              toolbox.decrementPickCountRemaining(parentJSON.uuid);
+            }
+          );
+          _this.emit(responseSignal, false, parentJSON, cherryPickJSON);
+        }
+      }
+    );
+  }
+
   // Set up a a post-comment action and retry it until it goes through.
   // this function should never be relied upon to succeed, as posting
   // comments will be handled in an async "it's done when it's done"

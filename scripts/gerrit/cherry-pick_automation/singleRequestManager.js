@@ -6,7 +6,7 @@ exports.id = "singleRequestManager";
 
 const safeJsonStringify = require("safe-json-stringify");
 
-const { findPickToBranches } = require("./toolbox");
+const { findPickToBranches, repoUsesStaging } = require("./toolbox");
 const gerritTools = require("./gerritRESTTools");
 
 // The singleRequestManager processes incoming changes linerally.
@@ -145,10 +145,17 @@ class singleRequestManager {
 
   handleCherrypickReadyForStage(parentJSON, cherryPickJSON) {
     let _this = this;
-    _this.requestProcessor.emit(
-      "cherrypickReadyForStage", parentJSON, cherryPickJSON,
-      "singleRequest_stagingDone"
-    );
+    if (repoUsesStaging(parentJSON.uuid, cherryPickJSON)) {
+      _this.requestProcessor.emit(
+        "cherrypickReadyForStage", parentJSON, cherryPickJSON,
+        "singleRequest_stagingDone"
+      );
+    } else {
+      _this.requestProcessor.emit(
+        "cherrypickReadyForSubmit", parentJSON, cherryPickJSON,
+        "singleRequest_integrationDone"
+      );
+    }
   }
 
   handleStagingDone(success, data) {

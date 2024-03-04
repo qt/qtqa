@@ -6,6 +6,7 @@
     "GERRIT_PORT": 443,
     "GERRIT_USER": "",
     "GERRIT_PASS": "",
+    "SUBMIT_MODE_REPOS": [],
     "ADMIN_EMAIL": "",
     "EMAIL_SENDER": "\"Cherry-Pick Bot\" <cherrypickbot@qt.io>",
     "SES_ACCESS_KEY_ID": "",

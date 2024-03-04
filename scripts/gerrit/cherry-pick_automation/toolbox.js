@@ -10,6 +10,12 @@ const postgreSQLClient = require("./postgreSQLClient");
 const { queryBranchesRe, checkBranchAndAccess, queryChange } = require("./gerritRESTTools");
 const Logger = require("./logger");
 const logger = new Logger();
+const config = require("./config.json");
+
+// Set default values with the config file, but prefer environment variable.
+function envOrConfig(ID) {
+  return process.env[ID] || config[ID];
+}
 
 let dbSubStatusUpdateQueue = [];
 let dbSubStateUpdateLockout = false;
@@ -381,6 +387,21 @@ function sortBranches(branches) {
 
     return aParts.length - bParts.length;
   });
+}
+
+exports.repoUsesStaging = repoUsesStaging;
+function repoUsesStaging(uuid, cherryPickJSON) {
+  let submitModeRepos = envOrConfig("SUBMIT_MODE_REPOS");
+  // Convert the comma-separated list of repos to an array if it is not already.
+  if (submitModeRepos && typeof submitModeRepos === "string") {
+    submitModeRepos = submitModeRepos.split(",");
+  }
+  if (submitModeRepos && submitModeRepos.includes(cherryPickJSON.project)) {
+    logger.log(
+      `Repo ${cherryPickJSON.project} is in SUBMIT_MODE.`, "verbose", uuid);
+    return false;
+  }
+  return true;
 }
 
 // Take a gerrit Change object and mock a change-merged event.

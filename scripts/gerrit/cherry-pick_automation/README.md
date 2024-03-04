@@ -79,13 +79,15 @@ Configuration set via config.json OR environment variables
    gerrit's REST API. `Default: ''`
 7. `GERRIT_PASS` Basic Authentication password gerrit REST API user.
    `Default: ''`
-8. **Optional** `SES_ACCESS_KEY_ID`: The access key ID for connecting with an Amazon SES
+8. `SUBMIT_MODE_REPOS` Repos which exclusively use Submit instead of stage.
+   If set via environment variable, use a comma-separated string format.
+9. **Optional** `SES_ACCESS_KEY_ID`: The access key ID for connecting with an Amazon SES
    email client. `Default: ''`
-9. **Optional** `SES_SECRET_ACCESS_KEY`: The access key secret for connecting with an Amazon
+10. **Optional** `SES_SECRET_ACCESS_KEY`: The access key secret for connecting with an Amazon
    SES email client. `Default: ''`
-10. **Optional** `ADMIN_EMAIL` Email address where critical debug messages are sent.
+11. **Optional** `ADMIN_EMAIL` Email address where critical debug messages are sent.
    `Default: ''`
-11. **Optional** `EMAIL_SENDER` Email address from which critical debug messages are sent.
+12. **Optional** `EMAIL_SENDER` Email address from which critical debug messages are sent.
    Note the formatting of the default sender.
    `Default: '"Cherry-Pick Bot" <cherrypickbot@qt.io>'`
 
