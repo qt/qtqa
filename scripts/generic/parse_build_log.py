@@ -24,6 +24,7 @@ prefix_re = re.compile(r'^agent:[\d :/]+\w+\.go:\d+: (\d+: )?')
 start_test_re = re.compile(r'^\*{9} Start testing of \w+ \*{9}$')
 end_test_re = re.compile(r'Totals: \d+ passed, (\d+) failed, \d+ skipped, \d+ blacklisted, \d+ms')
 end_test_crash_re = re.compile(r'\d+/\d+\sTest\s#\d+:.*\*\*\*Failed.*')
+end_test_timeout_re = re.compile(r'Test #\d+: .+ \.*\*{3}Timeout \d+\.\d+ sec')
 
 # Match make or cmake errors
 make_error_re = re.compile(r'make\[.*Error \d+$')
@@ -89,7 +90,10 @@ def print_failed_test(lines, start, end, already_known_errors):
         print('{}\n'.format(lines[end]))
 
 def is_fatal_timeout(line: str) -> bool:
-    return "Killed process: No output received (timeout" in line
+    if "Killed process: No output received (timeout" in line:
+        return True
+    if end_test_timeout_re.match(line):
+        return True
 
 def print_line_with_context(start_line_number: int, context_before: int, lines: List[str]):
     start = max(0, start_line_number - context_before)
