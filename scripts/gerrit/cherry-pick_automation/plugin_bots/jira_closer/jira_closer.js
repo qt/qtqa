@@ -78,7 +78,9 @@ function findClosestVersionMatch(uuid, branch, issueId) {
 // non-existing branch as for cherry-picking repos.
 async function findNextRelease(uuid, project, branch, mergeDate, usesCherryPicking, issueId) {
   logger.log(`FIXES: Searching for the next release release related to ${branch}`, "verbose", uuid);
-
+  let prefixRe = /^(tqtc\/lts-|lts-)/;
+  let match = prefixRe.exec(branch);
+  let prefix = match ? match[0] : "";
   // Recurse through branches in the generator and locate the desired branch.
   // Passing negativeSearch=true searches for the next non-existent branch.
   // Otherwise, the highest existing branch is passed to callback().
@@ -95,16 +97,17 @@ async function findNextRelease(uuid, project, branch, mergeDate, usesCherryPicki
     // Allow for plain branches or Version objects equally,
     // but any value passed to thisBranch must be an object resulting from generator.next();
     let tempBranch = thisBranch.value.parsedVersion || thisBranch.value;
-    promisedVerifyBranch(uuid, project, tempBranch, branchesCache)
+    let querybranch = prefixRe.test(tempBranch) ? tempBranch : `${prefix}${tempBranch}`;
+    promisedVerifyBranch(uuid, project, querybranch, branchesCache)
     .then((validBranch) => {
       // Treat branches created after the merge date as non-existent. This makes the branch
       // a valid fix target since it would not have existed at the time of merging.
       if (validBranch && (moment.isMoment(validBranch) ? validBranch.isBefore(mergeDate) : true)) {
-        logger.log(`FIXES: Found existing branch ${tempBranch}`, "debug", uuid);
+        logger.log(`FIXES: Found existing branch ${querybranch}`, "debug", uuid);
         lastFound = thisBranch.value;
         checkNextBranch(generator.next(), generator, negativeSearch, lastFound, callback);
       } else {
-        logger.log(`FIXES: Couldn't find ${tempBranch}, or it was created after the merge date.`,
+        logger.log(`FIXES: Couldn't find ${querybranch}, or it was created after the merge date.`,
           "debug", uuid);
         if (negativeSearch) {
           // If we couldn't find the x.x.0 release, check to make sure a feature
