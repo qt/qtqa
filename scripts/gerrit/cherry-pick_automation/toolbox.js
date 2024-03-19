@@ -118,7 +118,7 @@ function isChild(maybeChild, maybeParent) {
 
   // Feature versions are children if lesser than the parent. This
   // also catches release versions of the same or newer feature versions.
-  if (childParts[1] <= parentParts[1]) {
+  if (childParts[0] === parentParts[0] && childParts[1] <= parentParts[1]) {
     return true;
   }
 
