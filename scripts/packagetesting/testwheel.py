@@ -161,6 +161,8 @@ def examples(examples_root):
         result.append("qml/tutorials/extending-qml/chapter5-listproperties/listproperties.py")
     else:
         result.append("qml/tutorials/extending/chapter5-listproperties/listproperties.py")
+    if VERSION >= (6, 7, 0):
+        result.append('quickcontrols/gallery/gallery.py')
 
     if wheels != InstalledWheels.Essentials:
         result.extend(get_addon_examples())
