@@ -300,9 +300,21 @@ function getVersionsForIssue(uuid, issueId) {
         lastVersion = parsedVersion[0];
       }
       resolve({ success: true, versions: versions });
-    }).catch(err => {console.log(err);logger.log(safeJsonStringify(err), "error", uuid);});
-  }).catch(err => {logger.log(safeJsonStringify(err), "error", uuid);})
+    }).catch(err => {logger.log(safeJsonStringify(err), "error", uuid); reject(err);});
+  }).catch(err => {logger.log(safeJsonStringify(err), "error", uuid); reject(err);})
   );
+}
+
+function queryJQL(uuid, jql) {
+  return new Promise(function(resolve, reject) {
+    doJIRAGetRequest(uuid, `search?jql=${jql}`)
+    .then((data) => {
+      resolve(data);
+    })
+    .catch((err) => {
+      reject(err);
+    });
+  });
 }
 
 
@@ -476,5 +488,5 @@ function postComment(uuid, issueId, comment) {
 }
 
 
-module.exports = { queryManyIssues, getVersionsForIssue, getProjectList, updateFixVersions,
+module.exports = { queryManyIssues, getVersionsForIssue, getProjectList, queryJQL, updateFixVersions,
    updateCommitField, updateStatusCache, wasClosedByJiraBot, botHasPostedMessage, closeIssue, postComment };

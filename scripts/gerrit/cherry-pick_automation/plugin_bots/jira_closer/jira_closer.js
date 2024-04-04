@@ -15,13 +15,12 @@ const Logger = require("../../logger");
 const logger = new Logger();
 const SQL = require("../../postgreSQLClient");
 const { Version, filterVersions, makeVersionGenerator } = require("./version");
-const { getVersionsForIssue, queryManyIssues,
-  getProjectList, updateCommitField, updateFixVersions, updateStatusCache, wasClosedByJiraBot,
+const { getVersionsForIssue, queryManyIssues, getProjectList, queryJQL, updateCommitField,
+  updateFixVersions, updateStatusCache, wasClosedByJiraBot,
   botHasPostedMessage, closeIssue, postComment } = require("./jira_toolbox");
 const { promisedVerifyBranch, repoUsesCherryPicking,
   getCommitInBranches, getChangesWithFooter } = require("./gerrit_toolbox");
 const config = require("./config.json");
-const { type } = require("os");
 
 let gerritAuth = {
   username: envOrConfig("JIRA_GERRIT_USER"),
@@ -67,6 +66,24 @@ function findClosestVersionMatch(uuid, branch, issueId) {
       reject(error);
     })
   });
+}
+
+function collectIssueIdsFromChange(change) {
+  let issueIds = [];  // Collect work to do for this change here.
+    const message = change.revisions[change.current_revision].commit.message;
+    let footers = message.matchAll(regexp);
+    for (const footer of footers) {  // Handle multiple lines of footers
+      const line = footer[1].split(); // Handle multiple targets on one line as well
+      for (const key of line) {
+        // All Jira tickets follow the format KEY-1234
+        // Capture the KEY and make sure it's a valid project.
+        let fixTargetMatch = key.match(/(.+)-/);
+        if (fixTargetMatch && projectList.includes(fixTargetMatch[1])) {
+          issueIds.push(key);
+        }
+      }
+    }
+  return issueIds;
 }
 
 
@@ -381,6 +398,104 @@ async function determineFixVersion(uuid, change, issueId) {
   }
 }
 
+async function handle_fix_version_api(req, res) {
+  // Req has URL parameters for gerrit Change Number or ID.
+  // Query gerrit for the change and then process it.
+  // This is a public endpoint, so we need to validate the request.
+  if (!req.query || !req.query.change) {
+    res.status(400).send("Bad Request: Missing 'change' parameter.");
+    return;
+  }
+  let changeID = req.query.change;
+  // Sanitize the changeID to only contain 6 digits".
+  if (!/^\d{6}$/.test(changeID)) {
+    res.status(400).send("Bad Request: Invalid 'change' parameter. Accepts 6 digits only.");
+    return;
+  }
+
+  req["uuid"] = uuidv1();
+  logger.log(`Processing FixVersion API request for ${changeID}`, "info", req.uuid);
+  let issueCount = 0;
+  let fixVersions = new Set();
+  let errs = [];
+
+  function checkDone(version) {
+    if (version)
+      fixVersions.add(version);
+    if (--issueCount === 0) {
+      if (errs.length)
+        res.status(500).send(Array.from(fixVersions).concat(errs));
+      else
+        res.status(200).send(Array.from(fixVersions));
+    }
+  }
+
+  function _doCheckFixVersion(change, issueIds) {
+    issueIds.forEach((issueId) => {
+      determineFixVersion(req.uuid, change, issueId)
+      .then((fixVersion) => {
+        logger.log(`FIXES: Fix Version for ${issueId} in ${change.project}`
+          + ` on ${change.branch}: ${safeJsonStringify(fixVersion)}`, "info", req.uuid);
+        checkDone(fixVersion);
+      }).catch(err => {
+        const msg = `${issueId}: ${typeof(err) == String ? err : safeJsonStringify(err)}`;
+        logger.log(msg, "warn", req.uuid);
+        errs.push(msg);
+        checkDone();
+      });
+    });
+  }
+
+  // uuid and fullChangeID are expected fields by most tools in the core bot framework.
+  // Query for the full issue. Change-merged events aren't full enough.
+  gerritTools.queryChange(req.uuid, changeID, undefined, gerritAuth,
+    function(success, change) {  // Should never hard-fail since the change exists.
+      // change is an HTTP Response object if !success
+      if (!success && change && change.statusCode == 404) {
+        logger.log(`Got 404 Not Found for ${changeID}. Jirabot probably doesn't have
+        permissions to see it in gerrit.`, "error", req.uuid);
+        res.status(404).send("Not Found");
+        return;
+      } else if (!success) {
+        logger.log(`Failed to query for ${changeID}: ${safeJsonStringify(change)}`,
+        "error", req.uuid);
+        res.status(500).send("Internal Server Error");
+        return;
+      }
+      req["fullChangeID"] = change.id;
+      let issueIds = collectIssueIdsFromChange(change);
+      issueCount = issueIds.length;
+      if (issueCount) {
+        _doCheckFixVersion(change, issueIds);
+      } else {
+        if (change.project.includes("qt/")) {
+          logger.log(`No footers found on qt/ ${change.id}. Using latest QTBUG issue.`,
+            "info", req.uuid);
+          queryJQL(req.uuid, `project = QTBUG AND type = Bug AND status = Open ORDER BY created DESC &maxResults=1`)
+          .then((issues) => {
+            issueCount = issues.issues.length;
+            if (issueCount) {
+              let issueId = issues.issues[0].key;
+              logger.log(`Substituting default QTBUG issue ${issueId} for ${change.id}.`,
+                "info", req.uuid);
+              _doCheckFixVersion(change, [issueId]);
+            }
+          }).catch(err => {
+            logger.log(`Failed to query for QTBUG issue: ${safeJsonStringify(err)}`,
+            "error", req.uuid);
+            res.status(500).send("Internal Server Error");
+            return;
+          });
+        } else {
+          logger.log(`No footers found on ${change.id}. Cannot provide fix version.`,"info", req.uuid);
+          res.status(200).send([]);
+          return;
+        }
+      }
+    }
+  );
+}
+
 class jira_closer {
   constructor(notifier) {
     this.notifier = notifier;
@@ -402,6 +517,7 @@ class jira_closer {
     // Add our endpoint to the central Express server.
     this.Server.app.use("/jiracloser", express.json());
     this.Server.app.post("/jiracloser", (req, res) => this.handleChangeMerged(req, res));
+    this.Server.app.get("/jiracloser/fixversion", (req, res) => handle_fix_version_api(req, res));
 
     // Synchronous startup tasks.
     getProjectList("JIRA").then((projects) => {
@@ -512,20 +628,7 @@ class jira_closer {
   }
 
   getWorkForChange(change) {
-    let issueIds = [];  // Collect work to do for this change here.
-    const message = change.revisions[change.current_revision].commit.message;
-    let footers = message.matchAll(regexp);
-    for (const footer of footers) {  // Handle multiple lines of footers
-      const line = footer[1].split(); // Handle multiple targets on one line as well
-      for (const key of line) {
-        // All Jira tickets follow the format KEY-1234
-        // Capture the KEY and make sure it's a valid project.
-        let fixTargetMatch = key.match(/(.+)-/);
-        if (fixTargetMatch && projectList.includes(fixTargetMatch[1])) {
-          issueIds.push(key);
-        }
-      }
-    }
+    let issueIds = collectIssueIdsFromChange(change);
     if (!issueIds.length) {
       this.logger.log(`No footers found on ${change.id}. Discarding.`, "info", change.uuid || "JIRA");
       return;
