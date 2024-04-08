@@ -343,6 +343,9 @@ tst_Bic::tst_Bic(const char *appFilePath)
     bic.addBlacklistedClass(QLatin1String("QDialogButtonBox"));
     /* likewise, an override added in another patch release */
     bic.addBlacklistedClass(QLatin1String("QRasterWindow"));
+    /* intentionally ABI-unstable */
+    bic.addBlacklistedClass(QLatin1String("QSignalSpy"));
+    bic.addBlacklistedClass(QLatin1String("QTest::*"));
 }
 
 void tst_Bic::initTestCase()
