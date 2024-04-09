@@ -22,6 +22,8 @@ let dbSubStateUpdateLockout = false;
 let dbListenerCacheUpdateQueue = [];
 let dbListenerCacheUpdateLockout = false;
 
+const allowedBranchRe = /^(dev|master|\d+\.\d+(\.\d+)?)$/;
+
 // Deep copy an object. Useful for forking processing paths with different data
 // than originally entered the system.
 exports.deepCopy = deepCopy;
@@ -60,7 +62,7 @@ exports.findPickToBranches = function (requestUuid, message) {
 //    '6.5.0': [],
 //    '6.4': ['5.15.12', '5.15.11', '5.15']
 //  }
-exports.waterfallCherryPicks = function (requestUuid, branchList) {
+exports.waterfallCherryPicks = function (requestUuid, sourceBranch, branchList) {
   branchList = Array.from(branchList);  // Might be a set.
 
   if (branchList.length === 0) {
@@ -68,9 +70,10 @@ exports.waterfallCherryPicks = function (requestUuid, branchList) {
     return {};
   }
 
-  // If any of the entries of branchList are not numerical,
+  // If any of the entries of branchList are not numerical/dev/master,
   // then return a waterfall object with each branch as a key.
-  if (branchList.some((branch) => !/^(dev|master|\d+\.\d+(\.\d+)?)$/.test(branch))) {
+  if (branchList.some((branch) => !allowedBranchRe.test(branch))
+      || !allowedBranchRe.test(sourceBranch.replace(/^(tqtc\/)?(lts-)?/, ''))) {
     let waterfall = {};
     for (let branch of branchList) {
       waterfall[branch] = [];
@@ -179,6 +182,8 @@ exports.findMissingTargets = function (uuid, changeId, project, targets, callbac
       : isLTS
         ? "lts-" : "";
   const bareBranch = decodeURIComponent(changeId).split('~')[1].replace(/^(tqtc\/)?(lts-)?/, '');
+
+
   let highestTarget = "";
 
   if (Array.from(targets).length === 0) {
@@ -187,17 +192,27 @@ exports.findMissingTargets = function (uuid, changeId, project, targets, callbac
     return;
   }
 
+  // If any of the entries of branchList are not numerical/dev/master,
+  // It is not possible to identify missing targets. Abort.
+  if (Array.from(targets).some((branch) => !allowedBranchRe.test(branch))
+      || !allowedBranchRe.test(bareBranch)) {
+    callback(false, undefined, []);
+    return;
+  }
+
   // targets will always be bare versions, like "5.15".
   let featureBranches = new Set();
+  let devMaster = [];
   for (let target of targets) {
     // account for dev and master branches.
     if (target === "dev" || target === "master") {
+      devMaster = target;
       continue;
     }
     let parts = target.split('.');
     featureBranches.add(parts[0] + '.' + parts[1]);
   }
-  highestTarget = Array.from(featureBranches).sort(sortBranches)[0];
+  highestTarget = Array.from(featureBranches).concat(devMaster).sort(sortBranches)[0];
   if (isChild(highestTarget, bareBranch)) {
     // If the highest target is a child of the bare branch, then the highest target
     // should be considered self.
@@ -231,7 +246,7 @@ exports.findMissingTargets = function (uuid, changeId, project, targets, callbac
   }
 
   // Filter result branches if the originating change had a tqtc and/or an LTS prefix.
-  const searchRe = `(${prefix}(?:${Array.from(featureBranches).join('|')}|[6-9].[0-9]{1,}|${prefix}dev|${prefix}master)).*`
+  const searchRe = `(${prefix}(?:${Array.from(featureBranches).join('|')}|[0-9].[0-9]{1,}|${prefix}dev|${prefix}master)).*`
   queryBranchesRe(uuid, project, false, searchRe, undefined, (success, remoteBranches) => {
     if (!success) {
       return;

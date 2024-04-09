@@ -117,7 +117,8 @@ class requestProcessor extends EventEmitter {
               allBranches.clear();
             }
           }
-          const picks = toolbox.waterfallCherryPicks(incoming.uuid, allBranches);
+          const picks = toolbox.waterfallCherryPicks(incoming.uuid, incoming.change.branch,
+            allBranches);
           const pickCount = Object.keys(picks).length;
           if (pickCount == 0) {
             _this.logger.log(`Nothing to cherry-pick. Discarding`, "verbose", incoming.uuid);
