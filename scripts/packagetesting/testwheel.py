@@ -217,10 +217,17 @@ def test_deploy(example):
             os.chdir(tmpdirname)
             for py_file in example.parent.glob("*.py"):
                 shutil.copy(py_file, tmpdirname)
-            cmd = ["pyside6-deploy", "-f", base_name]
+            cmd = ["pyside6-deploy", "-f", base_name, "--name", name]
             execute(cmd)
-            suffix = "exe" if sys.platform == "win32" else "bin"
+            suffix = "bin"
+            if sys.platform == "win32":
+                suffix = "exe"
+            elif sys.platform == "darwin":
+                suffix = "app"
+
             binary = f"{tmpdirname}/{name}.{suffix}"
+            if sys.platform == "darwin":
+                binary += f"/Contents/MacOS/{name}"
             execute([binary])
             result = True
         except RuntimeError as e:
