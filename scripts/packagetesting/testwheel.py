@@ -51,7 +51,7 @@ WEBENGINE_TABBED_BROWSER = 'webenginewidgets/tabbedbrowser/main.py'
 PROJECT_TOOL = "pyside6-project"
 TOOLS = ["deploy", "genpyi", ("lrelease", "-help"), "lupdate", "metaobjectdump",
          "project", "qml", "qmlformat", ("qmlimportscanner", "-importPath", "."), "qmllint",
-         "qmlls", "qmltyperegistrar", "qtpy2cpp", "rcc", "uic"]
+         "qmlls", "qmltyperegistrar", "qtpy2cpp", "rcc", "uic", "qsb", "balsam"]
 
 VERSION = (0, 0, 0)
 
