@@ -127,7 +127,7 @@ def parse(lines):
                 test_start_line = -1
             elif end_test_crash_re.match(line):
                 logging.debug(f"===> test crashed {line} {test_start_line} {i}")
-                print_failed_test(lines, test_start_line, i)
+                print_failed_test(lines, test_start_line, i, already_known_errors)
                 test_start_line = -1
             elif is_fatal_timeout(line):
                 logging.debug("===> Matched fatal timeout")
