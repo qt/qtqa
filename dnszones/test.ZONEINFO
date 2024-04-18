@@ -73,6 +73,12 @@ mx-multi-sameprio	IN MX	10 multi
 			IN MX	10 a-single
 mx-single-cname		IN MX	10 cname
 
+; CAA records
+caa-single              IN CAA  0 issue "example.com"
+caa-multi               IN CAA  0 issue "example.org"
+                        IN CAA  0 issue "example.com"
+caa-issuewild           IN CAA  0 issuewild "example.net"
+
 ; CNAME records
 cname			IN CNAME multi
 cname-cname		IN CNAME cname
@@ -101,6 +107,9 @@ _echo._tcp.srv-multi	IN SRV 1 50 7 multi
 			IN SRV 2 50 7 aaaa-single
 			IN SRV 3 50 7 a-multi
 
+; TLSA records
+_25._tcp.multi          IN TLSA 3 1 1 0123456789abcdeffedcba98765432100123456789abcdeffedcba9876543210
+
 ; TXT records
 ; TXT records can carry more than one string
 txt-single		IN TXT	"Hello"
@@ -120,5 +129,8 @@ everything		IN A	192.0.2.4
 			IN SSHFP 2 1 0000000000000000000000000000000000000000
 			; SPF record
 			IN SPF	"v=spf1 a mx -all"
+                        ; TLS association
+; wrong format, provider doesn't allow it
+;                        IN TLSA 3 1 1 0123456789abcdeffedcba98765432100123456789abcdeffedcba9876543210
 			; location 0°0'0.1" S, 0°0'0.2" W, 0 m altitude, size 1m, 0 precision
 			IN LOC	   0 0 0.1  S  0 0 0.2	W  0m		 1m	  0 0
