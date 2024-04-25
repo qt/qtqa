@@ -202,8 +202,8 @@ class requestProcessor extends EventEmitter {
       "validateBranch"
     );
 
-    function done(responseSignal, incoming, branch, success, data, message) {
-      if (success) {
+    function done(responseSignal, incoming, branch, validBranch, data, message) {
+      if (validBranch) {
         // Check to see if a change already exists on the target branch.
         // If it does, abort the cherry-pick and notify the owner.
         gerritTools.queryChange(incoming.uuid,
@@ -284,6 +284,23 @@ class requestProcessor extends EventEmitter {
             toolbox.decrementPickCountRemaining(incoming.uuid);
           }
         );
+        let remainingTargets = toolbox.findPickToBranches(incoming.uuid,
+          incoming.change.commitMessage)
+        remainingTargets.delete(branch);
+        if (remainingTargets && remainingTargets.size > 0) {
+          // Generate a mock change-merged event for the incoming change but
+          // without the failed branch. This effectively skips the bad target.
+          toolbox.mockChangeMergedFromOther(
+            incoming.uuid, incoming, incoming.change.branch,
+            remainingTargets,
+            (mockObject) => {
+              if (mockObject) {
+                _this.logger.log(`Mocking change merged to skip ${branch}`,
+                  "verbose", incoming.uuid);
+                _this.emit("mock-change-merged", mockObject);
+              }
+            }
+          );
       }
     }
 
@@ -335,8 +352,8 @@ class requestProcessor extends EventEmitter {
                     // No private lts branch exists.
                     let errMsg = `Unable to cherry-pick this change to ${branch}`
                     + ` because the branch is closed for new changes and`
-                    + validPublicLts ? ` ${publicLtsBranch} is also closed for new changes.`
-                                      : " no private LTS branch exists."
+                    + (validPublicLts ? ` ${publicLtsBranch} is closed for new changes.`
+                                      : " no private LTS branch exists.")
                   _this.logger.log(errMsg, "error", incoming.uuid);
                   message = errMsg + "\n" + closedBranchMsg;
                 }

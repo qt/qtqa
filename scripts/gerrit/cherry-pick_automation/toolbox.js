@@ -436,7 +436,7 @@ function mockChangeMergedFromOther(uuid, originalMerge, targetBranch, remainingP
   // Query the target change from gerrit.
   queryChange(uuid, targetChangeId, undefined, undefined, function (success, targetChange) {
     if (!success) {
-      logger.log(`Error mocking change-merged event: ${targetChange}, ${targetChange}`, "error", uuid);
+      logger.log(`Error mocking change-merged event: ${targetChangeId}, ${targetChange}`, "error", uuid);
       callback(null);
       return;
     }
