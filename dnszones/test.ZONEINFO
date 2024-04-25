@@ -5,22 +5,20 @@
 ; Set the TTL to a low value, so redeployment is easy
 $TTL	60
 
-@			IN SOA ns-foo.linpro.net. hostmaster.redpill-linpro.com. (
-				 13	   ; serial
+; -- MAY NOT MATCH BEGIN --
+@			IN SOA nowhere.example.net. hostmaster.example.com. (
+				 1	   ; serial
 				 10800	   ; refresh (3 hours)
 				 60	   ; retry (1 min)
 				 60	   ; expire (1 min)
 				 60	   ; minimum (1 min)
 			       )
-			IN NS ns-foo.linpro.net.
-			IN NS ns-zoo.linpro.net.
-			IN NS ns-bar.linpro.net.
+			IN NS nowhere.example.net.
+
 ; IDN test domain
 ; This expands to "alqualondë" -- historical reasons
-xn--alqualond-34a 86400 IN NS	ns-foo.linpro.net.
-			IN NS	ns-bar.linpro.net.
-			IN NS	ns-zoo.linpro.net.
-
+xn--alqualond-34a 86400 IN NS	nowhere.example.net
+; -- MAY NOT MATCH END --
 
 localhost		IN A	127.0.0.1
 			IN AAAA ::1
@@ -85,9 +83,9 @@ cname-cname		IN CNAME cname
 
 ; NS record
 ; Note: NS records must point to valid DNS servers...
-ns-single		IN NS ns-foo.linpro.net.
-ns-multi		IN NS ns-foo.linpro.net.
-			IN NS ns-bar.linpro.net.
+ns-single		IN NS ns11.cloudns.net.
+ns-multi		IN NS ns11.cloudns.net.
+			IN NS ns12.cloudns.net.
 
 ; PTR records
 ptr-single		IN PTR a-single
