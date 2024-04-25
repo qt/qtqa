@@ -957,7 +957,8 @@ class requestProcessor extends EventEmitter {
             // Parse the change number for the existing change. It is surrounded by "change" and "in destination"
             // in the statusDetail.
             let existingChangeNumber = data.statusDetail.match(/change (\d+) in destination/)[1];
-            let existingChangeURL = `${gerritTools.gerritResolvedURL}/c/${incoming.project.name || incoming.project}/+/${existingChangeNumber}`;
+            let existingChangeURL = `${gerritTools.gerritResolvedURL}/c/${incoming.change
+              ? incoming.change.project : incoming.project.name}/+/${existingChangeNumber}`;
             _this.logger.log(
               `Cherry-pick to ${branch} already exists in state ${changeStatus}.`,
               "info", incoming.uuid
