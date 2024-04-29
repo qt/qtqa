@@ -1,0 +1,21 @@
+{
+    "tests_json": "qtlite_tests.json",
+    "email_info": {
+        "smtp_server": "smtp.qt.io",
+        "email_sender": "",
+        "email_cc": ""
+    },
+    "gerrit_info": {
+        "server_url": "codereview.qt-project.org",
+        "server_port": 29418
+    },
+    "database_info": {
+        "server_url": "https://testresults.qt.io/influxdb",
+        "database_name": "",
+        "username": "",
+        "password": ""
+    },
+    "webhook_server_info": {
+        "port": 8088
+    }
+}

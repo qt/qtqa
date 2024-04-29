@@ -1,0 +1,15 @@
+[Unit]
+Description=Qt Binary Size Bot
+After=network.target
+
+[Service]
+SyslogIdentifier=qt-binary-size-bot
+WorkingDirectory=/home/qt/qt-binary-size-bot
+User=qt
+Group=qt
+Restart=always
+ExecStart=/home/qt/.local/bin/pipenv run python3 main.py --config config.json
+
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,17 @@
+{
+   "branch": "dev",
+   "integration": "qt/qtdeclarative",
+   "series": "qtlite_binary_size",
+   "coin_id": "debian-11.6-static-qtlite-arm64",
+   "builds_to_check" : [
+      {
+         "name": "qt/qtdeclarative",
+         "size_comparision": [
+            {
+               "file": "bin/qml",
+               "threshold": 0.05
+            }
+         ]
+      }
+   ]
+}
