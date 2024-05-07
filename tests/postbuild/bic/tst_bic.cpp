@@ -346,6 +346,8 @@ tst_Bic::tst_Bic(const char *appFilePath)
     /* intentionally ABI-unstable */
     bic.addBlacklistedClass(QLatin1String("QSignalSpy"));
     bic.addBlacklistedClass(QLatin1String("QTest::*"));
+    bic.addBlacklistedClass(QLatin1String("QJSListForInIterator"));
+    bic.addBlacklistedClass(QLatin1String("QJSListForOfIterator"));
 }
 
 void tst_Bic::initTestCase()
