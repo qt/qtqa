@@ -444,7 +444,7 @@ class core_benchmarks_server {
     // IP validate the request so that only gerrit can send us messages.
     let gerritIPv4 = envOrConfig("GERRIT_IPV4");
     let gerritIPv6 = envOrConfig("GERRIT_IPV6");
-    if (!process.env.IGNORE_IP_VALIDATE) {
+    if (!toBool(process.env.IGNORE_IP_VALIDATE)) {
       // Filter requests to only receive from an expected gerrit instance.
       let clientIp = req.headers["x-forwarded-for"] || req.connection.remoteAddress;
       if (net.isIPv4(clientIp) && clientIp != gerritIPv4) {

@@ -9,6 +9,7 @@ const uuidv1 = require("uuidv1");
 const moment = require("moment");
 const net = require("net");
 const express = require("express");
+const toBool = require("to-bool");
 
 const gerritTools = require("../../gerritRESTTools");
 const Logger = require("../../logger");
@@ -150,6 +151,9 @@ async function findNextRelease(uuid, project, branch, mergeDate, usesCherryPicki
           checkNextBranch(generator.next(), generator, negativeSearch, lastFound, callback);
         }
       }
+    }).catch((error) => {
+      logger.log(`Error verifying branch ${querybranch}: ${error}`, "error", uuid);
+      callback(false);
     });
   }
 
@@ -387,7 +391,9 @@ async function determineFixVersion(uuid, change, issueId) {
           return;
         }
         resolve(filteredVersions[Object.keys(filteredVersions).shift()]);
-      })
+      }).catch((error) => {
+        reject(error);
+      });
     });
   } else if (change.submitted && moment(change.submitted).isBefore(moment(0, "HH"))) {
     // Change was submitted earlier than "today". See if it should be fixed in a
@@ -556,7 +562,10 @@ class jira_closer {
       return updateStatusCache();
     }).then(() => {
       this.recover(); // Don't begin recovery until the project list and status cache are loaded.
-    })
+    }).catch(error => {
+      this.logger.log(`Critical error initializing Jira Closer plugin: ${safeJsonStringify(error)}`, "error");
+      throw error;
+    });
   }
 
   // Incoming change merged notices from gerrit, begin processing.
@@ -564,7 +573,7 @@ class jira_closer {
     // IP validate the request so that only gerrit can send us messages.
     let gerritIPv4 = envOrConfig("GERRIT_IPV4");
     let gerritIPv6 = envOrConfig("GERRIT_IPV6");
-    if (!process.env.IGNORE_IP_VALIDATE) {
+    if (!toBool(process.env.IGNORE_IP_VALIDATE)) {
       // Filter requests to only receive from an expected gerrit instance.
       let clientIp = req.headers["x-forwarded-for"] || req.connection.remoteAddress;
       if (net.isIPv4(clientIp) && clientIp != gerritIPv4) {
@@ -759,6 +768,10 @@ class jira_closer {
                 decrementAndCheckDone();
                 return;
               }
+              postComment(uuid, issue.key, comment);
+              decrementAndCheckDone();
+            }).catch(() => {
+              // If we can't determine if the bot has posted a message, just post the comment.
               postComment(uuid, issue.key, comment);
               decrementAndCheckDone();
             });

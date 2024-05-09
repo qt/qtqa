@@ -8,6 +8,7 @@ const EventEmitter = require("events");
 const net = require("net");
 const uuidv1 = require("uuidv1");
 const portfinder = require("portfinder");
+const toBool = require("to-bool");
 
 const postgreSQLClient = require("./postgreSQLClient");
 const emailClient = require("./emailClient");
@@ -168,7 +169,7 @@ class webhookListener extends EventEmitter {
     });
 
     function validateOrigin(req, res) {
-      if (process.env.IGNORE_IP_VALIDATE) {
+      if (toBool(process.env.IGNORE_IP_VALIDATE)) {
         res.sendStatus(200);
         return true;
       }

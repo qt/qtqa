@@ -211,7 +211,7 @@ function queryManyIssues(uuid, issueIds) {
       } else {
         resolve(res.issues);
       }
-    });
+    }).catch(err => {reject(err);})
   });
 }
 
@@ -226,7 +226,21 @@ function getProjectList(uuid) {
       for (const project of data)
         projects.push(project.key);
       resolve(projects);
-    })
+    }).catch((error) => {
+      if (error.statusCode == 401) {
+        reject("JIRA: Unauthorized. Check your OAuth credentials.");
+      }
+      // Else if timeout, handle with a retry action. This would mean that JIRA is down.
+      else if (error.statusCode == 503 || error.statusCode == 504) {
+        logger.log(`JIRA: ${error.statusCode} while fetching project list. Retrying...`,
+          "error", uuid);
+        getProjectList(uuid);
+      }
+      else {
+        logger.log(safeJsonStringify(error), "error", uuid);
+        reject(error);
+      }
+    });
   })
 }
 
@@ -421,7 +435,10 @@ function botHasPostedMessage(uuid, issue, message) {
         && m.body.includes(message)).length > 0
       );
       }
-    );
+    ).catch(err => {
+      logger.log(safeJsonStringify(err).length > 2 ? safeJsonStringify(err) : err, "error", uuid);
+      reject(err);
+    });
   });
 }
 
@@ -476,7 +493,11 @@ function closeIssue(uuid, issue, change, callback) {
       logger.log(error, "error", "JIRA");
       callback(error);
     });
-  })
+  }).catch(err => {
+    let error = safeJsonStringify(err).length > 2 ? safeJsonStringify(err) : err;
+    logger.log(error, "error", "JIRA");
+    callback(error);
+  });
 }
 
 // Post a simple comment to a jira issue
@@ -484,7 +505,9 @@ function postComment(uuid, issueId, comment) {
   const body = {
     "body": comment
   }
-  doJIRAPutPostRequest(uuid, "POST", `issue/${issueId}/comment`, body);
+  doJIRAPutPostRequest(uuid, "POST", `issue/${issueId}/comment`, body).catch(err => {
+    logger.log(safeJsonStringify(err).length > 2 ? safeJsonStringify(err) : err, "error", uuid);
+  });
 }
 
 
