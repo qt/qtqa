@@ -408,7 +408,7 @@ async function handle_fix_version_api(req, res) {
   }
   let changeID = req.query.change;
   // Sanitize the changeID to only contain 6 digits".
-  if (!/^\d{6}$/.test(changeID)) {
+  if (!/^\d{6}$/.test(Number(changeID))) {
     res.status(400).send("Bad Request: Invalid 'change' parameter. Accepts 6 digits only.");
     return;
   }
@@ -416,32 +416,60 @@ async function handle_fix_version_api(req, res) {
   req["uuid"] = uuidv1();
   logger.log(`Processing FixVersion API request for ${changeID}`, "info", req.uuid);
   let issueCount = 0;
-  let fixVersions = new Set();
-  let errs = [];
-
-  function checkDone(version) {
-    if (version)
-      fixVersions.add(version);
-    if (--issueCount === 0) {
-      if (errs.length)
-        res.status(500).send(Array.from(fixVersions).concat(errs));
-      else
-        res.status(200).send(Array.from(fixVersions));
+  let collectedResults = {fixVersions: new Set(), errors: []};
+  let getRetObj = () => {
+    return {
+      fixVersions: Array.from(collectedResults.fixVersions),
+      errors: collectedResults.errors
     }
   }
 
-  function _doCheckFixVersion(change, issueIds) {
+  function checkDone(version, change, isFallback) {
+    if (version)
+      collectedResults.fixVersions.add(version);
+    if (--issueCount === 0) {
+      // Send the response if we have a fix version or we've tried a fallback.
+      if (collectedResults.fixVersions.size || isFallback)
+          res.status(200).send(getRetObj());
+      else if (change.project.includes("qt/")) {
+        logger.log(`Issue query returned no fix version for ${change.id}.`
+          + `Defaulting to latest QTBUG issue.`, "info", req.uuid);
+        queryJQL(req.uuid, `project = QTBUG AND type = Bug AND status = Open ORDER BY created DESC &maxResults=1`)
+        .then((issues) => {
+          issueCount = issues.issues.length;
+          if (issueCount) {
+            let issueId = issues.issues[0].key;
+            logger.log(`Substituting default QTBUG issue ${issueId} for ${change.id}.`,
+              "info", req.uuid);
+            _doCheckFixVersion(change, [issueId], true);
+          } else {
+            logger.log(`Failed to query for QTBUG issue.`, "error", req.uuid);
+            res.status(500).send("Internal Server Error");
+          }
+        }).catch(err => {
+          logger.log(`Critical error querying jira: ${safeJsonStringify(err)}`, "error", req.uuid);
+          res.status(500).send("Internal Server Error");
+        });
+      } else {
+        logger.log(`No Fix version available for ${change.id}, and cannot use default bug.`,
+          "warn", req.uuid);
+        res.status(200).send(getRetObj());
+      }
+    }
+  }
+
+  function _doCheckFixVersion(change, issueIds, isFallback) {
     issueIds.forEach((issueId) => {
       determineFixVersion(req.uuid, change, issueId)
       .then((fixVersion) => {
         logger.log(`FIXES: Fix Version for ${issueId} in ${change.project}`
           + ` on ${change.branch}: ${safeJsonStringify(fixVersion)}`, "info", req.uuid);
-        checkDone(fixVersion);
+        checkDone(fixVersion, change, isFallback);
       }).catch(err => {
         const msg = `${issueId}: ${typeof(err) == String ? err : safeJsonStringify(err)}`;
         logger.log(msg, "warn", req.uuid);
-        errs.push(msg);
-        checkDone();
+        collectedResults.errors.push(msg);
+        checkDone(undefined, change, isFallback);
       });
     });
   }
@@ -466,7 +494,7 @@ async function handle_fix_version_api(req, res) {
       let issueIds = collectIssueIdsFromChange(change);
       issueCount = issueIds.length;
       if (issueCount) {
-        _doCheckFixVersion(change, issueIds);
+        _doCheckFixVersion(change, issueIds, false);
       } else {
         if (change.project.includes("qt/")) {
           logger.log(`No footers found on qt/ ${change.id}. Using latest QTBUG issue.`,
@@ -478,17 +506,19 @@ async function handle_fix_version_api(req, res) {
               let issueId = issues.issues[0].key;
               logger.log(`Substituting default QTBUG issue ${issueId} for ${change.id}.`,
                 "info", req.uuid);
-              _doCheckFixVersion(change, [issueId]);
+              _doCheckFixVersion(change, [issueId], true);
+            } else {
+              logger.log(`Failed to query for QTBUG issue.`, "error", req.uuid);
+              checkDone(undefined, change, true);
             }
           }).catch(err => {
-            logger.log(`Failed to query for QTBUG issue: ${safeJsonStringify(err)}`,
-            "error", req.uuid);
-            res.status(500).send("Internal Server Error");
+            logger.log(`Critical err querying jira: ${safeJsonStringify(err)}`, "error", req.uuid);
+            checkDone(undefined, change, true);
             return;
           });
         } else {
           logger.log(`No footers found on ${change.id}. Cannot provide fix version.`,"info", req.uuid);
-          res.status(200).send([]);
+          res.status(200).send(getRetObj());
           return;
         }
       }
