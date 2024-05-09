@@ -17,8 +17,8 @@ const logger = new Logger();
 const SQL = require("../../postgreSQLClient");
 const { Version, filterVersions, makeVersionGenerator } = require("./version");
 const { getVersionsForIssue, queryManyIssues, getProjectList, queryJQL, updateCommitField,
-  updateFixVersions, updateStatusCache, wasClosedByJiraBot,
-  botHasPostedMessage, closeIssue, postComment } = require("./jira_toolbox");
+  updateFixVersions, updateStatusCache, closedByChangeId,
+  botHasPostedMessage, closeIssue, reopenIssue, postComment } = require("./jira_toolbox");
 const { promisedVerifyBranch, repoUsesCherryPicking,
   getCommitInBranches, getChangesWithFooter } = require("./gerrit_toolbox");
 const config = require("./config.json");
@@ -32,12 +32,14 @@ let gerritAuth = {
 // Used to determine if a branch has been encountered before.
 let branchesCache = {};
 
+
 function envOrConfig(ID) {
   return process.env[ID] || config[ID];
 }
 
 // Regex to parse out footers
-const regexp = /^(?:Fixes:|Resolves:|Task-number:|Relates:) (.+)$/gm;
+const footerRe = new RegExp(/^(?:Fixes:|Resolves:|Task-number:|Relates:|Reopens:) (.+)$/gm);
+const revertRe  = new RegExp(/^This reverts commit ([0-9a-f]{40})\./m);
 // Cache a list of projects, initialized on construction of the jira_closer class.
 let projectList = [];
 
@@ -69,22 +71,53 @@ function findClosestVersionMatch(uuid, branch, issueId) {
   });
 }
 
-function collectIssueIdsFromChange(change) {
-  let issueIds = [];  // Collect work to do for this change here.
-    const message = change.revisions[change.current_revision].commit.message;
-    let footers = message.matchAll(regexp);
-    for (const footer of footers) {  // Handle multiple lines of footers
-      const line = footer[1].split(); // Handle multiple targets on one line as well
-      for (const key of line) {
-        // All Jira tickets follow the format KEY-1234
-        // Capture the KEY and make sure it's a valid project.
-        let fixTargetMatch = key.match(/(.+)-/);
-        if (fixTargetMatch && projectList.includes(fixTargetMatch[1])) {
-          issueIds.push(key);
-        }
+function collectIssueIdsFromChange(change, callback) {
+  let issueIds = new Set();  // Collect work to do for this change here.
+  const message = change.revisions[change.current_revision].commit.message;
+  let footers = message.matchAll(footerRe);
+  for (const footer of footers) {  // Handle multiple lines of footers
+    const line = footer[1].split(); // Handle multiple targets on one line as well
+    for (const key of line) {
+      // All Jira tickets follow the format KEY-1234
+      // Capture the KEY and make sure it's a valid project.
+      let fixTargetMatch = key.match(/(.+)-/);
+      if (!projectList.includes(fixTargetMatch[1])) {
+        logger.log(`FIXES: Ignoring ${key} as it is not a valid project.`, "debug", "DEBUG");
+      }
+      if (fixTargetMatch && projectList.includes(fixTargetMatch[1])) {
+        issueIds.add(key);
       }
     }
-  return issueIds;
+  }
+
+  let revertMatch = revertRe.exec(message);
+  if (revertMatch) {
+    // Also collect any issue ids from possible reverted commit.
+    let revertedSha = revertMatch[1];
+    gerritTools.queryProjectCommit(change.uuid, change.project, revertedSha, gerritAuth, (success, commit) => {
+      if (!success) {
+        logger.log(`Failed to query for reverted commit ${revertedSha}: ${safeJsonStringify(commit)}`, "error", change.uuid);
+        callback(Array.from(issueIds));
+        return;
+      } else {
+        let footers = commit.message.matchAll(footerRe);
+        for (const footer of footers) {  // Handle multiple lines of footers
+          const line = footer[1].split(); // Handle multiple targets on one line as well
+          for (const key of line) {
+            // All Jira tickets follow the format KEY-1234
+            // Capture the KEY and make sure it's a valid project.
+            let fixTargetMatch = key.match(/(.+)-/);
+            if (fixTargetMatch && projectList.includes(fixTargetMatch[1])) {
+              issueIds.add(key);
+            }
+          }
+        }
+        callback(Array.from(issueIds));
+      }
+    })
+  } else {
+    callback(Array.from(issueIds));
+  }
 }
 
 
@@ -497,37 +530,38 @@ async function handle_fix_version_api(req, res) {
         return;
       }
       req["fullChangeID"] = change.id;
-      let issueIds = collectIssueIdsFromChange(change);
-      issueCount = issueIds.length;
-      if (issueCount) {
-        _doCheckFixVersion(change, issueIds, false);
-      } else {
-        if (change.project.includes("qt/")) {
-          logger.log(`No footers found on qt/ ${change.id}. Using latest QTBUG issue.`,
-            "info", req.uuid);
-          queryJQL(req.uuid, `project = QTBUG AND type = Bug AND status = Open ORDER BY created DESC &maxResults=1`)
-          .then((issues) => {
-            issueCount = issues.issues.length;
-            if (issueCount) {
-              let issueId = issues.issues[0].key;
-              logger.log(`Substituting default QTBUG issue ${issueId} for ${change.id}.`,
-                "info", req.uuid);
-              _doCheckFixVersion(change, [issueId], true);
-            } else {
-              logger.log(`Failed to query for QTBUG issue.`, "error", req.uuid);
-              checkDone(undefined, change, true);
-            }
-          }).catch(err => {
-            logger.log(`Critical err querying jira: ${safeJsonStringify(err)}`, "error", req.uuid);
-            checkDone(undefined, change, true);
-            return;
-          });
+      collectIssueIdsFromChange(change, (issueIds) => {
+        issueCount = issueIds.length;
+        if (issueCount) {
+          _doCheckFixVersion(change, issueIds, false);
         } else {
-          logger.log(`No footers found on ${change.id}. Cannot provide fix version.`,"info", req.uuid);
-          res.status(200).send(getRetObj());
-          return;
+          if (change.project.includes("qt/")) {
+            logger.log(`No footers found on qt/ ${change.id}. Using latest QTBUG issue.`,
+              "info", req.uuid);
+            queryJQL(req.uuid, `project = QTBUG AND type = Bug AND status = Open ORDER BY created DESC &maxResults=1`)
+            .then((issues) => {
+              issueCount = issues.issues.length;
+              if (issueCount) {
+                let issueId = issues.issues[0].key;
+                logger.log(`Substituting default QTBUG issue ${issueId} for ${change.id}.`,
+                  "info", req.uuid);
+                _doCheckFixVersion(change, [issueId], true);
+              } else {
+                logger.log(`Failed to query for QTBUG issue.`, "error", req.uuid);
+                checkDone(undefined, change, true);
+              }
+            }).catch(err => {
+              logger.log(`Critical err querying jira: ${safeJsonStringify(err)}`, "error", req.uuid);
+              checkDone(undefined, change, true);
+              return;
+            });
+          } else {
+            logger.log(`No footers found on ${change.id}. Cannot provide fix version.`,"info", req.uuid);
+            res.status(200).send(getRetObj());
+            return;
+          }
         }
-      }
+    });  // End of collectIssueIdsFromChange
     }
   );
 }
@@ -537,7 +571,7 @@ class jira_closer {
     this.notifier = notifier;
     this.Server = this.notifier.server;
     this.logger = notifier.logger;
-    this.handleChangeMerged = this.handleChangeMerged.bind(this);
+    this.handleChangeMerged = this.handleChange.bind(this);
     this.recover = this.recover.bind(this);
 
     // Queue work to avoid race conditions.
@@ -552,7 +586,7 @@ class jira_closer {
 
     // Add our endpoint to the central Express server.
     this.Server.app.use("/jiracloser", express.json());
-    this.Server.app.post("/jiracloser", (req, res) => this.handleChangeMerged(req, res));
+    this.Server.app.post("/jiracloser", (req, res) => this.handleChange(req, res));
     this.Server.app.get("/jiracloser/fixversion", (req, res) => handle_fix_version_api(req, res));
 
     // Synchronous startup tasks.
@@ -569,7 +603,7 @@ class jira_closer {
   }
 
   // Incoming change merged notices from gerrit, begin processing.
-  handleChangeMerged(req, res) {
+  handleChange(req, res) {
     // IP validate the request so that only gerrit can send us messages.
     let gerritIPv4 = envOrConfig("GERRIT_IPV4");
     let gerritIPv6 = envOrConfig("GERRIT_IPV6");
@@ -600,7 +634,7 @@ class jira_closer {
       `${encodeURIComponent(req.change.project)}~${encodeURIComponent(req.change.branch)}~`
       + req.change.id;
     this.logger.log(`Processing ${req.fullChangeID}`, "info", req.uuid);
-    // Query for the full issue. Change-merged events aren't full enough.
+    // Query for the full issue. Change-merged/patchset-created events aren't full enough.
     let _this = this;
     gerritTools.queryChange(req.uuid, req.fullChangeID, undefined, gerritAuth,
       function(success, change) {  // Should never hard-fail since the change exists.
@@ -614,6 +648,7 @@ class jira_closer {
           "error", req.uuid);
           return
         }
+        change.type = req.type;
         _this.getWorkForChange(change);
       }
     );
@@ -624,7 +659,8 @@ class jira_closer {
     this.logger.log("Catching up work for JIRA Closer...", "info", "JIRA");
     const changes = await getChangesWithFooter("JIRA");
     if (changes.length)
-      for (const change of changes) {
+      for (let change of changes) {
+        change.type = "change-merged"
         this.getWorkForChange(change);  // Get and execute work
       }
     else
@@ -667,21 +703,29 @@ class jira_closer {
   }
 
   getWorkForChange(change) {
-    let issueIds = collectIssueIdsFromChange(change);
-    if (!issueIds.length) {
-      this.logger.log(`No footers found on ${change.id}. Discarding.`, "info", change.uuid || "JIRA");
-      return;
-    }
-    // Get data for each of the issues
-    queryManyIssues(change.uuid || "JIRA", issueIds)
-    .then((issues) => {
-      issues.forEach((issue) =>
-        this.enqueueIssueUpdate(issue.id, this.doUpdatesForGerritChange, [issue, change]));
-    })
-    .catch(err => this.logger.log(safeJsonStringify(err).length > 2 ? safeJsonStringify(err) : err,
-                    "error", change.uuid || "JIRA"));
+    collectIssueIdsFromChange(change, (issueIds) => {
+      if (!issueIds.length) {
+        this.logger.log(`No footers found on ${change.id}. Discarding.`, "info", change.uuid || "JIRA");
+        return;
+      }
+      // Get data for each of the issues
+      queryManyIssues(change.uuid || "JIRA", issueIds)
+      .then((issues) => {
+        logger.log(`FIXES: Found ${issues.length} issues for ${change.id}`, "info", change.uuid || "JIRA")
+        issues.forEach((issue) =>
+          // Perform doUpdatesForGerritChange sequentially per-issue to avoid overwriting data
+          // on an issue or double-closing an issue since more than one footer may
+          // target the same issue.
+          this.enqueueIssueUpdate(issue.id, this.doUpdatesForGerritChange, [issue, change]));
+      })
+      .catch(err => this.logger.log(safeJsonStringify(err).length > 2 ? safeJsonStringify(err) : err,
+              "error", change.uuid || "JIRA"));
+    });
   }
 
+  // This function should be called per-issue listed by footers in a change.
+  // Functionally, this means that many calls to this function can be made for the same
+  // gerrit change. Logic within focuses on the behavior applied to a single jira issue.
   doUpdatesForGerritChange(issue, originalChange) {
     if (!branchesCache[originalChange.project]) {
       branchesCache[originalChange.project] = {};
@@ -723,78 +767,121 @@ class jira_closer {
         uuid = originalChange.uuid;
       logger.log(`Updating ${issue.key} for ${originalChange.id}`, "info", uuid);
       let waitingActions = 0;
+      const reopensRe = new RegExp(`^Reopens: ${issue.key}$`, "m");
+      const fixesRe = new RegExp(`^Fixes: ${issue.key}$`, "m");
+      const commitMsg = originalChange.revisions[originalChange.current_revision].commit.message;
 
       // If waitingActions decrements to 0, we're done with the work.
       // reject is never called in this function. Even performing no work is a success.
       function decrementAndCheckDone() {
-        if (--waitingActions === 0)
-          resolve();
+        setTimeout(() => {
+          if (--waitingActions === 0)
+            resolve();
+        }, 2000);
       }
 
-      if (originalChange.current_revision) {  // There's a commit sha available
-        waitingActions++;
-        updateCommitField(uuid, issue.key, originalChange.current_revision, originalChange.branch,
-          decrementAndCheckDone);
-      }
-
-      const commitMsg = originalChange.revisions[originalChange.current_revision].commit.message;
-      // Resolution is null if the issue isn't in a closed state.
-      // Only close issues with "Fixes: " in the footers.
-      let re = RegExp(`^Fixes: ${issue.key}$`, 'm');
-      if (re.test(commitMsg)) {  // Test if there is at least one Fixes: tag.
-        // Do work in a bit, but increment counters ASAP to avoid race conditions.
-        waitingActions++;
-
-        if (!issue.fields.resolution) {  // Issue isn't closed yet.
+      // Functionality to reopen on pushing a patch disabled due to public discussion.
+      // if (originalChange.type == "patchset-created") {
+      //   waitingActions++;
+      //   const fixesAnyRe = new RegExp(`^Fixes: .+$`, 'm')
+      //   if (originalChange.revisions[originalChange.current_revision]._number == 1
+      //   && reopensRe.test(commitMsg)
+      //   && fixesAnyRe.test(commitMsg) ) {
+      //     // The issue should be reopened, but only if a fixes tag targeting anything exists.
+      //     if (issue.fields.resolution) {
+      //       reopenIssue(uuid, issue, originalChange, decrementAndCheckDone);
+      //     } else {
+      //       logger.log(`CLOSER: ${issue.key} is already open, cannot reopen.`, "verbose", uuid);
+      //       decrementAndCheckDone();
+      //     }
+      //   } else
+      //     decrementAndCheckDone();
+      // }
+      logger.log(`CLOSER: ${originalChange.type} issue ${issue.key} is currently in state: ${issue.fields.status.name}.`,
+        "debug", uuid);
+      if (originalChange.type == "change-merged") {
+        if (originalChange.current_revision) {  // There's a commit sha available
           waitingActions++;
-          logger.log(`CLOSER: ${issue.key} is currently in state: ${issue.fields.status.name}.`,
-            "verbose", uuid);
-          logger.log(`CLOSER: ${issue.key} is ready to be closed.`, "debug", uuid);
-          if (!wasClosedByJiraBot(issue)) {
-            // Only close if issue has not previously been closed by jirabot
-            // Just pass the decrement function as the callback since no other work is needed.
-            closeIssue(uuid, issue, originalChange, decrementAndCheckDone);
-          } else {
-            logger.log(`CLOSER: ${issue.key} has been previously closed by jirabot.`
-              + ` Not closing it again,`, "debug", uuid);
-            // Post comment that the issue will not be closed automatically.
-            const comment = "A change related to this issue was integrated"
-              + ` (${originalChange.current_revision.slice(0,9)}) but this`
-              + " issue has been previously re-opened. The bot will not close this"
-              + " issue, please close it manually when applicable.";
-            botHasPostedMessage(uuid, issue, comment)
-            .then(hasPosted => {
-              if (hasPosted) {  // Don't duplicate comments.
+          updateCommitField(uuid, issue.key, originalChange.current_revision, originalChange.branch,
+            (actionTaken) => {
+              if (actionTaken) {  // Only post a comment if the commit wasn't already on the issue
+                let comment = `A change related to this issue`
+                  + ` (sha1 '${originalChange.current_revision}')  was integrated in`
+                  + ` '${originalChange.project}' in the '${originalChange.branch}' branch.`;
+                botHasPostedMessage(uuid, issue, comment)
+                .then(hasPosted => {
+                  if (hasPosted) {  // Don't duplicate comments.
+                    decrementAndCheckDone();
+                    return;
+                  }
+                  postComment(uuid, issue.key, comment);
+                  decrementAndCheckDone();
+                }).catch(() => {
+                  // If we can't determine if the bot has posted a message, just post the comment.
+                  postComment(uuid, issue.key, comment);
+                  decrementAndCheckDone();
+                });
+              } else {
                 decrementAndCheckDone();
-                return;
               }
-              postComment(uuid, issue.key, comment);
-              decrementAndCheckDone();
-            }).catch(() => {
-              // If we can't determine if the bot has posted a message, just post the comment.
-              postComment(uuid, issue.key, comment);
+            }
+          );
+        }
+
+        // Resolution is null if the issue isn't in a closed state.
+        // Close issues with "Fixes: " in the footers.
+        if (fixesRe.test(commitMsg)) {
+          waitingActions++; // Add a waiting action immediately for the fix version check below.
+
+          if (!issue.fields.resolution) {  // Issue isn't closed yet.
+            waitingActions++;
+            logger.log(`CLOSER: ${issue.key} is currently in state: ${issue.fields.status.name}.`,
+              "verbose", uuid);
+            closedByChangeId(uuid, issue, originalChange.change.id)
+            .then((closedByBot) => {
+                if (!closedByBot) {
+                logger.log(`CLOSER: ${issue.key} is ready to be closed.`, "debug", uuid);
+                // Only close if issue has not previously been closed by jirabot for this change ID
+                // This ensures that cherry-picks don't close the same issue multiple times if
+                // it has been reopened.
+                // Just pass the decrement function as the callback since no other work is needed.
+                closeIssue(uuid, issue, originalChange, decrementAndCheckDone);
+              } else {
+                logger.log(`CLOSER: ${issue.key} has been previously closed by`
+                  + ` ${originalChange.change.id}. Not closing it again,`, "debug", uuid);
+                  decrementAndCheckDone();
+              }
+            }).catch(err => {
+              logger.log(`CLOSER: Error closing issue ${issue.key}: ${err}`, "error", uuid);
               decrementAndCheckDone();
             });
           }
-        }
 
-        determineFixVersion(uuid, originalChange, issue.key)
-        .then((fixVersion) => {
-          logger.log(`FIXES: Fix Version for ${issue.key} in ${originalChange.project}`
-            + ` on ${originalChange.branch}: ${safeJsonStringify(fixVersion)}`, "info", uuid);
-          updateFixVersions(uuid, issue.key, fixVersion.id, (actionTaken) => {
+          determineFixVersion(uuid, originalChange, issue.key)
+          .then((fixVersion) => {
+            logger.log(`FIXES: Fix Version for ${issue.key} in ${originalChange.project}`
+              + ` on ${originalChange.branch}: ${safeJsonStringify(fixVersion)}`, "info", uuid);
+            updateFixVersions(uuid, issue.key, fixVersion.id, decrementAndCheckDone);
+          }).catch(err => {
+            const msg = err
+              || `FIXES: No version for ${issue.key} in ${originalChange.project} on ${originalChange.branch}`;
+            logger.log(msg, "warn", uuid);
             decrementAndCheckDone();
-            if (actionTaken)  // Only post a comment if the fix version wasn't already on the issue
-              postComment(uuid, issue.key, `A change related to this issue`
-                + ` (sha1 '${originalChange.current_revision}')  was integrated in`
-                + ` '${originalChange.project}' in the '${originalChange.branch}' branch.`);
           });
-        }).catch(err => {
-          const msg = err
-            || `FIXES: No version for ${issue.key} in ${originalChange.project} on ${originalChange.branch}`;
-          logger.log(msg, "warn", uuid);
-          decrementAndCheckDone();
-        });
+        } else if (reopensRe.test(commitMsg)) {
+          // On change-merge, if Reopens exists, but a Fixes footer for the same
+          // issueID is not present, the issue specified by Reopens should be reopened.
+          // Often seen in a revert of a previous commit.
+          if (issue.fields.resolution) {
+            waitingActions++;
+            logger.log(`CLOSER: ${issue.key} is currently in state: ${issue.fields.status.name}.`,
+              "verbose", uuid);
+            logger.log(`CLOSER: ${issue.key} is ready to be reopened.`, "debug", uuid);
+            reopenIssue(uuid, issue, originalChange, decrementAndCheckDone);
+          } else {
+            logger.log(`CLOSER: Reopens issue ${issue.key} is already open.`, "verbose", uuid);
+          }
+        }
       }
     });
   }

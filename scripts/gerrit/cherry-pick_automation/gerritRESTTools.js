@@ -128,7 +128,8 @@ function generateCherryPick(changeJSON, parent, destinationBranch, customAuth, c
   }
 
   let newCommitMessage = changeJSON.change.commitMessage
-    .concat(`(cherry picked from commit ${changeJSON.patchSet.revision})`);
+  .concat(`(cherry picked from commit ${changeJSON.patchSet.revision})`)
+  .replace(/Reopens: .+/, "") // Reopens should never be carried to cherry-picks.
   let url;
   if (/^(tqtc(?:%2F|\/)lts-)/.test(changeJSON.change.branch)) {
     url = `${gerritBaseURL("projects")}/${encodeURIComponent(changeJSON.change.project)}/commits/${

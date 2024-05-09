@@ -413,15 +413,44 @@ function updateStatusCache() {
                   "error", "JIRA"));
 }
 
+// Determine if the bot was the last entity to perform a reopen on the issue.
+function wasReopenedByJiraBot(issue) {
+  // If the issue is currently open, walk the history in reverse to find the last reopen event.
+  // If the qtgerritbot performed the reopen, return true.
+  if (!isStatusDoneCategory(issue.fields.status.id)) {
+    for (let i = issue.changelog.histories.length - 1; i >= 0; i--) {
+      const history = issue.changelog.histories[i];
+      // Since we can't see what transition was used, we have to examine the from and to statuses.
+      // If the status was changed from a Done category to a non-Done category, it was a reopen.
+      if (history.items.filter(i => i.field === "status" && isStatusDoneCategory(i.from)
+        && !isStatusDoneCategory(i.to)).length > 0) {
+        if (history.author.key === "qtgerritbot") {
+          return true;
+        } else {
+          return false;
+        }
+      } // Else (no status change in this history), continue walking the histories.
+    }
+  }
+}
 
-// Determine if an issue has been closed by jirabot before.
-function wasClosedByJiraBot(issue) {
-  // Filter comments by qtgerritbot. Then filter again by if the bot made a status change.
-  // The bot only ever closes issues, so it is safe to not be specific here.
-  return issue.changelog.histories.filter(h =>
-    h.author.key === "qtgerritbot"
-    && h.items.filter(i => i.field === "status" && isStatusDoneCategory(i.to)).length > 0
-  ).length > 0;
+// If the bot has posted a message with a change ID, the issue was closed by the bot due to it.
+function closedByChangeId(uuid, issue, changeId) {
+  return new Promise((resolve, reject) => {
+    doJIRAGetRequest(uuid, `issue/${issue.key}/comment`)
+    .then(issueData => {
+      // Filter comments by qtgerritbot. Then filter again by changeId in the comment.
+      let botComments = issueData.comments.filter(m => m.author.key === "qtgerritbot");
+      let filteredComments = botComments.filter(m => m.body.includes(changeId));
+      logger.log(`CLOSER: Found ${filteredComments.length} comments by qtgerritbot with ChangeId.`,
+        "silly", uuid);
+      resolve(filteredComments.length > 0);
+      }
+    ).catch(err => {
+      logger.log(safeJsonStringify(err).length > 2 ? safeJsonStringify(err) : err, "error", uuid);
+      reject(err);
+    });
+  });
 }
 
 
@@ -474,14 +503,29 @@ function closeIssue(uuid, issue, change, callback) {
     logger.log(`CLOSER: Closing issue ${issue.key} with transition ${transition.name}`,
       "info", uuid);
     let body = {
+      "update": {
+        "comment": [
+          {
+            "add": {
+              "body": `A change fixing this ${
+                wasReopenedByJiraBot() ? "automatically-reopened " : ""}`
+                + "issue has been merged. Closing it automatically.\n"
+                + `Change Id: [${change.change.id}|${change.change.url}]\n`
+                + `Project#Branch: ${change.change.project}#${change.change.branch}`
+            }
+          }
+        ]
+      },
       "transition": {
         "id": transition.id
       },
       "cause": {  // These fields are required, but the values are arbitrary.
         "id": "ChangeMerged",
         "type": "ChangeMerged-event"
+      }
     }
-    }
+
+
     doJIRAPutPostRequest(uuid, "POST", `issue/${issue.key}/transitions`, body)
     .then(() => {
       const msg = `CLOSER: Successfully closed ${issue.key}.`;
@@ -500,6 +544,41 @@ function closeIssue(uuid, issue, change, callback) {
   });
 }
 
+// Perform a Reopen transition on a jira issue.
+function reopenIssue(uuid, issue, change, callback) {
+  getTransitions(uuid, issue.key).then((possibleTransitions) => {
+    const transition = possibleTransitions.transitions.find(t => ["Re-open"].includes(t.name));
+    if (!transition) {  // No suitable Re-open type transitions were present.
+      const msg = `CLOSER: ${issue.key} has no re-open transition. It cannot be reopened.`
+      logger.log(msg, "warn", uuid);
+      callback(msg);
+      return;
+    }
+    logger.log(`CLOSER: Reopening issue ${issue.key} with transition ${transition.name}`,
+      "info", uuid);
+    let body = {
+      "transition": {
+        "id": transition.id
+      },
+      "cause": {  // These fields are required, but the values are arbitrary.
+        "id": "AutoReopen",
+        "type": "gerrit-Reopen-keyword-event"
+    }
+    }
+    doJIRAPutPostRequest(uuid, "POST", `issue/${issue.key}/transitions`, body)
+    .then(() => {
+      const msg = `CLOSER: Successfully reopened ${issue.key}.`;
+      logger.log(msg, "info", uuid);
+      callback(msg);
+    })
+    .catch(err => {
+      let error = safeJsonStringify(err).length > 2 ? safeJsonStringify(err) : err;
+      logger.log(error, "error", "JIRA");
+      callback(error);
+    });
+  })
+}
+
 // Post a simple comment to a jira issue
 function postComment(uuid, issueId, comment) {
   const body = {
@@ -512,4 +591,5 @@ function postComment(uuid, issueId, comment) {
 
 
 module.exports = { queryManyIssues, getVersionsForIssue, getProjectList, queryJQL, updateFixVersions,
-   updateCommitField, updateStatusCache, wasClosedByJiraBot, botHasPostedMessage, closeIssue, postComment };
+   updateCommitField, updateStatusCache, wasReopenedByJiraBot, closedByChangeId,
+   botHasPostedMessage, closeIssue, reopenIssue, postComment };
