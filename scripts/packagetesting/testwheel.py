@@ -24,9 +24,11 @@ PYINSTALLER_EXAMPLE_2 = 'widgets/widgets/tetrix.py'
 OPCUAVIEWER = 'opcua/opcuaviewer/main.py'
 WEBENGINE_TABBED_BROWSER = 'webenginewidgets/tabbedbrowser/main.py'
 PROJECT_TOOL = "pyside6-project"
-TOOLS = ["deploy", "genpyi", ("lrelease", "-help"), "lupdate", "metaobjectdump",
+ESSENTIAL_TOOLS = ["deploy", "genpyi", ("lrelease", "-help"), "lupdate", "metaobjectdump",
          "project", "qml", "qmlformat", ("qmlimportscanner", "-importPath", "."), "qmllint",
-         "qmlls", "qmltyperegistrar", "qtpy2cpp", "rcc", "uic", "qsb", "balsam", "balsamui"]
+         "qmlls", "qmltyperegistrar", "qtpy2cpp", "rcc", "uic"]
+ADDONS_TOOLS = ["qsb", "balsam", "balsamui"]
+
 
 VERSION = (0, 0, 0)
 
@@ -88,6 +90,11 @@ def has_module(name):
     """Checks for a module"""
     return name.lower() in get_installed_modules()
 
+def get_installed_tools():
+    """Find the installed tools based on the wheels installed"""
+    if has_module("PySide6_Addons") or has_module("PySide6-Addons") or VERSION < (6, 3, 0):
+        return ESSENTIAL_TOOLS + ADDONS_TOOLS
+    return ESSENTIAL_TOOLS
 
 def get_installed_wheels(examples_root):
     """Determine install type."""
@@ -301,10 +308,12 @@ def test_project_generation():
     return result
 
 
-def test_tools():
+def test_tools(installed_wheels: InstalledWheels):
     result = True
     print("\nTesting command line tools...")
-    for tool in TOOLS:
+    installed_tools = get_installed_tools()
+
+    for tool in installed_tools:
         if isinstance(tool, tuple):
             tool_name, *arguments = tool
             binary = f"pyside6-{tool_name}"
@@ -428,7 +437,8 @@ if __name__ == "__main__":
 
     exit_code = 0
     if VERSION >= (6, 4, 0):
-        if not test_tools():
+        installed_wheels = get_installed_wheels(root_ex)
+        if not test_tools(installed_wheels):
             exit_code += 1
 
     for e in examples(root_ex):
