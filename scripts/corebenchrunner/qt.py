@@ -49,7 +49,7 @@ class Module:
         target = test_file if test_file is not None else "tests/benchmarks/install/local"
 
         error = await common.Command.run(
-            arguments=["cmake", "--build", ".", "--target", target],
+            arguments=["cmake", "--build", ".", "--target", target, "qxcb"],
             output_file=os.path.join(log_directory, "build.log"),
             timeout=BUILD_TIMEOUT,
             cwd=build_directory,
