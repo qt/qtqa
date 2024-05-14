@@ -317,9 +317,7 @@ class Selector(object): # Select interesting changes, discard boring.
                 change[line] = (mini,)
         for line in self.__old[hunk[0][1]:hunk[-1][2]]:
             for mini in bore.minimize(line):
-                try: seq = origin[mini]
-                except KeyError: seq = origin[mini] = []
-                seq.append(line)
+                origin.setdefault(mini, []).append(line)
             # Relevant lines might have merely changed indentation:
             if relevant(line):
                 key = line.strip()
