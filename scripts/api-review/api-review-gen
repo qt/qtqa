@@ -198,12 +198,24 @@ changeid () {
         | sed -ne '/Change-Id:/ s/.*: *//p'
 }
 
+cmakerecurse () {
+    # usage: cmakerecurse $rev $mod $path/CMakeLists.txt
+    # First identify headers overtly reported for this version in $3 for module $2:
+    git show "$1:$3" 2>/dev/null | $THERE/cmakescan.py "$2" "$3" \
+        || die "Failed to scan $f for $2 at $1"
+    # Recurse into subdirectories, that might extend the module target:
+    git show "$1:$3" 2>/dev/null \
+        | sed -ne '/add_subdirectory/ s/add_subdirectory(// p' | tr ')' ' ' \
+        | while read sub
+    do cmakerecurse "$1" "$2" "`dirname "$3"`/$sub/`basename "$3"`"
+    done
+}
+
 headers () {
     # usage: pipe CMake files one per line into | headers rev module
     # If a file did not exist at the given revision, it produces no output.
     while read f
-    do git show "$1:$f" 2>/dev/null | $THERE/cmakescan.py "$2" "$f" \
-            || die "Failed to scan $f for $2 at $1"
+    do cmakerecurse "$1" "$2" "$f"
     done
 }
 
