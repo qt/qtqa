@@ -226,7 +226,7 @@ class CMakeScanner(object):
                     if isinstance(tok, cls) and test(tok):
                         yield tok
                 else:
-                    inner(cls, test)
+                    yield from inner(cls, test)
 
             if isinstance(self, cls) and test(self):
                 yield self
