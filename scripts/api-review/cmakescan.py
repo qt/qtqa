@@ -804,7 +804,7 @@ class CMakeScanner(object):
             for tok in param.headers(self.__evaluate, *filters):
                 for word in self.__evaluate(tok):
                     assert isinstance(word, str)
-                    yield str(self.root.joinpath(word))
+                    yield str(self.root.joinpath(word)) + '\n'
 
 def main(args, source, sink, grumble):
     """Driver for the CMakeScanner class.
@@ -824,7 +824,7 @@ def main(args, source, sink, grumble):
         return 1
     scan = CMakeScanner(args[0], Path(args[1]).parent)
     scan.ingest(source)
-    sink('\n'.join(scan.headers))
+    sink(''.join(scan.headers))
     return 0
 
 if __name__ == '__main__':
