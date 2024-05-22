@@ -89,6 +89,8 @@ my %excludedFiles = (
                           # license and copyright syntax in this one. The checker
                           # gets confused with newer upstream versions, so skip.
                           qr{^src/gui/vulkan/vk\.xml$},
+                          # File is generated and license info is in qt_attribution.json
+                          qr{^src/gui/text/qfontsubset_agl.cpp$},
                         ],
     "qtwayland"      => [
                           # XML files for protocol (the license checker fails to
