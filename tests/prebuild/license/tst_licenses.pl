@@ -738,7 +738,7 @@ sub checkSPDXLicenseIdentifier
     $expression =~ s/[^:]+:\s*//;    # remove the "SPDX-License-Identifier: " prefix
     foreach (split(/\s+/, $expression)) {
         # Skip operators in the expression.
-        if (/OR|AND|WITH/) {
+        if (/OR|AND|WITH|\(|\)/) {
             next;
         }
 
@@ -782,7 +782,7 @@ sub checkLicense_SPDX
     my $currentLine = 0;
     my $yearRegEx = qr/2[0-9][0-9][0-9]/;
     my $copyrightRegEx = qr/\b((?:Copyright \([cC]\) $yearRegEx.*)|(?:SPDX-FileCopyrightText: $yearRegEx.*))/;
-    my $licenseIdRegEx = qr/\b((?:SPDX-License-Identifier:\s*[a-zA-Z0-9.\- ]+))/;
+    my $licenseIdRegEx = qr/\b((?:SPDX-License-Identifier:\s*[\(\)a-zA-Z0-9.\- ]+))/;
 
     my @copyrightTags = ();
     my @licenseIdentifiers = ();
