@@ -73,7 +73,7 @@ if [[ "$1" =~ ^(v?6\.|dev) ]]; then
     qmlbenchBranch=dev
     # Qt6 makes cmake the default. Set up the build to use it.
     prefix_dir="$dir/install"
-    prefix="--prefix=$prefix_dir"
+    prefix="-prefix $prefix_dir"
     moduleConfig="$dir/install/bin/qt-configure-module ."
     makecmd="cmake --build . --parallel $3"
     install="cmake --install ."
