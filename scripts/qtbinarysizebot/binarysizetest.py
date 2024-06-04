@@ -85,9 +85,7 @@ class BinarySizeTest():
         print(f"Fetching {artifacts_url}")
         artifacts_filename = os.path.basename(urlparse(artifacts_url).path)
         artifacts_filename = os.path.join(target_directory, artifacts_filename)
-        local_path, http_response_code = urllib.request.urlretrieve(artifacts_url, artifacts_filename)
-        if http_response_code != 200:
-            raise ConnectionError(f"Error: HTTP {http_response_code} returned")
+        urllib.request.urlretrieve(artifacts_url, artifacts_filename)
 
         print(f"Unpacking {artifacts_filename}")
         with tarfile.open(artifacts_filename) as tarball:
@@ -103,7 +101,7 @@ class BinarySizeTest():
         # pylint: disable=R0913
         send_email = False
         file_with_path = os.path.join(path, 'install', file)
-        previous_value = self.binary_size_database.pull(file)
+        previous_value = self.binary_size_database.pull(self.series, file)
         new_value = os.stat(os.path.expanduser(file_with_path)).st_size
 
         if previous_value == 0:

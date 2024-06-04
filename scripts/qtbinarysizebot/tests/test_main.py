@@ -13,6 +13,40 @@ from tl.testing.thread import ThreadJoiner
 
 
 class TestMain(ThreadAwareTestCase):
+    @mock.patch('main.threading')
+    @mock.patch('main.gerrit_api')
+    @mock.patch('main.coin_api')
+    @mock.patch('main.database')
+    @mock.patch('main.binarysizetest')
+    @mock.patch('main.email_alert')
+    def test_coin_updating_case(self, email_alert_mock, binarysize_mock, db_mock, coin_api_mock, gerrit_api_mock, threading_mock):
+        db_mock.Database().get_last_timestamp.return_value = datetime.datetime(2020, 1, 1, 0, 0)
+        config = json.loads(
+            '{ "tests_json":"tests.json", "database_info": \
+                {"server_url":"url", "database_name": "dbname", "username":"john", "password":"doe"}, \
+                "email_info": {"smtp_server": "smtp.localhost", "email_sender": "t@t.io", "email_cc": "cc@t.io"}, \
+                "gerrit_info": {"server_url": "codereview.qt-project.org", "server_port": 29418} \
+                     }')
+        testable = main.CallbackHandler(config)
+        db_mock.Database().get_last_timestamp.assert_called()
+        binarysize_mock.BinarySizeTest().email_content.return_value = ["topic", "message"]
+        gerrit_api_mock.GerritApi().get_coin_task_id.return_value = "coin_task_id"
+        threading_mock.Timer().start
+
+        # First call. No email
+        coin_api_mock.get_coin_task_details.return_value = {
+            'coin_update_ongoing': True,
+            'last_timestamp': datetime.datetime(2020, 1, 2, 0, 0),
+            'git_shas': ["sha1", "sha2"]
+        }
+
+        binarysize_mock.BinarySizeTest().run.return_value = False
+        testable._execute_test("coin_task_id", "project", "branch", "sha1")
+        testable._workqueue.join()
+        threading_mock.Timer().start.assert_called()
+        binarysize_mock.BinarySizeTest().run.assert_not_called()
+        email_alert_mock.send_email.assert_not_called()
+
     @mock.patch('main.gerrit_api')
     @mock.patch('main.coin_api')
     @mock.patch('main.database')

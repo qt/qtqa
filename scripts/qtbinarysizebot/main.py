@@ -83,7 +83,15 @@ class CallbackHandler:
     def _execute_test(self, coin_task_id: str, project: str, branch: str, git_sha: str):
         try:
             dictionary = coin_api.get_coin_task_details(coin_task_id)
-
+            if dictionary['coin_update_ongoing'] is True:
+                print(f"COIN task {coin_task_id} still running. Schedule new update after 10 seconds")
+                t = threading.Timer(10, partial(self._execute_test,
+                                                coin_task_id=coin_task_id,
+                                                project=project,
+                                                branch=branch,
+                                                git_sha=git_sha))
+                t.start()
+                return
             print(f"{datetime.datetime.now()}: New coin task {coin_task_id}"
                   f" completed at {dictionary['last_timestamp']} for shas: {dictionary['git_shas']}")
             [email_topic, email_message] = self.tests.email_content(
@@ -138,7 +146,7 @@ if __name__ == "__main__":
     sys.stdout.reconfigure(line_buffering=True)
     callback_instance = CallbackHandler(config)
     loop = asyncio.get_event_loop()
-    if parsed_arguments.listen_ssh_stream is True:
+    if parsed_arguments.ssh is True:
         trigger_task = loop.create_task(trigger_ssh.run_client(
             callback_instance.callback,
             config["gerrit_info"]["server_url"],

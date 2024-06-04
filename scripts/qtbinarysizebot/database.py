@@ -49,14 +49,17 @@ class Database():
 
         self.write_api.write(bucket=self.bucket, record=point)
 
-    def pull(self, entry) -> float:
+    def pull(self, series: str, entry: str) -> float:
         """ Fetches last database entry """
-        query = f'from(bucket:"{self.bucket}") \
-            |> range(start: 0) \
-            |> filter(fn:(r) => r.entry == "{entry}") \
-            |> last()'
-        result = self.query_api.query(query)
+        query = (f'from(bucket:"{self.bucket}") '
+                 '|> range(start:0) '
+                 '|> drop(columns: ["commit_url"]) '
+                 f'|> filter(fn:(r) => r._measurement == "{series}" and r.entry == "{entry}") '
+                 '|> sort(columns: ["_time"]) '
+                 '|> last() '
+                 )
 
+        result = self.query_api.query(query)
         if len(result) == 0:
             return 0
         if len(result[0].records) > 1:

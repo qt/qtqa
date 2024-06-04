@@ -4,7 +4,9 @@
 import json
 import time
 import datetime
-import requests
+from urllib3.util import Retry
+from requests import Session
+from requests.adapters import HTTPAdapter
 
 
 class NoArtifactsFound(Exception):
@@ -13,7 +15,10 @@ class NoArtifactsFound(Exception):
 
 def get_coin_task_details(coin_task_id: str) -> dict:
     """ Fetches and parses task details for given COIN task id """
-    resp = requests.get(
+    s = Session()
+    retries = Retry(total=3)
+    s.mount('https://', HTTPAdapter(max_retries=retries))
+    resp = s.get(
         "https://coin.ci.qt.io/coin/api/taskDetail",
         params={"id": coin_task_id},
         timeout=60
@@ -48,10 +53,13 @@ def get_coin_task_details(coin_task_id: str) -> dict:
 
 def get_artifacts_url(task_id: str, project: str, branch: str, identifier: str) -> str:
     """ Fetches url for artifacts tarball for given id """
+    s = Session()
+    retries = Retry(total=3)
+    s.mount('https://', HTTPAdapter(max_retries=retries))
     attempts = 0
     max_attempts = 3
     while attempts < max_attempts:
-        resp = requests.get(
+        resp = s.get(
             "https://coin.ci.qt.io/coin/api/taskWorkItems",
             params={"id": task_id},
             timeout=60

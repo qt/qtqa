@@ -19,7 +19,7 @@ class db:
         self.last_value = value
         self.last_timestamp = coin_task_datetime
 
-    def pull(self, entry) -> float:
+    def pull(self, series: str, entry: str) -> float:
         return self.last_value
 
 class TestBinarySizeTest(unittest.TestCase):
