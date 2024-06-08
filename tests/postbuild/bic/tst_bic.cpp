@@ -334,6 +334,7 @@ tst_Bic::tst_Bic(const char *appFilePath)
     bic.addBlacklistedClass(QLatin1String("QVulkanExtension"));
     bic.addBlacklistedClass(QLatin1String("QVulkanInstance"));
     bic.addBlacklistedClass(QLatin1String("QOperatingSystemVersionUnexported"));
+    bic.addBlacklistedClass(QLatin1String("QAnyStringView::QCharContainer"));
     /* allowed to grow */
     bic.addBlacklistedClass(QLatin1String("QSGMaterialShader::GraphicsPipelineState"));
     /* intentionally removed */
