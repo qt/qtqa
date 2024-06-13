@@ -30,6 +30,7 @@ CMake
 cmd
 [Cc]odecs?
 [Cc]odegen
+[Cc]ombobox
 [Cc]ompilable
 [Cc]omponents?
 [Cc]onfigs?
@@ -39,6 +40,7 @@ CPUs?
 (?i)CSMes
 CTest
 Ctrl
+[Dd]atagram
 [Dd]elete
 [Dd]eliverables?
 [Dd]ereference(d|s)?
@@ -53,8 +55,10 @@ Esc
 Fileshare
 [Ff]ixits?
 [Ff]ixup
+[Ff]lickable
 [Ff]ramebuffer
 [Ff]ullscreen
+geo
 Gerrit
 [Gg]etters?
 Gitk
@@ -71,6 +75,7 @@ JSLint
 KCachegrind
 Keil
 [Kk]eystore
+lhs
 litehtml
 lrelease
 LTTng
@@ -84,7 +89,9 @@ Memcheck
 [Mm]icrocontrollers?
 [Mm]ipmap
 mkspecs?
+Modbus
 Momentics
+[Mm]ultisampl(e|ing)
 [Mm]ultiselection
 [Mm]utex
 [Nn]amespaces?
@@ -101,11 +108,15 @@ Perf
 [Pp]repends?
 [Pp]reprocess(or)?
 Profilers?
+Protobuf
 px
 Qbs
+QDoc
+QEvent
 QGit
 qmake
 (?i)QML
+QString
 Qt
 Qwt
 [Rr]andomizer?
@@ -119,6 +130,8 @@ Renesas
 [Rr]esamples?
 [Rr]escans?
 (?i)rgba
+rhs
+[Ss]cenegraph
 [Ss]crollbar
 sdkmanager
 SDKs?
@@ -131,11 +144,13 @@ stdout
 STM(icroelectronics)?
 [Ss]truct
 [Ss]ubdirs?
+[Ss]ubclass(es)?
 [Ss]ubfolders?
 [Ss]ubfunctions?
 [Ss]ubitems?
 [Ss]ubmenus?
 [Ss]ubprojects?
+[Ss]ubstrings?
 [Ss]wimlanes?
 [Ss]yscalls?
 [Ss]ysroots?
@@ -160,7 +175,9 @@ Uncrustify
 uVision
 Valgrind
 vimrc
+[Vv]iewport
 VOBs?
+Vulkan
 Wacom
 [Ww]alltime
 Xcode
