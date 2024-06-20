@@ -6,6 +6,12 @@ accept_configuration:
 
 instructions:
   Build:
+    - type: AppendToEnvironmentVariable
+      variableName: COMMON_NON_QTBASE_CMAKE_ARGS
+      variableValue: " -DQT_INTERNAL_FORCE_NO_GENERATE_SBOM=ON"
+    - type: AppendToEnvironmentVariable
+      variableName: COMMON_NON_QTBASE_TARGET_CMAKE_ARGS
+      variableValue: " -DQT_INTERNAL_FORCE_NO_GENERATE_SBOM=ON"
     - !include "{{qt/qtbase}}/coin_module_build_template_v2.yaml"
 
   Test: []
