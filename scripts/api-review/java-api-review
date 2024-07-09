@@ -1,0 +1,339 @@
+#!/bin/bash
+# Copyright (C) 2024 The Qt Company Ltd.
+# SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+usage () {
+    echo Usage: `basename $0` "[-h|-u] [-d doclet] [-j javadoc] [-p user] [-s sdk] [-t task] [--] prior soon";
+}
+
+help () {
+    usage
+    cat <<EOF
+
+Prepare commits for pushing to Gerrit, two commits for each Android Java package
+within the git module, that express the interesting changes in API between a prior
+release (tag or branch) and an imminent release (branch).
+
+The script looks for various Java sources under the qt5 super repo path and generates
+API descriptions for specific package names provided here, these are pre-defined Qt
+for Android package names. This process is done for the prior Qt release and it's
+committed as a base to-be-ignored commit. The same is done for Qt release being
+reviewed and a commit is created on top.
+
+The script can push commits to Gerrit, and automatically abondon the base commits.
+Also, it can update existing API review patches, given that the local git branch
+that was used to push before still exists with valid commits.
+
+Optionally a Jira task number can be provided.
+
+-d PATH
+--doclet PATH
+            The javadoc Doclet path used to generates API description
+            files. This can be found at https://github.com/Issam-b/javadoclet.
+
+ -h
+ --help     Print this help and exit.
+
+-j PATH
+--javadoc PATH
+            The javadoc command path. This supports JDK 11 only.
+
+-p USER
+--push-as USER
+            Push the review commits to Gerrit under the provided username.
+            If this is not provided, commits won't be pushed.
+
+-s PATH
+--platform-jar PATH
+            The Android SDK platform JAR that's used to compile the Java
+            source code. This is typically the same as the maximum
+            supported Android version for a given Qt release.
+
+ -t ID
+ --task ID
+ --task-number ID
+           Include a Task-number: in the commit message, with the
+           given id, ID, of the bug-tracker issue being used to keep
+           track of the API change review.
+ -u
+ --usage   Print simple usage summary (first line above) and exit.
+
+ --        End option processing.
+
+Arguments:
+
+ prior     The commit (branch, tag or sha1) of a prior release.
+ soon      The branch approaching release.
+
+EOF
+}
+
+warn () { echo "$@" >&2; }
+die () { warn "$@"; exit 1; }
+second () {
+    if [ $# -lt 2 ]
+    then die "No argument supplied for $1"
+    elif [ -z "$2" ]
+    then die "Empty argument passed for $1 "
+    fi
+    echo "$2"
+}
+
+PLATFORM_JAR=
+DOCLET_PATH=
+JAVADOC_PATH=
+GERRIT_USER=
+TASK_NUMBER=
+
+bad () { usage >&2; die "$@"; }
+while [ $# -gt 0 ]
+do  case "$1" in
+        -u|--usage) usage; exit 0 ;;
+        -h|--help) help; exit 0 ;;
+        -d|--doclet) DOCLET_PATH=`second "$@"`; shift 2 ;;
+        -j|--javadoc) JAVADOC_PATH=`second "$@"`; shift 2 ;;
+        -p|--push-as) GERRIT_USER=`second "$@"`; shift 2 ;;
+        -s|--platform-jar) PLATFORM_JAR=`second "$@"`; shift 2 ;;
+        -t|--task|--task-number) TASK_NUMBER=`second "$@"`; shift 2 ;;
+        --) shift; break ;;
+        -*) bad "Unrecognised option: $1" ;;
+        *) break ;;
+    esac
+done
+
+# Check basic expectations of context:
+[ -f init-repository ] || \
+    die "I expect to be run in the top level directory of the qt5 module (see --help)."
+QT_SUPER_REPO="$(pwd)"
+
+# Select revisions to compare:
+[ $# -eq 2 ] || bad "Expected exactly two arguments, got $#: $@"
+for arg
+do git rev-parse "$arg" -- >/dev/null || bad "Failed to parse $arg as a git ref"
+done
+PRIOR="$1"
+RELEASE="$2"
+
+check_file_param() {
+    [ -n "$1" ] || die "$2 not provided (see --help)."
+    [ -f "$1" ] || die "$2 path '$1' doesn't exist."
+}
+
+check_file_param "$PLATFORM_JAR" "Android Platform JAR"
+check_file_param "$DOCLET_PATH" "Javadoc Doclet"
+check_file_param "$JAVADOC_PATH" "Javadoc command"
+
+run_javadoc() {
+    source_paths="$1"
+    version="$2"
+    output_dir="$3"
+    shift 3
+    java_packages=("${@#*:}")
+
+    echo $output_dir
+
+    $JAVADOC_PATH \
+        -doclet org.qtproject.qt.android.ReviewDoclet \
+        -docletpath $DOCLET_PATH \
+        -title "Qt for Android Java API Review" \
+        -output-dir $output_dir \
+        -version "$version" \
+        -company "The Qt Company" \
+        --class-path $PLATFORM_JAR \
+        -sourcepath $source_paths \
+        "${java_packages[@]}" 2>&1 1>/dev/null | \
+            # Ignore the five-line warning starting with this is line.
+            sed '/javadoc: warning - The old Doclet and Taglet APIs/{N;N;N;N;d;}'
+}
+
+run_javadoc_for_all_repos() {
+    version="$1"
+    repos=("${@:2}")
+
+    java_source_paths=$(
+        find "${repos[@]}" -type d -path '*/src/*/org/qtproject/qt/android' -exec echo {} + | \
+            sed 's/\/org\/qtproject\/qt\/android[^ ]*//g' | sed 's/:$//' | tr ' ' ':'
+    )
+
+    echo "############################################"
+    printf "####    Generating JAVADOC for %-8s ####\n" $version
+    echo "############################################"
+    for index in "${!repo_packages_map[@]}"; do
+        entry="${repo_packages_map[$index]}"
+        repo="${entry%%:*}"
+        packages="${entry#*:}"
+        run_javadoc $java_source_paths $version "$QT_SUPER_REPO/$repo" $packages
+    done
+    echo
+}
+
+checkout_git_repos() {
+    branch="$1"
+    repos=("${@:2}")
+
+    echo "Checking out $branch in Qt repositories"
+    for repo in "${repos[@]}"; do
+        echo "Repo: $repo"
+        git -C "$repo" fetch
+        git -C "$repo" checkout -q $branch
+    done
+    echo
+}
+
+commit_api_verion() {
+    message="$1"
+    body="$2"
+    ticket="$3"
+    change_id="$4"
+    version="$5"
+    review_dir_base="$6"
+
+    success=0
+    head_commit_count="$(git rev-list --count HEAD...$version)"
+    if [[ "$(ls -A $review_dir_base-$version)" || $head_commit_count -eq 1 ]]; then
+        mv $review_dir_base-$version $review_dir_base
+
+        if [ "$(git status | grep $review_dir_base)" ]; then
+            echo "Committing API for $version..."
+            git add $review_dir_base
+            if [[ -n $ticket ]]; then
+                footer=$(echo -e "Task-number: $ticket\n$change_id")
+                git commit -q -m "$message" -m "$body" -m "$footer"
+            else
+                git commit -q -m "$message" -m "$body" -m "$change_id"
+            fi
+            success="$?"
+        else
+            echo "No API changes to commit for $version..."
+            git reset HEAD^
+            rm -R $review_dir_base
+        fi
+    else
+        echo "No API files for $version!"
+        rmdir $review_dir_base-$version
+    fi
+
+    return $success
+}
+
+commit_diff() {
+    repo="$1"
+
+    review_dir_base="java-api-review"
+
+    # Checkout review branch, remove it if it already exists
+    echo "Preparing API Review Diff for $repo"
+    cd "$repo"
+    review_branch_name="java_api_review_${RELEASE}"
+
+    # Get previous Change-Id if a review branch was already created
+    if [ -n "$(git branch --list | grep -w $review_branch_name)" ]; then
+        change_ids_log=$(git log --reverse "$RELEASE..$review_branch_name" | \
+                     grep  "Change-Id: " | sed 's/^[ \t]*//')
+        while IFS= read -r line; do change_ids+=("$line"); done <<< "$change_ids_log"
+    fi
+
+    echo "Checking out review branch..."
+    git checkout -q $RELEASE
+    git branch -q -D $review_branch_name
+    git checkout -q -b $review_branch_name $RELEASE
+
+    if [ -d "$review_dir_base" ]; then
+        rm -R $review_dir_base
+    fi
+
+    module=$(basename $repo)
+    commit_msg="WIP: [Ignore][API Base] Review $module $RELEASE Android Java API"
+    body="Auto-generated $PRIOR baseline commit for reviewing $RELEASE, please ignore."
+    if [[ -n "${change_ids[1]}" ]]; then
+        prior_change_id="${change_ids[0]}"
+        release_change_id="${change_ids[1]}"
+    else
+        prior_change_id=""
+        release_change_id="${change_ids[0]}"
+    fi
+
+    commit_api_verion "$commit_msg" "$body" "" "$prior_change_id" "$PRIOR" "$review_dir_base"
+
+    if [ -d "$review_dir_base" ]; then
+        rm -R $review_dir_base
+    fi
+
+    commit_msg="Review $module $RELEASE Android Java API"
+    body="Auto-generated commit for reviewing the Android Java API of $module."
+    commit_api_verion "$commit_msg" "$body" "$TASK_NUMBER" \
+        "$release_change_id" "$RELEASE" "$review_dir_base"
+}
+
+do_gerrit_command() {
+    ssh -p 29418 $GERRIT_USER@codereview.qt-project.org gerrit "$@"
+}
+
+push_to_gerrit() {
+    version="$1"
+
+    echo "Pushing changes to Gerrit..."
+    git push gerrit HEAD:refs/for/$version
+
+    # Set diff review patch topic
+    do_gerrit_command set-topic $(git log -n 1 --skip=0 --pretty=format:%H) \
+        --topic "java_api_review_$version"
+}
+
+# Individual key-value assignments for the associative array
+repo_packages_map=(
+    "qtbase:org.qtproject.qt.android.accessibility \
+        org.qtproject.qt.android \
+        org.qtproject.qt.android.bindings \
+        org.qtproject.qt.android.extras \
+        org.qtproject.qt.android.network \
+        org.qtproject.qt.android.networkinformation"
+    "qtconnectivity:org.qtproject.qt.android.bluetooth \
+        org.qtproject.qt.android.nfc"
+    "qtdeclarative:org.qtproject.qt.android"
+    "qtmultimedia:org.qtproject.qt.android.multimedia"
+    "qtpositioning:org.qtproject.qt.android.positioning"
+    "qtspeech:org.qtproject.qt.android.speech"
+    "qtwebview:org.qtproject.qt.android.view"
+)
+
+# Get list of absolute paths for git repos
+repos=()
+for entry in "${repo_packages_map[@]}"; do
+    repo="${entry%%:*}"
+    repos+=("$QT_SUPER_REPO/$repo")
+done
+
+# Generate API for prior version
+checkout_git_repos "$PRIOR" "${repos[@]}"
+run_javadoc_for_all_repos $PRIOR "${repos[@]}"
+
+# Generate API for release version
+checkout_git_repos "$RELEASE" "${repos[@]}"
+run_javadoc_for_all_repos $RELEASE "${repos[@]}"
+
+# Commit diffs and push
+for repo in "${repos[@]}"; do
+    commit_diff $repo
+
+    commit_count="$(git rev-list --count HEAD...$RELEASE)"
+    if [[ $commit_count -gt 0 ]] && [[ -n $GERRIT_USER ]]; then
+        if [ $commit_count -eq 2 ]; then
+            # Restore base API commit if it exists before pushing
+            echo "Restore base patch if exists"
+            base_commit_change_id=$(git show --summary HEAD~1 | grep  "Change-Id: " | \
+                                    sed 's/^[ \t]*//' | cut -d' ' -f2-)
+            do_gerrit_command review --restore $base_commit_change_id
+        fi
+
+        push_to_gerrit $RELEASE
+
+        if [ $commit_count -eq 2 ]; then
+            # Abandon base API commit if it exists
+            base_commit_commit_id=$(git log -n 1 --skip=1 --pretty=format:%H)
+            echo "Abandoning remote commit $base_commit_commit_id..."
+            do_gerrit_command review --abandon $base_commit_commit_id
+        fi
+    fi
+    echo
+done
