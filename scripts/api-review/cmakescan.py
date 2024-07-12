@@ -489,18 +489,24 @@ class CMakeScanner(object):
             First argument is a callable to which to pass each token, that will
             iterate over possible values for that token. See __evaluate().
 
-            Optional further arguments are callables which take a string (presumed to
-            be a file name) and return true if it should be excluded; for
-            example, matchers for regexes named in a PRIVATE_HEADER_FILTERS
-            parameter (e.g. ".*\\.qpb\\.h" for protobuf). Only names ending
-            with .h are considered and those ending in _p.h or with a 3rdparty
-            path component are already filtered out."""
+            Optional further arguments are callables which take a string
+            (presumed to be a file name) and return true if it should be
+            excluded; for example, matchers for regexes named in a
+            PRIVATE_HEADER_FILTERS parameter (e.g. ".*\\.qpb\\.h" for
+            protobuf).
+
+            Only names ending with .h are considered and those ending in _p.h
+            or that have a 3rdparty path component are already filtered out, as
+            are any starting with a ../ path component. The intent is to mirror
+            what syncqt does to generate the public include/ directory."""
             if self.is_source:
                 for tok in self.value:
                     for name in lookup(tok):
                         if not name.endswith('.h') or name.endswith('_p.h'):
                             continue
                         if name.startswith('3rdparty/') or '/3rdparty/' in name:
+                            continue
+                        if name.startswith('../'):
                             continue
                         if any(e(name) for e in exclude):
                             continue
