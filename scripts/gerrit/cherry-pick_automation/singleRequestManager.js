@@ -122,7 +122,7 @@ class singleRequestManager {
   ltsTargetChecked(parentJSON, branch, newParentRev) {
     let _this = this;
     _this.requestProcessor.emit(
-      "validBranchReadyForPick", parentJSON, branch, newParentRev,
+      "validBranchReadyForPick", parentJSON, branch, newParentRev, null,
       "singleRequest_newCherryPick"
     );
   }

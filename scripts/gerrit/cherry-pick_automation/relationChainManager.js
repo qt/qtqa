@@ -190,7 +190,7 @@ class relationChainManager {
   handleValidBranchReadyForPick(currentJSON, branch, detail) {
     let _this = this;
     _this.requestProcessor.emit(
-      "validBranchReadyForPick", currentJSON, branch, detail.target,
+      "validBranchReadyForPick", currentJSON, branch, detail.target, detail.skippedChanges,
       "relationChain_newCherryPick"
     );
   }
@@ -261,7 +261,7 @@ class relationChainManager {
             48 * 60 * 60 * 1000, undefined, undefined,
             undefined, undefined,
             undefined,
-            undefined, undefined, undefined, currentJSON.uuid, true, "relationChain"
+            undefined, undefined, undefined, currentJSON.uuid, true, currentJSON.uuid.slice(0,8)
           );
         } else {
           // The direct parent doesn't include the branch that this
@@ -314,20 +314,15 @@ class relationChainManager {
         if (parentPickBranches.has(sanitizedBranch)) {
           // The target branch is on the parent as well, so there should
           // be a cherry-pick. Maybe it's not done processing in the bot yet.
+          _this.logger.log(`Parent ${detail.parentChangeID} has a pick-to footer for`
+            + ` ${sanitizedBranch}, but the cherry-pick hasn't been created yet.`
+            + ` Trying again in 1 minute.`, "debug", currentJSON.uuid);
           listenEvent = `cherryPickCreated_${detail.targetPickParent}`;
-          listenTimeout = 48 * 60 * 60 * 1000;
+          listenTimeout = 60 * 1000;  // 1 mins
           gerritMessageChangeID = detail.parentChangeID;
-          gerritMessageOnTimeout = `An automatic pick request for a dependent of this change to`
-          + ` ${sanitizedBranch} has expired becaause it depends on the cherry-pick of this`
-          + ` change.\n The cherry-pick of the dependent change will be performed against`
-          + ` ${sanitizedBranch} HEAD.`
-          + `\n\nDependent change information:`
-          + `\nSubject: ${currentJSON.change.subject}`
-          + `\nChange Number: ${currentJSON.change.number}`
-          + `\nLink: ${currentJSON.change.url}`;
           eventActionOnTimeout = "locateNearestParent"
-          eventActionOnTimeoutArgs = [currentJSON, undefined, branch,
-          "relationChain_validBranchReadyForPick"];
+          eventActionOnTimeoutArgs = [currentJSON, detail.parentChangeID.split("~")[2], branch,
+          "relationChain_validBranchReadyForPick", "relationChain_targetParentNotPicked", true];
 
           pickToNearestParent = false;
           toolbox.addToCherryPickStateUpdateQueue(
@@ -416,14 +411,16 @@ class relationChainManager {
         listenTimeout, undefined, gerritMessageChangeID,
         gerritMessage, gerritMessageOnTimeout,
         "relationChain_validBranchVerifyParent",
-        [currentJSON, branch], eventActionOnTimeout, eventActionOnTimeoutArgs, currentJSON.uuid, true, "relationChain"
+        [currentJSON, branch], eventActionOnTimeout, eventActionOnTimeoutArgs, currentJSON.uuid,
+        true, currentJSON.uuid.slice(0,8) + (eventActionOnTimeout ? '_TimeoutAction': '')
       );
     }
 
     if (pickToNearestParent) {
       _this.requestProcessor.emit(
         "locateNearestParent", currentJSON, undefined, branch,
-        "relationChain_validBranchReadyForPick"
+        "relationChain_validBranchReadyForPick",
+        "relationChain_targetParentNotPicked", false
       );
     }
   }
@@ -495,7 +492,7 @@ class relationChainManager {
         gerritMessage, gerritMessageOnTimeout,
         "relationChain_checkStageEligibility",
         [originalRequestJSON, cherryPickJSON], undefined, undefined, originalRequestJSON.uuid, true,
-        "relationChain_waitParentStage"
+        originalRequestJSON.uuid.slice(0,8)
       );
     } else if (parentStatus == "INTEGRATING") {
       gerritMessage = `This cherry-pick is ready to be automatically staged, but it's parent is`
@@ -512,7 +509,7 @@ class relationChainManager {
         gerritMessage, gerritMessageOnTimeout,
         "relationChain_checkStageEligibility",
         [originalRequestJSON, cherryPickJSON], undefined, undefined, originalRequestJSON.uuid, true,
-        "relationChain_waitParentMerge"
+        originalRequestJSON.uuid.slice(0,8)
       );
     }
     toolbox.setupListener(
@@ -521,7 +518,7 @@ class relationChainManager {
       undefined, undefined,
       "relationChain_checkStageEligibility",
       [originalRequestJSON, cherryPickJSON], undefined, undefined, originalRequestJSON.uuid, true,
-      "relationChain_waitParentAbandon"
+      originalRequestJSON.uuid.slice(0,8)
     );
   }
 

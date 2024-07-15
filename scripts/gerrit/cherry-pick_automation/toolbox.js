@@ -695,16 +695,16 @@ function setupListener(
   const messageCancelTriggerId = `${listenerEvent}~${messageCancelTriggerEvent}~${contextId}`;
 
   // Check to make sure we don't register the same listener twice.
-  // Event listeners should be unique and the same source should never call
+  // Event listeners should be unique per-source and the same source should never call
   // setupListener() twice for the same event.
   // The same listenerEvent may be subscribed to from multiple sources, however.
   // This is why the listenerId is a combination of the listenerEvent and the
-  // contextId.
+  // contextId. ContextId is typically the first 8 chars of the request uuid.
   if (listeners[listenerId]) {
     logger.log(
       `Ignoring listener setup request: ${
         source.constructor.name} already has a listener for ${listenerEvent}`,
-      "info", originalChangeUuid
+      "error", originalChangeUuid
     );
     return;
   }
@@ -732,14 +732,16 @@ function setupListener(
           "postGerritComment", originalChangeUuid, messageChangeId, undefined, messageOnTimeout,
           "OWNER"
         );
-        // Emit the eventActionOnTimeout event if set.
-        if (eventActionOnTimeout) {
-          source.emit(eventActionOnTimeout, ...eventActionOnTimeoutArgs);
-        }
+      }
+      // Emit the eventActionOnTimeout event if set.
+      if (eventActionOnTimeout) {
+        source.emit(eventActionOnTimeout, ...eventActionOnTimeoutArgs);
       }
       logger.log(
         `Recovered listener is stale: ${
-          listenerEvent}. Not restoring it, and deleting it from the database.`,
+          listenerEvent}.${eventActionOnTimeout
+          ? " Executing " + eventActionOnTimeout + ", N"
+          : "n"}ot restoring the listener, and deleting it from the database.`,
         "warn", originalChangeUuid
       );
       addToListenerCacheUpdateQueue(
@@ -781,6 +783,19 @@ function setupListener(
       if (eventActionOnTimeout) {
         source.emit(eventActionOnTimeout, ...eventActionOnTimeoutArgs);
       }
+      logger.log(
+        `${listenerEvent} timed out. ${eventActionOnTimeout
+          ? " Executing " + eventActionOnTimeout + ", and d"
+          : "D"}eleting it from the database.`, "warn", originalChangeUuid
+      );
+      addToListenerCacheUpdateQueue(
+        "delete", undefined, listenerEvent, undefined, undefined,
+        undefined, undefined, undefined,
+        undefined, undefined,
+        undefined,
+        undefined, undefined, undefined, originalChangeUuid,
+        false, contextId
+      );
     }, newTimeout);
   }
 
@@ -871,7 +886,8 @@ function setupListener(
           undefined, undefined, undefined,
           undefined, undefined,
           undefined,
-          undefined, undefined, undefined, originalChangeUuid, false, contextId
+          undefined, undefined, undefined, originalChangeUuid,
+          false, contextId
         );
       }, 1000);
     };

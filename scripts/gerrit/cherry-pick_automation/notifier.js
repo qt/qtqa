@@ -157,14 +157,14 @@ requestProcessor.on("verifyParentPickExists", (parentJSON, branch, responseSigna
 });
 
 // Emitted when a cherry-pick's parent is not a suitable target on the pick-to branch.
-requestProcessor.on("locateNearestParent", (currentJSON, next, branch, responseSignal) =>
-  requestProcessor.locateNearestParent(currentJSON, next, branch, responseSignal));
+requestProcessor.on("locateNearestParent", (currentJSON, next, branch, responseSignal, errorSignal, skipOne) =>
+  requestProcessor.locateNearestParent(currentJSON, next, branch, responseSignal, errorSignal, skipOne));
 
 // Emitted when a branch has been validated against the merge's project in codereview.
 requestProcessor.on(
   "validBranchReadyForPick",
-  (parentJSON, branch, newParentRev, responseSignal) => {
-    requestProcessor.doCherryPick(parentJSON, branch, newParentRev, responseSignal);
+  (parentJSON, branch, newParentRev, skippedChanges, responseSignal) => {
+    requestProcessor.doCherryPick(parentJSON, branch, newParentRev, skippedChanges, responseSignal);
   }
 );
 

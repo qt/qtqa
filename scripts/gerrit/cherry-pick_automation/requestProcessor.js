@@ -9,6 +9,7 @@ const toolbox = require("./toolbox");
 const gerritTools = require("./gerritRESTTools");
 const emailClient = require("./emailClient");
 const config = require("./config");
+const { logger } = require("./notifier");
 
 function envOrConfig(ID) {
   return process.env[ID] || config[ID];
@@ -301,6 +302,7 @@ class requestProcessor extends EventEmitter {
               }
             }
           );
+        }
       }
     }
 
@@ -539,7 +541,7 @@ class requestProcessor extends EventEmitter {
               // The status of the parent should be MERGED at this point.
               // Try to see if it was picked to the target branch.
               _this.logger.log(
-                `Immediate parent (${immediateParent}) for ${
+                `Parent (${immediateParent}) for ${
                   currentJSON.fullChangeID} is in state: ${data.status}`,
                 "debug", currentJSON.uuid
               );
@@ -561,7 +563,7 @@ class requestProcessor extends EventEmitter {
                   // Do nothing. This callback function will be called again on retry.
                     retryThis();
                   } else {
-                  // The target change ID doesn't exist on the branch specified.
+                    // The target change ID doesn't exist on the branch specified.
                     _this.logger.log(
                       `Target pick parent ${targetPickParent} does not exist on ${branch}`,
                       "debug", currentJSON.uuid
@@ -670,7 +672,7 @@ class requestProcessor extends EventEmitter {
   // Use the nearmost change on the target branch as the parent for this pick
   // Use branch HEAD if no parents to this change are picked to the same
   // branch.
-  locateNearestParent(currentJSON, next, branch, responseSignal) {
+  locateNearestParent(currentJSON, next, branch, responseSignal, errorSignal, skipOne) {
     let _this = this;
 
     function retryThis() {
@@ -680,7 +682,7 @@ class requestProcessor extends EventEmitter {
       );
       _this.retryProcessor.addRetryJob(
         currentJSON.uuid, "locateNearestParent",
-        [currentJSON, next, branch, responseSignal]
+        [currentJSON, next, branch, responseSignal, errorSignal, skipOne]
       );
     }
 
@@ -688,13 +690,24 @@ class requestProcessor extends EventEmitter {
       currentJSON.uuid,
       {
         branch: branch, statusDetail: "locateNearestParent",
-        args: [currentJSON, next, branch, responseSignal]
+        args: [currentJSON, next, branch, responseSignal, errorSignal, skipOne]
       },
       "locateNearestParent"
     );
 
     let positionInChain = currentJSON.relatedChanges.findIndex((i) =>
       i.change_id === (next || currentJSON.change.id));
+    let selfPositionInChain = currentJSON.relatedChanges.findIndex((i) =>
+      i.change_id === (currentJSON.change.id));
+    _this.logger.log(`Found current change position: ${positionInChain}`,
+      "debug", currentJSON.uuid);
+    if (positionInChain >= 0 && currentJSON.change.id === currentJSON.relatedChanges[positionInChain].change_id) {
+      // Cannot use self as parent. Bump the index.
+      positionInChain++;
+      if (positionInChain >= currentJSON.relatedChanges.length) {
+        next = -1;
+      }
+    }
 
     if (next === -1) {
       // We've reached the top of the chain and found no suitable parent.
@@ -708,7 +721,9 @@ class requestProcessor extends EventEmitter {
         (success, branchHead) => {
           // This should never hard-fail since the branch is already
           // validated!
-          _this.emit(responseSignal, currentJSON, branch, { target: branchHead });
+          const skippedChanges = currentJSON.relatedChanges.slice(selfPositionInChain + 1);
+          _this.emit(responseSignal, currentJSON, branch, { target: branchHead,
+            skippedChanges: skippedChanges });
         }
       );
     } else {
@@ -731,31 +746,119 @@ class requestProcessor extends EventEmitter {
               "verbose", currentJSON.uuid
             );
             // The target parent exists on the target branch. Use it.
-            _this.emit(responseSignal, currentJSON, branch, { target: data.current_revision });
+            const skippedChanges = currentJSON.relatedChanges.slice(selfPositionInChain + 1, positionInChain);
+            _this.emit(responseSignal, currentJSON, branch, { target: data.current_revision,
+              skippedChanges: skippedChanges });
           } else if (data == "retry") {
           // Do nothing. This callback function will be called again on retry.
             retryThis();
-          } else if (positionInChain < currentJSON.relatedChanges.length - 1) {
-          // Still more items to check. Check the next parent.
-            _this.emit(
-              "locateNearestParent", currentJSON,
-              currentJSON.relatedChanges[positionInChain + 1].change_id, branch,
-              "relationChain_validBranchReadyForPick"
-            );
           } else {
-          // No more items to check. Pass -1 in "next" param to send the
-          // sha of the target branch head.
+            if (skipOne && positionInChain < currentJSON.relatedChanges.length - 1) {
+              // Usually set in the case that locateNearestParent is called from a timed-out listener.
+              // In this case, if the expected parent is not found, skip it and check the next one,
+              // since the expected parent is unlikely to be created now.
+              _this.emit(
+                "locateNearestParent", currentJSON,
+                currentJSON.relatedChanges[positionInChain + 1].change_id, branch,
+                responseSignal, errorSignal
+              );
+              return;
+            }
+            // The parent wasn't found on the target branch. Check to see if it's expected.
             _this.logger.log(
-              `Reached the end of the relation chain for finding a parent`,
-              "debug", currentJSON.uuid
+              `Parent ${currentJSON.relatedChanges[positionInChain].change_id} is not picked to ${
+                branch}. Checking ${currentJSON.change.branch} to see if it will be picked.`,
+              "verbose", currentJSON.uuid
             );
-            _this.emit(
-              "locateNearestParent", currentJSON, -1, branch,
-              "relationChain_validBranchReadyForPick"
-            );
+            let sourcePickParent = `${encodeURIComponent(currentJSON.change.project)}~${
+              encodeURIComponent(currentJSON.change.branch)}~${
+              currentJSON.relatedChanges[positionInChain].change_id
+            }`;
+            gerritTools.queryChange(
+              currentJSON.uuid, sourcePickParent, undefined, currentJSON.customGerritAuth,
+              (success, data) => {
+                _this.logger.log(
+                  `Source branch ${currentJSON.relatedChanges[positionInChain].change_id}`
+                  + ` is in state ${data.status}.`, "verbose", currentJSON.uuid
+                );
+                if (success && data.status === "MERGED") {
+                  let parentPickBranches = toolbox.findPickToBranches(currentJSON.uuid,
+                    data.revisions[data.current_revision].commit.message);
+                  if (parentPickBranches.has(branch)) {
+                    // The target change ID doesn't exist on the branch specified.
+                    _this.logger.log(
+                      `Parent ${currentJSON.relatedChanges[positionInChain].change_id} will be picked to ${
+                        branch}. Using it as the parent.`,
+                      "verbose", currentJSON.uuid
+                    );
+                    toolbox.addToCherryPickStateUpdateQueue(
+                      currentJSON.uuid,
+                      { branch: branch, statusDetail: "parentMergedNoPick" },
+                      "verifyParentPickExists",
+                      function () {
+                        _this.emit(
+                          errorSignal, currentJSON, branch,
+                          {
+                            error: "notPicked",
+                            parentChangeID: data.id,
+                            parentJSON: data, targetPickParent: targetPickParent
+                          }
+                        );
+                      }
+                    );
+                  } else {
+                    // The parent is not picked to the target branch. Check the next parent.
+                    _this.logger.log(
+                      `Parent ${currentJSON.relatedChanges[positionInChain].change_id} will not be picked to ${
+                        branch}. Checking the next parent.`,
+                      "verbose", currentJSON.uuid
+                    );
+                    if (positionInChain < currentJSON.relatedChanges.length - 1) {
+                      // Still more items to check. Check the next parent.
+                      _this.emit(
+                        "locateNearestParent", currentJSON,
+                        currentJSON.relatedChanges[positionInChain + 1].change_id, branch,
+                        responseSignal, errorSignal
+                      );
+                    } else {
+                      // No more items to check. Pass -1 in "next" param to send the
+                      // sha of the target branch head.
+                      _this.logger.log(
+                        `Reached the end of the relation chain for finding a parent`,
+                        "debug", currentJSON.uuid
+                      );
+                      _this.emit(
+                        "locateNearestParent", currentJSON, -1, branch,
+                        responseSignal, errorSignal
+                      );
+                    }
+                  }
+                } else if (data == "retry") {
+                  retryThis();
+                } else if (positionInChain < currentJSON.relatedChanges.length - 1) {
+                  // Still more items to check. Check the next parent.
+                  _this.emit(
+                    "locateNearestParent", currentJSON,
+                    currentJSON.relatedChanges[positionInChain + 1].change_id, branch,
+                    responseSignal, errorSignal
+                  );
+                } else {
+                  // No more items to check. Pass -1 in "next" param to send the
+                  // sha of the target branch head.
+                  _this.logger.log(
+                    `Reached the end of the relation chain for finding a parent`,
+                    "debug", currentJSON.uuid
+                  );
+                  _this.emit(
+                    "locateNearestParent", currentJSON, -1, branch,
+                    responseSignal, errorSignal
+                  );
+                }
+              }
+            ); // End of source branch parent QueryChange
           }
         }
-      );
+      );  // End of target branch parent QueryChange
     }
   }
 
@@ -897,7 +1000,7 @@ class requestProcessor extends EventEmitter {
   }
 
   // Generate a cherry pick and call the response signal.
-  doCherryPick(incoming, branch, newParentRev, responseSignal) {
+  doCherryPick(incoming, branch, newParentRev, skippedChanges, responseSignal) {
     let _this = this;
 
     function _doPickAlreadyExists(data, message) {
@@ -931,7 +1034,7 @@ class requestProcessor extends EventEmitter {
       incoming.uuid,
       {
         branch: branch, revision: newParentRev, statusDetail: "pickStarted",
-        args: [incoming, branch, newParentRev, responseSignal]
+        args: [incoming, branch, newParentRev, skippedChanges, responseSignal]
       }, "validBranchReadyForPick"
     );
     gerritTools.generateCherryPick(
@@ -953,6 +1056,14 @@ class requestProcessor extends EventEmitter {
           message += `\nView it here: ${gerritResolvedURL}/c/${encodeURIComponent(data.project)}/+/${
             data._number
           }`;
+          if (skippedChanges && skippedChanges.length > 0) {
+            message += `\n\nNB! This cherry-pick skipped ${skippedChanges.length} parents in the relation chain.`;
+            // Add each parent with a link to the change.
+            for (const [index, parent] of skippedChanges.entries()) {
+              message += `\n${index + 1}. ${parent._change_number}: [${parent.commit.subject}]`
+              + `(${gerritResolvedURL}/c/${parent.project}/+/${parent._change_number})`;
+            }
+          }
           _this.gerritCommentHandler(incoming.uuid, incoming.fullChangeID, undefined, message);
           // Result looks okay, let's see what to do next.
           _this.emit(responseSignal, incoming, data);
@@ -1055,7 +1166,7 @@ class requestProcessor extends EventEmitter {
           );
           _this.retryProcessor.addRetryJob(
             incoming.uuid, "validBranchReadyForPick",
-            [incoming, branch, newParentRev, responseSignal]
+            [incoming, branch, newParentRev, skippedChanges, responseSignal]
           );
         } else {
           toolbox.addToCherryPickStateUpdateQueue(

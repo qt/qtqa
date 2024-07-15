@@ -93,11 +93,11 @@ class startupStateRecovery extends EventEmitter {
             for (let listenerData in jsonData) {
               _this.logger.log(
                 `restoring listener ${listenerData}`,
-                "info", jsonData[listenerData][11]
+                "info", jsonData[listenerData][13]
               );
               _this.logger.log(
                 `Listener being restored with args: ${safeJsonStringify(jsonData[listenerData])}`,
-                "debug", jsonData[listenerData][11]
+                "debug", jsonData[listenerData][13]
               );
               // requestProcessor is the only type that should be setting up,
               // listeners, but this 'if' below allows for expansion.
