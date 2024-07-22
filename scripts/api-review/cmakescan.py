@@ -67,6 +67,10 @@ class CMakeScanner(object):
         def __eq__(self, text):
             return self.text == text
 
+        def __str__(self):
+            return f'{self.__class__.__name__}("{self.text}")'
+        __repr__ = __str__
+
     # Sub-classes are used to package distinct types of Token.
     class Gap(Token): pass
     class Word(Token): pass
@@ -444,7 +448,8 @@ class CMakeScanner(object):
                 and tok.text.isupper()
                 # Various DEFINES are upper-case, starting with QT,
                 # and POLICIES have a QTP prefix.
-                and not (tok.text.startswith('QT')
+                and not ((tok.text.startswith('QT')
+                          and tok.text != 'QT_LICENSE_ID')
                          or tok.text.startswith('TEST_')))
 
     class Param(TokenSeq):
