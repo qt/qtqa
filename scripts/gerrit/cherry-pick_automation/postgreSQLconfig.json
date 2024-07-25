@@ -1,7 +1,0 @@
-{
-    "user": "postgres",
-    "host": "10.9.70.33",
-    "password": "rofLos",
-    "database": "cherrypick",
-    "port": 5432
-}
