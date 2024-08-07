@@ -1,7 +1,0 @@
-[flake8]
-    exclude = venv
-    hang-closing = True
-    ignore = E126,E133,W503
-    indent-size = 4
-    max-line-length = 100
-    max-doc-length = 100
