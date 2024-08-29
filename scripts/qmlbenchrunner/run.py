@@ -14,6 +14,10 @@ HOSTNAME = "testresults.qt.io/influxdb"
 
 def submit_output(output, branch, hardwareId):
     tree = json.loads(output)
+    if 'vulkan' in tree.keys():
+        graphics_api = 'vulkan'
+    else:
+        graphics_api = 'opengl'
     for key in tree:
         if key.endswith(".qml"):
             mean = 0
@@ -42,12 +46,12 @@ def submit_output(output, branch, hardwareId):
                 pass
 
             basename = key.split("/")[-1]
-            tags = ('branch=' + branch, 'benchmark=' + basename, 'hardwareId=' + hardwareId, 'suite=' + benchmarkSuite)
+            tags = ('branch=' + branch, 'benchmark=' + basename, 'hardwareId=' + hardwareId, 'suite=' + benchmarkSuite, 'graphicsApi=' + graphics_api)
             fields = ('mean=' + str(mean),
                       'coefficientOfVariation=' + str(coefficientOfVariation),
                       )
 
-            data = 'benchmarks,%s %s' % (','.join(tags), ','.join(fields))
+            data = 'benchmarks_v2,%s %s' % (','.join(tags), ','.join(fields))
             result = requests.post("https://%s/write?db=qmlbench" % HOSTNAME,
                                    auth=requests.auth.HTTPBasicAuth(os.environ["INFLUXDBUSER"], os.environ["INFLUXDBPASSWORD"]),
                                    data=data.encode('utf-8'))
