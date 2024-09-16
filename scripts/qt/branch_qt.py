@@ -462,6 +462,8 @@ class QtBranching:
             "conanfile.py": r'^ +version = "([0-9.]+)"$',
         }
         if repo_name == "qtbase":
+            rcc = r'Created by: The Resource Compiler for Qt version ([0-9.]+)'
+            bumpers["tests/auto/tools/rcc/data/legal/rcc_legal.cpp"] = rcc
             cmake = r'set\(QT_REPO_MODULE_VERSION "([0-9.]+)"\)'
             bumpers["util/cmake/pro2cmake.py"] = cmake
             bumpers.update(
