@@ -134,7 +134,7 @@ def get_addon_examples():
     result = []
     if VERSION >= (6, 6, 0):
         result.append('async/minimal/minimal_asyncio.py')
-        result.append('graphs/3d/widgetgallery/main.py')
+        result.append('graphs/3d/widgetgraphgallery/main.py')
         result.append('webenginewidgets/simplebrowser/main.py')
     elif VERSION >= (6, 5, 1):
         result.append('datavisualization/graphgallery/main.py')
