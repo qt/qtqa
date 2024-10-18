@@ -34,7 +34,7 @@ endif()
 if(QT_BUILD_STANDALONE_TESTS)
     qt_set_language_standards()
     if(NOT QT_SUPERBUILD)
-        qt_restore_backed_up_install_prefix()
+        qt_internal_set_up_fake_standalone_parts_install_prefix()
     endif()
 endif()
 
