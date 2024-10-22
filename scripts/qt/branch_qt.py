@@ -65,7 +65,7 @@ qt6_extra_repositories = [
 ]
 
 
-skipped_submodules = ("qtqa", "qtrepotools")
+skipped_submodules = ("qtrepotools")
 
 GERRIT_HOST = "codereview.qt-project.org"
 GERRIT_REST_URL = "https://" + GERRIT_HOST
