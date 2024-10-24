@@ -49,7 +49,7 @@ zip -j $WORK/cbor $testcasesPath/cbor/*
 zip -j $WORK/datetime $testcasesPath/datetime/*
 zip -j $WORK/html $testcasesPath/html/*
 zip -j $WORK/icc $testcasesPath/icc/*
-zip -j $WORK/images $testcasesPath/{bmp,gif,icns,ico,jpg,png,svg,tga,xbm,xpm}/* $SRC/afltestcases/images/*/*
+zip -j $WORK/images $testcasesPath/{bmp,gif,icns,ico,jpg,png,svg,tga,tiff,xbm,xpm}/* $SRC/afltestcases/images/*/*
 zip -j $WORK/json $testcasesPath/json/*
 zip -j $WORK/markdown $testcasesPath/markdown/*
 zip -j $WORK/regexp.zip $testcasesPath/regexp/*
