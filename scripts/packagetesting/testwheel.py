@@ -90,10 +90,10 @@ def list_modules():
     """List the installed Qt modules."""
     if VERSION[0] > 5:
         import PySide6
-        installed_modules = PySide6.__dict__["__all__"]
+        installed_modules = PySide6.__all__
     else:
         import PySide2
-        installed_modules = PySide2.__dict__["__all__"]
+        installed_modules = PySide2.__all__
     installed_modules.sort()
     module_string = ", ".join(installed_modules)
     print(f"\nInstalled_modules ({len(installed_modules)}): {module_string}\n")
