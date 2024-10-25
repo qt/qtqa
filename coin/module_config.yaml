@@ -1,0 +1,15 @@
+version: 2
+accept_configuration:
+  condition: or
+  conditions:
+    - condition: property
+      property: features
+      contains_value: LicenseCheck
+    - condition: property
+      property: features
+      contains_value: LicenseCheckV2
+
+instructions:
+  LicenseCheck: []
+  Build: []
+  Test: []
