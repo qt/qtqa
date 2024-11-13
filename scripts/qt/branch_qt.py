@@ -475,6 +475,11 @@ class QtBranching:
                     "tests/auto/cmake/mockplugins",
                 )
             )
+        elif repo_name == "qtdeclarative":
+            bumpers["examples/platforms/android/models/qtabstractitemmodel_java/app/build.gradle"] = r"qtPath = file\('../../../../../../../([0-9.]+)'\)"
+            bumpers["examples/platforms/android/qtquickview_java/app/build.gradle"] = r"qtPath = file\('../../../../../../([0-9.]+)'\)"
+            bumpers["examples/platforms/android/models/qtabstractlistmodel_kotlin/app/build.gradle.kts"] = r'qtPath = file\("\.\./\.\./\.\./\.\./\.\./\.\./\.\./([0-9.]+)"\)'
+            bumpers["examples/platforms/android/qtquickview_kotlin/app/build.gradle.kts"] = r'qtPath = file\("\.\./\.\./\.\./\.\./\.\./\.\./([0-9.]+)"\)'
         elif repo_name == "qtnetworkauth":
             conanfile = "qtnetworkauth/([0-9.]+)"
             bumpers.update((str(p), conanfile) for p in Path("examples/").rglob("conanfile.txt"))
