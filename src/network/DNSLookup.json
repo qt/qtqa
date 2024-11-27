@@ -1,0 +1,252 @@
+[
+    {
+        "Domain": "a-single",
+        "Expected": "A 192.0.2.1",
+        "Type": "A"
+    },
+    {
+        "Domain": "a-multi",
+        "Expected": "A 192.0.2.1;A 192.0.2.2;A 192.0.2.3",
+        "Type": "A"
+    },
+    {
+        "Domain": "aaaa-single",
+        "Expected": "AAAA 2001:db8::1",
+        "Type": "AAAA"
+    },
+    {
+        "Domain": "aaaa-multi",
+        "Expected": "AAAA 2001:db8::1;AAAA 2001:db8::2;AAAA 2001:db8::3",
+        "Type": "AAAA"
+    },
+    {
+        "Domain": "a-single",
+        "Expected": "A 192.0.2.1",
+        "Type": "ANY"
+    },
+    {
+        "Domain": "a-plus-aaaa",
+        "Expected": "A 198.51.100.1;AAAA 2001:db8::1:1",
+        "Type": "ANY"
+    },
+    {
+        "Domain": "multi",
+        "Expected": "A 198.51.100.1;A 198.51.100.2;A 198.51.100.3;AAAA 2001:db8::1:1;AAAA 2001:db8::1:2",
+        "Type": "ANY"
+    },
+    {
+        "Domain": "mx-single",
+        "Expected": "MX    10 multi",
+        "Type": "MX"
+    },
+    {
+        "Domain": "mx-single-cname",
+        "Expected": "MX    10 cname",
+        "Type": "MX"
+    },
+    {
+        "Domain": "mx-multi",
+        "Expected": "MX    10 multi;MX    20 a-single",
+        "Type": "MX"
+    },
+    {
+        "Domain": "mx-multi-sameprio",
+        "Expected": "MX    10 a-single;MX    10 multi",
+        "Type": "MX"
+    },
+    {
+        "Domain": "ns-single",
+        "Expected": "NS ns11.cloudns.net.",
+        "Type": "NS"
+    },
+    {
+        "Domain": "ns-multi",
+        "Expected": "NS ns11.cloudns.net.;NS ns12.cloudns.net.",
+        "Type": "NS"
+    },
+    {
+        "Domain": "1.1.1.1.in-addr.arpa.",
+        "Expected": "PTR one.one.one.one.",
+        "Type": "PTR"
+    },
+    {
+        "Domain": "8.8.8.8.in-addr.arpa.",
+        "Expected": "PTR dns.google.",
+        "Type": "PTR"
+    },
+    {
+        "Domain": "8.8.8.8.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.6.8.4.0.6.8.4.1.0.0.2.ip6.arpa.",
+        "Expected": "PTR dns.google.",
+        "Type": "PTR"
+    },
+    {
+        "Domain": "1.1.1.1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.7.4.0.0.7.4.6.0.6.2.ip6.arpa.",
+        "Expected": "PTR one.one.one.one.",
+        "Type": "PTR"
+    },
+    {
+        "Domain": "_echo._tcp.srv-single",
+        "Expected": "SRV     5 0 7 multi",
+        "Type": "SRV"
+    },
+    {
+        "Domain": "_echo._tcp.srv-prio",
+        "Expected": "SRV     1 0 7 multi;SRV     2 0 7 a-plus-aaaa",
+        "Type": "SRV"
+    },
+    {
+        "Domain": "_echo._tcp.srv-weighted",
+        "Expected": "SRV     5 25 7 a-plus-aaaa;SRV     5 75 7 multi",
+        "Type": "SRV"
+    },
+    {
+        "Domain": "_echo._tcp.srv-multi",
+        "Expected": "SRV     1 50 7 multi;SRV     2 50 7 a-single;SRV     2 50 7 aaaa-single;SRV     3 50 7 a-multi",
+        "Type": "SRV"
+    },
+    {
+        "Domain": "_25._tcp.multi",
+        "Expected": "TLSA 3 1 1 0123456789ABCDEFFEDCBA98765432100123456789ABCDEFFEDCBA9876543210",
+        "Type": "TLSA"
+    },
+    {
+        "Domain": "txt-single",
+        "Expected": "TXT \"Hello\"",
+        "Type": "TXT"
+    },
+    {
+        "Domain": "txt-multi-onerr",
+        "Expected": "TXT \"Hello\" \"World\"",
+        "Type": "TXT"
+    },
+    {
+        "Domain": "txt-multi-multirr",
+        "Expected": "TXT \"Hello\";TXT \"World\"",
+        "Type": "TXT"
+    },
+    {
+        "Domain": "a-single",
+        "Expected": "A 192.0.2.1",
+        "Type": "A"
+    },
+    {
+        "Domain": "a-multi",
+        "Expected": "A 192.0.2.1;A 192.0.2.2;A 192.0.2.3",
+        "Type": "A"
+    },
+    {
+        "Domain": "aaaa-single",
+        "Expected": "AAAA 2001:db8::1",
+        "Type": "AAAA"
+    },
+    {
+        "Domain": "aaaa-multi",
+        "Expected": "AAAA 2001:db8::1;AAAA 2001:db8::2;AAAA 2001:db8::3",
+        "Type": "AAAA"
+    },
+    {
+        "Domain": "a-single",
+        "Expected": "A 192.0.2.1",
+        "Type": "ANY"
+    },
+    {
+        "Domain": "a-plus-aaaa",
+        "Expected": "A 198.51.100.1;AAAA 2001:db8::1:1",
+        "Type": "ANY"
+    },
+    {
+        "Domain": "multi",
+        "Expected": "A 198.51.100.1;A 198.51.100.2;A 198.51.100.3;AAAA 2001:db8::1:1;AAAA 2001:db8::1:2",
+        "Type": "ANY"
+    },
+    {
+        "Domain": "mx-single",
+        "Expected": "MX    10 multi",
+        "Type": "MX"
+    },
+    {
+        "Domain": "mx-single-cname",
+        "Expected": "MX    10 cname",
+        "Type": "MX"
+    },
+    {
+        "Domain": "mx-multi",
+        "Expected": "MX    10 multi;MX    20 a-single",
+        "Type": "MX"
+    },
+    {
+        "Domain": "mx-multi-sameprio",
+        "Expected": "MX    10 a-single;MX    10 multi",
+        "Type": "MX"
+    },
+    {
+        "Domain": "ns-single",
+        "Expected": "NS ns11.cloudns.net.",
+        "Type": "NS"
+    },
+    {
+        "Domain": "ns-multi",
+        "Expected": "NS ns11.cloudns.net.;NS ns12.cloudns.net.",
+        "Type": "NS"
+    },
+    {
+        "Domain": "1.1.1.1.in-addr.arpa.",
+        "Expected": "PTR one.one.one.one.",
+        "Type": "PTR"
+    },
+    {
+        "Domain": "8.8.8.8.in-addr.arpa.",
+        "Expected": "PTR dns.google.",
+        "Type": "PTR"
+    },
+    {
+        "Domain": "8.8.8.8.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.6.8.4.0.6.8.4.1.0.0.2.ip6.arpa.",
+        "Expected": "PTR dns.google.",
+        "Type": "PTR"
+    },
+    {
+        "Domain": "1.1.1.1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.7.4.0.0.7.4.6.0.6.2.ip6.arpa.",
+        "Expected": "PTR one.one.one.one.",
+        "Type": "PTR"
+    },
+    {
+        "Domain": "_echo._tcp.srv-single",
+        "Expected": "SRV     5 0 7 multi",
+        "Type": "SRV"
+    },
+    {
+        "Domain": "_echo._tcp.srv-prio",
+        "Expected": "SRV     1 0 7 multi;SRV     2 0 7 a-plus-aaaa",
+        "Type": "SRV"
+    },
+    {
+        "Domain": "_echo._tcp.srv-weighted",
+        "Expected": "SRV     5 25 7 a-plus-aaaa;SRV     5 75 7 multi",
+        "Type": "SRV"
+    },
+    {
+        "Domain": "_echo._tcp.srv-multi",
+        "Expected": "SRV     1 50 7 multi;SRV     2 50 7 a-single;SRV     2 50 7 aaaa-single;SRV     3 50 7 a-multi",
+        "Type": "SRV"
+    },
+    {
+        "Domain": "_25._tcp.multi",
+        "Expected": "TLSA 3 1 1 0123456789ABCDEFFEDCBA98765432100123456789ABCDEFFEDCBA9876543210",
+        "Type": "TLSA"
+    },
+    {
+        "Domain": "txt-single",
+        "Expected": "TXT \"Hello\"",
+        "Type": "TXT"
+    },
+    {
+        "Domain": "txt-multi-onerr",
+        "Expected": "TXT \"Hello\" \"World\"",
+        "Type": "TXT"
+    },
+    {
+        "Domain": "txt-multi-multirr",
+        "Expected": "TXT \"Hello\";TXT \"World\"",
+        "Type": "TXT"
+    }
+]
