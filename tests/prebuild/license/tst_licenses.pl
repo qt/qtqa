@@ -20,6 +20,7 @@ use Data::Dumper;
 =head1 NAME
 
 tst_licenses.pl - verify that source files contain valid license headers
+                - verify that the source SBOM does not break license usage rules
 
 =head1 SYNOPSIS
 
@@ -33,13 +34,18 @@ tst_licenses.pl - verify that source files contain valid license headers
                   repository is checked out under a different directory.
   -t              Run the test despite the module being listed in
                   @excludedModules.
+  -sbom [PATH]    path for the source SBOM to be tested
+  -sbomonly       only check the provided source SBOM. Cannot be used without sbom option.
 
 This test expects the environment variable QT_MODULE_TO_TEST to contain
 the path to the Qt module to be tested.
 
+=head1 DESCRIPTION
+
 This test inspects all source files that are expected to have a valid Qt
 license header and complains about any files that do not match the reference
-headers.
+headers. It can also check a source SBOM, making sure the licensing follows the
+rules provided in licenseRule.json.
 
 =cut
 
@@ -51,6 +57,9 @@ my $optForceFind = 0;
 my $optForceTest = 0;
 my $optHelp = 0;
 my $optModuleName;
+
+# To trigger only source SBOM check.
+my $optSourceSbomOnly = 0;
 
 # These modules are not expected to contain any files that need
 # Qt license headers.  They are entirely excluded from license checking.
@@ -231,6 +240,7 @@ my @mandatoryFiles=(
 );
 
 my $QT_MODULE_TO_TEST;
+my $sourceSbomFileName;
 my $moduleName;
 my $repositoryLicenseType = 'legacy';
 
@@ -693,10 +703,73 @@ sub readLicenseRules
     return $message;
 }
 
+# Map, one entry per file. Each file is associated to a string of licenses
+my %filesLicensingInSourceSbom;
+sub readReuseSourceSbom
+{
+    my $file;
+
+    if (open(my $fh, '<:encoding(UTF-8)', $sourceSbomFileName)) {
+      while (my $row = <$fh>) {
+        chomp $row;
+
+        if ( $row =~ s,^FileName:\s+./,,) {
+            #skipping 3rdparty directories for the moment
+            if ( $row =~ m,/3rdparty/,) {
+                $file = "";
+            } else {
+               $file = $row;
+            }
+        }
+        if ( $file and $row =~ s,^LicenseInfoInFile:\s+,,) {
+            $filesLicensingInSourceSbom{$file} .= "$row ";
+        }
+      }
+    } else {
+        return 0;
+    }
+    print("$sourceSbomFileName successfully read.\n");
+    return 1;
+}
+
+my $sbomErrorMessage;
+sub checkLicenseUsageInSourceSbom
+{
+    # Logical information between licenses is lost in the source SBOM
+    my $checkingWithoutLogic = "indeed";
+
+    my $numErrorSbom = 0;
+    $sbomErrorMessage = "wrong licensing in $sourceSbomFileName\n";
+    foreach (sort keys %filesLicensingInSourceSbom) {
+        my $shortfilename = $_;
+        my $expression = $filesLicensingInSourceSbom{$shortfilename};
+        if (!checkLicenseUsage($expression, $shortfilename, $checkingWithoutLogic)) {
+            $numErrorSbom +=1;
+        }
+    }
+
+    if ($numErrorSbom) {
+        my $totalNumFileSourceSbom = keys %filesLicensingInSourceSbom;
+        $sbomErrorMessage .= "Licensing does not follow the rules\n"
+                           . "If the licensing is as should be, please add a rule exception "
+                           . "in ".$licenseRuleFileName.",\n"
+                           . "if not, please check the rules for the file type "
+                           . "and correct the licensing in file or in the REUSE.toml\n";
+
+        $sbomErrorMessage .= "$numErrorSbom/$totalNumFileSourceSbom files failing the license test in $sourceSbomFileName\n";
+        fail($sbomErrorMessage);
+        return 0;
+    }
+
+    pass($sourceSbomFileName);
+    return 1;
+}
+
 sub checkLicenseUsage
 {
     my $expression = shift;
     my $shortfilename = shift;
+    my $checkingWithoutLogic = shift;
     my $index = 0;
     foreach my $case (@$licenseRules) {
         # Entering the default case, were no $keyEnding exists.
@@ -712,15 +785,39 @@ sub checkLicenseUsage
                 if ($shortfilename =~ qr{^$location}) {
                     # the SPDX expression should be entered in the json file as string,
                     # using \Q \E to convert to regexpr
-                    if (!first {$expression eq $_}
-                        @{%$case{$keyLocation}->{$location}->{$keySpdxEpr}}) {
+                    # get the license rule spdx expression corresponding to the file name
+                    my @license_expressions_in_rules = @{%$case{$keyLocation}->{$location}->{$keySpdxEpr}};
+                    if ($checkingWithoutLogic) {
+                        my @tagsInExpression = split(/\s+/, $expression);
+                        foreach my $rule_expression (@license_expressions_in_rules) {
+                            # in licenseRule.json, the license tag are always separated with a logic.
+                            my @tagsInRuleExpression = split(/\s*OR\s*|\s*AND\s*|\s*WITH\s*/, $rule_expression);
+                            my %sbom;
+                            my %rule;
+                            @sbom{ @tagsInExpression} = @tagsInExpression;
+                            @rule{ @tagsInRuleExpression} = @tagsInRuleExpression;
+                            delete @sbom{ @tagsInRuleExpression };
+                            delete @rule{ @tagsInExpression};
+
+                            my $extra_tag_in_sbom = keys %sbom;
+                            my $missing_tag_in_sbom = keys %rule;
+                            if (!$extra_tag_in_sbom and !$missing_tag_in_sbom) {
+                                return 1;
+                            }
+                        }
                         my $type = %$case{$keyLocation}->{$location}->{$keyFileType};
-                        fail("error: $shortfilename is using wrong license SPDX expression \n"
-                        . $expression . ". \n" . "Please check the rule for " . $type
-                        . " in ".$licenseRuleFileName.".\n");
+                        $sbomErrorMessage .= "$shortfilename is under: $expression /  type: $type\n";
                         return 0;
+                    } else {
+                        if (!first {$expression eq $_} @license_expressions_in_rules) {
+                            my $type = %$case{$keyLocation}->{$location}->{$keyFileType};
+                            fail("error: $shortfilename is using wrong license SPDX expression \n"
+                            . $expression . ". \n" . "Please check the rule for " . $type
+                            . " in ".$licenseRuleFileName.".\n");
+                            return 0;
+                        }
+                        return 1;
                     }
-                    return 1;
                 }
             }
         }
@@ -998,55 +1095,79 @@ sub run
     @moduleExcludedFiles = readRegularExpressionsFromFile(catfile($QT_MODULE_TO_TEST, ".qt-license-check.exclude"));
 
     my @filesToScan;
-    if (!$optForceFind && -d "$QT_MODULE_TO_TEST/.git") {
-        # We're scanning a git repo, only examine files that git knows
-        my $oldpwd = getcwd();
-        if (!chdir $QT_MODULE_TO_TEST) {
-            fail("Cannot change directory to $QT_MODULE_TO_TEST: $!");
-            return;
+    if (!$optSourceSbomOnly) {
+        if (!$optForceFind && -d "$QT_MODULE_TO_TEST/.git") {
+            # We're scanning a git repo, only examine files that git knows
+            my $oldpwd = getcwd();
+            if (!chdir $QT_MODULE_TO_TEST) {
+                fail("Cannot change directory to $QT_MODULE_TO_TEST: $!");
+                return;
+            }
+            my $currentpwd = getcwd();
+
+            my @allFiles = `git ls-files`;
+
+            if ($? != 0) {
+                fail("There was a problem running 'git ls-files' on the repository: $currentpwd");
+                return;
+            }
+
+            foreach (@allFiles) {
+                chomp;
+                shouldScan("$QT_MODULE_TO_TEST/$_", $repositoryLicenseType)
+                        && push @filesToScan, "$QT_MODULE_TO_TEST/$_";
+            }
+            chdir $oldpwd;
+        } else {
+            # We're scanning something other than a git repo, examine all files
+            find( sub{
+                shouldScan($File::Find::name, $repositoryLicenseType)
+                        && push @filesToScan, $File::Find::name;
+            }, $QT_MODULE_TO_TEST);
         }
 
-        my @allFiles = `git ls-files`;
-
-        if ($? != 0) {
-            fail("There was a problem running 'git ls-files' on the repository");
-            return;
-        }
-
-        foreach (@allFiles) {
-            chomp;
-            shouldScan("$QT_MODULE_TO_TEST/$_", $repositoryLicenseType)
-                    && push @filesToScan, "$QT_MODULE_TO_TEST/$_";
-        }
-        chdir $oldpwd;
-    } else {
-        # We're scanning something other than a git repo, examine all files
-        find( sub{
-            shouldScan($File::Find::name, $repositoryLicenseType)
-                    && push @filesToScan, $File::Find::name;
-        }, $QT_MODULE_TO_TEST);
+        # sort the files so we get predictable (and testable) output
+        @filesToScan = sort @filesToScan;
     }
-
-    # sort the files so we get predictable (and testable) output
-    @filesToScan = sort @filesToScan;
-
     #
-    # Phase 4: Scan the files
+    # Phase 4: Scan the files and Scan the source SBOM produced with reuse if present
     #
     my $readLicenseRulesMessage = readLicenseRules;
     $licenseRuleValid = !length($readLicenseRulesMessage);
 
-    my $numTests = $#filesToScan + 1;
+    my $sourceSbom = 0;
+    if ($sourceSbomFileName){
+        if (!-e $sourceSbomFileName) {
+            fail("Source SBOM is expected to be \"$sourceSbomFileName\", which does not exist");
+            return;
+        }
+
+        $sourceSbomFileName = abs_path($sourceSbomFileName);
+        if (!readReuseSourceSbom) {
+            fail("error: source SBOM $sourceSbomFileName could not be read\n");
+            return 0;
+        }
+        $sourceSbom = 1;
+    }
+
+    my $numFilesInSourceSbom = keys %filesLicensingInSourceSbom;
+    # Checking the source SBOM is one single test.
+    # because we don't want an 'ok' line for each source file properly licensed in the source SBOM
+    my $numTests = $#filesToScan + $sourceSbom + 1;
+
     if ($numTests <= 0) {
         plan skip_all => "Module $moduleName appears to have no files that must be scanned";
     } else {
-        plan tests => $#filesToScan + 1;
+        plan tests => $numTests;#$#filesToScan + 1;
         my $checkLicense = \&checkLicense_legacy;
         if ($repositoryLicenseType eq 'SPDX') {
             $checkLicense = \&checkLicense_SPDX;
         }
         foreach ( @filesToScan ) {
             &$checkLicense($_);
+        }
+        if ($sourceSbom) {
+            checkLicenseUsageInSourceSbom();
         }
         if (!$licenseRuleValid) {
             print("$readLicenseRulesMessage");
@@ -1055,7 +1176,8 @@ sub run
 }
 
 GetOptions('f' => \$optForceFind, "help|?" => \$optHelp, 'm:s' => \$optModuleName,
-           't' => \$optForceTest) or pod2usage(2);
+           't' => \$optForceTest,'sbom=s' => \$sourceSbomFileName, 'sbomonly' => \$optSourceSbomOnly) or pod2usage(2);
+pod2usage("Error: -sbomonly must be used in association with -sbom") if ($optSourceSbomOnly and !$sourceSbomFileName);
 pod2usage(0) if $optHelp;
 
 run();
