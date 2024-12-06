@@ -92,7 +92,7 @@ def has_module(name):
 
 def get_installed_tools():
     """Find the installed tools based on the wheels installed"""
-    if has_module("PySide6_Addons") or has_module("PySide6-Addons") or VERSION < (6, 3, 0):
+    if (has_module("PySide6_Addons") or has_module("PySide6-Addons")) and VERSION >= (6, 6, 0):
         return ESSENTIAL_TOOLS + ADDONS_TOOLS
     return ESSENTIAL_TOOLS
 
