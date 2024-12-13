@@ -18,6 +18,7 @@
 #include <QtCore>
 #include <QJsonParseError>
 #include <QJsonArray>
+#include <QVersionNumber>
 
 class QDnsLookup;
 class NetworkTest
@@ -38,6 +39,10 @@ public:
     static Verbosity toVerbosity(int verbosity, bool *ok);
     static QString verbosityString(Verbosity verbosity);
     static QStringList verbosityStrings();
+    static QVersionNumber version() { return m_version; }
+    static QString versionString();
+    static QString packageName(const QString &extension = "tgz");
+    static QString applicationName();
 
 private:
     QJsonArray m_array;
@@ -46,8 +51,9 @@ private:
     const int m_timeout;
     const Verbosity m_verbosity;
     const QString m_fileName;
+    static const QVersionNumber m_version;
     QStringList formatReply(const QDnsLookup *lookup) const;
-    bool verbosityCheck(Verbosity verbosity) const;
+    inline bool verbosityCheck(Verbosity verbosity) const;
 };
 
 #endif // NETWORKTEST_H

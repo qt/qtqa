@@ -19,8 +19,8 @@
 int main(int argc, char *argv[])
 {
     QCoreApplication a(argc, argv);
-    QCoreApplication::setApplicationName("NetworkTest");
-    QCoreApplication::setApplicationVersion("1.0");
+    QCoreApplication::setApplicationName(NetworkTest::applicationName());
+    QCoreApplication::setApplicationVersion(NetworkTest::versionString());
 
     QCommandLineParser parser;
     parser.addVersionOption();
@@ -34,6 +34,7 @@ int main(int argc, char *argv[])
                                         "Write a copy of the default file to the given path",
                                         "file");
     const QCommandLineOption showProgressOption({"show-progress", "p"}, "Show progress");
+    const QCommandLineOption fileNameOption({"file-name", "n"}, "Output file name", "extension", "tgz");
 
     parser.addOption(inputOption);
     parser.addOption(timeoutOption);
@@ -41,7 +42,14 @@ int main(int argc, char *argv[])
     parser.addOption(verbosityOption);
     parser.addOption(copyOption);
     parser.addOption(showProgressOption);
+    parser.addOption(fileNameOption);
     parser.process(a);
+
+    if (parser.isSet(fileNameOption)) {
+        const QString extension = parser.value(fileNameOption);
+        qInfo().noquote() << NetworkTest::packageName(extension);
+        return 0;
+    }
 
     constexpr QLatin1StringView defaultFile(":/tests/DNSLookup.json");
     const QString input = parser.isSet(inputOption) ? parser.value(inputOption) : defaultFile;

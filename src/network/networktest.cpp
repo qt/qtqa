@@ -18,7 +18,30 @@
 #include <QJsonDocument>
 #include <iostream>
 
+const QVersionNumber NetworkTest::m_version = QVersionNumber(1, 1);
 static constexpr QLatin1StringView normalDomain(".test.qt-project.org");
+
+QString NetworkTest::applicationName()
+{
+    return "CiNetworkTest";
+}
+
+QString NetworkTest::packageName(const QString &extension)
+{
+    static const QSysInfo info;
+    static const QString name = QString("%1-%2-%3-%4-v%5").arg(applicationName(),
+                                                           info.productType(),
+                                                           info.kernelType(),
+                                                           info.buildCpuArchitecture(),
+                                                           versionString());
+    return extension.isEmpty() ? name : name + "." + extension;
+}
+
+QString NetworkTest::versionString()
+{
+    return version().toString();
+}
+
 NetworkTest::NetworkTest(const QString &fileName, bool warnOnly, bool showProgress, int timeout, Verbosity verbosity)
     : m_warnOnly(warnOnly)
     , m_timeout(timeout)
@@ -321,7 +344,7 @@ bool NetworkTest::test()
     if (verbosityCheck(Verbosity::Summary)) {
         qInfo() << "Network test finished at" << finished.toString()
                 << "Total milliseconds consumed:" << started.msecsTo(finished);
-        qInfo() << "Processed" << m_array.count() << "records," << ignoredRecords << "ignored.";
+        qInfo() << "Processed" << count << "records," << ignoredRecords << "ignored.";
         qInfo() << errors << "error(s) occurred";
     }
     return (errors == 0) || m_warnOnly ;
