@@ -26,17 +26,8 @@ that was used to push before still exists with valid commits.
 
 Optionally a Jira task number can be provided.
 
--d PATH
---doclet PATH
-            The javadoc Doclet path used to generates API description
-            files. This can be found at https://github.com/Issam-b/javadoclet.
-
  -h
  --help     Print this help and exit.
-
--j PATH
---javadoc PATH
-            The javadoc command path. This supports JDK 11 only.
 
 -p USER
 --push-as USER
@@ -80,8 +71,6 @@ second () {
 }
 
 PLATFORM_JAR=
-DOCLET_PATH=
-JAVADOC_PATH=
 GERRIT_USER=
 TASK_NUMBER=
 
@@ -90,8 +79,6 @@ while [ $# -gt 0 ]
 do  case "$1" in
         -u|--usage) usage; exit 0 ;;
         -h|--help) help; exit 0 ;;
-        -d|--doclet) DOCLET_PATH=`second "$@"`; shift 2 ;;
-        -j|--javadoc) JAVADOC_PATH=`second "$@"`; shift 2 ;;
         -p|--push-as) GERRIT_USER=`second "$@"`; shift 2 ;;
         -s|--platform-jar) PLATFORM_JAR=`second "$@"`; shift 2 ;;
         -t|--task|--task-number) TASK_NUMBER=`second "$@"`; shift 2 ;;
@@ -105,6 +92,10 @@ done
 [ -f init-repository ] || \
     die "I expect to be run in the top level directory of the qt5 module (see --help)."
 QT_SUPER_REPO="$(pwd)"
+
+DOCLET_PATH=$QT_SUPER_REPO/qtqa/scripts/api-review/src
+
+REVIEW_FILENAME=qt-java-api-signature.txt
 
 # Select revisions to compare:
 [ $# -eq 2 ] || bad "Expected exactly two arguments, got $#: $@"
@@ -120,8 +111,12 @@ check_file_param() {
 }
 
 check_file_param "$PLATFORM_JAR" "Android Platform JAR"
-check_file_param "$DOCLET_PATH" "Javadoc Doclet"
-check_file_param "$JAVADOC_PATH" "Javadoc command"
+command -v javac &> /dev/null || die "javac command not found (set JAVA_HOME)."
+command -v javadoc &> /dev/null || die "javadoc command not found (set JAVA_HOME)."
+
+compile_doclet() {
+    javac $DOCLET_PATH/org/qtproject/qt/android/JavaApiSignature.java
+}
 
 run_javadoc() {
     source_paths="$1"
@@ -131,19 +126,21 @@ run_javadoc() {
     java_packages=("${@#*:}")
 
     echo $output_dir
+    pushd $output_dir
 
-    $JAVADOC_PATH \
-        -doclet org.qtproject.qt.android.ReviewDoclet \
+    javadoc \
+        -doclet org.qtproject.qt.android.JavaApiSignature \
         -docletpath $DOCLET_PATH \
-        -title "Qt for Android Java API Review" \
-        -output-dir $output_dir \
-        -version "$version" \
-        -company "The Qt Company" \
+        --output ${REVIEW_FILENAME} \
         --class-path $PLATFORM_JAR \
         -sourcepath $source_paths \
         "${java_packages[@]}" 2>&1 1>/dev/null | \
             # Ignore the five-line warning starting with this is line.
             sed '/javadoc: warning - The old Doclet and Taglet APIs/{N;N;N;N;d;}'
+
+    mv $REVIEW_FILENAME $version-$REVIEW_FILENAME
+
+    popd
 }
 
 run_javadoc_for_all_repos() {
@@ -158,8 +155,8 @@ run_javadoc_for_all_repos() {
     echo "############################################"
     printf "####    Generating JAVADOC for %-8s ####\n" $version
     echo "############################################"
-    for index in "${!repo_packages_map[@]}"; do
-        entry="${repo_packages_map[$index]}"
+    for index in "${!repo_packages[@]}"; do
+        entry="${repo_packages[$index]}"
         repo="${entry%%:*}"
         packages="${entry#*:}"
         run_javadoc $java_source_paths $version "$QT_SUPER_REPO/$repo" $packages
@@ -186,16 +183,15 @@ commit_api_verion() {
     ticket="$3"
     change_id="$4"
     version="$5"
-    review_dir_base="$6"
 
     success=0
     head_commit_count="$(git rev-list --count HEAD...$version)"
-    if [[ "$(ls -A $review_dir_base-$version)" || $head_commit_count -eq 1 ]]; then
-        mv $review_dir_base-$version $review_dir_base
+    if [[ "$(ls -A $version-$REVIEW_FILENAME)" || $head_commit_count -eq 1 ]]; then
+        mv $version-$REVIEW_FILENAME $REVIEW_FILENAME
 
-        if [ "$(git status | grep $review_dir_base)" ]; then
+        if [ "$(git status | grep $REVIEW_FILENAME)" ]; then
             echo "Committing API for $version..."
-            git add $review_dir_base
+            git add $REVIEW_FILENAME
             if [[ -n $ticket ]]; then
                 footer=$(echo -e "Task-number: $ticket\n$change_id")
                 git commit -q -m "$message" -m "$body" -m "$footer"
@@ -206,11 +202,12 @@ commit_api_verion() {
         else
             echo "No API changes to commit for $version..."
             git reset HEAD^
-            rm -R $review_dir_base
+            rm $REVIEW_FILENAME
+            success="-1"
         fi
     else
         echo "No API files for $version!"
-        rmdir $review_dir_base-$version
+        rm $version-$REVIEW_FILENAME
     fi
 
     return $success
@@ -218,8 +215,6 @@ commit_api_verion() {
 
 commit_diff() {
     repo="$1"
-
-    review_dir_base="java-api-review"
 
     # Checkout review branch, remove it if it already exists
     echo "Preparing API Review Diff for $repo"
@@ -238,8 +233,8 @@ commit_diff() {
     git branch -q -D $review_branch_name
     git checkout -q -b $review_branch_name $RELEASE
 
-    if [ -d "$review_dir_base" ]; then
-        rm -R $review_dir_base
+    if [ -f "$REVIEW_FILENAME" ]; then
+        rm $REVIEW_FILENAME
     fi
 
     module=$(basename $repo)
@@ -253,7 +248,7 @@ commit_diff() {
         release_change_id="${change_ids[0]}"
     fi
 
-    commit_api_verion "$commit_msg" "$body" "" "$prior_change_id" "$PRIOR" "$review_dir_base"
+    commit_api_verion "$commit_msg" "$body" "" "$prior_change_id" "$PRIOR"
 
     if [ -d "$review_dir_base" ]; then
         rm -R $review_dir_base
@@ -261,8 +256,11 @@ commit_diff() {
 
     commit_msg="Review $module $RELEASE Android Java API"
     body="Auto-generated commit for reviewing the Android Java API of $module."
-    commit_api_verion "$commit_msg" "$body" "$TASK_NUMBER" \
-        "$release_change_id" "$RELEASE" "$review_dir_base"
+    commit_api_verion "$commit_msg" "$body" "$TASK_NUMBER" "$release_change_id" "$RELEASE"
+
+    if [ $? -eq 0 ]; then
+        echo "Check the API diff file under $module/$REVIEW_FILENAME"
+    fi
 }
 
 do_gerrit_command() {
@@ -278,6 +276,16 @@ push_to_gerrit() {
     # Set diff review patch topic
     do_gerrit_command set-topic $(git log -n 1 --skip=0 --pretty=format:%H) \
         --topic "java_api_review_$version"
+}
+
+is_valid_repo_dir() {
+    local dir="$1"
+
+    [ -d "$dir" ] || return 1 # must be an existing dir
+    [ "$(ls -A "$dir" 2>/dev/null)" ] || return 1 # must not be empty
+    git -C "$dir" rev-parse --is-inside-work-tree >/dev/null 2>&1 || return 1 # must be a git dir
+
+    return 0
 }
 
 # Individual key-value assignments for the associative array
@@ -298,10 +306,22 @@ repo_packages_map=(
 
 # Get list of absolute paths for git repos
 repos=()
+repo_packages=()
 for entry in "${repo_packages_map[@]}"; do
     repo="${entry%%:*}"
-    repos+=("$QT_SUPER_REPO/$repo")
+    dir="$QT_SUPER_REPO/$repo"
+
+    if is_valid_repo_dir "$dir"; then
+        repos+=("$dir")
+        repo_packages+=("$entry")
+    else
+        echo "Skipping '$dir': not a valid git repo" >&2
+    fi
 done
+
+[[ ${#repos[@]} -eq 0 ]] && die "No valid git repositories found, nothing to do here."
+
+compile_doclet
 
 # Generate API for prior version
 checkout_git_repos "$PRIOR" "${repos[@]}"
