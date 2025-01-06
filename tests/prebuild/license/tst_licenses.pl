@@ -715,7 +715,7 @@ sub readReuseSourceSbom
 
         if ( $row =~ s,^FileName:\s+./,,) {
             #skipping 3rdparty directories for the moment
-            if ( $row =~ m,/3rdparty/,) {
+            if ( $row =~ m,/3rdparty/, or $row =~ m,\\3rdparty\\,) {
                 $file = "";
             } else {
                $file = $row;
@@ -743,6 +743,7 @@ sub checkLicenseUsageInSourceSbom
     foreach (sort keys %filesLicensingInSourceSbom) {
         my $shortfilename = $_;
         my $expression = $filesLicensingInSourceSbom{$shortfilename};
+        $shortfilename =~ s,\\,/,g;
         if (!checkLicenseUsage($expression, $shortfilename, $checkingWithoutLogic)) {
             $numErrorSbom +=1;
         }
