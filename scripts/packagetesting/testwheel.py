@@ -12,7 +12,11 @@ import shutil
 import subprocess
 import sys
 import tempfile
-
+import platform
+from tqdm import tqdm
+import requests
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import time
 
 """
 Qt Package testing script for testing Qt for Python wheels
@@ -90,11 +94,13 @@ def has_module(name):
     """Checks for a module"""
     return name.lower() in get_installed_modules()
 
+
 def get_installed_tools():
     """Find the installed tools based on the wheels installed"""
     if (has_module("PySide6_Addons") or has_module("PySide6-Addons")) and VERSION >= (6, 6, 0):
         return ESSENTIAL_TOOLS + ADDONS_TOOLS
     return ESSENTIAL_TOOLS
+
 
 def get_installed_wheels(examples_root):
     """Determine install type."""
@@ -388,6 +394,67 @@ def setup_designer_env(examples_root):
     os.environ[DESIGNER_PATH_VAR] = new_path
 
 
+def download_wheel(wheel_url, dest_dir, retries=3, chunk_size=8192):
+    for attempt in range(retries):
+        try:
+            response = requests.get(wheel_url, stream=True)
+            response.raise_for_status()
+            wheel_path = dest_dir / wheel_url.split('/')[-1]
+            total_size = int(response.headers.get('content-length', 0))
+            with open(wheel_path, 'wb') as f, tqdm(
+                total=total_size,
+                unit='B',
+                unit_scale=True,
+                desc=f"Downloading {wheel_path.name}"
+            ) as pbar:
+                for chunk in response.iter_content(chunk_size=chunk_size):
+                    if chunk:
+                        f.write(chunk)
+                        pbar.update(len(chunk))
+            print(f"Downloaded wheel {wheel_url}")
+            return
+        except requests.RequestException as e:
+            print(f"Failed to download {wheel_url} "
+                  f"(attempt {attempt + 1}/{retries}): {e}")
+            time.sleep(2 ** attempt)
+    print(f"Failed to download {wheel_url} after {retries} attempts")
+
+
+def download_wheels(wheels_link, strings_to_match, dest_dir, max_workers=4):
+    """
+        Download Qfp wheels from a given URL and save them to a directory
+    """
+    response = requests.get(wheels_link)
+    response.raise_for_status()
+    wheel_urls = []
+    for line in response.text.splitlines():
+        if all(s in line for s in strings_to_match):
+            wheel_name = line.split('href="')[1].split('"')[0]
+            wheel_url = wheels_link + wheel_name
+            wheel_urls.append(wheel_url)
+
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = [executor.submit(download_wheel, url, dest_dir) for url in wheel_urls]
+        for future in as_completed(futures):
+            future.result()  # Raise exception if download failed
+
+
+def install_wheels(wheel_dir):
+    # install numpy
+    py_major, py_minor = sys.version_info[:2]
+    if py_major > 3 or (py_major == 3 and py_minor > 9):
+        subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'numpy==2.1.3'])
+    else:
+        subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'numpy<=2.0.2'])
+
+    # install the wheels
+    for wheel in wheel_dir.glob('*.whl'):
+        # the --no-deps flag is used to avoid installing dependencies.
+        # this is required because the wheels may not be fetched in the correct order
+        # i.e. if PySide6_AddOns is installed without shiboken6, it will fail
+        subprocess.check_call([sys.executable, '-m', 'pip', 'install', str(wheel), "--no-deps"])
+
+
 if __name__ == "__main__":
     parser = ArgumentParser(description='Qt for Python package tester',
                             formatter_class=RawTextHelpFormatter)
@@ -395,12 +462,42 @@ if __name__ == "__main__":
                         help='Skip pyinstaller test')
     parser.add_argument("--examples", "-e", action="store",
                         help="Examples directory")
+    parser.add_argument('--wheels-link', '-w', help='URL to the wheels')
 
     options = parser.parse_args()
+
+    if sys.prefix == sys.base_prefix:
+        raise Warning("You are not running in a virtual environment."
+                      " It is recommended to use a virtual environment.")
+
     do_pyinst = not options.no_pyinstaller
     root_ex = None
     if options.examples:
         root_ex = Path(options.examples)
+    if options.wheels_link:
+        wheels_link = options.wheels_link
+        system = platform.system().lower()
+        arch = platform.machine().lower()
+
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            tmpdir = Path(tmpdirname)
+            print(f"Downloading wheels to {tmpdir}")
+
+            # Download wheels
+            if system == 'linux':
+                if 'aarch64' in arch:
+                    download_wheels(wheels_link, ["manylinux_", "aarch64.whl"], tmpdir)
+                elif 'x86_64' in arch:
+                    download_wheels(wheels_link, ["manylinux_", "x86_64.whl"], tmpdir)
+            elif system == 'windows':
+                download_wheels(wheels_link, ["win_"], tmpdir)
+            elif system == 'darwin':
+                download_wheels(wheels_link, ["macosx_"], tmpdir)
+            else:
+                raise ValueError(f"Unsupported system: {system}")
+
+            # Install the downloaded wheels
+            install_wheels(tmpdir)
 
     VERSION = get_pyside_version_from_import()
     if do_pyinst and sys.version_info[0] < 3:  # Note: PyInstaller no longer supports Python 2
@@ -420,7 +517,7 @@ if __name__ == "__main__":
                 root_ex = root / 'examples'
             break
     if VERSION[0] == 0:
-        VERSION[0] == path_version
+        VERSION[0] = path_version
     print('Detected Qt version ', VERSION)
     if not root or not root.is_dir():
         print('Could not locate any PySide module.')
