@@ -519,7 +519,12 @@ QBic::Info tst_Bic::getCurrentInfo(const QString &libName)
         return inf;
 
     QTemporaryFile tmpQFile;
-    tmpQFile.open();
+    if (!tmpQFile.open()) {
+        qFatal() << "Could not open temporary file" << tmpQFile.fileName()
+                 << "for writing" << tmpQFile.errorString();
+        return {};
+    }
+
     QString tmpFileName = tmpQFile.fileName();
 
     QByteArray tmpFileContents;
