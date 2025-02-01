@@ -282,8 +282,7 @@ push_to_gerrit() {
 
 # Individual key-value assignments for the associative array
 repo_packages_map=(
-    "qtbase:org.qtproject.qt.android.accessibility \
-        org.qtproject.qt.android \
+    "qtbase:org.qtproject.qt.android \
         org.qtproject.qt.android.bindings \
         org.qtproject.qt.android.extras \
         org.qtproject.qt.android.network \
