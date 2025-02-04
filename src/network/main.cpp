@@ -54,7 +54,7 @@ int main(int argc, char *argv[])
     constexpr QLatin1StringView defaultFile(":/tests/DNSLookup.json");
     const QString input = parser.isSet(inputOption) ? parser.value(inputOption) : defaultFile;
     const int timeout = parser.value(timeoutOption).toInt();
-    const bool warnOnly = parser.isSet(timeoutOption);
+    const bool warnOnly = parser.isSet(warnOnlyOption);
     const bool showProgress = parser.isSet(showProgressOption);
 
     NetworkTest::Verbosity verbosity = NetworkTest::Verbosity::Summary;
