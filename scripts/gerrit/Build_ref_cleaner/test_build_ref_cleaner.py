@@ -1,19 +1,21 @@
 # Copyright (C) 2023 The Qt Company Ltd.
+# SPDX-License-Identifier: LicenseRef-Qt-Commercial OR GPL-3.0-only WITH Qt-GPL-exception-1.0
+
 import random
+import subprocess
 import time
-from subprocess import Popen
 import unittest
-from mock import MagicMock, patch
-import Build_ref_cleaner
-from Build_ref_cleaner import *
+from unittest.mock import MagicMock, patch
 import os
+import Build_ref_cleaner
+from Build_ref_cleaner import remove_old_builds, run_git_command, get_git_folders
 
 def create_test_filepaths(
-    nbr_of_files_per_dir = 200,
+    nbr_of_files_per_dir = 20,
     dirs=4,
     subdirs=3,
-    files_per_month = 30,
-    invalids = 1,
+    files_per_month = 3,
+    invalids = 10,
 ):
     """
     Used for creating fake paths to fake build refs for testing the remove_old_builds function
@@ -32,14 +34,15 @@ def create_test_filepaths(
     month = 60*60*24*30 # as seconds
     file_age = 0 # in months
     next_age = 0 # used for determining when to change the age
-    for invalid in xrange(invalids):
+    for invalid in range(invalids):
         path = "test_folder_{}/test_subfolder_{}.git/refs/builds/".format(invalid, invalid)
         file_name = path + "invalid_{}".format(invalid)
         list_of_paths.append(file_name)
 
-    for i in xrange(dirs):
-        for j in xrange(subdirs):
+    for i in range(dirs):
+        for j in range(subdirs):
             path = "test_folder_{}/test_subfolder_{}.git/refs/builds/".format(i, j)
+
             for _ in range(nbr_of_files_per_dir):
                 if next_age == files_per_month:
                     file_age += 1
@@ -60,28 +63,29 @@ class Test_Build_ref_cleaner(unittest.TestCase):
     def test_remove_old_builds(self, mock_run_git_command):
         """
         Test for remove_old_builds function.
-        Checks if the function keeps the build refs that are newer
-        than the specified age in months
+        Checks if the function keeps the build refs that are newer than the specified age in months
         """
         mock_run_git_command.return_value, desired_output = create_test_filepaths()
         result = remove_old_builds("abc", Build_ref_cleaner._months, " ")
         self.assertEqual(result, desired_output)
 
-    @patch('subprocess.Popen')
-    def test_run_git_command(self, mock_Popen):
+    @patch('subprocess.run')
+    def test_run_git_command(self, mock_run):
         """
         Test for the output sorting logic in run_git_command function
         (does not test if the subprocess.run actually executes the git command)
         """
         mock_process = MagicMock()
-        mock_process.communicate.return_value = (b"qwer refs/builds/1\nqwer refs/builds/2\n" +
-                                                 "qwer refs/test/3\nqwer refs/test/4\n" +
-                                                 "qwer refs/ref/5\nqwer refs/builds/6\n",
-                                                 b"mocked_stderr")
-        mock_Popen.return_value = mock_process
-        result = run_git_command(["update-ref", "-d"], splitter = " ")
+        mock_process.stdout= (
+            b"qwer refs/builds/1\nqwer refs/builds/2\n"
+            b"qwer refs/test/3\nqwer refs/test/4\n"
+            b"qwer refs/ref/5\nqwer refs/builds/6\n"
+        )
 
-        result2 = run_git_command(["update-ref", "-d"], return_output = False)
+        mock_run.return_value = mock_process
+        result = run_git_command(["update-ref", "-d", "qwer"], splitter = " ")
+        result2 = run_git_command(["update-ref", "-d", "qwer"], return_output = False)
+
         desired_output = ["refs/builds/1", "refs/builds/2",  "refs/builds/6"]
 
         self.assertEqual(result, desired_output)
