@@ -1,6 +1,11 @@
+This README is for Vale 3.6.9 or later.
+
 This directory includes the vale prose linter config,
 which is required to run vale. For more info. about
 vale, refer to https://vale.sh/.
+
+These instructions are also available at the Qt Wiki
+https://wiki.qt.io/Setting_Up_Vale
 
 Introduction
 =============
