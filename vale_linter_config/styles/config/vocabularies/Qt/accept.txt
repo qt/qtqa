@@ -1,4 +1,5 @@
 AABs?
+AARs?
 ABIs?
 acstylerc
 adb
@@ -14,6 +15,7 @@ APKs?
 AUTs?
 AVDs?
 Avira
+Axivion
 [Bb]ackreferences?
 [Bb]acktrace
 [Bb]ezier
@@ -37,6 +39,7 @@ cmd
 [Cc]onst
 Cppcheck
 CPUs?
+Crashpad
 (?i)CSMes
 CTest
 Ctrl
@@ -47,6 +50,8 @@ Ctrl
 dev
 [Dd]ialogs?
 [Dd]iffutils
+[Dd]emangle(d|r|s)?
+Doxygen
 Dropbear
 EBlink
 [Ee]mscripten
@@ -56,6 +61,10 @@ Fileshare
 [Ff]ixits?
 [Ff]ixup
 [Ff]lickable
+FFmpeg
+ffmpeg
+FFprobe
+ffprobe
 [Ff]ramebuffer
 [Ff]ullscreen
 geo
@@ -65,12 +74,15 @@ Gitk
 Gradle
 GTest
 Heob
+ibus
 Incredibuild
+[Ii]ndenters?
 [Ii]nitializers?
 [Ii]nlined?
 [Ii]nplace
 [Ii]nstantiable
 jom
+JLink
 JSLint
 KCachegrind
 Keil
@@ -79,6 +91,7 @@ lhs
 litehtml
 lrelease
 LTTng
+[Ll]ua
 lupdate
 [Mm]ailmap
 Makefiles?
@@ -96,9 +109,11 @@ Momentics
 [Mm]utex
 [Nn]amespaces?
 NDKs?
+Neovim
 Nimsuggest
 nmake
 Okteta
+[Oo]llama
 [Pp]arallelization
 Perf
 [Pp]ixmaps?
@@ -159,6 +174,7 @@ Tensilica
 Tk
 (?i)Todo
 [Tt]oolchains?
+[Tt]oolkits?
 [Tt]oolsets?
 [Tt]ooltips?
 [Tt]racepoints?
@@ -174,6 +190,7 @@ Uncrustify
 [Uu]secases?
 uVision
 Valgrind
+vcpkg
 vimrc
 [Vv]iewport
 VOBs?
