@@ -57,12 +57,24 @@ def get_pyside_version_from_import():
             from PySide2.QtCore import qVersion
             qversion_string = qVersion()
         except ImportError:
-            print('Unable to determine PySide version; could not import any version',
-                  file=sys.stderr)
+            pass
     if qversion_string:
         major, minor, patch = qVersion().split('.')
         return int(major), int(minor), int(patch)
     return 0, 0, 0
+
+
+def find_pyside_root():
+    for p in map(Path, sys.path):
+        if p.name == 'site-packages':
+            root = p / 'PySide6'
+            if root.is_dir():
+                return root
+            root = p / 'PySide2'
+            if root.is_dir():
+                return root
+            break
+    return None
 
 
 def list_modules():
@@ -500,35 +512,26 @@ if __name__ == "__main__":
             install_wheels(tmpdir)
 
     VERSION = get_pyside_version_from_import()
+    if VERSION[0] == 0:
+        print('Unable to determine PySide version; could not import any version',
+              file=sys.stderr)
+        sys.exit(1)
     if do_pyinst and sys.version_info[0] < 3:  # Note: PyInstaller no longer supports Python 2
         print('PyInstaller requires Python 3, test disabled')
         do_pyinst = False
-    root = None
-    path_version = 0
-    for p in map(Path, sys.path):
-        if p.name == 'site-packages':
-            root = p / 'PySide6'
-            if root.is_dir():
-                path_version = 6
-            else:
-                root = p / 'PySide2'
-                path_version = 2
-            if not root_ex:
-                root_ex = root / 'examples'
-            break
-    if VERSION[0] == 0:
-        VERSION[0] = path_version
-    print('Detected Qt version ', VERSION)
-    if not root or not root.is_dir():
-        print('Could not locate any PySide module.')
+    root = find_pyside_root()
+    if not root:
+        print('Could not locate any PySide module.', file=sys.stderr)
         sys.exit(1)
+    if not root_ex:
+        root_ex = root / 'examples'
     if not root_ex.is_dir():
         m = f"PySide{VERSION} module found without examples. "
         m += ("Specify --examples <dir>." if VERSION >= (6, 5, 0)
               else "Did you forget to install wheels?")
-        print(m)
+        print(m, file=sys.stderr)
         sys.exit(1)
-    print(f'Detected PySide{VERSION} at {root}.')
+    print(f'Detected PySide {VERSION[0]}.{VERSION[1]}.{VERSION[2]} at {root}.')
 
     list_modules()
 
