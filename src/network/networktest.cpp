@@ -51,9 +51,13 @@ NetworkTest::NetworkTest(const QString &fileName, bool warnOnly, bool showProgre
     , m_fileName(fileName)
 {
     QFile file(m_fileName);
-    if (!file.exists())
-        return;
 
+    const bool success = file.exists() && file.open(QIODevice::ReadOnly);
+    if (!success) {
+        qCritical() << "Couldn't read" << fileName << "=> not testing anything.";
+        QCoreApplication::quit();
+        return;
+    }
     const QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
     file.close();
     m_array = doc.array();
