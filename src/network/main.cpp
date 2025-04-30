@@ -68,6 +68,9 @@ int main(int argc, char *argv[])
             qWarning() << "Illegal verbosity value:" << vString << ". Falling back to" << verbosity;
     }
 
+    if (verbosity != NetworkTest::Verbosity::Silent)
+        NetworkTest::printNetworkConfig();
+
     if (parser.isSet(copyOption)) {
         const QString oFile = parser.value(copyOption);
         if (!QFile::copy(defaultFile, oFile))

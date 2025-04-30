@@ -54,7 +54,6 @@ NetworkTest::NetworkTest(const QString &fileName, bool warnOnly, bool showProgre
     if (!file.exists())
         return;
 
-    file.open(QIODevice::ReadOnly);
     const QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
     file.close();
     m_array = doc.array();
@@ -87,6 +86,38 @@ QStringList NetworkTest::verbosityStrings()
 bool NetworkTest::verbosityCheck(Verbosity verbosity) const
 {
     return static_cast<int>(m_verbosity) >= static_cast<int>(verbosity);
+}
+
+void NetworkTest::printNetworkConfig()
+{
+
+    auto command = [](const QString &name, const QString &command, const QStringList &args)
+    {
+        QProcess p;
+        p.setProgram(command);
+        p.setArguments(args);
+        p.start();
+        p.waitForFinished();
+        qInfo() << name << p.readAll();
+    };
+
+#ifdef Q_OS_LINUX
+    command("MAC Address", "ip", QStringList{"maddress"});
+    command("IP Address", "ip",QStringList{"addr", "show"});
+    command("Routing", "ip", QStringList{"route", "show"});
+    command("DNS", "cat", QStringList{"/etc/resolv.conf"});
+#endif
+#ifdef Q_OS_WINDOWS
+    command("MAC Address", "getmac", QStringList());
+    command("IP and DNS", "ipconfig", QStringList{"/all"});
+    command("Routing", "route", QStringList{"print"});
+#endif
+#ifdef Q_OS_MACOS
+    command("IP and MAC Address", "ifconfig", QStringList());
+    command("Routing", "netstat", QStringList{"-nr"});
+    command("DNS", "scutil", QStringList{"--dns"});
+#endif
+
 }
 
 NetworkTest::Verbosity NetworkTest::toVerbosity(int verbosity, bool *ok)

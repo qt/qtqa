@@ -43,6 +43,7 @@ public:
     static QString versionString();
     static QString packageName(const QString &extension = "tgz");
     static QString applicationName();
+    static void printNetworkConfig();
 
 private:
     QJsonArray m_array;
