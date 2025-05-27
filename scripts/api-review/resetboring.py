@@ -114,10 +114,17 @@ class Selector(object): # Select interesting changes, discard boring.
     # scanning *this* file aren't mislead by them !
     @staticmethod
     def __end_copyright(seq, oldMarker='_'.join(('$QT', 'END', 'LICENSE$')),
-                        spdxHeader='-'.join(('SPDX', 'License', 'Identifier:'))):
-        """Line number just after the end of the copyright banner"""
+                        spdxHeader='-'.join(('SPDX', 'License', 'Identifier:')),
+                        secHeader='-'.join(('Qt', 'Security'))):
+        """Line number just after the end of the copyright banner.
+
+        For these purposes, treat the security header as part of the banner. It
+        can be changed without affecting source or binary compatibility.
+        """
         for i, line in enumerate(seq, 1):
             if spdxHeader in line:
+                if i < len(seq) and secHeader in seq[i]:
+                    return i + 1
                 return i
             if oldMarker in line:
                 return i + 2
