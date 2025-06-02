@@ -62,6 +62,7 @@ qt6_extra_repositories = [
     "qt/tqtc-qtvncserver",
     "qt/tqtc-qtinsighttracker",
     "qt/qtdltlogging",
+    "tqtc-boot2qt/doc",
 ]
 
 
