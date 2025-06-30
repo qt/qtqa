@@ -50,8 +50,9 @@ def get_pyside_version_from_import():
     """Determine the exact Qt version by importing."""
     qversion_string = None
     try:
-        from PySide6.QtCore import qVersion
+        from PySide6.QtCore import QLibraryInfo, qVersion
         qversion_string = qVersion()
+        print(QLibraryInfo.build(), file=sys.stderr)
     except ImportError:
         try:
             from PySide2.QtCore import qVersion
