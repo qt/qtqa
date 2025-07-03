@@ -641,7 +641,7 @@ void tst_Bic::sizesAndVTables()
         isFailed = true;
     }
 
-    const QBic::SizeDiff sizeDiff = bic.diffSizes(oldLibInfo, currentLibInfo);
+    QBic::SizeDiff sizeDiff = bic.diffSizes(oldLibInfo, currentLibInfo);
     if (!sizeDiff.mismatch.isEmpty()) {
         for (QString className : sizeDiff.mismatch)
             qWarning() << "size mismatch for" << className
