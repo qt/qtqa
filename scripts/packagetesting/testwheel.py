@@ -199,7 +199,7 @@ def examples(examples_root):
 
 def execute(args):
     """Execute a command and print output"""
-    dir = os.path.basename(os.getcwd())
+    dir = Path.cwd().name
     arg_string = ' '.join(args)
     log_string = f'[{dir}] {arg_string}'
     print(log_string)
@@ -267,64 +267,64 @@ def test_deploy(example: Path):
 def test_cxfreeze(example):
     assert(example.is_file())
     print(f'Running CxFreeze test of {example.stem}')
-    current_dir = os.getcwd()
+    current_dir = Path.cwd()
     result = False
     with tempfile.TemporaryDirectory() as tmpdirname:
         try:
-            os.chdir(tmpdirname)
-            cmd = ['cxfreeze', os.fspath(example)]
+            os.chdir(str(tmpdirname))
+            cmd = ['cxfreeze', str(example)]
             execute(cmd)
-            binary = os.path.join(tmpdirname, 'dist', example.stem)
+            binary = Path(tmpdirname) / 'dist' / example.stem
             if sys.platform == "win32":
-                binary += '.exe'
-            execute([binary])
+                binary = binary.with_suffix('.exe')
+            execute([str(binary)])
             result = True
         except RuntimeError as e:
             print(str(e))
         finally:
-            os.chdir(current_dir)
+            os.chdir(str(current_dir))
     return result
 
 
 def test_pyinstaller(example):
     assert(example.is_file())
     print(f'Running PyInstaller test of {example.stem}')
-    current_dir = os.getcwd()
+    current_dir = Path.cwd()
     result = False
     with tempfile.TemporaryDirectory() as tmpdirname:
         try:
-            os.chdir(tmpdirname)
+            os.chdir(str(tmpdirname))
             level = "CRITICAL" if sys.platform == "darwin" else "WARN"
             cmd = ['pyinstaller', f'--name={example.stem}'
-                   '--log-level=' + level, os.fspath(example)]
+                   '--log-level=' + level, str(example)]
             execute(cmd)
-            binary = os.path.join(tmpdirname, 'dist', example.stem, example.stem)
+            binary = Path(tmpdirname) / 'dist' / example.stem / example.stem
             if sys.platform == "win32":
-                binary += '.exe'
-            execute([binary])
+                binary = binary.with_suffix('.exe')
+            execute([str(binary)])
             result = True
         except RuntimeError as e:
             print(str(e))
         finally:
-            os.chdir(current_dir)
+            os.chdir(str(current_dir))
     return result
 
 
 def test_project_generation():
     print("Testing project generation and deployment")
     result = False
-    current_dir = os.getcwd()
+    current_dir = Path.cwd()
     project_name = "test"
     with tempfile.TemporaryDirectory() as tmpdirname:
         try:
-            os.chdir(tmpdirname)
+            os.chdir(str(tmpdirname))
             execute([PROJECT_TOOL, "new-ui", project_name])
             execute([PROJECT_TOOL, "build", project_name])
             result = test_deploy(Path(tmpdirname) / project_name / "main.py")
         except RuntimeError as e:
             print(str(e))
         finally:
-            os.chdir(current_dir)
+            os.chdir(str(current_dir))
     return result
 
 
