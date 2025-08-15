@@ -231,7 +231,7 @@ def run_example(root, path):
     return exit_code == 0
 
 
-def test_deploy(example):
+def test_deploy(example: Path):
     """Test pyside6-deploy."""
     base_name = example.name
     name = example.stem
@@ -239,10 +239,13 @@ def test_deploy(example):
     current_dir = Path.cwd()
     result = False
     with tempfile.TemporaryDirectory() as tmpdirname:
+        tmpdir = Path(tmpdirname)
         try:
-            os.chdir(tmpdirname)
-            for py_file in example.parent.glob("*.py"):
-                shutil.copy(py_file, tmpdirname)
+            # Copy the entire project folder to the temp directory
+            project_src = example.parent
+            project_dst = tmpdir / project_src.name
+            shutil.copytree(project_src, project_dst)
+            os.chdir(project_dst)
             cmd = ["pyside6-deploy", "-f", base_name, "--name", name]
             execute(cmd)
             suffix = "bin"
@@ -250,18 +253,16 @@ def test_deploy(example):
                 suffix = "exe"
             elif sys.platform == "darwin":
                 suffix = "app"
-
-            binary = f"{tmpdirname}/{name}.{suffix}"
+            binary = project_dst / f"{name}.{suffix}"
             if sys.platform == "darwin":
-                binary += f"/Contents/MacOS/{name}"
-            execute([binary])
+                binary = binary / f"Contents/MacOS/{name}"
+            execute([str(binary)])
             result = True
         except RuntimeError as e:
             print(str(e))
         finally:
             os.chdir(os.fspath(current_dir))
     return result
-
 
 def test_cxfreeze(example):
     assert(example.is_file())
