@@ -253,9 +253,17 @@ def test_deploy(example: Path):
                 suffix = "exe"
             elif sys.platform == "darwin":
                 suffix = "app"
-            binary = project_dst / f"{name}.{suffix}"
-            if sys.platform == "darwin":
-                binary = binary / f"Contents/MacOS/{name}"
+                app_bundle = project_dst / f"{name}.{suffix}"
+                if app_bundle.exists():
+                    binary = app_bundle / f"Contents/MacOS/{name}"
+                else:
+                    # If only .bin exists, wrap it into an .app manually
+                    bin_path = project_dst / f"{name}.bin"
+                    app_bundle = project_dst / f"{name}.{suffix}"
+                    macos_dir = app_bundle / "Contents/MacOS"
+                    macos_dir.mkdir(parents=True)
+                    shutil.move(str(bin_path), str(macos_dir / name))
+                    binary = macos_dir / name
             execute([str(binary)])
             result = True
         except RuntimeError as e:
