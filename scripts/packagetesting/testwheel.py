@@ -248,11 +248,15 @@ def test_deploy(example: Path):
             os.chdir(project_dst)
             cmd = ["pyside6-deploy", "-f", base_name, "--name", name]
             execute(cmd)
-            suffix = "bin"
+
             if sys.platform == "win32":
                 suffix = "exe"
             elif sys.platform == "darwin":
                 suffix = "app"
+            else:
+                suffix = "bin"
+
+            if sys.platform == "darwin":
                 app_bundle = project_dst / f"{name}.{suffix}"
                 if app_bundle.exists():
                     binary = app_bundle / f"Contents/MacOS/{name}"
@@ -264,6 +268,9 @@ def test_deploy(example: Path):
                     macos_dir.mkdir(parents=True)
                     shutil.move(str(bin_path), str(macos_dir / name))
                     binary = macos_dir / name
+            else:
+                binary = project_dst / f"{name}.{suffix}"
+
             execute([str(binary)])
             result = True
         except RuntimeError as e:
