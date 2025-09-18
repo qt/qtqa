@@ -303,6 +303,9 @@ tst_Bic::tst_Bic(const char *appFilePath)
     bic.addBlacklistedClass(QLatin1String("QQmlPrivate::AOTCompiledFunction"));
     bic.addBlacklistedClass(QLatin1String("QQmlPrivate::TypedFunction"));
 
+    /* This class was added in a patch release */
+    bic.addBlacklistedClass(QLatin1String("QQmlPrivate::AOTTrackedLocalsStorage"));
+
     /* according to Thiago this is a false positive */
     bic.addBlacklistedClass(QLatin1String("QLoggingCategory::AtomicBools"));
     bic.addBlacklistedClass(QLatin1String("QOperatingSystemVersion::HighSierra"));
