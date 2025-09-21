@@ -330,6 +330,7 @@ tst_Bic::tst_Bic(const char *appFilePath)
     bic.addBlacklistedClass(QLatin1String("StdVideo*"));
     /* vtable churn */
     bic.addBlacklistedClass(QLatin1String("QNativeInterface::QEGLContext"));
+    bic.addBlacklistedClass(QLatin1String("QNativeInterface::QWaylandApplication"));
     /* deliberately removed */
     bic.addBlacklistedClass(QLatin1String("QNativeInterface::QSGVulkanTexture*"));
     /* deliberately added in a patch release */
