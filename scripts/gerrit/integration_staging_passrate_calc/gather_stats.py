@@ -285,7 +285,7 @@ def gather_results(config, queries) -> dict:
             print(f"Failed to decode response json for {query}. Skipping...")
             continue
 
-        changes = [result["id"] for result in response_json]
+        changes = [result["triplet_id"] for result in response_json]
 
         if len(changes) == 0:
             print(f"No recent changes in {query}")
