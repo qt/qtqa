@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
 
 # XAUTHORITY must be set and DISPLAY must be set
-# Usage: build_and_test.sh <main branch> <hardwareId> <jobs> ["annotate"?] [qtdeclarative-branch]
+# Usage: build_and_test.sh <main branch> <hardwareId> <jobs> [qtdeclarative-branch]
 # XAUTHORITY must be accessible
 
 dir=$(pwd)
@@ -14,7 +14,7 @@ install=''
 QtverGtEq6=0
 module_set=''
 benchmark_set=':benchmarks/auto/creation/ :benchmarks/auto/changes/ :benchmarks/auto/js :benchmarks/auto/animations :benchmarks/auto/bindings'
-
+module_revisions=() # List of submodules and respective git SHA1-hashes used during benchmark run
 
 # checkoutQtModule <module name> <branch>
 function checkoutQtModule {
@@ -42,23 +42,18 @@ function buildQtModule {
     cd $dir
 }
 
-# compareSha1sAndAnnotate <module name> <branch>
-function compareSha1sAndAnnotate {
-    if [[ -e ../$1_$2_sha1.txt && -e $1_$2_sha1.txt ]]; then
-        local new_sha1=$(cat $1_$2_sha1.txt)
-        local old_sha1=$(cat ../$1_$2_sha1.txt)
-        if [[ "$new_sha1" != "$old_sha1" ]]; then
-            $dir/qtqa/scripts/qmlbenchrunner/annotate.py --title="$1 update" --tag="$1Update" --text="Updated $1 to $new_sha1 (previous was $old_sha1)" --branch="$2"
-        fi
-    fi
-
-    if [[ -e $1_$2_sha1.txt ]]; then
-        cp $1_$2_sha1.txt ../$1_$2_sha1.txt
+# storeSha1s <module name> <branch>
+function storeSha1s {
+    local file="$1_$2_sha1.txt"
+    if [[ -e "$file" ]]; then
+        local sha1
+        sha1=$(<"$file")
+        module_revisions+=("$1-$sha1")
     fi
 }
 
-branch_label="$1+$5"
-qtdeclarative_branch=$5
+branch_label="$1+$4"
+qtdeclarative_branch=$4
 if [[ -z $qtdeclarative_branch ]]; then
     qtdeclarative_branch=$1
     branch_label=$1
@@ -83,7 +78,7 @@ else
     makecmd="make -j$3"
     moduleConfig="../qtbase/bin/qmake"
     qmlbenchBranch=5.15
-    module_set="$module_set qtdeclarative qtquickcontrols qtquickcontrols2 qtgraphicaleffects"
+    module_set="$module_set qtdeclarative qtquickcontrols qtgraphicaleffects"
 fi
 
 echo 'Running test suites: ' $benchmark_set
@@ -121,16 +116,17 @@ fi
 ./src/qmlbench --json --shell frame-count $benchmark_set > ../results.json
 cd $dir
 echo Label: $branch_label
-qtqa/scripts/qmlbenchrunner/run.py results.json $branch_label $2
 
-module_set="qtbase $module_set"  # Add qtbase back in for iterating over the module set.
+# Add qtbase and qmlbench in for iterating over the module set
+module_set="qmlbench qtbase $module_set"
+for module in $module_set; do
+    storeSha1s $module $qmlbenchBranch
+done
 
-if [ "$4" == "annotate" ]; then
-    for module in $module_set; do
-        compareSha1sAndAnnotate $module $1
-    done
-    compareSha1sAndAnnotate qmlbench $qmlbenchBranch
-fi
+# Turn the list into a string to use it as argument for upload_results.py
+module_revisions_str=$(IFS=, ; echo "${module_revisions[*]}")
+cd $dir
+qtqa/scripts/qmlbenchrunner/upload_results.py results.json $branch_label $2 $module_revisions_str
 
 for module in $module_set; do
     rm -rf $dir/$module
