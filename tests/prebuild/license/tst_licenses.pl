@@ -209,6 +209,10 @@ my %optionalFiles = (
                           qr{qtinfo.py},
                           qr{sources/patchelf/elf.h},
                           qr{utils.py}
+                        ],
+    "qtbridge-python"=> [
+                          # File is generated
+                          qr{^examples/colorpaletteclient/rc_colorpaletteclient.py}
                         ]
 );
 
