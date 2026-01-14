@@ -213,6 +213,11 @@ my %optionalFiles = (
     "qtbridge-python"=> [
                           # File is generated
                           qr{^examples/colorpaletteclient/rc_colorpaletteclient.py}
+                        ],
+    "qtbridge-swift" => [
+                          # XCode templates for user code
+                          qr{^Templates/File Templates/Qt Bridge/QML View.xctemplate/___FILEBASENAME___.qml},
+                          qr{^Templates/Project Templates/Qt Bridge/Qt Bridge.xctemplate/Resources/main.qml}
                         ]
 );
 
