@@ -218,6 +218,11 @@ my %optionalFiles = (
                           # XCode templates for user code
                           qr{^Templates/File Templates/Qt Bridge/QML View.xctemplate/___FILEBASENAME___.qml},
                           qr{^Templates/Project Templates/Qt Bridge/Qt Bridge.xctemplate/Resources/main.qml}
+                        ],
+    "qtbridge-csharp"=> [
+                          # Template files
+                          qr{^nuget/Qt.Bridge.CSharp.Templates/templates/Qt.Bridge.CSharp.Item/NewFile.qml},
+                          qr{^nuget/Qt.Bridge.CSharp.Templates/templates/Qt.Bridge.CSharp.Project/Main.qml}
                         ]
 );
 
