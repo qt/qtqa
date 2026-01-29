@@ -28,9 +28,6 @@ PYINSTALLER_EXAMPLE_2 = 'widgets/widgets/tetrix.py'
 OPCUAVIEWER = 'opcua/opcuaviewer/main.py'
 WEBENGINE_TABBED_BROWSER = 'webenginewidgets/tabbedbrowser/main.py'
 PROJECT_TOOL = "pyside6-project"
-ESSENTIAL_TOOLS = ["deploy", "genpyi", ("lrelease", "-help"), "lupdate", "metaobjectdump",
-         "project", "qml", "qmlformat", ("qmlimportscanner", "-importPath", "."), "qmllint",
-         "qmlls", "qmltyperegistrar", "qtpy2cpp", "rcc", "uic"]
 ADDONS_TOOLS = ["qsb", "balsam", "balsamui"]
 
 
@@ -95,8 +92,8 @@ def get_installed_modules():
     """Return installed modules"""
     result = []
     _, lines = run_process([sys.executable, "-m", "pip", "list"])
-    for l in lines:
-        tokens = l.split(' ')
+    for line in lines:
+        tokens = line.split(' ')
         if len(tokens) >= 1:
             result.append(tokens[0].lower())
     return result
@@ -107,11 +104,20 @@ def has_module(name):
     return name.lower() in get_installed_modules()
 
 
+def get_essential_tools():
+    result = ["deploy", "genpyi", ("lrelease", "-help"), "lupdate", "metaobjectdump",
+              "project", "qml", "qmlformat", ("qmlimportscanner", "-importPath", "."), "qmllint",
+              "qmlls", "qmltyperegistrar", "qtpy2cpp", "rcc", "uic"]
+    if VERSION >= (6, 10, 0):
+        result.append("svgtoqml")
+    return result
+
+
 def get_installed_tools():
     """Find the installed tools based on the wheels installed"""
     if (has_module("PySide6_Addons") or has_module("PySide6-Addons")) and VERSION >= (6, 6, 0):
-        return ESSENTIAL_TOOLS + ADDONS_TOOLS
-    return ESSENTIAL_TOOLS
+        return get_essential_tools() + ADDONS_TOOLS
+    return get_essential_tools()
 
 
 def get_installed_wheels(examples_root):
@@ -160,8 +166,9 @@ def get_addon_examples():
     else:
         result.append('datavisualization/bars3d/bars3d.py')
         result.append(WEBENGINE_TABBED_BROWSER)
+    player = "main.py" if VERSION >= (6, 10, 2) else "player.py"
     result.extend(['3d/simple3d/simple3d.py', 'charts/chartthemes/main.py',
-                   'multimedia/player/player.py'])
+                   f'multimedia/player/{player}'])
     return result
 
 
@@ -263,7 +270,7 @@ def test_deploy(example):
 
 
 def test_cxfreeze(example):
-    assert(example.is_file())
+    assert (example.is_file())
     print(f'Running CxFreeze test of {example.stem}')
     current_dir = os.getcwd()
     result = False
@@ -285,7 +292,7 @@ def test_cxfreeze(example):
 
 
 def test_pyinstaller(example):
-    assert(example.is_file())
+    assert (example.is_file())
     print(f'Running PyInstaller test of {example.stem}')
     current_dir = os.getcwd()
     result = False
