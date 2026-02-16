@@ -123,7 +123,7 @@ Perf
 [Pp]repends?
 [Pp]reprocess(or)?
 Profilers?
-Protobuf
+(?i)Protobuf
 px
 Qbs
 QDoc

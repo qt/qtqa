@@ -1,7 +1,8 @@
 [uU]ltralite
 qulrcc
 (?i)qul
-[tT]raveo
+TRAVEO
 (?i)tvii.*
 layerwarp*
 toolchain[s]
+Infineon
