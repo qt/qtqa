@@ -178,6 +178,7 @@ tst_Bic::tst_Bic(const char *appFilePath)
     bic.addBlacklistedClass(QLatin1String("lconv"));
     bic.addBlacklistedClass(QLatin1String("pthread_attr_t"));
     bic.addBlacklistedClass(QLatin1String("random"));
+    bic.addBlacklistedClass(QLatin1String("sched_attr"));
     bic.addBlacklistedClass(QLatin1String("sched_param"));
     bic.addBlacklistedClass(QLatin1String("sigcontext"));
     bic.addBlacklistedClass(QLatin1String("sigaltstack"));
