@@ -807,6 +807,12 @@ sub checkLicenseUsage
                         foreach my $rule_expression (@license_expressions_in_rules) {
                             # in licenseRule.json, the license tag are always separated with a logic.
                             my @tagsInRuleExpression = split(/\s*OR\s*|\s*AND\s*|\s*WITH\s*/, $rule_expression);
+                            # Strip parentheses from rule tokens
+                            @tagsInRuleExpression = map {
+                                my $t = $_;
+                                $t =~ s/[()]//g;  # Remove ALL parentheses anywhere
+                                $t;
+                            } @tagsInRuleExpression;
                             my %sbom;
                             my %rule;
                             @sbom{ @tagsInExpression} = @tagsInExpression;
