@@ -1,0 +1,27 @@
+extends: substitution
+message: "Use '%s' instead of '%s'."
+link: https://learn.microsoft.com/en-us/style-guide/a-z-word-list-term-collections/l/lose-loose
+level: warning
+ignorecase: true
+action:
+  name: replace
+swap:
+  # "loosing" should almost always be "losing" in technical writing.
+  # "loosing" as a verb (to loosen a restraint) is archaic and out of place in tech docs.
+  loosing: losing
+
+  # "loose" after modal or auxiliary verbs indicates verb confusion.
+  # Example: "the app will loose data" → "the app will lose data"
+  '((?:will|would|can|could|may|might|shall|should|must|do|does|did)\s+)loose\b': '$1lose'
+
+  # Infinitive "to loose" should be "to lose".
+  # Example: "It is possible to loose data" → "to lose data"
+  '\b(to\s+)loose\b': '$1lose'
+
+  # "loose" followed by a possessive pronoun is almost certainly a verb error.
+  # Example: "you will loose your data" → "lose your data"
+  '\bloose(\s+(?:your|their|our|its|my|his|her))\b': 'lose$1'
+
+  # Common idioms that use "loose" incorrectly instead of "lose".
+  # Example: "loose sight of the goal" → "lose sight of the goal"
+  '\bloose(\s+(?:sight|track)\s+of)\b': 'lose$1'
