@@ -1,0 +1,26 @@
+extends: capitalization
+message: "Page titles should use title-style capitalization: '%s'."
+link: https://learn.microsoft.com/en-us/style-guide/capitalization
+level: warning
+scope: text.comment.title
+match: $title
+indicators:
+  - ':'
+exceptions:
+  - Qt
+  - QML
+  - QDoc
+  - API
+  - APIs
+  - SDK
+  - CMake
+  - macOS
+  - iOS
+  - Linux
+  - Windows
+  - Android
+  - WebAssembly
+  - JavaScript
+  - TypeScript
+  - TLS
+  - DTD

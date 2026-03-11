@@ -1,0 +1,65 @@
+// Copyright (C) 2026 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+// Tests that Vale does not lint content inside QDoc code blocks.
+// Prose outside code blocks SHOULD warn; content inside SHOULD NOT.
+
+// SHOULD WARN: passive voice in prose around \code block
+
+/*!
+    \fn void QFile::open()
+    \brief Opens the file for reading and writing.
+
+    The file is opened by calling this function.
+
+    Call this function before reading any data:
+
+    \code
+    QFile file("example.txt");
+    // We recommend utilizing this pattern in order to open files
+    if (file.open(QIODevice::ReadOnly)) {
+        QByteArray data = file.readAll();
+    }
+    \endcode
+
+    The data is returned as a QByteArray.
+*/
+
+// SHOULD WARN: passive voice in prose around \qml block
+
+/*!
+    \qmltype FileDialog
+    \brief Provides a dialog for selecting files.
+
+    The dialog is shown by calling open():
+
+    \qml
+    FileDialog {
+        // We recommend utilizing this pattern in order to show dialogs
+        title: "Please choose a file"
+        onAccepted: {
+            console.log("You chose: " + fileDialog.selectedFile)
+        }
+    }
+    \endqml
+
+    The selected file is returned via the selectedFile property.
+*/
+
+// SHOULD WARN: wordiness in prose around \badcode block
+
+/*!
+    \fn void QTimer::start()
+    \brief Starts the timer.
+
+    Prior to calling start(), set the interval in milliseconds.
+    Utilize stop() in order to cancel the timer.
+
+    The following code is incorrect and should not be used:
+
+    \badcode
+    // We recommend utilizing this pattern in order to start timers
+    QTimer timer;
+    timer.start(-1);
+    \endcode
+*/

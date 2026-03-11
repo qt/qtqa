@@ -1,0 +1,46 @@
+// Copyright (C) 2026 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+// SHOULD WARN: \brief does not end with a period
+
+/*!
+    \class QRect
+    \brief Defines a rectangle in the plane using integer precision
+
+    The QRect class defines a rectangle in the plane using integer
+    coordinates for the x and y coordinates of the top-left corner.
+*/
+
+/*!
+    \fn int QRect::width() const
+    \brief Returns the width of the rectangle
+
+    This is equivalent to x2() - x1() + 1.
+    \sa height()
+*/
+
+// SHOULD NOT WARN: \brief ends with a period
+
+/*!
+    \class QSize
+    \brief Defines the size of a two-dimensional object using integer point precision.
+
+    A size is specified by a width() and a height().
+*/
+
+/*!
+    \fn bool QRect::isValid() const
+    \brief Returns \c true if the rectangle is valid; otherwise returns \c false.
+
+    A valid rectangle has a positive width() and height().
+    \sa isNull(), isEmpty()
+*/
+
+// SHOULD WARN: \brief ends with comma (not valid terminal punctuation)
+
+/*!
+    \class QPoint
+    \brief Defines a point in the plane using integer precision,
+
+    The QPoint class defines a point in the plane using integer coordinates.
+*/

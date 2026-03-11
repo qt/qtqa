@@ -1,0 +1,7 @@
+extends: existence
+message: "Brief descriptions should end with a period."
+link: https://doc.qt.io/qt-6/qdoc-guide-writing.html
+level: warning
+scope: text.comment.brief
+raw:
+  - '[^.!?]\s*$'

@@ -1,0 +1,81 @@
+// Copyright (C) 2026 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+// SHOULD WARN: section headings use title case (Microsoft.Headings)
+
+/*!
+    \page bad-sections.html
+    \title Using the Qt network module
+
+    \section1 Getting Started With Qt Network
+
+    \section2 Supported Protocols And Their Usage
+
+    \section3 Error Handling And Recovery Strategies
+*/
+
+// SHOULD NOT WARN: section headings use sentence case
+
+/*!
+    \page good-sections.html
+    \title Using the Qt network module
+
+    \section1 Getting started with Qt network
+
+    \section2 Supported protocols and their usage
+
+    \section3 Error handling and recovery strategies
+*/
+
+// SHOULD NOT WARN: \title is exempt from sentence case
+
+/*!
+    \page good-title.html
+    \title Using Qt Network Module
+
+    This page describes the Qt Network Module.
+*/
+
+// SHOULD NOT WARN: proper nouns are exempt
+
+/*!
+    \page good-proper-nouns.html
+    \title Integrating with CMake and Qt
+
+    \section1 Building with CMake on Linux and Windows
+
+    \section2 Deploying to Android and iOS
+*/
+
+// SHOULD WARN: heading ends with punctuation (Microsoft.HeadingPunctuation)
+
+/*!
+    \page bad-heading-punctuation.html
+    \title Signal and slot connections
+
+    \section1 Connecting signals to slots.
+
+    \section2 Disconnecting at runtime!
+*/
+
+// SHOULD WARN: acronym in heading (Microsoft.HeadingAcronyms)
+
+/*!
+    \page bad-heading-acronyms.html
+    \title Parsing structured data
+
+    \section1 Reading JSON and XML
+
+    \section2 Validating with DTD
+*/
+
+// SHOULD WARN: lowercase word after colon in heading (Microsoft.HeadingColons)
+
+/*!
+    \page bad-heading-colons.html
+    \title Network configuration
+
+    \section1 Proxy settings: a practical guide
+
+    \section2 TLS configuration: advanced options
+*/

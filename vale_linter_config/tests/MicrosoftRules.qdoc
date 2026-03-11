@@ -1,0 +1,140 @@
+// Copyright (C) 2026 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+// Tests for Microsoft style rules on QDoc prose content.
+// Each block targets one or more rules; comments indicate expected violations.
+
+// SHOULD WARN: passive voice (Microsoft.Passive)
+
+/*!
+    \class QNetworkReply
+    \brief Provides a means of accessing network responses.
+
+    The request is sent and a reply is returned by the network manager.
+    Headers are parsed automatically. Errors are reported via the error() signal.
+*/
+
+// SHOULD WARN: first-person plural (Microsoft.We)
+
+/*!
+    \class QSettings
+    \brief Provides persistent application settings.
+
+    We recommend storing all user preferences using this class.
+    We've designed the API to be as simple as possible.
+    Let's look at how to read a value.
+*/
+
+// SHOULD WARN: wordy phrases (Microsoft.Wordiness)
+
+/*!
+    \class QTimer
+    \brief Provides repetitive and single-shot timers.
+
+    Utilize this class in order to schedule work at a fixed interval.
+    Prior to starting the timer, set the interval in milliseconds.
+    A sufficient number of timers can be active at the same time.
+    Call stop() as a means to cancel a pending timeout.
+*/
+
+// SHOULD WARN: unnecessary adverbs (Microsoft.Adverbs)
+
+/*!
+    \fn void QObject::deleteLater()
+
+    Schedules this object for deletion.
+    It is very useful when you cannot delete the object directly.
+    The object is quickly destroyed after the event loop returns.
+    Call this function easily from any thread.
+*/
+
+// SHOULD WARN: use contractions (Microsoft.Contractions)
+
+/*!
+    \fn bool QFile::open(OpenMode mode)
+
+    Opens the file in the given mode. Returns \c true on success.
+    Do not call this function if the file is already open.
+    If the path is empty, the function cannot proceed.
+    If the file does not exist, it will not be opened.
+*/
+
+// SHOULD WARN: Latin abbreviations (Microsoft.Foreign)
+
+/*!
+    \fn QVariant QSettings::value(const QString &key) const
+
+    Returns the value for the setting key. The key is case sensitive,
+    e.g., "General/fontSize" and "general/fontSize" are different keys.
+    The returned value can be of any type, i.e., it depends on what was stored.
+*/
+
+// SHOULD WARN: ellipsis in prose (Microsoft.Ellipses)
+
+/*!
+    \fn void QIODevice::waitForReadyRead(int msecs)
+
+    Blocks until data is available for reading...
+    If msecs is -1, this function will not time out...
+*/
+
+// SHOULD WARN: general URL (Microsoft.GeneralURL)
+
+/*!
+    \fn void QNetworkRequest::setUrl(const QUrl &url)
+
+    Sets the URL for this network request.
+    Pass the URL of the resource you want to access.
+    For a general audience, provide the URL as a string.
+*/
+
+// SHOULD WARN: em dash with surrounding spaces (Microsoft.Dashes)
+
+/*!
+    \class QSslSocket
+    \brief Provides an SSL encrypted socket — both client and server.
+
+    Use this class when you need a secure connection — for example in HTTPS.
+*/
+
+// NOTE: Microsoft.GeneralURL does not fire — 'URL' is in the Qt accept vocabulary.
+
+// SHOULD WARN: sentence too long (Microsoft.SentenceLength)
+
+/*!
+    \class QAbstractItemModel
+    \brief The base class for item models.
+
+    This class provides a standard interface for models that can be used with all of the standard views provided by Qt, including the tree view, the list view, and the table view.
+*/
+
+// SHOULD WARN: missing Oxford comma (Microsoft.OxfordComma)
+
+/*!
+    \class QSerialPort
+    \brief Provides functions for accessing serial ports.
+
+    The class supports reading, writing and seeking within a serial data stream.
+    You can configure the baud rate, data bits and parity before opening the port.
+    The port supports reading, writing and seeking.
+*/
+
+// SHOULD WARN: semicolon in prose (Microsoft.Semicolon)
+
+/*!
+    \class QProcess
+    \brief Used to start external programs and communicate with them.
+
+    Set the program name; then call start() to launch the process.
+    Use write() to send data to the process; use read() to receive output.
+*/
+
+// SHOULD WARN: avoid certain terms (Microsoft.Avoid)
+
+/*!
+    \class QCoreApplication
+    \brief The base class for all Qt applications.
+
+    Pass command-line arguments to this class, and so on.
+    The backend processing is handled by the event loop.
+*/
