@@ -5,3 +5,6 @@ filters:
   # Ignore all alternateCase or AlternateCase words.
   - '[a-z]+[A-Z][a-z].*\b'
   - '[A-Z][a-z]+[A-Z].*\b'
+  # Ignore Qt C++ API names: Q followed by an uppercase letter then more letters
+  # (e.g. QSettings, QDir, QQmlEngine, QNetworkAccessManager).
+  - '\bQ[A-Z][a-zA-Z]+\b'
