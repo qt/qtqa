@@ -1,0 +1,294 @@
+#!/bin/sh
+# vale-pre-commit — lint only the changed column ranges in staged QDoc-aware
+# source files.
+#
+# For .qdoc / .qdocinc / .qml files: runs Vale directly on the file.
+# For .cpp / .h / .cc / .cxx files: extracts /*!...*/ doc-comment blocks that
+# contain changed lines, lints those blocks via a temp .qdoc file (with
+# blank-line padding to preserve original line numbers), and reports issues
+# only in changed column ranges.
+#
+# Single-line changes are filtered at the column level: a pre-existing warning
+# at the start of a line is not reported if only the end of that line changed.
+# Multi-line hunks and pure additions treat all columns as new.
+#
+# Requires Vale built from the feat/qdoc-parser branch of errata-ai/vale,
+# which adds the QDoc tree-sitter parser. The system Vale does not understand
+# .qdoc/.qdocinc files and will produce incorrect results.
+#
+# Installation (run once from the repository root):
+#
+#   ln -sf ../../vale_linter_config/vale-pre-commit .git/hooks/pre-commit-vale
+#
+# To chain with the existing clang-format pre-commit hook, add this line at
+# the top of .git/hooks/pre-commit (before any early exits):
+#
+#   "$(git rev-parse --show-toplevel)/vale_linter_config/vale-pre-commit" || exit 1
+#
+# Environment variables:
+#   VALE_CONFIG_PATH   Path to the .vale-qdoc.ini config file. Required
+#                      when running the hook outside of the qtqa repository.
+#                      Defaults to vale_linter_config/.vale-qdoc.ini in
+#                      the repository root.
+
+REPO_ROOT=$(git rev-parse --show-toplevel)
+VALE_CONFIG="${VALE_CONFIG_PATH:-$REPO_ROOT/vale_linter_config/.vale-qdoc.ini}"
+
+VALE_BIN="${VALE_QDOC_BIN:-$(command -v vale 2>/dev/null)}"
+if [ ! -x "$VALE_BIN" ]; then
+    printf 'vale-pre-commit: Vale binary not found.\n' >&2
+    printf '  Set VALE_QDOC_BIN to a Vale build with QDoc parser support. Skipping.\n' >&2
+    exit 0
+fi
+
+if [ ! -f "$VALE_CONFIG" ]; then
+    printf 'vale-pre-commit: Config not found at %s, skipping.\n' "$VALE_CONFIG" >&2
+    exit 0
+fi
+
+QDOC_STAGED=$(git diff --cached --name-only --diff-filter=ACM \
+    | grep -E '\.(qdoc|qdocinc|qml)$')
+CPP_STAGED=$(git diff --cached --name-only --diff-filter=ACM \
+    | grep -E '\.(cpp|h|cc|cxx)$')
+
+[ -z "$QDOC_STAGED" ] && [ -z "$CPP_STAGED" ] && exit 0
+
+QDOC_ABS=""
+for f in $QDOC_STAGED; do QDOC_ABS="$QDOC_ABS $REPO_ROOT/$f"; done
+
+CPP_ABS=""
+for f in $CPP_STAGED; do CPP_ABS="$CPP_ABS $REPO_ROOT/$f"; done
+
+PY_SCRIPT=$(mktemp)
+trap 'rm -f "$PY_SCRIPT"' EXIT INT TERM
+
+cat > "$PY_SCRIPT" << 'PYEOF'
+"""
+vale-pre-commit helper.
+
+Usage:
+    python3 script.py repo_root vale_bin vale_config [qdoc_files...] -- [cpp_files...]
+"""
+import sys, os, re, subprocess, tempfile
+
+
+# ── Diff parsing ──────────────────────────────────────────────────────────────
+
+def get_changed_regions(filepath):
+    """
+    Return a dict mapping line_number (1-indexed) -> (col_start, col_end).
+
+    Uses --word-diff=porcelain so that each output line ending in ~ corresponds
+    to one new-file line. A line is recorded as (1, None) — all columns — when
+    it contains at least one added word token (a line starting with '+' that is
+    not the diff file header). Pure deletions produce no new-file line and are
+    ignored.
+    """
+    result = subprocess.run(
+        ['git', 'diff', '--cached', '--word-diff=porcelain', '-U0', '--', filepath],
+        capture_output=True, text=True
+    )
+
+    regions = {}
+    current_line = None
+    line_has_change = False
+
+    for line in result.stdout.splitlines():
+        if line.startswith('@@'):
+            m = re.search(r'\+(\d+)(?:,(\d+))?', line)
+            if m:
+                count = int(m.group(2)) if m.group(2) is not None else 1
+                current_line = int(m.group(1)) if count > 0 else None
+            else:
+                current_line = None
+            line_has_change = False
+        elif line == '~':
+            if current_line is not None and line_has_change:
+                regions[current_line] = (1, None)
+            if current_line is not None:
+                current_line += 1
+            line_has_change = False
+        elif line.startswith('+') and not line.startswith('+++'):
+            line_has_change = True
+
+    return regions
+
+
+def in_changed_region(lineno, colno, regions):
+    if lineno not in regions:
+        return False
+    col_start, col_end = regions[lineno]
+    if col_end is not None and col_start > col_end:
+        return False  # empty range
+    return colno >= col_start and (col_end is None or colno <= col_end)
+
+
+# ── Vale output parsing ───────────────────────────────────────────────────────
+
+def run_vale(vale_bin, vale_config, files):
+    if not files:
+        return ''
+    result = subprocess.run(
+        [vale_bin, '--config', vale_config,
+         '--output=line'] + list(files),
+        capture_output=True, text=True
+    )
+    return result.stdout
+
+
+def parse_alert(line):
+    """
+    Parse a Vale --output=line alert line.
+    Format: filepath:lineno:colno:check:message
+    Returns (filepath, lineno, colno, tail) where tail = "lineno:colno:...".
+    """
+    c1 = line.find(':')
+    if c1 < 0:
+        return None
+    filepath = line[:c1]
+    tail = line[c1 + 1:]
+    c2 = tail.find(':')
+    if c2 < 0:
+        return None
+    try:
+        lineno = int(tail[:c2])
+    except ValueError:
+        return None
+    rest = tail[c2 + 1:]
+    c3 = rest.find(':')
+    if c3 < 0:
+        return None
+    try:
+        colno = int(rest[:c3])
+    except ValueError:
+        return None
+    return filepath, lineno, colno, tail
+
+
+def filter_alerts(vale_output, file_regions):
+    results = []
+    for line in vale_output.splitlines():
+        if not line:
+            continue
+        parsed = parse_alert(line)
+        if not parsed:
+            continue
+        filepath, lineno, colno, _ = parsed
+        if in_changed_region(lineno, colno, file_regions.get(filepath, {})):
+            results.append(line)
+    return results
+
+
+# ── File processors ───────────────────────────────────────────────────────────
+
+def process_qdoc_files(vale_bin, vale_config, qdoc_files):
+    if not qdoc_files:
+        return []
+    file_regions = {f: get_changed_regions(f) for f in qdoc_files}
+    vale_output = run_vale(vale_bin, vale_config, qdoc_files)
+    return filter_alerts(vale_output, file_regions)
+
+
+def find_qdoc_blocks(file_lines):
+    blocks = []
+    in_block = False
+    block_start = None
+    for i, line in enumerate(file_lines, 1):
+        if not in_block and '/*!' in line:
+            in_block = True
+            block_start = i
+        if in_block and '*/' in line:
+            blocks.append((block_start, i))
+            in_block = False
+    return blocks
+
+
+def process_cpp_files(vale_bin, vale_config, cpp_files):
+    results = []
+    for cpp_file in cpp_files:
+        regions = get_changed_regions(cpp_file)
+        if not regions:
+            continue
+
+        with open(cpp_file, errors='replace') as fh:
+            file_lines = fh.read().splitlines()
+
+        blocks = find_qdoc_blocks(file_lines)
+        if not blocks:
+            continue
+
+        changed_line_nums = set(regions)
+        relevant = [(s, e) for s, e in blocks
+                    if any(s <= ln <= e for ln in changed_line_nums)]
+        if not relevant:
+            continue
+
+        block_line_set = set()
+        for bs, be in relevant:
+            block_line_set.update(range(bs, be + 1))
+
+        target_lines = block_line_set & changed_line_nums
+        if not target_lines:
+            continue
+
+        tmp_fd, tmp_path = tempfile.mkstemp(suffix='.qdoc')
+        try:
+            with os.fdopen(tmp_fd, 'w') as tmp:
+                for i, line in enumerate(file_lines, 1):
+                    tmp.write((line if i in block_line_set else '') + '\n')
+
+            vale_output = run_vale(vale_bin, vale_config, [tmp_path])
+            tmp_regions = {ln: regions[ln] for ln in target_lines}
+
+            prefix = tmp_path + ':'
+            for alert_line in vale_output.splitlines():
+                if not alert_line.startswith(prefix):
+                    continue
+                tail = alert_line[len(prefix):]
+                parsed = parse_alert(cpp_file + ':' + tail)
+                if not parsed:
+                    continue
+                _, lineno, colno, _ = parsed
+                if in_changed_region(lineno, colno, tmp_regions):
+                    results.append(cpp_file + ':' + tail)
+        finally:
+            try:
+                os.unlink(tmp_path)
+            except OSError:
+                pass
+
+    return results
+
+
+# ── Main ─────────────────────────────────────────────────────────────────────
+
+def main():
+    args = sys.argv[1:]
+    repo_root, vale_bin, vale_config = args[0], args[1], args[2]
+    rest = args[3:]
+
+    try:
+        sep = rest.index('--')
+        qdoc_files = rest[:sep]
+        cpp_files = rest[sep + 1:]
+    except ValueError:
+        qdoc_files = rest
+        cpp_files = []
+
+    results = (process_qdoc_files(vale_bin, vale_config, qdoc_files) +
+               process_cpp_files(vale_bin, vale_config, cpp_files))
+
+    if results:
+        print('vale-pre-commit: Issues in changed lines:\n')
+        for r in results:
+            print(r)
+        print("\nvale-pre-commit: Fix the issues above, or use 'git commit --no-verify' to skip.")
+        sys.exit(1)
+
+    sys.exit(0)
+
+
+main()
+PYEOF
+
+python3 "$PY_SCRIPT" "$REPO_ROOT" "$VALE_BIN" "$VALE_CONFIG" $QDOC_ABS -- $CPP_ABS
