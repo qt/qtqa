@@ -77,7 +77,7 @@ if [[ "$1" =~ ^(v?6\.|dev) ]]; then
     moduleConfig="$dir/install/bin/qt-configure-module ."
     makecmd="cmake --build . --parallel $3"
     install="cmake --install ."
-    module_set="$module_set qt5compat qtshadertools qtlottie qtsvg qtdeclarative qtquickcontrols2 qtquick3d"
+    module_set="$module_set qtshadertools qtsvg qtdeclarative qtquicktimeline qtquick3d qt5compat qtlottie"
     benchmark_set="$benchmark_set :benchmarks/auto/quick3d/"
 else
     makecmd="make -j$3"
