@@ -36,6 +36,7 @@ Secondary: QDoc tool development and documentation tooling (optional).
 |------|-------|--------|
 | Documentation review | qt-doc-reviewer | Task tool with Agent Prompt from file + input |
 | QDoc warnings | qdoc-warning-fixer | Task tool with Agent Prompt from file + input |
+| Vale linting of QDoc sources | vale-qdoc-linter | Task tool with Agent Prompt from file + input |
 
 ### Verification
 
@@ -136,12 +137,14 @@ Every suggestion must include:
 | skill-line-wrap | `SKILL.md` | 80-column rule compliance |
 | skill-all-docs | `SKILL.md` | Qt modules, repository structure, API types |
 | skill-module-export | `SKILL.md` | Qt export macros; export+internal pattern guidance |
+| skill-vale-qdoc-lint | `SKILL.md` | Vale binary setup, qtqa config, pre-commit hook, lint commands, report formats |
 
 **Agents** (definitions in `~/.claude/agents/`):
 | Agent | Purpose |
 |-------|---------|
 | qt-doc-reviewer | Documentation patch review |
 | qdoc-warning-fixer | Fix all QDoc warning types |
+| vale-qdoc-linter | Setup vale-qdoc and lint QDoc source files; report as annotated diff |
 
 ## Environment
 
