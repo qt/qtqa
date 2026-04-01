@@ -126,7 +126,7 @@ done
 # Turn the list into a string to use it as argument for upload_results.py
 module_revisions_str=$(IFS=, ; echo "${module_revisions[*]}")
 cd $dir
-qtqa/scripts/qmlbenchrunner/upload_results.py results.json $branch_label $2 $module_revisions_str
+python3 qtqa/scripts/qmlbenchrunner/upload_results.py results.json $branch_label $2 $module_revisions_str
 
 for module in $module_set; do
     rm -rf $dir/$module
