@@ -112,11 +112,11 @@ static QString fileSuffix(const QString &compiler, const Version &compilerVersio
 # elif defined(__arm__)
     result = QLatin1String("linux-gcc-arm");
 # endif
-#elif defined Q_OS_MAC && defined(__powerpc__)
+#elif defined Q_OS_MACOS && defined(__powerpc__)
     result = QLatin1String("macx-gcc-ppc32");
-#elif defined Q_OS_MAC && defined(__i386__)
+#elif defined Q_OS_MACOS && defined(__i386__)
     result = QLatin1String("macx-gcc-ia32");
-#elif defined Q_OS_MAC && defined(__amd64__)
+#elif defined Q_OS_MACOS && defined(__amd64__)
     result = QLatin1String("macx-gcc-amd64");
 #elif defined Q_OS_WIN && defined Q_CC_GNU
     result = QLatin1String("win32-gcc-ia32");
