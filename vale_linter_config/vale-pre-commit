@@ -299,4 +299,22 @@ def main():
 main()
 PYEOF
 
-python3 "$PY_SCRIPT" "$REPO_ROOT" "$VALE_BIN" "$VALE_CONFIG" $QDOC_ABS -- $CPP_ABS
+# Probe each candidate by actually running it rather than relying on command -v
+# alone. On Windows, the Python Launcher (py) is the reliable entry point, but
+# python3 appears to exist on PATH as a Windows Store stub that exits non-zero
+# without running anything. command -v cannot distinguish a stub from a real
+# interpreter, so we verify by executing a trivial Python 3 import.
+PYTHON=""
+for _candidate in python3 py python; do
+    if command -v "$_candidate" >/dev/null 2>&1; then
+        if "$_candidate" -c "import sys; sys.exit(0 if sys.version_info[0] >= 3 else 1)" 2>/dev/null; then
+            PYTHON=$(command -v "$_candidate")
+            break
+        fi
+    fi
+done
+if [ -z "$PYTHON" ]; then
+    printf 'vale-pre-commit: Python 3 not found. Skipping.\n' >&2
+    exit 0
+fi
+"$PYTHON" "$PY_SCRIPT" "$REPO_ROOT" "$VALE_BIN" "$VALE_CONFIG" $QDOC_ABS -- $CPP_ABS
