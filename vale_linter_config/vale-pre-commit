@@ -32,6 +32,9 @@
 #                      the repository root.
 
 REPO_ROOT=$(git rev-parse --show-toplevel)
+if command -v cygpath >/dev/null 2>&1; then
+    REPO_ROOT=$(cygpath -w "$REPO_ROOT")
+fi
 VALE_CONFIG="${VALE_CONFIG_PATH:-$REPO_ROOT/vale_linter_config/.vale-qdoc.ini}"
 
 VALE_BIN="${VALE_QDOC_BIN:-$(command -v vale 2>/dev/null)}"
@@ -69,7 +72,7 @@ vale-pre-commit helper.
 Usage:
     python3 script.py repo_root vale_bin vale_config [qdoc_files...] -- [cpp_files...]
 """
-import sys, os, re, subprocess, tempfile
+import sys, os, re, subprocess, tempfile, pathlib
 
 
 # ── Diff parsing ──────────────────────────────────────────────────────────────
@@ -141,8 +144,11 @@ def parse_alert(line):
     Parse a Vale --output=line alert line.
     Format: filepath:lineno:colno:check:message
     Returns (filepath, lineno, colno, tail) where tail = "lineno:colno:...".
+    Uses pathlib.Path.drive to skip a Windows drive-letter colon (e.g. C:)
+    so it is not mistaken for the field separator.
     """
-    c1 = line.find(':')
+    drive = pathlib.Path(line).drive   # 'C:' on Windows, '' elsewhere
+    c1 = line.find(':', len(drive))
     if c1 < 0:
         return None
     filepath = line[:c1]
@@ -174,7 +180,8 @@ def filter_alerts(vale_output, file_regions):
         if not parsed:
             continue
         filepath, lineno, colno, _ = parsed
-        if in_changed_region(lineno, colno, file_regions.get(filepath, {})):
+        canon = str(pathlib.Path(filepath).resolve())
+        if in_changed_region(lineno, colno, file_regions.get(canon, {})):
             results.append(line)
     return results
 
@@ -184,7 +191,8 @@ def filter_alerts(vale_output, file_regions):
 def process_qdoc_files(vale_bin, vale_config, qdoc_files):
     if not qdoc_files:
         return []
-    file_regions = {f: get_changed_regions(f) for f in qdoc_files}
+    file_regions = {str(pathlib.Path(f).resolve()): get_changed_regions(f)
+                    for f in qdoc_files}
     vale_output = run_vale(vale_bin, vale_config, qdoc_files)
     return filter_alerts(vale_output, file_regions)
 
