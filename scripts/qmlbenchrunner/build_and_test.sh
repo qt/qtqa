@@ -118,10 +118,13 @@ cd $dir
 echo Label: $branch_label
 
 # Add qtbase and qmlbench in for iterating over the module set
-module_set="qmlbench qtbase $module_set"
+module_set="qtbase $module_set"
 for module in $module_set; do
-    storeSha1s $module $qmlbenchBranch
+    storeSha1s $module $branch_label
 done
+# Qmlbench only runs dev, in order to store the sha1 it needs to be separated
+storeSha1s "qmlbench" $qmlbenchBranch
+module_set="qmlbench $module_set"
 
 # Turn the list into a string to use it as argument for upload_results.py
 module_revisions_str=$(IFS=, ; echo "${module_revisions[*]}")

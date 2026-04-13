@@ -42,7 +42,7 @@ def insert_run_info(conn, branch, host, graphics_api, sha1_list):
     4. Insert branch, host, graphics API, and group_id into run_details_qml.
 
     :param conn: psycopg2 database connection.
-    :param sha1_list: Comma-separated "module-sha1" pairs (e.g. 'qtbase-abc123,qtdeclarative-def456').
+    :param sha1_list: Comma-separated "module-sha1" pairs (e.g. ['qtbase-abc123,qtdeclarative-def456']).
     '''
     # Inserts a submodule if not found and returns its submodule_id
     query_submodule = """ WITH inserted AS (
