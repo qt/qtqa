@@ -59,7 +59,7 @@ run_details_insert AS (
     )
     RETURNING run_details_qml_id
 ),
-run_details_id_final AS (
+run_details_qml_id_final AS (
     SELECT run_details_qml_id FROM run_details_insert
     UNION ALL
     SELECT r.run_details_qml_id
@@ -67,6 +67,7 @@ run_details_id_final AS (
     JOIN host_qml_id_final h ON r.host_qml_id = h.host_qml_id
     JOIN graphics_id_final g ON r.graphics_api_id = g.graphics_api_id
     JOIN branch_qml_id_final b ON r.branch_qml_id = b.branch_qml_id
+    WHERE r.group_id = %(group_id)s
 )
 
-SELECT run_details_qml_id FROM run_details_id_final;
+SELECT run_details_qml_id FROM run_details_qml_id_final;
