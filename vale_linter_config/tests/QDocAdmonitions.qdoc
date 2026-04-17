@@ -1,0 +1,111 @@
+// Copyright (C) 2026 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+// Tests for \note and \warning admonition commands, including inline commands
+// (\c, \b, etc.) spanning command boundaries. Verifies that:
+//  - Full text spanning inline-command boundaries is captured.
+//  - Prose rules fire exactly once (no duplicate alerts from the catch-all pass).
+
+// ─── \note with inline commands ──────────────────────────────────────────────
+
+// SHOULD WARN: Microsoft.Passive — passive voice inside \note.
+
+/*!
+    \class QFile
+    \brief Provides an interface for reading and writing files.
+
+    Open the file before reading from it.
+
+    \note The file is opened in text mode by default on \macos. Call \c{setTextModeEnabled(false)}
+    to switch to \nullptr binary mode.
+*/
+
+// SHOULD WARN: Microsoft.We — fires exactly once inside \note.
+// (Verifies no duplicate alert from the catch-all text pass.)
+
+/*!
+    \class QDir
+    \brief Provides access to directory structures and their contents.
+
+    Use this class to navigate the file system.
+
+    \note We recommend using \c{QDir::separator()} instead of hard-coded slash
+    characters to keep code portable.
+*/
+
+// SHOULD WARN: Microsoft.Wordiness — wordy phrase inside \note with inline commands.
+
+/*!
+    \class QTimer
+    \brief Provides repetitive and single-shot timers.
+
+    Connect the \c{timeout()} signal to a slot to receive notifications.
+
+    \note Utilize \c{setSingleShot(true)} in order to schedule a one-time callback.
+*/
+
+// SHOULD NOT produce false positives: \note followed by a macro after blank line.
+// Verifies collectCommandText stops at \n\n and does not consume the \QUL macro text.
+
+/*!
+    \class QTextStream
+    \brief Provides a convenient interface for reading and writing text.
+
+    \note Always set the codec before reading data from the stream.
+
+    \QUL maintains source compatibility between minor releases.
+    However, some changes may require you to adapt the application code
+    accordingly.
+*/
+
+// ─── \warning with inline commands ───────────────────────────────────────────
+
+// SHOULD WARN: Microsoft.Passive — passive voice inside \warning.
+
+/*!
+    \class QMutex
+    \brief Provides access serialization between threads.
+
+    Lock the mutex before accessing shared data.
+
+    \warning Calling \c{lock()} from a thread on \PLATFORM1 that already holds the lock will cause
+    a deadlock. Use \c{QMutexLocker} instead; it is automatically unlocked on \QtMinorVersion when
+    the scope exits.
+*/
+
+// SHOULD WARN: Microsoft.We — fires exactly once inside \warning.
+
+/*!
+    \class QThread
+    \brief Manages a thread of execution.
+
+    Subclass QThread to implement custom thread logic.
+
+    \warning We strongly advise against calling \c{quit()} on a thread that is
+    still executing user code, as this may leave resources unreleased.
+*/
+
+// SHOULD WARN: Microsoft.Wordiness — wordy phrase inside \warning with inline commands.
+
+/*!
+    \class QSemaphore
+    \brief Provides a general counting semaphore.
+
+    Use acquire() to wait for a resource.
+
+    \warning Do not call \c{acquire()} in order to block the main thread, as this
+    will freeze the UI. Utilize a worker thread instead.
+*/
+
+// SHOULD NOT produce false positives: \warning followed by a macro after blank line.
+// Verifies collectCommandText stops at \n\n and does not consume the \BUILDVAR macro text.
+
+/*!
+    \class QBuffer
+    \brief Provides a QIODevice interface for a QByteArray.
+
+    \warning Do not write to the buffer while reading from it.
+
+    \BUILDVAR provides the current build configuration accordingly.
+    Use \c{QBuffer::data()} to retrieve the contents.
+*/

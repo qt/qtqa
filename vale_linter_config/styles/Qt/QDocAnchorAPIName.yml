@@ -1,0 +1,7 @@
+extends: existence
+message: "Use a topic name instead of the API identifier '%s' in \\target or \\keyword."
+link: https://doc.qt.io/qt-6/qdoc-guide-writing.html
+level: warning
+scope: meta.anchor
+raw:
+  - '(?:Q[A-Z][A-Za-z0-9_]+|\w+::\w+|\w+\(\))'

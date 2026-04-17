@@ -1,6 +1,10 @@
 // Copyright (C) 2026 The Qt Company Ltd.
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
 
+// We utilize this module to provide a base type that is used by all buttons.
+// The buttons are basically dispatched in the event that a signal is recieved.
+// At this point in time, the module was not optimized for concurrency.
+
 /*!
     \qmltype AbstractButton
     \brief Provides a base type for button controls

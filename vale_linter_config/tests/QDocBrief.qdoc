@@ -7,8 +7,8 @@
     \class QRect
     \brief Defines a rectangle in the plane using integer precision
 
-    The QRect class defines a rectangle in the plane using integer
-    coordinates for the x and y coordinates of the top-left corner.
+    The QRect class defines a rectangle in the plane using \nullptr integer
+    coordinates for the x and y coordinates of the top-left corner on \macos.
 */
 
 /*!
@@ -30,7 +30,7 @@
 
 /*!
     \fn bool QRect::isValid() const
-    \brief Returns \c true if the rectangle is valid; otherwise returns \c false.
+    \brief Returns \c true if the rectangle is valid otherwise returns \c false.
 
     A valid rectangle has a positive width() and height().
     \sa isNull(), isEmpty()
@@ -43,4 +43,55 @@
     \brief Defines a point in the plane using integer precision,
 
     The QPoint class defines a point in the plane using integer coordinates.
+*/
+
+// SHOULD WARN: \brief with inline commands — no period after closing \c{}.
+// Verifies full text capture spanning inline-command boundaries.
+
+/*!
+    \fn bool QRect::contains(const QPoint &p) const
+    \brief Returns \c true if the point is inside the rectangle, \c false otherwise
+
+    The point is considered inside if it is on the boundary.
+*/
+
+// SHOULD NOT WARN: \brief with inline commands — period follows closing \c{}.
+
+/*!
+    \fn bool QRect::isEmpty() const
+    \brief Returns \c true if the rectangle is empty, \c false otherwise.
+
+    An empty rectangle has zero width or zero height.
+*/
+
+// SHOULD WARN: multiline \brief — continuation lines are checked (UntilBlankLine).
+// The brief spans until the first blank line; no period on the last line.
+
+/*!
+    \class QNetworkDatagram
+    \brief Holds the data and metadata of a UDP datagram,
+    including the payload, sender and receiver addresses,
+    and the port numbers
+
+    The payload is accessible via data().
+*/
+
+// SHOULD NOT WARN: multiline \brief ending with a period.
+
+/*!
+    \class QHostAddress
+    \brief Provides an IP address, supporting both IPv4 and IPv6
+    formats for use in network operations.
+
+    Use toString() to convert to a human-readable string.
+*/
+
+// SHOULD WARN: Microsoft.We in \brief — fires exactly once.
+// (Verifies the catch-all pass does not duplicate alerts for CommandMatch nodes.)
+
+/*!
+    \class QAbstractSocket
+    \brief We provide the base class for all socket types.
+
+    Use this class to share common socket behaviour.
 */

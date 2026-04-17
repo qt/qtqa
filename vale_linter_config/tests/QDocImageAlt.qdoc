@@ -22,3 +22,15 @@
 
     Use \inlineimage icons/ok.png {OK button icon} in running text.
 */
+
+// SHOULD NOT WARN: filenames containing rejected vocab terms ("please", "thanks").
+// Vale.Terms must not fire on image filenames even if they contain rejected words.
+
+/*!
+    \class QFrame
+    \brief The base class of widgets with a frame.
+
+    \image please-read-me.png Frame types overview
+
+    Use \inlineimage thanks-icon.png {Thanks icon} in running text.
+*/

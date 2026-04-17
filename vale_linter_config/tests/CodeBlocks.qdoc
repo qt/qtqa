@@ -22,7 +22,7 @@
     }
     \endcode
 
-    The data is returned as a QByteArray.
+    The data is returned as a QByteArray on \macos and \MACRO1.
 */
 
 // SHOULD WARN: passive voice in prose around \qml block

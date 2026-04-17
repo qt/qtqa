@@ -10,8 +10,8 @@
     \class QNetworkReply
     \brief Provides a means of accessing network responses.
 
-    The request is sent and a reply is returned by the network manager.
-    Headers are parsed automatically. Errors are reported via the error() signal.
+    The request is sent and a reply is returned by the network manager on \macos {x86_64}.
+    Headers are parsed automatically. Errors are reported via the \youtube {dQw4w9WgXcQ} signal on \nullptr failure.
 */
 
 // SHOULD WARN: first-person plural (Microsoft.We)
@@ -31,8 +31,8 @@
     \class QTimer
     \brief Provides repetitive and single-shot timers.
 
-    Utilize this class in order to schedule work at a fixed interval.
-    Prior to starting the timer, set the interval in milliseconds.
+    Utilize this class in order to schedule work at a fixed interval on \MACRO1.
+    Prior to starting the timer, set the \QtMinorVersion interval in milliseconds.
     A sufficient number of timers can be active at the same time.
     Call stop() as a means to cancel a pending timeout.
 */
@@ -103,9 +103,9 @@
 
 /*!
     \class QAbstractItemModel
-    \brief The base class for item models.
+    \brief We provide the base class for item models.
 
-    This class provides a standard interface for models that can be used with all of the standard views provided by Qt, including the tree view, the list view, and the table view.
+    This class provides a standard interface for models on \macos and \BUILDVAR that can be used with all of the standard views provided by Qt, including the tree view, the list view, and the table view.
 */
 
 // SHOULD WARN: missing Oxford comma (Microsoft.OxfordComma)
@@ -137,4 +137,5 @@
 
     Pass command-line arguments to this class, and so on.
     The backend processing is handled by the event loop.
+    Update the settings accordingly.
 */

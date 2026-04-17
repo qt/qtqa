@@ -1,0 +1,231 @@
+// Copyright (C) 2025 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial
+
+/*!
+    \previouspage {Changes in Previous Versions}
+    \page qtul-changes.html
+    \title What's New in 2.12
+    \brief Changes in v2.12.0
+
+    \QUL maintains source compatibility between minor releases.
+    However, some changes may require you to adapt the application code
+    accordingly. The following sections highlight such changes:
+
+    \section1 New features
+    \list
+        \li Added support for the following target platforms:
+        \list
+          \li Tier-1 support for
+              \l{Infineon TRAVEO T2G}{TRAVEO T2G 6M DDR Evaluation Kit}.
+          \li Tier-2 support for
+              \l{Infineon PSOC Edge E84 Evaluation Kit}{Infineon \tm{PSOC} Edge E84 evaluation kit}.
+          \li Tier-3 support for \c{NXP RW612 on Zephyr} and \c{Renesas RA8P1}.
+
+        \endlist
+        \li Added DeviceLink support to Infineon TRAVEO T2G targets built
+            using either the Green Hills or IAR toolchains. This enables
+            automated UI testing using Squish.
+        \li QmlProject improvements or updates:
+        \list
+        \li Parse translation data in all the \c qmlproject files before
+            generating a list of languages.
+        \li Added the \l MCU.Config.translationStorageSection property to
+            enable defining a separate storage section for translation files.
+        \li Added the \l{MCU.Config.glyphsLayoutCacheSize} property to define
+            the cache size for the glyph layout and shaping data.
+        \li Added the \l{--generate-resource-binaries} command-line option to
+            enable regeneration of resource binaries only without exporting
+            any configuration, QML files, and source files.
+        \li Keep the font file for the Monotype Spark font engine in the
+            resource binary, enabling version and checksum verification.
+        \li The list of languages supported by the application is based
+            on the translation files in the main QmlProject file.
+        \li Added the following MCU.Config properties to support the Safe Renderer module:
+        \list
+            \li \l{MCU.Config.safeTextCachePolicy} to enable defining
+            cache policy for dynamic \l SafeText resources.
+            \li \l{MCU.Config.safeBitmapRuntimeAllocationType} to define the
+                memory allocation type for accessing the SafeImage, SafePicture,
+                and static SafeText resources.
+            \li \l{MCU.Config.safeBitmapStorageSection} to enable defining a
+                memory section for \l SafeText, \l SafeImage, and \l SafePicture.
+            \li \l{MCU.Config.safeRendererCrcAlgorithm} to define a CRC algorithm
+                for Qt Safe Layout tool.
+            \li \l{MCU.Config.safeTextFontDirectory} to configure the fonts directory.
+            \li \l{MCU.Config.safeTextRuntimeAllocationType} to define a memory
+                allocation type for the dynamic SafeText resources.
+            \li \l{MCU.Config.safeTextStorageSection} to define a memory
+                section to store the dynamic SafeText resources.
+        \endlist
+        \endlist
+        \li Removed the GCC compiler-specific options and flags from
+            \c CompilerExtraOptions, as these options and flags were also set
+            in the CMake toolchain file (\c armgcc.cmake). This avoids hard-coding
+            the options and flags, so that they are customizable.
+        \li Added \l{Qul::activeLanguages} property to get the list of
+            languages that the application supports.
+        \li Added \l date value type to enable support for \l{Position::}{timestamp}
+            instance in \l Position instances.
+        \li Added \l{Qul::validateMonotypeDataTableChecksums}() to verify the
+            integrity of Monotype data tables stored in external flash. Storing
+            these data tables in an external flash saves approximately \c ~57 KB
+            on the internal flash. Refer to
+            \l{Placing Monotype data tables in external flash} for more
+            information.
+        \li Updated the \l{thermo} demo to store the Monotype data tables in QSPI
+            by default on \c{STM32F769I Discovery Kit}.
+        \li Added \l{Qul::initResources}() options to enable control the
+            initialization behavior.
+        \li Added \l{MCU.Config.glyphsLayoutCacheSize} to control the size of
+            cache for glyph layout data.
+        \li \c qmltocpp improvements:
+        \list
+        \li Improved code that sets all the property bindings for a given root
+            object to use table-based setters, which reduces code footprint
+            significantly.
+        \li Added error checks for built-in read-only list property.
+        \endlist
+        \li Added support for \l{Coco} to get code coverage results from the
+            target hardware.
+        \li Added support to independently update application and its resource
+            data. Also added \l{Qul::}{queryResourceStorageSectionInfo}()
+            and more options to \l{Qul::}{initResources}() API, which enables UI
+            features based on what resource data is available for OTA (Over The Air)
+            updates.
+        \li RTOS, SDK and compiler upgrades:
+        \list
+        \li MSVC compiler to 2022 on Windows 11.
+        \li Renesas RH850/D1M1A RGL SDK to v2.2.0a.
+        \li Renesas platform SDK to version 25.06.00.
+        \li NXP platform SDK to version 25.09.00.
+        \li STM32CubeH7 SDK to version 1.12.1.
+        \li Zephyr RTOS to v4.1.
+        \endlist
+        \li Improved cache memory usage reports in the performance logs,
+            counting all the allocated space including block overhead.
+        \li Added \l{Qul::SharedImage::}{maybeTexture}() method to check if
+            there is enough space in the resource cache, instead of asserting.
+        \li Added multi-line elide mode, which you can enable using the
+            \l{MCU.Config.Experimental.multiLineElide} QmlProject property. This
+            mode elides any line that exceeds the available width. It does not
+            require an explicit height to be set.
+        \li Added \l{Text::}{maximumLineCount} property to limit the number of
+            visible lines in a \l Text item.
+        \li Improved navigation API:
+        \list
+         \li Added \l CoordinateAnimation to animate the transition
+             between two coordinates.
+         \li Optimized memory requirements for \l geoCoordinate.
+         \li Added the \l QtPositioning global type, which offers the \l[QtPositioning]{QtPositioning::}{coordinate}() method.
+         \li Added \l{geoCoordinate::}{distanceTo}() method to
+             calculate distance in meters between the two coordinates.
+         \li Added \l{Qul::GeoPositionInfo::}{speed} and
+             \l{Qul::GeoPositionInfo::}{timestamp} to enable applications to
+             configure these properties in a \l{Qul::}{GeoPositionInfo}. The
+             corresponding read-only properties that enable you access these
+             properties in QML are \l{Position::speed} and
+             \l{Position::timestamp}.
+        \endlist
+
+    \endlist
+
+    \section1 Fixed issues
+    \section2 \QULPackage v2.12.1
+    \list
+        \li Removed the \c -ffreestanding compiler flag from the ARMGCC
+            toolchain file. This avoids using the incompatible
+            \c <cmath> header while building with GCC 13 or later versions.
+        \li Fixed \l{Qt Quick Ultralite Automotive Cluster Demo}{automotive} and
+            \l{Qt Quick Ultralite Motorcycle Cluster Demo}{motor_cluster} demos to
+            avoid a crash on Windows 10 with MSVC 2019. Moved the task and timer
+            handling to \c std::map and \c std::vector to avoid loosing any data
+            while the task is still active.
+        \li Removed \c bytesPerLine and updated
+            \l{Qul::PlatformInterface::ImageDecoder::}{imageInformation} to
+            include all properties of an image.
+        \li Upgrades:
+        \list
+        \li Fixed CVE-2024-0151 vulnerability by upgrading the ARM GNU toolchain
+            headers to v15.2.rel1.
+        \li Upgraded TRAVEO T2G CYT4DN's ModusToolbox \c tviic2d-gfx-mw driver
+            to version 1.0.1.
+        \endlist
+        \li \c qmltocpp fixes:
+        \list
+        \li Fix crash while parsing Connections that handle a signal with parameters.
+        \li Fix regression in properties of type \c{ListModel<T>}.
+        \li Parse extra properties of an Item while resolving property bindings.
+        \li Update visibility of child items when their parent
+            Item's visibility changes.
+        \li Check directory imports to include only relevant QML Component
+            definitions that the current Component depends on. If there is no
+            dependency on any Component in the directory, ignore the import.
+        \endlist
+        \li Added support for the native Infineon resource generator tool on Linux for
+            TRAVEO T2G 6M Lite.
+        \li Fixed the layout logic for Item type to handle changes to its implicit size.
+        \li Updated \c qmlprojectexporter to also consider \c translationStorageSection
+            defined in the board defaults CMake configuration.
+    \endlist
+    \section2 \QULPackage v2.12.0
+    \list
+        \li Enabled TRAVEO T2G targets to use the resource cache to preserve
+            assets for multiple frames when using OTF layers. This avoids visual
+            artifacts on the OTF layer when the texture data it's rendering gets
+            invalidated in \QUL Core.
+        \li Fixed out of memory exception on
+            \l{STM32F769I Discovery Kit}{STM32F769I} target based on IAR toolchain.
+            Changed to a fixed stack of size 24K for IAR builds too.
+        \li Fixed graphical glitches when drawing path strokes on T2G TRAVEO boards.
+        \li Fixed the JPEG decoder to allocate memory dynamically instead of using a
+            hard coded memory address on TRAVEO T2G targets.
+        \li Fixed incorrect perspective transforms on TRAVEO T2G targets when
+            \c{destRect.topLeft() != srcRect.topLeft()}.
+        \li Improved error reporting when surface allocation fails on TRAVEO T2G.
+        \li Fixed text caching to avoid visual artifacts because of removed
+            entries when the drawing engine is still reading them asynchronously.
+        \li Fixed platform adaptation for Renesas RH850 to use CPU fallback engine
+            for RGB332 pixel format.
+        \li \c qmltocpp fixes:
+        \list
+         \li Fix code generated for component layout with many items.
+         \li Ignore \c import statements if a module is importing itself.
+         \li Skip generating the translation function if no translation files
+             are found.
+        \endlist
+        \li \c qmlprojectexporter fixes:
+        \list
+         \li Warnings related to C++ compiler options.
+         \li Use correct URI for the Qt Safe Renderer module.
+        \endlist
+        \li Fixed \l{PositionSource::}{position} property to make sure it is
+            accessible from QML.
+        \li Fixed GHS compiler generated dependency file suffix information, to
+            make sure Ninja knows the correct file name.
+        \li Fixed a crash because of resetting a ListView or Repeater model from
+            the delegate.
+        \li Fixed \c fontcompiler warnings by disabling the char attribute
+            mapping to the corresponding cluster value.
+        \li Optimized text performance by avoiding unnecessary re-layout and
+            clearing cache before rendering.
+        \li Fixed memory corruption on TRAVEO T2G, where the JPEG decoder
+            was allocating memory dynamically instead of using a hard coded
+            memory address.
+        \li Fixed text cache implementation to call \c waitUntilAsyncReadFinished()
+            before removing entries from the cache.
+    \endlist
+    \section1 New APIs
+
+    \section2 APIs for application development
+
+    \sincelist Qt Quick Ultralite 2.12
+
+    \section2 APIs for platform development
+
+    \sincelist Qt Quick Ultralite (Platform) 2.12
+
+    \section1 Changes in Previous Versions
+
+    \orderedlist previous-releases
+*/
+
