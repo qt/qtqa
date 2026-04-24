@@ -1,0 +1,5 @@
+[eE]xtract*
+Figma
+[fF]ontmap[s]
+[oO]nboarding
+[rR]esizable
