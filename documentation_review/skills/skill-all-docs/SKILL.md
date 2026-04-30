@@ -1,7 +1,8 @@
 ---
 name: skill-all-docs
 description: Qt documentation products, modules, repository structure, and API types. Apply when working with Qt documentation, resolving module names, or understanding Qt's documentation ecosystem.
-version: 1.0.0
+metadata:
+  version: "1.0.0"
 ---
 
 # Qt Documentation Ecosystem Reference

@@ -159,7 +159,30 @@ The default is 0.                   // ✗ Ambiguous
 // Always use \c for enum values
 The alignment is \c{Qt::AlignLeft}. // ✓
 The alignment is Qt::AlignLeft.     // Autolinks, but \c is clearer for values
+
+// Always use \c for external tool literals (CMake, Java, etc.)
+components in the \c Qt6 package.   // ✓ CMake package name
+components in the Qt6 package.      // ✗ Looks like prose
+Use the \c{-DmaxYamlCodePoints} option. // ✓ Java option
 ```
+
+**External Tool Literals:**
+
+When documentation references external tools (CMake, Java, Maven, etc.), mark literal
+values that users would type with `\c`:
+
+| Element | Example | Markup |
+|---------|---------|--------|
+| CMake package names | Qt6, OpenApiTools | `\c Qt6`, `\c OpenApiTools` |
+| CMake functions | find_package(), add_library() | `\c find_package()`, `\c add_library()` |
+| CMake variables | CMAKE_CURRENT_SOURCE_DIR | `\c CMAKE_CURRENT_SOURCE_DIR` |
+| Java/JVM options | -DmaxYamlCodePoints | `\c{-DmaxYamlCodePoints}` |
+| File extensions | .yaml, .mustache | `\c{.yaml}`, `\c{.mustache}` |
+| Command-line args | -g, --skip-overwrite | `\c{-g}`, `\c{--skip-overwrite}` |
+
+**Consistency rule:** If one instance of an external tool element uses `\c`, all instances
+in the same document should use `\c`. Example: if `\c find_package()` is marked, then
+`Qt6` in "the Qt6 package" should also be marked as `\c Qt6`.
 
 **Boolean Function Documentation Pattern:**
 
@@ -383,13 +406,19 @@ Example: If `\fn void setSize(int width, int height)`, scan prose for "width" an
 ### `\c` - Code Literals
 ```
 Pattern: Code values appearing as plain text
-Scan for: true, false, nullptr, NULL, numeric literals, enum values
+Scan for: true, false, nullptr, NULL, numeric literals, enum values,
+          CMake package names, CMake functions, file extensions,
+          command-line options, JVM options
 Fix:      Wrap in \c or \c{}
 ```
 Examples to find and fix:
 - "Returns true" → "Returns `\c true`"
 - "default is 0" → "default is `\c 0`"
 - "set to Qt::AlignLeft" → "set to `\c{Qt::AlignLeft}`"
+- "the Qt6 package" → "the `\c Qt6` package"
+- "call find_package()" → "call `\c find_package()`"
+- "the .yaml file" → "the `\c{.yaml}` file"
+- "use -DmaxYamlCodePoints" → "use `\c{-DmaxYamlCodePoints}`"
 
 ### `\uicontrol` - UI Elements
 ```

@@ -1,12 +1,13 @@
 ---
 name: skill-language-style
 description: Language, grammar, and style guidelines for Qt documentation including active voice, terminology, QUIP 25 standards, and proper API documentation patterns. Covers both WHAT to write (style/content) and HOW to write it (QDoc syntax).
-version: 3.1
+metadata:
+  version: "3.7"
 ---
 
 # Qt Language and Style Guidelines
 
-**Version**: 3.0
+**Version**: 3.7
 **Purpose**: Reference for language, grammar, and style standards when writing or reviewing Qt documentation
 **Scope**: Applies to all Qt documentation (QDoc comments, user guides, tutorials, API docs, examples)
 
@@ -14,88 +15,79 @@ version: 3.1
 
 ## Overview
 
-This document provides language and style guidelines for Qt documentation, consolidating rules from Qt Writing Guidelines, QUIP 25 (Qt Documentation Style), C++/QML Documentation Style guides, and Microsoft Style Guide. Use this as a reference when writing or reviewing documentation text.
+Language and style guidelines for Qt documentation, consolidating rules from
+Qt Writing Guidelines (S1), QUIP 25 (S2), C++/QML Documentation Style
+(S3/S4), and Microsoft Style Guide (S9). QDoc Manual (S10) covers command
+syntax.
 
-**Two-Dimensional Framework**: Qt documentation standards operate in two dimensions:
-1. **WHAT to write** - Content, style, patterns, language rules
-2. **HOW to write it** - QDoc command syntax and formatting
-
----
-
-## Documentation Standards Framework
-
-### Content & Style Authority (WHAT to write)
-
-**Tier 1 - Qt Official Standards (HIGHEST AUTHORITY):**
-
-1. **Qt Writing Guidelines** - Primary coordination document
-   - Coordinates all Qt documentation standards
-   - Establishes overall policies and references
-
-2. **QUIP 25** - Language and style authority
-   - Language, grammar, word choice, formatting
-   - States: "This QUIP is primary; Microsoft Writing Style Guide is optional"
-
-3. **C++ Documentation Style** - C++ API content patterns
-   - Class, function, property, signal documentation patterns
-   - Required QDoc commands for C++ APIs
-
-4. **QML Documentation Style** - QML API content patterns
-   - QML type, property, signal, method documentation patterns
-   - Required QDoc commands for QML APIs
-
-5. **Qt Examples Guidelines** - Example code standards
-   - Code quality requirements (zero warnings)
-   - Build system requirements
-   - Screenshot specifications
-
-6. **Writing Example Documentation** - Example documentation patterns
-   - 11 mandatory documentation elements
-   - Tutorial structure and style
-
-**Tier 2 - Supplementary Reference:**
-
-7. **Microsoft Style Guide** - Used when Qt sources don't specify
-   - Grammar and language reference
-   - Applied only when Qt standards are silent
+**Source precedence:** S1 > S2 > S3/S4 > S5/S6 > S9 (supplementary only).
+**Full source details:** See `references/sources.md`.
 
 ---
 
-### Tool & Syntax Reference (HOW to write it)
+## Verification Workflow (Generic)
 
-**QDoc Manual** - Command syntax and technical specifications
-- QDoc command syntax (`\class`, `\fn`, `\property`, etc.)
-- Parameter specifications and formatting rules
-- Linking and cross-reference syntax
-- Not a style/content authority - works in conjunction with content sources
+When reviewing documentation and encountering questions about correctness
+(terminology, style, patterns, syntax), follow this workflow:
 
-**Relationship**: Content sources (above) tell you WHAT patterns to use. QDoc Manual tells you HOW to express them using QDoc commands.
+### Step 1: Identify the Domain and Relevant Source(s)
 
-**Example of how they work together**:
-- C++ Doc Style says: "Function briefs start with action verbs like 'Returns...'"
-- QDoc Manual says: "Use `\fn` command with syntax `\fn return-type Class::function(params)`"
+| Question Type | Authoritative Source(s) |
+|---------------|------------------------|
+| Terminology (Qt product/module names) | S7 (Qt Terms and Concepts) |
+| Language, grammar, style | S2 (QUIP 25), S1 (Qt Writing Guidelines) |
+| C++ API documentation patterns | S3 (C++ Documentation Style) |
+| QML API documentation patterns | S4 (QML Documentation Style) |
+| Example documentation | S5 (Qt Examples Guidelines), S6 (Writing Examples) |
+| Alt text | S8 (Qt Alt Text Style) |
+| QDoc command syntax | S10 (QDoc Manual) |
+| General style (when Qt silent) | S9 (Microsoft Style Guide) |
 
----
+### Step 2: Check the Authoritative Source(s)
 
-### When to Consult Which Source
+1. **Fetch the relevant source** (URL or local file)
+2. **Record what the source says** - this is the official guidance
+3. **Note if the source is silent** - may need secondary sources
 
-**Style questions** ("Should I use active voice?")
-→ S1 (Qt Writing Guidelines) → S2 (QUIP 25) → S9 (Microsoft Style Guide)
+### Step 3: Check Existing Documentation for Consistency
 
-**Content pattern questions** ("What pattern for property briefs?")
-→ S3/S4 (C++/QML Documentation Style)
+1. **Search existing docs**: `grep -r "TERM" */doc --include="*.qdoc"`
+2. **Count instances** of each variant
+3. **Note inconsistencies**:
+   - Existing docs may conflict with authoritative source
+   - Existing docs may be inconsistent with themselves
+   - Some patterns may be module-specific
 
-**Syntax questions** ("How do I format `\qmlproperty`?")
-→ S10 (QDoc Manual)
+### Step 4: Report Both and Let Author Decide
 
-**Combined questions** ("How do I document a function?")
-→ S3 (C++ Doc Style) for pattern + S10 (QDoc Manual) for syntax
+**Output format:**
+```
+**[Topic]: "[Variant A]" vs "[Variant B]"**
+
+Official ([Source]): [What the authoritative source says]
+
+Existing usage:
+- "[Variant A]": N instances (file1.qdoc, file2.qdoc...)
+- "[Variant B]": M instances (file3.qdoc, file4.qdoc...)
+
+Inconsistency: [Describe if existing docs conflict with official or themselves]
+
+Decision for author: [Options - align with official, maintain local pattern,
+or flag for broader cleanup]
+```
+
+**Why this workflow matters:**
+- Authoritative sources define correctness
+- Existing docs show current state (may have accumulated inconsistencies)
+- Authors need full information to make informed decisions
+- Some inconsistencies may warrant separate cleanup patches
+- Reviewers should inform, not unilaterally enforce
 
 ---
 
 ## Rule and Source Enumeration
 
-This skill contains **58 enumerated rules (R1-R57, R51b)** and **10 enumerated sources (S1-S10)** for easy reference.
+This skill contains **65 enumerated rules (R1-R64, R51b)** and **10 enumerated sources (S1-S10)** for easy reference.
 
 ### Rules by Category
 - **Core Principles**: R1-R10 (10 rules)
@@ -111,6 +103,9 @@ This skill contains **58 enumerated rules (R1-R57, R51b)** and **10 enumerated s
 - **Linking Style and Syntax**: R45-R51, R51b (8 rules)
 - **Structured Content**: R52-R56 (5 rules)
 - **Exceptions**: R57 (1 rule)
+- **Page Templates**: R58-R59 (2 rules)
+- **Module Review**: R60-R62 (3 rules)
+- **Admonition and Markup**: R63-R64 (2 rules)
 
 ### Sources by Authority
 - **Tier 1 Qt Official**: S1-S8 (highest precedence)
@@ -144,41 +139,35 @@ For detailed requirements by documentation type, see the official style guides:
 
 ## Core Principles
 
+**Note**: Rules R1-R13 summarize guidelines from S1 (Qt Writing Guidelines) and S2
+(QUIP 25). For full details, consult the authoritative sources directly.
+
 ### R1. Use Active Voice
 
-**Rule**: Prefer active voice over passive voice. Active voice is more direct and easier to understand.
-
-**Example**:
-```
-❌ Passive: Events will be ignored by the item when disabled.
-✅ Active:  The item ignores events when disabled.
-```
-
-**Exception**: Passive voice acceptable when actor is unknown or irrelevant.
-
-**Sources**: S2 (QUIP 25), S1 (Qt Writing Guidelines), S9 (Microsoft Style Guide - "Verbs")
-
----
+Active voice over passive. See **S1, S2** for details.
+- ❌ "Events will be ignored by the item" → ✅ "The item ignores events"
 
 ### R2. Be Clear and Concise
 
-**Rule**: Use simple, direct language. Aim for ≤20 words per sentence.
+Simple, direct language. ≤20 words per sentence. See **S2** for details.
+- ❌ "In order to enable" → ✅ "To enable"
 
-**Example**:
-```
-❌ Verbose: In order to enable the feature, you need to set the property.
-✅ Concise: Set the property to enable the feature.
-```
-
-**Avoid**: "In order to" → "To", "It is possible to" → "Can", "Make use of" → "Use"
-
-**Sources**: S2 (QUIP 25), S9 (Microsoft Style Guide - "Conciseness")
+**SCAN trigger:** Flag informal phrases (a lot of, kind of, sort of,
+pretty much), filler words (indeed, actually, basically, essentially,
+just-as-filler), and wordy constructions (causes X to occur → causes X,
+a frequent requirement is to → you often need to).
 
 ---
 
 ### R3. Use Correct Terminology
 
-**Rule**: Use Qt's standard terminology consistently. Don't invent new terms or use incorrect class names.
+**Rule**: Use Qt's standard terminology consistently. Don't invent new terms
+or use incorrect class names.
+
+**Verification**: Follow the generic **Verification Workflow** (see above).
+For terminology questions, the authoritative source is **S7 (Qt Terms and
+Concepts)**. The tables below are EXAMPLES, not exhaustive - always verify
+against S7 for terms not listed.
 
 **Qt Terminology Guidelines**:
 
@@ -208,6 +197,15 @@ For detailed requirements by documentation type, see the official style guides:
 - **User guides/tutorials**: Use generic terms (list view, text field)
 - **Alt text**: Use generic terms, lowercase (button, dialog)
 - **Code examples**: Use class names (QListView, QPushButton)
+
+**Qt Version Numbers** (CRITICAL - commonly missed):
+
+| Correct | Incorrect | Notes |
+|---------|-----------|-------|
+| Qt 5 | Qt5 | Space required before version number |
+| Qt 6 | Qt6 | Space required before version number |
+| Qt 5-based | Qt5-based | Space before version in compounds |
+| Qt 6.5 | Qt6.5 | Space required |
 
 **Qt Product and Module Names** (from S7 - https://wiki.qt.io/Qt_Terms_and_Concepts):
 
@@ -247,137 +245,66 @@ Always use official capitalization and spelling for Qt products and modules:
 
 **Sources**: S2 (QUIP 25), S1 (Qt Writing Guidelines), S7 (Qt Terms and Concepts)
 
+**IMPORTANT - Authoritative Source Verification**:
+
+The tables above are NOT exhaustive. When reviewing terminology:
+
+1. **Scan for Qt patterns**: `Qt[0-9]`, `Qt [A-Z]`, product names, module names
+2. **Verify against S7**: Fetch https://wiki.qt.io/Qt_Terms_and_Concepts for authoritative definitions
+3. **When in doubt, check source**: Do not assume a term is correct just because it's not in the tables above
+
+**Common patterns to scan for**:
+- `Qt[0-9]` → Should be `Qt [0-9]` (space required)
+- `QtQuick` in prose → Should be `Qt Quick` (two words)
+- `QtCreator` → Should be `Qt Creator` (two words)
+
 ---
 
 ### R4. Use Present Tense
 
-**Rule**: Write in present tense. Documentation describes current behavior.
+Present tense for current behavior. See **S2** for details.
+- ❌ "will return" → ✅ "returns"
 
-**Example**:
-```
-❌ Future:  The function will return \c true if the item is enabled.
-✅ Present: The function returns \c true if the item is enabled.
-```
-
-**Exception**: Future tense for sequential actions ("The window will appear...").
-
-**Sources**: S2 (QUIP 25), S1 (Qt Writing Guidelines), S9 (Microsoft Style Guide - "Verbs")
-
----
+**SCAN trigger:** Search for "will" + verb (will copy, will happen, will
+make, will show, will throw). Flag unless conditional future ("if X, Y
+will occur") or planned deprecation ("will be removed in Qt 7").
 
 ### R5. Use Imperative Mood for Instructions
 
-**Rule**: Use imperative mood (commands) for function briefs and instructions. Use indicative mood for descriptions.
-
-**Imperative**: "Returns the value." (function brief), "Call this function..." (instruction)
-
-**Indicative**: "This property holds..." (description), "The widget receives..." (explanation)
-
-**Sources**: S9 (Microsoft Style Guide - "Verbs"), S3 (C++ Documentation Style), S4 (QML Documentation Style)
-
----
+Imperative for briefs/instructions, indicative for descriptions. See **S3, S4**.
+- Imperative: "Returns the value." / "Call this function..."
+- Indicative: "This property holds..."
 
 ### R6. Use "You" for User Instructions
 
-**Rule**: Address the user directly with "you" when giving instructions in guides and tutorials. API documentation patterns typically don't require "you" because they use imperative and indicative constructions.
-
-**User guides/tutorials**:
-```
-❌ Impersonal: One can configure the settings in the dialog.
-❌ Third-person: The developer can configure the settings.
-✅ Direct:      You can configure the settings in the dialog.
-```
-
-**API documentation** (patterns don't require "you"):
-```
-✅ "Returns the current value."                  (imperative - brief)
-✅ "This property holds the enabled state."      (indicative - description)
-✅ "Call this function to update the view."      (imperative - instruction)
-```
-
-**Note**: QUIP 25 says "use second person ('you')" generally. The convention of not using "you" in API docs follows from the standard patterns (R17-R19), not an explicit prohibition.
-
-**Sources**: S2 (QUIP 25), S1 (Qt Writing Guidelines), S9 (Microsoft Style Guide - "Person")
-
----
+Address users with "you" in guides/tutorials. See **S1, S2** for details.
+- ❌ "One can configure..." → ✅ "You can configure..."
+- API docs: Use imperative/indicative patterns (R14-R19) instead
 
 ### R7. Avoid Jargon and Idioms
 
-**Rule**: Write for international audience. Avoid idioms and culturally-specific references.
+Write for international audience. No idioms. See **S1, S2** for details.
 
-**Example**: "This feature is easy to use" not "a piece of cake to use"
-
-**Avoid**: Latin abbreviations (use "that is" not "i.e.", "for example" not "e.g.")
-
-**Sources**: S2 (QUIP 25), S1 (Qt Writing Guidelines), S9 (Microsoft Style Guide - "Global communications")
-
----
+**SCAN trigger:** Flag common English idioms (double-edged sword, behind
+the scenes, under the hood, out of the box, on the fly, from scratch).
+Replace with literal equivalents. Also: "like" (introducing examples) →
+"such as".
 
 ### R8. Be Consistent
 
-**Rule**: Use the same word for the same concept throughout documentation.
-
-**Examples**:
-```
-❌ Inconsistent: "Set the property... Configure the option... Adjust the setting..."
-✅ Consistent:   "Set the property... Set the option... Set the setting..."
-
-❌ Inconsistent: "The application starts... The program launches... The app begins..."
-✅ Consistent:   "The application starts... The application starts... The application starts..."
-```
-
-**Create a term list** for your module:
-- Choose one term per concept
-- Document your choices
-- Apply consistently
-
-**Sources**: S9 (Microsoft Style Guide - "Consistency")
-
----
+Same word for same concept throughout. See **S2** for details.
 
 ### R9. Use Parallel Structure
 
-**Rule**: In lists or series, use the same grammatical structure for each item.
-
-**Examples**:
-```
-❌ Not parallel:
-- Set the property
-- Calling the function
-- You should verify the result
-
-✅ Parallel:
-- Set the property
-- Call the function
-- Verify the result
-```
-
-**For lists with descriptions**:
-```
-✅ Parallel:
-- **Set the property**: Configures the initial state
-- **Call the function**: Triggers the update
-- **Verify the result**: Checks the outcome
-```
-
-**Sources**: S9 (Microsoft Style Guide - "Lists")
+Same grammatical structure in lists. See **S2** for details.
+- ❌ "Set... / Calling... / You should..." → ✅ "Set... / Call... / Verify..."
 
 ---
 
 ### R10. Avoid Ambiguous Pronouns
 
-**Rule**: Make pronoun references clear. When in doubt, repeat the noun.
-
-**Examples**:
-```
-❌ Ambiguous: The item and the parent both have properties. It is updated first.
-✅ Clear:      The item and the parent both have properties. The item is updated first.
-
-❌ Ambiguous: Call show() after creating the widget. This ensures visibility.
-✅ Clear:      Call show() after creating the widget. This call ensures visibility.
-```
-
-**Sources**: S2 (QUIP 25), S9 (Microsoft Style Guide - "Pronouns")
+Clear pronoun references. When in doubt, repeat the noun. See **S2** for details.
+- ❌ "It is updated first" → ✅ "The item is updated first"
 
 ---
 
@@ -385,80 +312,38 @@ Always use official capitalization and spelling for Qt products and modules:
 
 ### R11. Commas (Serial/Oxford Comma)
 
-**Rule**: Always use the serial comma (Oxford comma) in lists.
-
-**Examples**:
-```
-✅ "The function takes three parameters: name, value, and type."
-✅ "Set the property, call the method, and verify the result."
-❌ "Set the property, call the method and verify the result."
-```
-
-**Sources**: S2 (QUIP 25), S1 (Qt Writing Guidelines)
-
----
+Always use serial comma in lists. See **S1, S2** for details.
+- ✅ "name, value, and type" / ❌ "name, value and type"
 
 ### R12. Capitalization
 
-**Section titles**: Use sentence-case for section titles (capitalize only the first word and proper nouns).
+**Rule**: Capitalization depends on the command type.
 
-**Examples**:
-```
-✅ "Getting started with Qt Quick"
-✅ "Using the property system"
-❌ "Getting Started With Qt Quick" (title case)
-❌ "Using The Property System" (title case)
-```
+| Command | Case | Example |
+|---------|------|---------|
+| `\title` | **Title Case** | `\title Getting Started with Qt Quick` |
+| `\section1`/`\section2` | **Sentence case** | `\section1 Building your first application` |
+| Table `\header` | **Sentence case** | `\li Default value` |
 
-**Capitalize**:
-- Proper nouns: Qt, QML, JavaScript, OpenGL
-- Class names: QWidget, QObject, ListView
-- First word of sentences
-- First word after colons in titles
+**Note**: Qt Writing Guidelines (S1) specifies sentence case for `\section` titles but
+does not address `\title`. Analysis of Qt codebase shows ~80% of `\title` commands use
+Title Case. This is the de facto standard.
 
-**Don't capitalize**:
-- Generic terms: widget, object, property, signal
-- Function names (unless starting a sentence): setProperty(), show()
-- Technical terms: boolean, integer, string
+**Title Case rules** (for `\title`):
+- Capitalize first/last words, nouns, verbs, adjectives, adverbs
+- Lowercase articles (a, an, the), short prepositions (to, in, of, for), conjunctions (and, but, or)
 
-**Example**:
-```
-✅ "The QWidget class provides the base functionality for UI widgets."
-✅ "The setProperty() function sets the property value."
-```
+**Sentence case rules** (for `\section`):
+- Capitalize first word and proper nouns only
 
-**Sources**: S1 (Qt Writing Guidelines), S2 (QUIP 25), S9 (Microsoft Style Guide)
+**Full reference**: `references/title-capitalization.md`
 
----
+**Sources**: S1, S2, S9, Qt codebase analysis
 
 ### R13. Numbers
 
-**Rule from S2 (QUIP 25)** (clear and unambiguous):
-
-**Spell out one through nine** in prose/narrative text:
-```
-✅ "You have three options"
-✅ "Consider these five approaches"
-```
-
-**Use numerals for 10 and above**:
-```
-✅ "15 items"
-✅ "100 pixels"
-```
-
-**ALWAYS use numerals for** (even if below 10):
-- **Parameters and return values**: "takes 3 parameters", "returns 2 values"
-- **Dimensions**: "5 milliseconds", "3 x 4 grid", "2.5 meters"
-- **Versions**: "Qt 6.5"
-- **Code values**: "3 items in the list"
-
-**Numbers starting sentences**: Spell out
-```
-✅ "Ten items are available."
-```
-
-**Sources**: S2 (QUIP 25)
+Spell out 1-9, numerals for 10+. See **S2** for details.
+- Always numerals for: dimensions, versions, code values
 
 ---
 
@@ -509,10 +394,27 @@ See \l {Getting Started}, \l {Qt Modules}, and \l {Qt Examples}.
 
 **Enforcement**: CI-ENFORCED. This rule is checked automatically by CI.
 
+**Scope**: Applies to ALL lines including:
+- Prose paragraphs
+- List items (`\li`)
+- **Table rows (`\row`)** - commonly overlooked
+- Alt text lines
+- Code examples in documentation
+
 **Context**:
 - Documentation comments in .cpp files follow the surrounding code's column width
 - Qt code uses 80-column limit
 - Applies to QDoc comments and .qdoc files
+
+**Table rows** are a frequent violation source because multiple cells concatenate:
+```qdoc
+❌ 102 chars:
+    \row \li NVIDIA \li Jetson AGX Orin 64GB Developer Kit \li Yocto 5.2 \li \l{Boot to Qt} \li Qt Group
+
+✓  Split across lines:
+    \row \li NVIDIA \li Jetson AGX Orin 64GB Developer Kit \li Yocto 5.2
+        \li \l{Boot to Qt} \li Qt Group
+```
 
 **Exception**: Single-line content within `{}` should stay on one line when possible for easier searching and error detection.
 
@@ -520,15 +422,20 @@ See \l {Getting Started}, \l {Qt Modules}, and \l {Qt Examples}.
 
 ---
 
-### R41. \sa Targets Must Match Exact Page Titles
+### R41. \sa Targets Must Resolve
 
-**Rule**: Each `\sa` (see also) target must resolve to an actual documentation page title. The target text must match the page title exactly.
+**Rule**: Each `\sa` (see also) target must resolve to a valid documentation target.
+`\sa` uses the **same resolution mechanism as `\l`** (`findNodeForAtom()`), so all
+link resolution rules apply.
+
+**Technical Detail**: `\sa` produces the same "Can't link to 'X'" warning as `\l`
+when resolution fails. It also warns "Redundant link to self" when linking to the
+containing node.
 
 **Validation Method**:
-1. Identify the expected page URL from the target
-2. Fetch the page (e.g., `https://doc.qt.io/qt-6/quick3d-examples.html`)
-3. Verify the page exists (no 404)
-4. Confirm the target matches the actual page title exactly
+1. Search index files for the target: `grep 'name="Target"' */doc/*/*.index`
+2. For page titles: `grep 'title="Target"' */doc/*/*.index`
+3. Verify the target exists and is public (`access="public"`)
 
 **Common Mistakes**:
 ```
@@ -537,13 +444,21 @@ See \l {Getting Started}, \l {Qt Modules}, and \l {Qt Examples}.
 
 ❌ \sa {Qt Examples}                    (page doesn't exist)
 ✅ \sa {All Qt Examples}
+
+❌ \sa show()                           (ambiguous without class)
+✅ \sa QWidget::show()
 ```
 
-**Why This Matters**: Unlike `\l{}` which may auto-resolve or show warnings, `\sa` targets that don't match exact page titles produce broken links in the generated documentation with no build-time warning.
+**Syntax**: `\sa` takes comma-separated targets. Missing commas produce warnings.
+```
+✅ \sa QWidget::show(), QDialog::exec()
+❌ \sa QWidget::show() QDialog::exec()   // Missing comma
+```
 
-**LESSON LEARNED**: Missing \sa validation caused undetected broken links in production. Always verify \sa targets against actual page titles.
+**Cross-reference**: See skill-qdoc/references/link-resolution.md for complete `\sa`
+syntax, parsing details, and resolution flow.
 
-**Sources**: QDoc Manual, Qt Documentation Team practice
+**Sources**: QDoc source (`docparser.cpp:parseAlso()`, `generator.cpp:generateAlsoList()`)
 
 ---
 
@@ -592,7 +507,16 @@ See \l {Getting Started}, \l {Qt Modules}, and \l {Qt Examples}.
 - `\class` - Initiates class documentation
 - `\brief` - Mandatory summary (must end with period)
 - `\inmodule` - Associates class to Qt module
-- `\since` - Version when class was added
+- `\since` - Version when class was added (verify via git - see below)
+
+**`\since` Verification (MANDATORY):**
+
+Do NOT copy `\since` from existing docs. Verify using git:
+```bash
+git log --oneline --follow --diff-filter=A -- "file.cpp" | tail -1
+git tag --contains <commit> --sort=version:refname | head -3
+```
+First tag = correct `\since` version. See skill-qdoc/references/context-commands.md.
 
 **Brief patterns**:
 ```
@@ -975,98 +899,21 @@ See rules R1-R38 for details:
 
 ---
 
-## R38. Quick Reference: Common Substitutions
+## R38. Common Substitutions
 
-### Latin Terms (Always Avoid)
+Avoid Latin terms, formal/verbose phrases, and hedging words. See **S1, S2, S9**
+for complete lists.
 
-Per R7, avoid Latin terms for international readability.
+**Key substitutions** (most commonly flagged):
+| Avoid | Use |
+|-------|-----|
+| e.g., i.e., etc., via | for example, that is, (be specific), through |
+| in order to | to |
+| utilize | use |
+| simply, obviously, clearly | (omit) |
+| since/as (causation) | because |
 
-| Instead of... | Use... | Source |
-|---------------|--------|--------|
-| e.g. | for example, such as, like | S9 (MS Style Guide) |
-| i.e. | that is | S9 (MS Style Guide) |
-| etc. | (be specific, or use "such as" + examples) | S9 (MS Style Guide) |
-| via | through, using, with, by | S2 (QUIP 25), S9 |
-| per | according to, for each, a | Plain language |
-| versus / vs. | compared to, or, against | Plain language |
-| re: | about, regarding | Plain language |
-| ergo | so, therefore | Plain language |
-| vis-à-vis | compared with, about | Plain language |
-
-### Formal/Verbose Phrases
-
-| Instead of... | Use... | Source |
-|---------------|--------|--------|
-| In order to | To | S2 (QUIP 25), S9 |
-| It is possible to | You can / Can | S2 (QUIP 25) |
-| There are X that | X do... | S2 (QUIP 25) |
-| Make use of | Use | S9 (MS Style Guide) |
-| At this point in time | Now | Plain language |
-| In the event that | If | Plain language |
-| With regard to | About | Plain language |
-| Is able to | Can | Plain language |
-| In addition to | Also / Besides | S9 (MS Style Guide) |
-| Prior to | Before | Plain language |
-| Subsequent to | After | Plain language |
-| In lieu of | Instead of | Plain language |
-| Due to the fact that | Because | Plain language |
-| For the purpose of | To, For | Plain language |
-| In the process of | (omit, or use -ing verb) | Plain language |
-| On a daily basis | Daily | Plain language |
-
-### Formal Verbs
-
-| Instead of... | Use... | Source |
-|---------------|--------|--------|
-| utilize | use | S9 (MS Style Guide) |
-| leverage | use, take advantage of | S9 (MS Style Guide) |
-| commence | begin, start | Plain language |
-| terminate | end, stop | Plain language |
-| implement | carry out, do, put in place | Plain language |
-| facilitate | help, make easier | Plain language |
-| endeavor | try | Plain language |
-| ascertain | find out, learn | Plain language |
-| indicate | show, say | Plain language |
-| obtain | get | Plain language |
-| provide | give | Plain language |
-| require | need | Plain language |
-| sufficient | enough | Plain language |
-| additional | more | Plain language |
-| approximately | about | Plain language |
-| currently | now | Plain language |
-
-### Hedging Words (Avoid or Use Sparingly)
-
-Per S2 (QUIP 25), avoid words that undermine confidence or assume reader knowledge.
-
-| Avoid... | Reason | Source |
-|----------|--------|--------|
-| simply, just | Implies task is trivial; condescending | S2 (QUIP 25) |
-| obviously, clearly | Assumes reader knowledge | S2 (QUIP 25) |
-| easily | May not be easy for reader | S2 (QUIP 25) |
-| please | Use only for inconvenient requests | S2 (QUIP 25) |
-| note that, notice that | Often unnecessary; just state the fact | Plain language |
-| it should be noted | Wordy; just state the fact | Plain language |
-
-### Terminology
-
-| Instead of... | Use... | Source |
-|---------------|--------|--------|
-| programmer | developer | S2 (QUIP 25) |
-| neutral voice | imperative mood / indicative mood | S2 (QUIP 25) |
-| since / as (causation) | because | S2 (QUIP 25), S9 |
-
-### Causal Connectors
-
-When expressing cause/effect relationships:
-
-| Instead of... | Use... | Source |
-|---------------|--------|--------|
-| hence | so, as a result | Plain language |
-| therefore | so, as a result | Plain language |
-| thus | so, this way | Plain language |
-| consequently | so, as a result | Plain language |
-| accordingly | so | Plain language |
+**Full substitution lists**: Consult S2 (QUIP 25) and S9 (Microsoft Style Guide).
 
 ---
 
@@ -1134,156 +981,73 @@ When expressing cause/effect relationships:
 
 ## Linking Style and Syntax
 
-**Note**: For detailed link resolution diagnostics and debugging, see **skill-qdoc** (`references/link-resolution.md`). This section covers basic style rules for writing links.
+**Reference**: For syntax details, examples, and diagnostics, see **skill-qdoc** (`references/link-resolution.md`). This section provides quick style rules.
 
 ---
 
 ### R45. Basic Link Syntax
 
-**Rule**: Use the correct `\l` command form for each linking situation.
+**Rule**: Use correct `\l` form. Prefer no space before brace (R39).
 
-**Syntax forms**:
-```qdoc
-\l{target}                    Basic link
-\l{target}{display text}      Custom display text
-\l[QML]{target}               Force QML genus
-\l[CPP]{target}               Force C++ genus
-\l[CPP QtCore]{target}        Force C++ in specific module
-```
+| Form | Use |
+|------|-----|
+| `\l{target}` | Basic link |
+| `\l{target}{text}` | Custom display text |
+| `\l[QML]{target}` | Force QML genus |
 
-**No space before brace** (per R39):
-```
-✅ \l{QWidget}
-❌ \l {QWidget}
-```
-
-**Examples**:
-```qdoc
-\l{QWidget::setGeometry()}
-\l{ListView#Reusing Items}
-\l{Getting Started with Qt Quick}{getting started guide}
-```
-
-**Sources**: S10 (QDoc Manual), skill-qdoc (link-resolution.md)
+**Details**: skill-qdoc/references/link-resolution.md "Link Syntax"
 
 ---
 
-### R46. Link vs Code Formatting (`\l` vs `\c`)
+### R46. Link vs Code (`\l` vs `\c`)
 
-**Rule**: Use `\l{}` for documented/public APIs; use `\c{}` for undocumented or internal types.
+**Rule**: `\l{}` for public APIs; `\c{}` for internal/undocumented types.
 
-**Decision matrix**:
-| Target Status | Command | Example |
-|---------------|---------|---------|
-| Documented, public | `\l{}` | `\l{QWidget::show()}` |
-| Undocumented, internal | `\c{}` | `\c{QWidgetPrivate::init()}` |
-| Private header (`_p.h`) | `\c{}` | `\c{QPlatformWindow::invalidateSurface()}` |
-| External URL | `\l{}` with `\externalpage` | `\l{CMake Documentation}` |
+- Public, documented → `\l{QWidget::show()}`
+- Private header (`_p.h`) → `\c{QWidgetPrivate::init()}`
+- External URL → `\l{}` with `\externalpage`
 
-**Diagnostic**: If you see "Can't link to 'X'" warning for a type in a private header, use `\c{}`.
-
-**Sources**: skill-qdoc (link-resolution.md), QDoc Manual
+**Details**: skill-qdoc/references/link-resolution.md "Decision Tree"
 
 ---
 
-### R47. Section Links Within Type Documentation
+### R47. Section Links in Type Docs
 
-**Rule**: Use `TypeName#Section Title` syntax to link to sections within C++ class or QML type documentation. Do NOT use `page.html#anchor` syntax.
+**Rule**: Use `TypeName#Section Title`, NOT `page.html#anchor`.
 
-**Correct syntax**:
-```qdoc
-\l{QColor#The HSV Color Model}
-\l{ListView#Reusing Items}
-\l{QRhi#Frame captures and performance profiling}
-\l{QDialog#Modal Dialogs}{modal dialog}
-```
+- Correct: `\l{QColor#The HSV Color Model}`
+- Wrong: `\l{qcolor.html#the-hsv-color-model}`
 
-**Incorrect syntax** (will fail):
-```qdoc
-❌ \l{qcolor.html#the-hsv-color-model}
-❌ \l{qml-qtquick-listview.html#reusing-items}
-```
-
-**Why**: The `page.html#anchor` syntax only works for explicit `\page` pages, not auto-generated pages from `\class` or `\qmltype` commands.
-
-**Sources**: skill-qdoc (link-resolution.md)
+**Details**: skill-qdoc/references/link-resolution.md "Section Links"
 
 ---
 
 ### R48. External Page Links
 
-**Rule**: Use `\externalpage` to create named targets for external URLs. The link target must match the `\title` exactly (including after macro expansion).
+**Rule**: Link target must match `\externalpage` `\title` exactly (including macro expansion).
 
-**Definition**:
-```qdoc
-/*!
-    \externalpage https://cmake.org/cmake/help/latest/
-    \title CMake Documentation
-*/
-```
-
-**Usage**: `\l{CMake Documentation}` → links to cmake.org
-
-**Common mistakes**:
-```qdoc
-❌ \l{CMake}                    (partial title)
-❌ \l{cmake documentation}      (wrong case)
-✅ \l{CMake Documentation}      (exact match)
-```
-
-**With macros**: If title uses `\QOI`, link must too: `\l{\QOI official releases}`
-
-**Sources**: skill-qdoc (link-resolution.md), QDoc Manual
+**Details**: skill-qdoc/references/link-resolution.md "External Page Links"
 
 ---
 
 ### R49. QML Cross-Module Links
 
-**Rule**: Use `::` separator for linking to QML types and properties from other modules. Use braces `{}` when target contains dots.
+**Rule**: Use `::` separator; braces `{}` when target contains dots.
 
-**Syntax**:
-```qdoc
-{Module.Submodule::Type}              QML type
-{Module.Submodule::Type::property}    QML property
-{Module.Submodule::Type::method()}    QML method
-```
+- `\l{QtQuick.Controls::ToolTip::delay}`
 
-**Examples**:
-```qdoc
-\l{QtQuick.Controls::ToolTip}
-\l{QtQuick.Controls::ToolTip::delay}
-\sa QWidget::toolTip, {QtQuick.Controls::ToolTip::delay}
-```
-
-**Key points**:
-- Use `::` between module and type, and between type and member
-- Module names use dots internally (`QtQuick.Controls`) but `::` for scoping
-- Braces `{}` required when target contains `.` characters
-- In `\sa`, braces alone work (no `\l` prefix needed)
-
-**Sources**: skill-qdoc (link-resolution.md)
+**Details**: skill-qdoc/references/link-resolution.md "QML Cross-Module Links"
 
 ---
 
-### R50. QML Value Type Case Sensitivity
+### R50. QML Value Type Case
 
-**Rule**: QML value types (from `Q_GADGET` with `QML_VALUE_TYPE`) use **camelCase** (lowercase first letter). QML object types use **PascalCase**.
+**Rule**: Value types use camelCase; object types use PascalCase.
 
-**Value types (camelCase)**:
-| C++ Class | QML Value Type | Correct Link |
-|-----------|----------------|--------------|
-| `WebEngineCertificateError` | `webEngineCertificateError` | `\l{webEngineCertificateError::defer()}` |
-| `GeoCoordinate` | `geoCoordinate` | `\l{geoCoordinate::latitude}` |
+- Value type: `\l{geoCoordinate::latitude}`
+- Object type: `\l{ListView::delegate}`
 
-**Object types (PascalCase)**:
-```qdoc
-\l{WebEngineView::url}
-\l{ListView::delegate}
-```
-
-**Diagnostic**: If "Can't link to 'PascalCaseType::member'" warning appears for a QML type, search for `\qmlvaluetype` to check if it's a value type requiring camelCase.
-
-**Sources**: skill-qdoc (link-resolution.md)
+**Details**: skill-qdoc/references/link-resolution.md "QML Value Type Links"
 
 ---
 
@@ -1598,239 +1362,426 @@ move on. Do not suggest language changes without explicit legal guidance.
 
 ---
 
-## Sources and Further Reading
+## Page Templates
 
-### Content & Style Authority (WHAT to write)
+These rules define required structure for different documentation page types. Based on patterns from Qt Concurrent, Qt Widgets, Qt Quick Controls, and other Qt modules.
 
-#### Tier 1 - Qt Official Standards (HIGHEST AUTHORITY)
-
-**S1. Qt Writing Guidelines** (PRIMARY - HIGHEST PRECEDENCE)
-   - URL: https://wiki.qt.io/Qt_Writing_Guidelines
-   - Coordinates all Qt documentation standards
-   - Establishes overall policies
-
-**S2. QUIP 25 - Qt Documentation Writing Style** (AUTHORITATIVE)
-   - URL: https://code.qt.io/cgit/meta/quips.git/plain/quip-0025-Documentation-Writing-Style.rst
-   - Language, grammar, style, formatting standards
-   - States: "This QUIP is primary; Microsoft Writing Style Guide is optional"
-
-**S3. C++ Documentation Style**
-   - URL: https://wiki.qt.io/C%2B%2B_Documentation_Style
-   - C++ API documentation patterns and requirements
-   - Class, function, property, signal patterns
-
-**S4. QML Documentation Style**
-   - URL: https://wiki.qt.io/QML_Documentation_Style
-   - QML API documentation patterns and requirements
-   - QML type, property, signal, method patterns
-
-**S5. Qt Examples Guidelines**
-   - URL: https://wiki.qt.io/Qt_Examples_Guidelines
-   - Example code quality and structure requirements
-   - Zero warnings, screenshot specifications
-
-**S6. Writing Example Documentation and Tutorials**
-   - URL: https://wiki.qt.io/Writing_Example_Documentation_and_Tutorials
-   - 11 mandatory elements for example documentation
-   - Tutorial structure and style
-
-**S7. Qt Terms and Concepts**
-   - URL: https://wiki.qt.io/Qt_Terms_and_Concepts
-   - Official Qt terminology definitions
-   - Product naming conventions
-
-**S8. Qt Alt Text Style** (Local authoritative guide)
-   - Path: ~/.claude/skills/skill-alttext/SKILL.md
-   - Alt text patterns, formatting, terminology
-   - Priority order for alt text content
-
-#### Tier 2 - Supplementary Reference
-
-**S9. Microsoft Style Guide**
-   - URL: https://learn.microsoft.com/en-us/style-guide/welcome/
-   - Used when Qt sources don't specify
-   - Specific sections:
-     - Person: https://learn.microsoft.com/en-us/style-guide/grammar/person
-     - Verbs: https://learn.microsoft.com/en-us/style-guide/grammar/verbs
+**Reference template**: `qtbase/doc/global/app-examples-template/app-examples-template.qdoc` (examples only)
 
 ---
 
-### Tool & Syntax Reference (HOW to write it)
+### R58. Module Landing Page Structure
 
-**S10. QDoc Manual** (Command syntax and technical specifications)
-- URL: https://doc.qt.io/qt-6/qdoc-index.html
-- Local: qttools/src/qdoc/doc/qdoc-index.qdoc
-- **Purpose**: QDoc command syntax, parameter specs, formatting rules
-- **Not a style authority**: Works in conjunction with content sources above
-- **Referenced for**:
-  - Command syntax (`\class`, `\fn`, `\property`, `\brief`, etc.)
-  - Linking and cross-reference syntax
-  - Image and media command formatting
-  - QDoc configuration options
+**Rule**: Module landing pages (`{module}-index.qdoc`) must include navigation sections linking to examples and API reference.
 
-**Relationship**: Content sources tell you WHAT patterns to use. QDoc Manual tells you HOW to express them using QDoc commands.
+**Required sections** (in typical order):
 
-**Example**:
-- C++ Doc Style: "Function briefs start with action verbs like 'Returns...'"
-- QDoc Manual: "Use `\fn` command with syntax `\fn return-type Class::function(params)`"
+| Section | Required | Content |
+|---------|----------|---------|
+| `\page {module}-index.html` | ✓ | Page identifier |
+| `\title {Module Name}` | ✓ | Human-readable title |
+| `\brief` | ✓ | Must end with period |
+| Introduction | ✓ | Module description paragraphs |
+| `\section1 Using the Module` | ✓ | With `\include module-use.qdocinc` |
+| Module-specific content | varies | API overview, concepts, features |
+| `\section1 Articles and Guides` | optional | If tutorials/guides exist |
+| **`\section1 Examples`** | ✓ | `\l{{Module} Examples}` |
+| **`\section1 Reference`** | ✓ | `\l{{Module} C++ Classes}` and/or `\l{{Module} QML Types}` |
+| `\section1 Related Modules` | optional | Links to dependencies |
+| `\section1 Module Evolution` | optional | `\l{Changes to {Module}}` |
+| `\section1 Licenses` | ✓ | Standard license text |
 
----
+**Examples section** (MANDATORY):
+```qdoc
+\section1 Examples
 
-## Version History
+\list
+    \li \l{Qt TaskTree Examples}
+\endlist
+```
 
-- **3.2** (2026-02-24): QML-to-C++ cross-API linking
-  - Added R51b: QML-to-C++ Cross-API Linking guidelines
-  - Enums: C++ enum links in QML docs ARE appropriate
-  - Methods/Properties: QML docs should link to QML, not C++ equivalents
-  - If QML target not indexed, fix topic command rather than redirect to C++
-  - Updated rule count (now 58 rules total)
+**Reference section** (MANDATORY):
+```qdoc
+\section1 Reference
 
-- **3.1** (2026-02-20): R39 whitespace rule clarification
-  - Revised R39: "No Space" → "Prefer No Space" (style preference, not requirement)
-  - Added parser evidence: `docparser.cpp:2377` shows both forms parse identically
-  - Added rationale: compactness helps meet 80-column limit
-  - Added Qt codebase usage stats: 71% no-space, 29% space
-  - Removed "Incorrect" labels - both forms are valid
-  - Changed enforcement from "RECOMMENDED" to "STYLE PREFERENCE"
-  - Updated skill-qdoc with whitespace normalization details
+\list
+    \li \l{Qt TaskTree C++ Classes}
+\endlist
+```
 
-- **3.0** (2026-02-18): QML abstraction principle
-  - Added R51: QML Abstraction - Use Generic Types, Not C++ Types
-  - Key guidance: Use `object` (not `QtObject` or `QtQml::QtObject`) for QObject* returns
-  - QML documentation describes QML interface, not C++ implementation
-  - Added return type mapping table (C++ to QML types)
-  - Updated rule count (now 51 rules total)
+For modules with both C++ and QML APIs:
+```qdoc
+\section1 Reference
 
-- **2.9** (2026-02-17): Added linking style and syntax rules
-  - Added R45: Basic Link Syntax (`\l{}`, `\l[]{}`, `\l{}{text}`)
-  - Added R46: Link vs Code Formatting (`\l` vs `\c` decision)
-  - Added R47: Section Links Within Type Documentation (TypeName#Section)
-  - Added R48: External Page Links (`\externalpage` with `\title` matching)
-  - Added R49: QML Cross-Module Links (`::` separator, braces for dots)
-  - Added R50: QML Value Type Case Sensitivity (camelCase for value types)
-  - Added "Linking Style and Syntax" section
-  - Cross-referenced skill-qdoc for detailed diagnostics
-  - Updated rule count (now 50 rules total)
+\list
+    \li \l{Qt Quick Controls QML Types}{QML Types}
+    \li \l{Qt Quick Controls C++ Classes}{C++ Classes}
+\endlist
+```
 
-- **2.8** (2026-02-17): Precision for API documentation requirements
-  - Corrected R14: \brief is MANDATORY only for classes, types, properties, examples; RECOMMENDED for functions, signals, enums
-  - Simplified API Documentation Requirements section with links to official style guides
-  - Updated R17: Clarified \brief is recommended (not mandatory) for functions; \since IS mandatory per S3
-  - Updated R19: Clarified \brief is recommended (not mandatory) for signals
-  - Updated R35: Narrowed scope to classes/types/properties
-  - Updated R39: Clarified as RECOMMENDED (not strictly enforced), preferred for compact text
-  - Updated R40: Clarified as CI-ENFORCED
-  - Added R28b: Tools documentation style (Qt Creator, Qt Design Studio)
-  - Added R42: UI element markup
-  - Added R43: Keyboard shortcut formatting
-  - Added R44: Menu path formatting
-  - Added tools-specific terminology to R3
-  - Updated rule count (now 44 rules total)
+**Linking API elements in prose**: When mentioning classes or enum values in the module description, use `\l` to link them:
+```qdoc
+\list
+\li \l QProcessTask - Executes external processes.
+\li \l{WorkflowPolicy::StopOnError} - Stops execution on first error.
+\endlist
+```
 
-- **2.7** (2026-02-17): Qt product and module terminology
-  - Added "Qt Product and Module Names" table to R3 from S7 (Qt Terms and Concepts)
-  - Added "Compound Words" table with Qt documentation conventions
-  - Key additions: Qt GUI (not Gui), Qt Add-Ons (hyphenated), acronyms all caps
-  - Compound words: framerate, runtime, filename, namespace, checkbox, toolchain
-
-- **2.6** (2026-02-05): Expanded R38 word substitutions
-  - Added Latin terms section with "via", "per", "versus", "ergo", "vis-à-vis"
-  - Added formal verbs section (utilize, leverage, commence, terminate, etc.)
-  - Added hedging words section (simply, obviously, easily, please)
-  - Added causal connectors section (hence, therefore, thus, consequently)
-  - Organized into categorized tables with source citations
-  - Cross-referenced with S2 (QUIP 25), S9 (Microsoft Style Guide), plain language principles
-
-- **2.5** (2025-12-16): \sa target validation
-  - Added R41: \sa targets must match exact page titles
-  - Updated rule count (now 41 rules total)
-  - Added lesson learned about \sa validation causing undetected broken links
-
-- **2.4** (2025-12-06): QDoc command formatting
-  - Added R39: No space between QDoc commands and curly braces
-  - Added R40: 80-column line length for documentation
-  - Added "QDoc Command Formatting" section
-  - Updated rule enumeration (now 40 rules total)
-  - Clarified QDoc Style Guidelines wiki precedence over QDoc Manual examples
-
-- **2.3** (2025-11-28): Enumeration system
-  - Added comprehensive R# (rule) and S# (source) numbering throughout
-  - Updated all 38 rules with R1-R38 references
-  - Updated all 10 sources with S1-S10 references
-  - Added "Rule and Source Enumeration" section for quick reference
-  - Corrected rule count documentation (38 rules total)
-
-- **2.2** (2025-11-28): Skill integration
-  - Added cross-reference to skill-alttext skill for specialized alt text work
-  - Added guidance on when to use the specialized skill-alttext skill
-  - Clarified that Alt Text section provides essential principles while skill-alttext provides deep-dive guidance
-
-- **2.1** (2025-11-28): Structure refinement
-  - Restructured source hierarchy into two dimensions (WHAT vs HOW)
-  - Clarified QDoc Manual as tool/syntax reference, not style authority
-  - Added "Documentation Standards Framework" section
-  - Added "When to Consult Which Source" guidance
-  - Enhanced source descriptions with clear purpose statements
-  - Added syntax references alongside content sources in rules
-
-- **2.0** (2025-11-28): Major update
-  - Fixed "neutral voice" terminology (now uses "imperative/indicative mood")
-  - Clarified numbers rule from QUIP 25 (spell 1-9, numerals for code values)
-  - Removed unsubstantiated "omit articles" rule
-  - Fixed alt text "active voice" guidance (now uses "descriptive phrases")
-  - Added API documentation requirements (\brief mandatory, patterns)
-  - Added example documentation requirements (11 elements, zero warnings)
-  - Updated source precedence hierarchy (Qt Writing Guidelines primary)
-  - Added proper source URLs (code.qt.io for QUIPs)
-  - Added C++/QML Documentation Style guidance
-  - Added sentence length guideline (≤20 words)
-  - Added "developer" not "programmer" terminology
-
-- **1.0** (2025-11-28): Initial version consolidating language and style guidelines
+**Sources**: Qt Concurrent, Qt Widgets, Qt Quick Controls module pages (de facto standard)
 
 ---
 
-## Important Notes
+### R59. Example Group Requirements
 
-### Authority Framework
+**Rule**: Example group pages (`\group {module}_examples`) must be configured for global visibility.
 
-**Content & Style Authority** (WHAT to write):
-When sources conflict, follow this hierarchy:
-1. Qt Writing Guidelines
-2. QUIP 25
-3. C++/QML Documentation Style
-4. Example Documentation guides
-5. Microsoft Style Guide (supplementary only)
+**Required commands**:
 
-**Tool & Syntax Reference** (HOW to write it):
-- QDoc Manual is the authoritative reference for QDoc command syntax
-- Use QDoc Manual for technical syntax questions
-- Use content sources for style and pattern questions
+```qdoc
+/*!
+    \group tasktree_examples
+    \title Qt TaskTree Examples
+    \ingroup all-examples
 
-### Critical Requirements
+    \brief Examples demonstrating the Qt TaskTree module.
+*/
+```
 
-**\brief is mandatory**: QDoc generates warnings if \brief is missing or empty. All briefs must end with a period.
+| Command | Required | Purpose |
+|---------|----------|---------|
+| `\group {name}` | ✓ | Defines the group |
+| `\title {Module} Examples` | ✓ | Human-readable title |
+| `\ingroup all-examples` | ✓ | Appears in global "All Qt Examples" page |
+| `\brief` | ✓ | Must end with period |
 
-**Terminology correction**: The term "neutral voice" does not appear in any Qt or Microsoft documentation. Use "imperative mood" (for commands) and "indicative mood" (for descriptions) instead.
+**Without `\ingroup all-examples`**: The module's examples won't appear in the global examples listing at doc.qt.io/qt-6/qtexamplesandtutorials.html.
 
-**Numbers are clear**: QUIP 25 provides unambiguous guidance: spell out 1-9 in prose, but always use numerals for parameters, dimensions, versions, and code values.
+**Individual examples** must include:
+```qdoc
+\ingroup {module}_examples
+```
 
-**Alt text style**: Despite stating "active voice", Qt Alt Text Style demonstrates descriptive nominal phrases. Follow the demonstrated patterns.
+This links them to the module's example group page.
 
-### How Content and Syntax Work Together
+**Sources**: Qt example groups (qt3d_examples, qtquick_examples, etc.)
 
-Every documentation task requires both dimensions:
+---
 
-**Example: Documenting a function**
-1. Content source (C++ Doc Style): Tells you to start with action verb like "Returns..."
-2. Syntax source (QDoc Manual): Tells you to use `\fn` command with proper parameters
+### R60. Cross-Module Linking
 
-**Example: Adding an image**
-1. Content source (Qt Alt Text Style): Tells you to use descriptive phrase, capitalize, no period
-2. Syntax source (QDoc Manual): Tells you syntax is `\image filename.png` with alt text on next line
+**Rule**: When linking to types from other Qt modules, explicit `\l` is required
+in certain contexts. QDoc autolinking depends on context and pattern matching.
 
-**Specialized skills**: For complex or extensive work in specific areas, specialized skills provide deeper guidance:
-- **skill-alttext skill**: Deep dive on alt text (patterns, formatting, QDoc config)
-- This skill provides the foundation; specialized skills add depth for focused work
+**Technical reference**: See `skill-qdoc/references/link-resolution.md` for the
+complete autolink pattern matching rules and context-aware resolution behavior.
 
-Always consult both dimensions for complete guidance.
+**When autolink works:**
+| Pattern | Autolinks? | Example |
+|---------|------------|---------|
+| Simple class name from indexed module | ✓ | `QProcess` → links to Qt Core |
+| Class name in prose context | ✓ | "Use QTimer for delays" |
+| Functions in same-class context | ✓ | `changeEvent()` inside QWidget docs |
+| Qualified functions | ✓ | `QTimer::singleShot()` (CamelCase + `::`) |
+
+**When explicit `\l` required:**
+| Pattern | Why | Fix |
+|---------|-----|-----|
+| Bare function outside class context | No class to search | `\l{QWidget::changeEvent()}` |
+| Template with `<Type>` | `<` terminates parsing | `\l{QFutureWatcher}<Result>` |
+| Same-module types in lists | Context interference | `\l{QtTaskTree::}{QThreadFunction}` |
+| Types after operators (`+`, `=`) | Context interference | `\l QNetworkReply = \l{Module::}{Type}` |
+
+**Note**: Parentheses `()` do NOT break autolinking. Functions like `singleShot()`
+autolink when qualified (`QTimer::singleShot()`) because QDoc's `isAutoLinkString()`
+explicitly handles `()` as a valid autolink pattern component.
+
+**Namespace format for same-module types:**
+```qdoc
+\l{Namespace::}{TypeName}
+```
+
+Example:
+```qdoc
+\li \l QNetworkAccessManager + \l QNetworkReply = \l{QtTaskTree::}{QNetworkReplyWrapper}
+\li \l{QtConcurrent::run()} + \l{QFutureWatcher}<Result>
+    = \l{QtTaskTree::}{QThreadFunction}<Result>
+```
+
+**Verification**: After doc build, check ERR file for "Can't link to" warnings.
+
+**Reviewer pre-verification (BLOCKING):**
+
+Before suggesting link changes, follow the **Reviewer Verification Checklist** in
+`skill-qdoc/references/link-resolution.md`. Key: fetch index, check autolink status,
+include evidence in Validation field.
+
+**Sources**: QDoc link resolution behavior; Qt TaskTree, Qt Concurrent patterns
+
+---
+
+### R61. qdocconf Module Configuration
+
+**Rule**: Module qdocconf files must properly configure dependencies and subprojects for cross-module linking.
+
+**Required elements:**
+
+```qdocconf
+# Dependencies for cross-module links
+depends += qtcore \
+           qtnetwork \
+           qtconcurrent \
+           ...
+
+# Subprojects for navigation
+qhp.ModuleName.subprojects = examples classes
+
+qhp.ModuleName.subprojects.classes.title = C++ Classes
+qhp.ModuleName.subprojects.classes.indexTitle = Module Name C++ Classes
+qhp.ModuleName.subprojects.classes.selectors = class fake:headerfile
+
+qhp.ModuleName.subprojects.examples.title = Examples
+qhp.ModuleName.subprojects.examples.indexTitle = Module Name Examples
+qhp.ModuleName.subprojects.examples.selectors = example
+
+# Navigation
+navigation.landingpage = "Module Name"
+navigation.cppclassespage = "Module Name C++ Classes"
+
+# Warning limit (0 = fail on any warning)
+warninglimit = 0
+```
+
+**Verification checklist:**
+- [ ] `depends` includes all modules referenced in documentation
+- [ ] `subprojects` includes `classes` if module has public C++ API
+- [ ] `subprojects` includes `examples` if module has examples
+- [ ] `navigation.landingpage` matches `\title` in index.qdoc
+- [ ] `warninglimit = 0` for strict builds (recommended)
+
+**Common dependency mappings:**
+| If you link to... | Add to depends |
+|-------------------|----------------|
+| `QProcess`, `QTimer`, `QObject` | `qtcore` |
+| `QNetworkAccessManager`, `QNetworkReply` | `qtnetwork` |
+| `QtConcurrent::run()`, `QFuture` | `qtconcurrent` |
+| `QRestAccessManager` | `qtnetwork` |
+| CMake commands | `qtcmake` |
+
+**Sources**: Qt module qdocconf files (qtcore, qtconcurrent, qttasktree)
+
+---
+
+### R62. Module Review Checklist
+
+**Rule**: When reviewing a complete module's documentation, verify all structural elements.
+
+**Landing page (`{module}-index.qdoc`):**
+- [ ] `\page {module}-index.html` present
+- [ ] `\title` matches navigation.landingpage in qdocconf
+- [ ] `\brief` ends with period
+- [ ] `\section1 Using the Module` with CMake/qmake instructions
+- [ ] `\section1 Examples` with `\l{Module Examples}` (R58)
+- [ ] `\section1 Reference` with `\l{Module C++ Classes}` (R58)
+- [ ] `\section1 Licenses` present
+- [ ] Class/enum names linked with `\l` where mentioned
+
+**Examples group (`\group {module}_examples`):**
+- [ ] `\ingroup all-examples` present (R59)
+- [ ] `\title` format: "{Module} Examples"
+- [ ] `\brief` ends with period
+
+**Individual examples:**
+- [ ] `\ingroup {module}_examples`
+- [ ] `\example` with correct path
+- [ ] `\examplecategory`
+- [ ] `\title`
+- [ ] `\brief` ends with period
+- [ ] `\image` with alt text in `{curly braces}`
+- [ ] `\include examples-run.qdocinc`
+- [ ] `\sa` at end referencing related examples/pages
+
+**API documentation (`\class`, `\typedef`, `\enum`):**
+- [ ] `\inmodule {ModuleName}`
+- [ ] `\brief` ends with period
+- [ ] `\sa` for related types
+- [ ] Cross-module links use explicit `\l` (R60)
+
+**Build verification:**
+- [ ] Documentation build completes without errors
+- [ ] No "Can't link to" warnings in build output
+- [ ] `warninglimit` in qdocconf is satisfied
+
+**Common QDoc warning patterns:**
+
+| Warning | Cause | Fix |
+|---------|-------|-----|
+| `Can't link to 'TypeName'` | Missing `\l` target or wrong namespace | Use `\l{Namespace::}{TypeName}` or add to `depends` |
+| `Can't link to 'function()'` | Functions need explicit link | Use `\l{Class::function()}` |
+| `Unknown base 'X' for QML type` | Missing QML module dependency | Add module to `depends` |
+| `Failed to find function` | Signature mismatch | Check `\fn` matches actual signature |
+| `No such parameter` | Parameter name wrong in docs | Update `\a paramName` to match code |
+
+**Sources**: Qt module documentation patterns
+
+---
+
+## Admonition and Markup Rules
+
+### R63. Admonition Appropriateness
+
+**Rule**: Use the correct admonition type for the content severity. Avoid weak warnings and hedging language.
+
+| Admonition | Use When | Do NOT Use For |
+|------------|----------|----------------|
+| `\note` | Supplementary information worth highlighting | Essential API behavior |
+| `\warning` | Serious consequences if ignored (crashes, data loss) | Minor caveats, default values |
+| `\important` | Critical information (rarely used) | Regular emphasis |
+
+**Anti-patterns:**
+
+1. **Weak warnings**: Using `\warning` without serious consequences
+   ```qdoc
+   ❌ \warning Use this property with caution.
+   ✓  \note Qt automatically disables this property when...
+   ```
+
+2. **Hedging language**: Vague phrases in warnings
+   - "use with caution", "be careful", "take care"
+   - If you can't specify the danger, it's not a warning
+
+3. **Automatic behavior as warning**: If Qt handles it automatically, use `\note`
+   ```qdoc
+   ❌ \warning This property is automatically disabled when using style sheets.
+   ✓  \note When a widget has a style sheet, Qt automatically disables this property.
+   ```
+
+**Full reference**: skill-qdoc/references/admonitions.md
+
+**Sources**: Qt Documentation Team practice, industry standards (ANSI Z535.6)
+
+---
+
+### R64. Markup Consistency
+
+**Rule**: All code elements in prose must have appropriate markup (`\c`, `\l`), applied consistently throughout the document.
+
+**Elements requiring markup:**
+
+| Element Type | Markup | Example |
+|--------------|--------|---------|
+| Boolean values | `\c` | `\c true`, `\c false`, `\c nullptr` |
+| Enum values | `\c` or `\l` | `\c{Qt::AlignLeft}`, `\c{QPalette::Window}` |
+| Widget attributes | `\c` or `\l` | `\c{Qt::WA_OpaquePaintEvent}` |
+| CSS properties | `\c` | `\c{border-image}` |
+| CMake elements | `\c` | `\c Qt6`, `\c find_package()` |
+| File extensions | `\c` | `\c{.yaml}` |
+
+**Consistency rule**: If an element appears multiple times, all instances must have the same markup.
+
+```qdoc
+❌ Inconsistent:
+   QPalette::Window is used. The color is defined by \c{QPalette::Window}.
+
+✓ Consistent:
+   \c{QPalette::Window} is used. The color is defined by \c{QPalette::Window}.
+```
+
+**Full reference**: skill-qdoc/references/markup-commands.md
+
+**Sources**: Qt Documentation Team practice
+
+---
+
+## Fix Verification (MANDATORY)
+
+**CRITICAL: Every language fix must be verified against ALL rules before presenting.**
+
+### The Problem
+
+Language fixes often address one issue while introducing another:
+
+| Fix addresses... | But introduces... |
+|------------------|-------------------|
+| R1 (passive voice) | R2 (wordiness) |
+| R2 (wordiness) | R1 (passive voice) |
+| R38 (Latin term) | R10 (missing article) |
+| Grammar error | R40 (line too long) |
+
+### Verification Process
+
+**Before presenting ANY language suggestion:**
+
+1. **Draft the fix**
+2. **Re-read the ENTIRE corrected sentence** - not just the changed part
+3. **Check against ALL language rules** (see checklist below)
+4. **If fix introduces new issues, revise** - iterate until fully compliant
+5. **Only present the final, fully-compliant suggestion**
+
+### Quick Verification Checklist
+
+For every drafted fix, verify:
+
+```
+- [ ] R1: Active voice? (no "is/are/was/were [verb]ed", "can be [verb]ed")
+- [ ] R2: Concise? (no "in order to", "some of the", "provide a way to")
+- [ ] R4: Present tense? (no "will return", "will be")
+- [ ] R10: Correct articles? ("the", "a", "an" where needed)
+- [ ] R38: No Latin? (no "via", "e.g.", "i.e.", "etc.")
+- [ ] R40: ≤80 columns?
+- [ ] Grammar correct? (agreement, possessives, parallelism)
+- [ ] Clear and readable?
+```
+
+### Domain Terms Exception
+
+**Before flagging terminology, verify it's not a valid technical term:**
+
+- **C++ terms**: "in-place" (construction), "move semantics", "RAII", "emplace"
+- **Qt terms**: Check Qt Terms and Concepts (S7)
+- **QML terms**: Check QML Documentation Style (S4)
+
+**Example**: "inplace" or "in-place" is valid C++ terminology. Do NOT flag as spelling error.
+
+### Example - Iterative Verification
+
+```
+Original: "The data can be also assigned directly via the property"
+
+Draft 1: "The data can also be assigned directly via the property"
+  ✗ R1: Still passive ("can be assigned")
+  ✗ R38: Latin term ("via")
+  → REVISE
+
+Draft 2: "You can also assign the data directly via the property"
+  ✓ R1: Active ("You can assign")
+  ✗ R38: Latin term ("via")
+  → REVISE
+
+Draft 3: "You can also assign the data directly through the property"
+  ✓ R1: Active
+  ✓ R38: No Latin
+  ✓ R2: Concise
+  ✓ R40: 58 chars
+  → PRESENT
+```
+
+---
+
+## Sources
+
+**Full source details with URLs:** See `references/sources.md`
+
+| ID | Source | Scope |
+|----|--------|-------|
+| S1 | Qt Writing Guidelines | Primary coordination |
+| S2 | QUIP 25 | Language, grammar, style |
+| S3 | C++ Documentation Style | C++ API patterns |
+| S4 | QML Documentation Style | QML API patterns |
+| S5 | Qt Examples Guidelines | Example code quality |
+| S6 | Writing Example Documentation | 11 mandatory elements |
+| S7 | Qt Terms and Concepts | Official terminology |
+| S8 | Qt Alt Text Style | Alt text (skill-alttext) |
+| S9 | Microsoft Style Guide | Supplementary only |
+| S10 | QDoc Manual | Command syntax (HOW) |
+
+**Changelog:** See `CHANGELOG.md`

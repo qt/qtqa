@@ -1,7 +1,8 @@
 ---
 name: skill-alttext
 description: Authoritative style rules for writing accessibility alt text in Qt documentation, including priority order, formatting rules, and terminology guidelines. Use when adding alt text to images.
-version: 1.2
+metadata:
+  version: "1.3"
 ---
 
 # Alt Text Style Directive for Qt Documentation
@@ -19,6 +20,58 @@ version: 1.2
 - If same line exceeds 80 columns, put alt text on next line indented to align with the filename
 - In table rows, align `\li` commands vertically under each other
 - **80-column limit for all lines**
+
+## QUIP 21 Technical Specifications
+
+**Reference:** [QUIP 21 - Using images in Qt documentation](https://contribute.qt-project.org/quips/21)
+
+### File Format
+
+| Format | Use Case | Notes |
+|--------|----------|-------|
+| **WebP** | Preferred for all images | Smaller file size |
+| PNG | Acceptable alternative | Use `optipng` to optimize |
+| JPEG | Photos, complex images | Lossy compression |
+| GIF | Animated images | Or lossless WebP |
+| SVG | Vector graphics | Scalable |
+
+### File Size
+
+- **Recommended:** < 50 KiB
+- Git post-commit hooks warn if images exceed this limit
+- Crop to include only relevant content
+- Use WebP format for smaller size
+
+### Screenshot Requirements
+
+| Spec | Requirement |
+|------|-------------|
+| Resolution | 1920x1080 pixels |
+| Display scaling | 100% |
+| Content | Only necessary screen portions |
+| Processing | Do not resize; CSS auto-scales > 800px width |
+| Highlighting | Use number icons from `qtdoc/doc/images/numbers/` |
+
+### Icon Requirements
+
+- Grayscale images with transparent background
+- Ensures visibility in light and dark documentation modes
+- Use `qttools/util/recolordocsicons/recolordocsicons.py` for problematic icons
+
+### Image Location
+
+Images must be in a directory listed in the module's `.qdocconf` file:
+
+```qdocconf
+imagedirs += images \
+             ../images \
+             ../../examples/quick/doc/images
+```
+
+**Verification:** If `\image myfile.webp` fails, check:
+1. File exists in repository
+2. File is in a path listed in `imagedirs`
+3. Path is relative to qdocconf location
 
 ## Terminology
 
@@ -61,10 +114,34 @@ Use these questions to determine alt text approach:
 - For flowcharts: describe beginning point, progress, and conclusion
 
 **Don't:**
-- Start with "a graphic of", "an image of", or "Screenshot of"
+- Start with prefix anti-patterns (see list below)
 - Use file names or URLs as alt text
 - Repeat surrounding text verbatim
 - Write generic/unhelpful descriptions
+
+## Prefix Anti-Patterns (NEVER USE)
+
+**These prefixes describe what the image IS, not what it SHOWS. Never use them:**
+
+| Anti-Pattern | Example (WRONG) |
+|--------------|-----------------|
+| "Screenshot of" | "Screenshot of the settings dialog" |
+| "Screenshot showing" | "Screenshot showing the toolbar" |
+| "Illustration of" | "Illustration of the node graph" |
+| "Illustration showing" | "Illustration showing the effect" |
+| "Image of" | "Image of the application window" |
+| "Picture of" | "Picture of the code editor" |
+| "Photo of" | "Photo of the hardware" |
+| "A graphic of" | "A graphic of the workflow" |
+| "An image of" | "An image of the result" |
+
+**Correct approach:** Start directly with what the image shows:
+- ❌ "Screenshot of the settings dialog with padding options"
+- ✅ "Settings dialog with padding options"
+- ❌ "Illustration showing a node graph"
+- ✅ "Node graph with Main, BlurHelper, and Output nodes"
+
+**Apply this rule to both original AND suggested replacement text.**
 
 **Decorative images:** Mark as decorative (empty alt); screen readers skip them. Most Qt documentation images are informative, not decorative.
 
@@ -249,10 +326,13 @@ When reviewing or creating patches for Qt documentation alt text, **ALWAYS** che
 ### 1. Alt Text Content and Formatting
 - ✅ Alt text follows priority order (visible text → context/behavior → generic description)
 - ✅ Uses generic terminology, not Qt class names (unless exceptions apply)
-- ✅ Concise and free of redundant prefixes ("Screenshot showing", "Illustration of")
+- ✅ **NO PREFIX ANTI-PATTERNS** - Not starting with:
+  - "Screenshot of/showing", "Illustration of/showing"
+  - "Image of", "Picture of", "Photo of", "A graphic of"
 - ✅ Active voice, not passive constructions
 - ✅ 80-column limit compliance
 - ✅ Alt text on same line, or next line (indented) if exceeds 80 columns
+- ✅ **SUGGESTED FIXES also checked** - Apply same rules to replacement text
 
 ### 2. Image Verification ⚠️ **CRITICAL - DO NOT SKIP**
 
@@ -285,6 +365,35 @@ Alt text claims: "miter joins"
 Visual shows: rounded corners at line joins
 Result: ❌ ACCURACY ERROR - should say "round joins"
 ```
+
+#### Remote Image Verification
+
+When images aren't available locally (e.g., reviewing Gerrit patches for other repos):
+
+**Method 1 - Published docs (preferred):**
+```bash
+# Most Qt example images are published to doc-snapshots
+WebFetch https://doc-snapshots.qt.io/qt6-dev/images/{filename}
+```
+
+**Method 2 - Clone repository:**
+```bash
+git clone --depth 1 https://code.qt.io/qt/{repo}.git /tmp/{repo}
+# Then use Read tool on /tmp/{repo}/examples/.../doc/images/{filename}
+```
+
+**Method 3 - Gerrit raw file API:**
+```bash
+# For files in the patch itself
+curl -s "https://codereview.qt-project.org/changes/{change-id}/revisions/current/files/{encoded-path}/content" | base64 -d
+```
+
+**If ALL methods fail:**
+- Explicitly state in review: `"⚠️ IMAGE VERIFICATION BLOCKED - unable to access images. Alt text accuracy UNVERIFIED."`
+- Do NOT silently skip this step
+- Proceed with other checks but flag that accuracy is unverified
+
+**Orchestrator responsibility:** The orchestrator (Claude Code) should check image availability BEFORE dispatching to the agent and include access instructions in the agent prompt. See CLAUDE.md "Image Verification Context" section.
 
 ### 3. QDoc Configuration ⚠️ **CRITICAL - DO NOT FORGET**
 - ✅ Check if `reportmissingalttextforimages = true` is in the module's .qdocconf file

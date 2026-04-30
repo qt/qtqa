@@ -1,0 +1,27 @@
+# skill-doc-diff Changelog
+
+- **v5.22** (2026-03-19): Refactored bug verification
+  - Moved workflow steps (MCP, WebFetch, triggers) to CLAUDE.md orchestrator
+  - Skill now contains only output format template
+- **v5.21** (2026-03-19): MCP-first bug verification
+- **v5.20** (2026-03-16): Added Link Verification requirement
+- **v5.19** (2026-03-12): Added Alternative Output Formats section
+- **v5.18** (2026-02-28): Added `(new)` suffix for Output field
+- **v5.17** (2026-02-24): Added Bug Report Verification section
+- **v5.16** (2026-02-24): Renamed Rationale to Comments
+- **v5.15** (2026-02-24): Simplified fields (Cause, Evidence merged)
+- **v5.14** (2026-02-23): Added Exemptions and Informational Notes
+- **v5.13** (2026-02-20): Renamed Path to Source, HTML to Output
+- **v5.12** (2026-02-11): Updated HTML filename patterns
+- **v5.11** (2026-02-11): Added mandatory upfront verification rule
+- **v5.10** (2026-02-05): Clarified HTML field meaning
+- **v5.9** (2026-02-05): Added HTML field verification requirements
+- **v5.8** (2026-02-05): Reordered fields and added HTML field
+- **v5.7** (2026-02-05): Added hybrid file reference
+- **v5.6** (2026-02-04): Added Warning, Root Cause, Fix Options fields
+- **v5.5** (2025-12-15): Added mandatory Category field
+- **v5.4** (2025-11-30): Added progress tracking
+- **v5.3** (2025-11-30): Restored check/cross symbols
+- **v5.2** (2025-11-30): Removed checkmarks
+- **v5.1** (2025-11-30): Removed agent usage patterns
+- **v5.0** (2025-11-30): Streamlined to essential reference format

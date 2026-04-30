@@ -1,7 +1,8 @@
 ---
 name: skill-module-export
 description: Reference for Qt C++ export macros and QML registration macros that indicate public APIs requiring documentation
-version: 1.4
+metadata:
+  version: "1.4"
 ---
 
 # Qt Export Macro Reference

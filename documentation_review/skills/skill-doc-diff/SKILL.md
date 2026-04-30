@@ -1,7 +1,8 @@
 ---
 name: skill-doc-diff
 description: Reference for the Qt Doc Team diff format - generic feedback and recommendation template with validation and approval workflow
-version: 5.17
+metadata:
+  version: "5.22"
 ---
 
 # Qt Doc Team Diff Format
@@ -174,6 +175,11 @@ source = re.search(r"\*\*Source:\*\* `(.+)`", block).group(1)
 
 **Format:** `**Output:** \`{filename.html}\``
 
+**New pages:** When adding `\qmltype`, `\class`, or `\page` documentation that creates a new HTML page (rather than editing an existing one), add `(new)` suffix:
+```markdown
+**Output:** `qml-qt-labs-stylekit-theme.html` (new)
+```
+
 **CRITICAL:** Only include if verified. If you cannot find the output file, **omit the field entirely**. It cannot be wrong or guessed.
 
 **Important distinction:**
@@ -211,6 +217,15 @@ source = re.search(r"\*\*Source:\*\* `(.+)`", block).group(1)
    ls <module>/doc/<submodule>/*.html | grep <type>
    ```
 
+5. **For NEW documentation (no index entry yet)**
+   Apply the QDoc filename algorithm from skill-qdoc-output:
+   - C++ class: lowercase class name → `{classname}.html`
+   - QML type: `qml-{module}-{type}.html` (all lowercase)
+   - Module: `{module}-module.html` or `{module}-qmlmodule.html`
+   - Source: `generator.cpp:fileBase()` (lines 308-376)
+
+   Mark with `(new)` suffix in the Output field.
+
 **Naming patterns (see skill-qdoc-output for full reference):**
 
 | Type | Pattern | Example |
@@ -226,14 +241,15 @@ source = re.search(r"\*\*Source:\*\* `(.+)`", block).group(1)
 
 **Examples:**
 ```markdown
-**Output:** `qml-qtlocation-place.html`       (for Place QML type docs)
-**Output:** `qml-location5-maps.html`         (for QML Maps page)
-**Output:** `mapviewer-example.html`          (for Map Viewer example)
+**Output:** `qml-qtlocation-place.html`              (existing QML type)
+**Output:** `qml-qt-labs-stylekit-theme.html` (new)  (new QML type)
+**Output:** `mapviewer-example.html`                 (existing example)
 ```
 
 **When to include:**
 - QML type/class documentation edits - include if verified
 - Page documentation edits - include if verified
+- New type/class/page documentation - include with `(new)` suffix
 - **Cannot verify** - omit (do not guess)
 
 ## Cause
@@ -336,6 +352,11 @@ Which option should I apply? (1/2/3 or skip)
 ## Line Alignment
 
 **Arrow (`→`) is the fixed anchor.** All lines align to keep arrows in the same column.
+
+**Purpose:** The aligned arrows create a visual column marking where file content begins. This lets readers:
+- Instantly see where code/text starts on every line
+- Compare before/after content without eye-jumping
+- Scan the diff block like reading the actual file
 
 ### Rules
 
@@ -602,9 +623,105 @@ Which option should I apply? (1/2/3 or skip)
 Moving to next warning...
 ```
 
+## Suggestion Verification (MANDATORY)
+
+**CRITICAL: Every suggestion must be verified against ALL applicable rules before presenting.**
+
+### Link Verification (BLOCKING for link suggestions)
+
+**Before suggesting `\l` additions or commenting on autolinking:**
+
+Follow the **Reviewer Verification Checklist** in `skill-qdoc/references/link-resolution.md`.
+
+**Key requirement:** Fetch module index and verify target type BEFORE suggesting.
+Include verification evidence in Validation field.
+
+**DO NOT present link-related suggestions until index verification is complete.**
+
+### The Problem
+
+Fixes that address one issue often introduce another:
+- Fixing passive voice but introducing wordiness
+- Fixing wordiness but leaving passive voice
+- Fixing grammar but breaking line length
+- Fixing one Latin term but missing another in the same sentence
+
+### Verification Process
+
+**Before presenting ANY suggestion:**
+
+1. **Draft the fix** - Write your proposed corrected text
+2. **Re-read the ENTIRE corrected sentence/paragraph** - Not just the changed part
+3. **Check against ALL applicable rules**:
+   - R1: Active voice (no "is/are/was/were [verb]ed", "can be [verb]ed")
+   - R2: Conciseness (no "in order to", "provide a way to", etc.)
+   - R38: No Latin terms ("via", "e.g.", "i.e.", "etc.")
+   - R10: Correct articles ("the", "a", "an")
+   - R40: Line length ≤80 columns
+   - Grammar: Subject-verb agreement, possessives, etc.
+4. **If fix introduces new issues, revise** - Iterate until fully compliant
+5. **Only present the final, fully-compliant suggestion**
+
+### Verification Checklist Template
+
+Include this in your working notes (not in final output):
+
+```
+DRAFT FIX: "..."
+CHECK:
+- [ ] R1 Active voice: No passive constructions?
+- [ ] R2 Concise: No wordiness patterns?
+- [ ] R38 Latin: No via/e.g./i.e./etc.?
+- [ ] R10 Articles: Correct article usage?
+- [ ] R40 Length: ≤80 columns?
+- [ ] Grammar: Correct agreement, possessives?
+- [ ] Clear: Readable and unambiguous?
+
+If any check fails → REVISE and re-check
+If all checks pass → Present suggestion
+```
+
+### Example - WRONG Approach
+
+```
+Original: "The data can be also assigned directly"
+Fix: "The data can also be assigned directly"  ← Still passive! (R1 violation)
+```
+
+Presented without verifying → User catches the error → Trust lost.
+
+### Example - CORRECT Approach
+
+```
+Original: "The data can be also assigned directly"
+Draft 1: "The data can also be assigned directly"
+  CHECK: ✗ R1 - still passive ("can be assigned")
+  → REVISE
+
+Draft 2: "You can also assign the data directly"
+  CHECK:
+  - ✓ R1 Active: "You can assign" is active
+  - ✓ R2 Concise: No wordiness
+  - ✓ R38 Latin: No Latin terms
+  - ✓ R40 Length: 42 chars
+  - ✓ Grammar: Correct
+  → PRESENT
+```
+
+### Domain-Specific Terms
+
+**Before flagging terminology as incorrect, verify it's not a valid technical term:**
+
+- C++ terms: "in-place" (construction), "move semantics", "RAII"
+- Qt terms: Check Qt Terms and Concepts (S7)
+- QML terms: Check QML Documentation Style (S4)
+
+**Example**: "inplace" or "in-place" is valid C++ terminology (in-place construction, emplace). Do NOT flag as spelling error.
+
 ## Common Mistakes
 
 - **Presenting before verifying**: NEVER present a suggestion until link targets are verified in index files. Search index files FIRST, then present with verified Output field.
+- **Presenting partial fixes**: NEVER present a fix that addresses one rule but violates another. Verify against ALL rules first.
 - No line number in header: Use `for file.cpp:27:` not `for file.cpp:`
 - No source field: Include **Source:** for disambiguation (especially in large repos)
 - No category: Always include **Category:** line after Path field
@@ -620,19 +737,13 @@ Moving to next warning...
 - Wrong prompt: Use exact phrasing ("Should I apply..." or "Which option...")
 - No syntax highlighting: Always use ` ```diff ` code fence
 
-## Bug Report Verification
+## Bug Report Verification Output
 
-**MANDATORY when commit references a bug.** Check BEFORE reviewing code changes.
+**When commit references a bug**, include verification in review output.
 
-**When to verify:**
-- Commit message contains `Task-number: QTBUG-*`, `Fixes: QTBUG-*`, etc.
-- Bug ID mentioned in subject or body (QTBUG, QTCREATORBUG, PYSIDE, QTDOC, QDS)
+**Workflow:** See CLAUDE.md "Bug Report Verification Context" for fetch methods (MCP → WebFetch → manual).
 
-**Steps:**
-1. **Fetch bug report:** `WebFetch https://bugreports.qt.io/browse/{ID}`
-   - Prompt: "What is the reported issue? What fix is expected?"
-2. **Verify patch addresses issue:** Does the change match what was reported/requested?
-3. **Include in review output:**
+**Output format template:**
 
 ```markdown
 ## Bug Report Verification
@@ -646,6 +757,57 @@ Moving to next warning...
 
 **If bug tracker inaccessible:** Note "Unable to verify (bug tracker inaccessible)" and proceed with review.
 
+## Alternative Output Formats
+
+The Doc Team diff format (above) is the default and most detailed format. Two
+alternative formats are available for specific use cases.
+
+### Gerrit Format
+
+For posting inline comments directly to Gerrit code review. The comment text
+goes above the suggestion block as plain text. The suggestion block contains
+ONLY the replacement code with original indentation preserved.
+
+**Format:**
+```
+{Rule}: {Brief explanation of the issue}
+
+```suggestion
+    {replacement code with original indentation}
+```
+```
+
+**Example:**
+```
+R1: Passive voice "is needed" → active voice.
+
+```suggestion
+    The \c update() method returns a timestamp indicating when the engine
+    needs the next update, allowing devices to enter sleep modes between
+    updates.
+```
+```
+
+**Rules:**
+- No markdown formatting in comment text (Gerrit renders plain text)
+- Preserve original indentation in the suggestion block
+- Keep explanations brief (one line preferred)
+- Suggestion block contains ONLY replacement text, nothing else
+
+### Plain Format
+
+For quick summaries when detailed validation is not needed.
+
+```
+Line X: {Issue}. Fix: {replacement}
+```
+
+**Example:**
+```
+Line 42: Passive voice. Fix: "when the engine needs the next update"
+Line 58: Missing \c markup. Fix: \c{file://}
+```
+
 ## Integration
 
 - **skill-qdoc:** QDoc syntax, link resolution, warning diagnosis
@@ -655,76 +817,4 @@ Moving to next warning...
 - **skill-line-wrap:** 80-column validation (R40)
 - **skill-module-export:** Public API detection via export macros
 
-## Version History
-
-- **v5.17** (2026-02-24): Added Bug Report Verification section
-  - New section with mandatory verification steps when commit references a bug
-  - WebFetch instructions, output format template
-  - Ensures bug verification is not skipped during reviews
-- **v5.16** (2026-02-24): Renamed Rationale to Comments
-  - **Rationale:** → **Comments:** (agent's additional notes/context)
-- **v5.15** (2026-02-24): Simplified fields
-  - Renamed **Root Cause:** to **Cause:** (shorter, clearer)
-  - Folded Evidence into Cause field (one field for why + proof)
-  - Clarified that agent fills Validation (shows work, not left for reviewer)
-  - Unified template works for both QDoc warnings and language issues
-- **v5.14** (2026-02-23): Added Exemptions and Informational Notes section
-  - Exemptions (legal text, etc.) go in **Notes** section, not numbered suggestions
-  - Only actionable fixes count in "Suggestion N of X"
-  - Added format examples for Notes section
-- **v5.13** (2026-02-20): Renamed fields for clarity
-  - **Path:** → **Source:** (clearly indicates input file being edited)
-  - **HTML:** → **Output:** (clearly indicates rendered page for verification)
-  - Updated all templates, examples, and references
-  - Renamed "File Reference" section to "Source Field"
-  - Renamed "HTML Field" section to "Output Field"
-- **v5.12** (2026-02-11): Updated HTML filename patterns and fixed example
-  - Added Group pattern to naming table
-  - Fixed erroneous HTML field in QDoc Warning Fix example
-  - Added reference to skill-qdoc-output for full pattern documentation
-  - Updated Integration section with correct skill names
-- **v5.11** (2026-02-11): Added mandatory upfront verification rule
-  - Added "Presenting before verifying" as first item in Common Mistakes
-  - Emphasizes index file verification must happen BEFORE presenting suggestions
-- **v5.10** (2026-02-05): Clarified HTML field meaning
-  - HTML field shows OUTPUT page where documented text appears (not link target)
-  - Added "Important distinction" section explaining the difference
-  - Updated examples to show output page context (Place type → `qml-qtlocation-place.html`)
-  - Added example and page patterns to naming table
-- **v5.9** (2026-02-05): Added HTML field verification requirements
-  - Added "How to find the HTML file" with index file, published docs, and local build methods
-  - Added naming patterns table for reference
-  - Added CRITICAL rule: omit HTML field if cannot verify (no guessing)
-  - Updated "When to include" to clarify verification requirement
-- **v5.8** (2026-02-05): Reordered fields and added HTML field
-  - New field order: Warning, Category, Path, HTML (was: Path, Category, Warning)
-  - Added **HTML:** field to show generated output file for link fixes
-  - Added "HTML Field" section with format specification
-  - Updated all templates and examples with new field order
-- **v5.7** (2026-02-05): Added hybrid file reference (basename:line + Path field)
-  - Header now includes line number: `for {basename}:{line}:`
-  - Added **Path:** field with full path from repo root
-  - Added "File Reference" section with format specification
-  - Enables both quick scanning (header) and precise location (Path)
-  - Supports automation parsing with structured fields
-  - Updated all examples with new format
-  - Added "No line number" and "No path field" to Common Mistakes
-- **v5.6** (2026-02-04): Added Warning, Root Cause, and Fix Options fields
-  - Added **Warning:** field to show exact QDoc warning text
-  - Added **Cause:** field to explain why the warning occurs
-  - Added **Fix Options:** section for multiple valid solutions
-  - Added new sections: Warning Field, Root Cause, Fix Options
-  - Added "QDoc Warning Fix" and "Multiple Fix Options" complete examples
-  - Updated Common Mistakes with new field requirements
-  - Changed approval prompt to "Which option..." for multi-option fixes
-- **v5.5** (2025-12-15): Added mandatory Category field
-  - Added **Category:** line to format template (after suggestion header, before diff)
-  - Added Category section with common categories and combined category examples
-  - Added rule references (R#) to validation template
-  - Updated Complete Example to include Category and rule references
-  - Added "No category" and "Missing rule references" to Common Mistakes
-- **v5.4** (2025-11-30): Added progress tracking ("Suggestion N of X")
-- **v5.3** (2025-11-30): Restored ✓/✗ symbols for validation checks
-- **v5.2** (2025-11-30): Removed all checkmarks and icons
-- **v5.1** (2025-11-30): Removed agent usage patterns
-- **v5.0** (2025-11-30): Streamlined to essential reference format
+**Changelog:** See `CHANGELOG.md`
