@@ -1,7 +1,8 @@
 ---
 name: skill-qdoc-output
 description: Reference for QDoc HTML output filename generation patterns by node type
-version: 1.0
+metadata:
+  version: "1.0"
 ---
 
 # QDoc Output Filename Generation

@@ -1,7 +1,8 @@
 ---
 name: skill-line-wrap
 description: Reference for Qt's 80-column rule and text wrapping guidelines for documentation
-version: 1.2
+metadata:
+  version: "1.2"
 ---
 
 # Qt Line Wrapping Reference

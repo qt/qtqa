@@ -1,7 +1,8 @@
 ---
 name: skill-qdoc
 description: This skill should be used when discussing QDoc internals, node systems, link resolution, warning diagnosis, index files, qdocconf configuration, macros, Qt Help files, or documentation generation architecture. Provides comprehensive reference for QDoc's documentation generation system.
-version: 1.0.0
+metadata:
+  version: "1.0.0"
 ---
 
 # QDoc Architecture Reference
@@ -37,9 +38,9 @@ To investigate node-related issues, read `references/node-system.md`.
 
 ### Link Resolution
 
-The `\l` command resolves targets by:
+The `\l` and `\sa` commands resolve targets using the same mechanism:
 1. Parsing the target string
-2. Searching trees (primary first, then index trees)
+2. Searching trees (primary first, then index trees) via `findNodeForAtom()`
 3. Generating HTML link with anchor
 
 **Common link syntax:**
@@ -52,7 +53,14 @@ The `\l` command resolves targets by:
 \l [QML]{TypeName}            // Force QML genus
 \l{Page Title}                // Link to page by title
 \l{External Page Title}       // Link to external page
+
+\sa Target1, Target2          // See also (comma-separated)
+\sa {Class::}{member()}       // C++ member shorthand
 ```
+
+**`\sa` vs `\l`:** Both use `findNodeForAtom()` for resolution. `\sa` renders in a
+"See also" section and takes comma-separated targets. See `references/link-resolution.md`
+for detailed `\sa` syntax and behavior.
 
 **Section links:** Use `TypeName#Section Title` (NOT `page.html#anchor`) to link to sections within C++ class or QML type documentation.
 
@@ -200,6 +208,15 @@ For complete warning reference, read `references/macros-warnings.md`.
 | `references/qt-help.md` | Qt Help files, HTML output configuration |
 | `references/macros-warnings.md` | Macro system, common warnings reference |
 | `references/qdocconf-reference.md` | Complete qdocconf example, command quick reference |
+| `references/page-structure.md` | `\page`, `\example`, `\externalpage`, navigation commands |
+| `references/examples-and-snippets.md` | `\include`, qdocinc fragments, `\snippet`, argument substitution |
+| `references/module-declaration.md` | `\module`, `\qmlmodule`, mandatory companions, title patterns |
+| `references/group-and-organization.md` | `\group`, `\ingroup`, hierarchical nesting, `\generatelist` |
+| `references/namespaces-headers-macros.md` | `\namespace`, `\headerfile`, `\macro`, `\relates` |
+| `references/qml-topic-commands.md` | `\qmltype`, `\qmlproperty`, `\qmlmethod`, `\qmlsignal`, `\qmlvaluetype`, `\qmlattachedproperty`, `\qmlattachedsignal` |
+| `references/cmake-reference.md` | CMake reference pages: `\cmakecommandsince`, command/variable/property page conventions, `\summary` |
+| `references/stub-patterns.md` | Stub-assembly cross-reference index — what topic command + companions + brief rule + filename per doc type |
+| `references/advanced-qdocconf.md` | Macro system, QHP config, global include chain, path variables |
 
 ## External References
 
@@ -207,3 +224,100 @@ For complete warning reference, read `references/macros-warnings.md`.
 - [QDoc Commands](https://doc.qt.io/qt-6/27-qdoc-commands-alphabetical.html)
 - [Qt Writing Guidelines](https://wiki.qt.io/Qt_Writing_Guidelines)
 - [Qt Help Framework](https://doc.qt.io/qt-6/qthelp-framework.html)
+
+---
+
+## Linking Issue Check
+
+**Question: "Will this change cause linking issues?"**
+
+When reviewing patches that modify titles, sections, or targets, verify no existing links will break.
+
+### What Generates Link Targets
+
+| Source | Generated Anchor |
+|--------|------------------|
+| `\title {Page Title}` | Page becomes linkable as `\l{Page Title}` |
+| `\section1 Section Name` | `#section-name` (lowercase, hyphens) |
+| `\section2 Subsection` | `#subsection` |
+| `\target custom-anchor` | `#custom-anchor` |
+| `\keyword Search Term` | Linkable via `\l{Search Term}` |
+
+### Anchor Generation Rules
+
+QDoc converts section titles to anchors:
+1. Lowercase all characters
+2. Replace spaces with hyphens
+3. Remove special characters
+
+Examples:
+- "Hosting in Qt GUI" → `#hosting-in-qt-gui`
+- "C++ Integration" → `#c-integration`
+- "QML/Qt Quick" → `#qml-qt-quick`
+
+### Check Process
+
+**Step 1: Identify what changed**
+- Section title changed? (`\section1`, `\section2`, etc.)
+- Page title changed? (`\title`)
+- Target removed? (`\target`)
+- File renamed? (changes HTML filename)
+
+**Step 2: Search for existing references**
+
+```bash
+# 1. Search for \l{} links to the title
+grep -r "\\\\l.*{.*Old Title" qt*/
+
+# 2. Search for \sa references
+grep -r "\\\\sa.*Old Title" qt*/
+
+# 3. Search for HTML anchor references
+grep -r "#old-anchor-name" qt*/
+
+# 4. Search local index files
+grep "Old Title\|old-anchor" */doc/*/*.index
+
+# 5. Search online index files
+WebFetch: https://doc-snapshots.qt.io/qt6-dev/{module}.index
+```
+
+**Step 3: Check cross-module dependencies**
+
+Qt modules link to each other. A title change in qtbase may break links in:
+- qtdoc (overview documentation)
+- qtdeclarative (QML docs linking to C++ classes)
+- Other dependent modules
+
+**Online index files:**
+- `https://doc-snapshots.qt.io/qt6-dev/qtcore.index`
+- `https://doc-snapshots.qt.io/qt6-dev/qtgui.index`
+- `https://doc-snapshots.qt.io/qt6-dev/qtwidgets.index`
+- `https://doc-snapshots.qt.io/qt6-dev/qtqml.index`
+- `https://doc-snapshots.qt.io/qt6-dev/qtquick.index`
+- `https://doc-snapshots.qt.io/qt6-dev/qtdoc.index`
+
+### Special Cases
+
+**New content:** If the patch adds a NEW section/page (not modifying existing), there cannot be existing links. Note: "New file/section - no existing links possible."
+
+**Case sensitivity:** Anchors are case-insensitive in browsers, but `\l{Title}` text must match the actual `\title` or `\section` text exactly (case-sensitive).
+
+**Renamed files:** If a `.qdoc` file with `\page foo.html` is renamed or the page command changed, all `\l{foo.html}` links break.
+
+### Report Template
+
+```markdown
+## Linking Issue Check
+
+**Changed:** [describe what title/target changed]
+
+**Searches performed:**
+- [ ] `\l{}` patterns in source
+- [ ] `\sa` references in source
+- [ ] HTML anchor patterns
+- [ ] Local index files
+- [ ] Online index files (doc-snapshots.qt.io)
+
+**Result:** [No issues / Issues found - list locations]
+```

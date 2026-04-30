@@ -1,12 +1,13 @@
-# How to Use Qt Doc Reviewer Agent
+# How to Use the Doc Reviewer Agent
 
-Review documentation patches for Qt projects. Checks for QDoc warnings, syntax, language, style, and alt text compliance.
+Review documentation patches for Qt projects. Checks language (R1-R64), QDoc syntax, markup, linking, alt text, and 80-column compliance.
 
 ## Prerequisites
 
 Agent and skills must be in `~/.claude/`:
 ```
 ~/.claude/
+├── CLAUDE.md
 ├── agents/qt-doc-reviewer.md
 └── skills/
     ├── skill-doc-diff/
@@ -15,7 +16,9 @@ Agent and skills must be in `~/.claude/`:
     ├── skill-qdoc-output/
     ├── skill-alttext/
     ├── skill-line-wrap/
-    └── skill-module-export/
+    ├── skill-linking-check/
+    ├── skill-module-export/
+    └── skill-all-docs/
 ```
 
 ---
@@ -25,192 +28,84 @@ Agent and skills must be in `~/.claude/`:
 Use **qt-doc-reviewer** for:
 - Reviewing documentation patches before merge
 - Pre-commit validation of doc changes
-- Checking grammar, style, and language (R1-R57)
-- Verifying QDoc syntax is correct
+- Checking grammar, style, and language (R1-R64)
+- Verifying QDoc syntax and markup
 - Reviewing alt text on images
 - Ensuring 80-column compliance
+- Checking link targets resolve in index files
 
 Use **qdoc-warning-fixer** instead for:
 - Fixing existing QDoc build warnings
 - Processing warning files (ERR.*)
 - Adding `\internal` tags to undocumented classes
 
+Use **doc-impact-analyzer** instead for:
+- Checking if a code change breaks documentation links
+- Analyzing renames, removals, or API changes
+
 ---
 
 ## Example Prompts
 
-### Review Gerrit Patch
+**Important:** Always name the agent explicitly to ensure reliable routing.
+
+### Review a Gerrit Patch
 ```
-Review this Gerrit patch using qt-doc-reviewer.
-Output suggestions in Doc Team diff format.
-https://codereview.qt-project.org/c/qt/qtbase/+/123456
+run doc reviewer on https://codereview.qt-project.org/c/qt/qtbase/+/593273
 ```
 
-### Review Uncommitted Changes
+### Review with Gerrit-Ready Output
 ```
-Review my documentation changes using qt-doc-reviewer.
-```
-
-### Review Specific Commit
-```
-Review documentation in commit abc123 using qt-doc-reviewer.
+run doc reviewer on https://codereview.qt-project.org/c/qt/qtbase/+/593273 format: gerrit
 ```
 
-### Review Specific File
+### Review Local Changes
 ```
-Review documentation changes in src/corelib/doc/src/objectmodel.qdoc
-using qt-doc-reviewer.
-```
-
-### Pre-Commit Review
-```
-Pre-commit review using qt-doc-reviewer.
-Show me critical issues that would block the commit.
+run doc reviewer on qtbase/src/corelib/doc/
 ```
 
-### Grammar and Style Only
+### Review a Specific File
 ```
-Review my documentation for grammar and style issues only using qt-doc-reviewer.
+run doc reviewer on qtbase/src/gui/doc/src/richtext.qdoc
 ```
 
-### Critical Issues Only
+### Review with Plain Output (for Slack)
 ```
-Check for critical issues only using qt-doc-reviewer.
-Focus on QDoc syntax errors and broken links.
+run doc reviewer on https://codereview.qt-project.org/c/qt/qtbase/+/593273 format: plain
 ```
 
 ---
 
-## What the Agent Reviews
+## What It Checks
 
-### Review Checklist (All Mandatory)
+1. **Language audit (BLOCKING)** — Must complete before other checks
+   - Line-by-line: R1-R10 (voice, tense, terminology), R11-R13 (grammar)
+   - API patterns: R14-R19 (briefs, class/function/property docs)
+   - Mandatory scans: Latin terms (R38), articles (R7), serial commas (R11), 80-column (R40), terminology (R3), title case (R12)
+2. **Markup scan** — `\c` for code, `\l` for links, `\a` for parameters (R64)
+3. **Admonitions** — `\note`/`\warning` usage and 8 anti-patterns (R63)
+4. **Link verification (BLOCKING)** — Verifies `\l` targets in index files before suggesting
+5. **Bug report alignment** — If commit references QTBUG, fetches it from Jira
 
-1. **Language** - **PRIMARY** - Grammar, voice, tense, terminology (R1-R57)
-2. **QDoc Syntax** - Correct commands, proper usage
-3. **Templates** - Required elements (`\brief`, `\since`, `\inmodule`)
-4. **Linking** - Valid targets, correct `\l` vs `\c` usage
-5. **Alt Text** - Images have proper alt text (if applicable)
-6. **QUIP/MS Compliance** - Style guidelines
-7. **Bug Report** - If referenced, verify patch addresses it
+## Output Format
 
-### Language Rules Checked
+Default is **Doc Team diff**. Each suggestion includes:
+- **Category** — What kind of issue
+- **Source** — Full file path
+- **Output** — HTML page where it renders
+- **Diff block** — Current text vs proposed fix with line numbers
+- **Cause** — Why it's flagged, with evidence
+- **Validation** — Checks performed with rule references
 
-| Rule | Description |
-|------|-------------|
-| R1 | Active voice preferred |
-| R2 | Concise language |
-| R7, R38 | No Latin terms (via, e.g., i.e., etc.) |
-| R10 | Articles present ("the X argument") |
-| R17-R19 | API brief patterns |
-| R40 | 80-column limit |
-
----
-
-## Expected Output Format
-
-All suggestions use **Doc Team diff format**:
-
-```markdown
-**Suggestion 1 of 3 for qtquickcontrols-buttons.qdoc:45:**
-
-**Category:** Grammar
-
-**Source:** `qtquickcontrols/doc/src/qtquickcontrols-buttons.qdoc`
-**Output:** `qtquickcontrols-buttons.html`
-
-```diff
-    43→    The button component provides an interactive control
-    44→
-  - 45→    that accepts a ID parameter for tracking.
-  +   →    that accepts an ID parameter for tracking.
-    46→
-    47→    See the example below for usage.
-```
-
-**Cause:** Incorrect article before vowel sound. "ID" is pronounced with vowel sound.
-
-**Validation:**
-- ✓ Grammar: "an ID" correct article before vowel sound (R10)
-- ✓ Line length: 52 characters (R40)
-
-**Comments:** Correct article usage improves professional quality.
-
-Should I apply this fix to the file?
-```
+Request different formats by adding a suffix:
+- `format: gerrit` — Inline comments for Gerrit code review
+- `format: plain` — Quick summary
+- `format: codereview` — Export to .md file
 
 ---
 
-## Tips for Best Results
+## Tips
 
-1. **Always request Doc Team diff format** - Add "Output in Doc Team diff format" to your prompt
-2. **Be specific about scope** - commit hash, file path, or "uncommitted changes"
-3. **Request verbosity level** - "brief review" or "comprehensive review"
-4. **Filter by issue type** - "grammar only" or "critical issues only"
-5. **Review large patches incrementally** - file by file
-6. **Ask for explanations** - "Why is passive voice discouraged?"
-
-**Important:** If the agent outputs plain text suggestions instead of Doc Team diff format, remind it:
-```
-Use Doc Team diff format from skill-doc-diff for all suggestions.
-```
-
----
-
-## Common Scenarios
-
-### Pre-Gerrit Upload
-```
-Pre-commit review using qt-doc-reviewer.
-Check my staged documentation changes before I push to Gerrit.
-```
-
-### Review Colleague's Patch
-```
-Review this Gerrit patch using qt-doc-reviewer:
-https://codereview.qt-project.org/c/qt/qtdeclarative/+/567890
-
-Give me a summary I can post as a review comment.
-```
-
-### Focus on Specific Issues
-```
-Review using qt-doc-reviewer but skip formatting issues.
-We're in release freeze.
-```
-
----
-
-## Quick Reference
-
-| Task | Command |
-|------|---------|
-| Quick review | `Brief review using qt-doc-reviewer` |
-| Full review | `Comprehensive review using qt-doc-reviewer` |
-| Grammar only | `Grammar and style check using qt-doc-reviewer` |
-| Critical only | `Critical issues only using qt-doc-reviewer` |
-| Pre-commit | `Pre-commit review using qt-doc-reviewer` |
-| Specific file | `Review [filepath] using qt-doc-reviewer` |
-| Gerrit patch | `Review [gerrit-url] using qt-doc-reviewer` |
-
----
-
-## Key Points
-
-- Agent **reviews but does not modify** files without approval
-- Uses **Qt Writing Guidelines, QUIP 25, and Microsoft Style Guide**
-- All suggestions include **rule citations** (R1-R57)
-- Output must be in **Doc Team diff format** (skill-doc-diff)
-- **If agent forgets format**, remind: "Use Doc Team diff format"
-
----
-
-## Resources
-
-- Agent: `~/.claude/agents/qt-doc-reviewer.md`
-- Skills: `~/.claude/skills/`
-- Qt Writing Guidelines: https://wiki.qt.io/Qt_Writing_Guidelines
-- QUIP 25: https://quips.qt.io/quip-0025
-
----
-
-**Version**: 2.0
+- **Have sources locally.** The agent reads actual files to verify line numbers and link targets. Without local access, it can still review a diff but cannot perform verification.
+- **Bug reports are automatic.** If the commit has a Task-number and the Atlassian MCP is configured, the agent fetches the bug and checks if the patch addresses it.
+- **Suggestions are suggestions.** Always review before applying. The Cause and Validation fields show why and how each suggestion was verified.

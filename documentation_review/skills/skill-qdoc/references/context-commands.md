@@ -102,6 +102,40 @@ Indicates when functionality was introduced.
 \value [since 6.5] AlignBaseline Align to the baseline.
 ```
 
+#### Verification (MANDATORY)
+
+**Do NOT copy `\since` from existing docs without verification.** Always verify
+using git history:
+
+```bash
+# Step 1: Find the commit that introduced the file/class
+git log --oneline --follow --diff-filter=A -- "path/to/file.cpp" | tail -1
+
+# Step 2: Find the earliest Qt version tag containing that commit
+git tag --contains <commit-hash> --sort=version:refname | head -5
+```
+
+**Example:**
+```bash
+$ git log --oneline --follow --diff-filter=A -- "src/widgets/qwidget.cpp" | tail -1
+abc1234 Add QWidget class
+
+$ git tag --contains abc1234 --sort=version:refname | head -3
+v6.3.0-alpha1
+v6.3.0-beta1
+v6.3.0
+```
+Result: Use `\since 6.3`
+
+**Why verification matters:**
+- Existing `\since` in related docs may be wrong
+- Files may have been moved/renamed (git follow handles this)
+- Copy-paste errors are common
+
+**When adding `\class` for existing `\qmltype`:**
+- Verify independently - don't assume QML `\since` is correct
+- Both should match if introduced together, but verify
+
 ---
 
 ### `\deprecated` - Deprecation Notice
@@ -699,5 +733,9 @@ Marks a page as license attribution documentation.
 
 ## Version History
 
+- **v1.1** (2026-03-12): Added `\since` verification section
+  - Mandatory git-based verification for `\since` versions
+  - Step-by-step commands: `git log --diff-filter=A` + `git tag --contains`
+  - Warning against copying `\since` from existing docs without verification
 - **v1.0** (2025-02-18): Initial version with comprehensive context command reference
 
