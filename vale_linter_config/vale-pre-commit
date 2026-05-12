@@ -25,28 +25,65 @@
 #
 #   "$(git rev-parse --show-toplevel)/vale_linter_config/vale-pre-commit" || exit 1
 #
-# Environment variables:
-#   VALE_CONFIG_PATH   Path to the .vale-qdoc.ini config file. Required
-#                      when running the hook outside of the qtqa repository.
-#                      Defaults to vale_linter_config/.vale-qdoc.ini in
-#                      the repository root.
+# Environment variables (all optional if ~/.vale-qdoc-agent.json is present):
+#   VALE_QDOC_BIN      Path to a Vale build with QDoc parser support.
+#   VALE_CONFIG_PATH   Path to the .vale-qdoc.ini config file.
+#
+# Resolution order for each value:
+#   1. ~/.vale-qdoc-agent.json  (vale_qdoc_bin / vale_config_path fields)
+#   2. Environment variable     (VALE_QDOC_BIN / VALE_CONFIG_PATH)
+#   3. Error — warn and exit 1
 
 REPO_ROOT=$(git rev-parse --show-toplevel)
 if command -v cygpath >/dev/null 2>&1; then
     REPO_ROOT=$(cygpath -w "$REPO_ROOT")
 fi
-VALE_CONFIG="${VALE_CONFIG_PATH:-$REPO_ROOT/vale_linter_config/.vale-qdoc.ini}"
 
-VALE_BIN="${VALE_QDOC_BIN:-$(command -v vale 2>/dev/null)}"
-if [ ! -x "$VALE_BIN" ]; then
-    printf 'vale-pre-commit: Vale binary not found.\n' >&2
-    printf '  Set VALE_QDOC_BIN to a Vale build with QDoc parser support. Skipping.\n' >&2
-    exit 0
+# Read fields from ~/.vale-qdoc-agent.json if python3 is available
+_JSON_BIN=""
+_JSON_CONFIG=""
+if command -v python3 >/dev/null 2>&1; then
+    _JSON_BIN=$(python3 -c "
+import json, os
+try:
+    d = json.load(open(os.path.expanduser('~/.vale-qdoc-agent.json')))
+    print(d.get('vale_qdoc_bin', ''))
+except Exception:
+    pass
+" 2>/dev/null)
+    _JSON_CONFIG=$(python3 -c "
+import json, os
+try:
+    d = json.load(open(os.path.expanduser('~/.vale-qdoc-agent.json')))
+    print(d.get('vale_config_path', ''))
+except Exception:
+    pass
+" 2>/dev/null)
 fi
 
-if [ ! -f "$VALE_CONFIG" ]; then
-    printf 'vale-pre-commit: Config not found at %s, skipping.\n' "$VALE_CONFIG" >&2
-    exit 0
+# Resolve Vale binary
+if [ -n "$_JSON_BIN" ] && [ -x "$_JSON_BIN" ]; then
+    VALE_BIN="$_JSON_BIN"
+elif [ -n "$VALE_QDOC_BIN" ] && [ -x "$VALE_QDOC_BIN" ]; then
+    VALE_BIN="$VALE_QDOC_BIN"
+else
+    VALE_BIN=$(command -v vale 2>/dev/null)
+fi
+if [ ! -x "$VALE_BIN" ]; then
+    printf 'vale-pre-commit: Vale binary not found.\n' >&2
+    printf '  Set VALE_QDOC_BIN or add vale_qdoc_bin to ~/.vale-qdoc-agent.json.\n' >&2
+    exit 1
+fi
+
+# Resolve config path
+if [ -n "$_JSON_CONFIG" ] && [ -f "$_JSON_CONFIG" ]; then
+    VALE_CONFIG="$_JSON_CONFIG"
+elif [ -n "$VALE_CONFIG_PATH" ] && [ -f "$VALE_CONFIG_PATH" ]; then
+    VALE_CONFIG="$VALE_CONFIG_PATH"
+else
+    printf 'vale-pre-commit: Config not found.\n' >&2
+    printf '  Set VALE_CONFIG_PATH or add vale_config_path to ~/.vale-qdoc-agent.json.\n' >&2
+    exit 1
 fi
 
 QDOC_STAGED=$(git diff --cached --name-only --diff-filter=ACM \
