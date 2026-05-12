@@ -1,0 +1,71 @@
+// Copyright (C) 2026 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+// Tests for Vale alerts inside \table blocks.
+//
+// BUG A — table_block line shift (Pass 2):
+//   qdocCollectProse skips table_block without preserving newlines.
+//   Prose after \endtable is reported N lines too early, where N = number of
+//   lines inside the \table...\endtable block.
+//   Fixed by emitting a '\n' per table line when skipping the block.
+//
+// BUG B — inside-table off-by-one (Pass 1):
+//   Text nodes inside \table cells have StartPoint.Row one line later than
+//   the \li line that introduces them, so alerts are reported one line low.
+
+/*!
+    \class QPluginLoader
+    \brief Loads a plugin at run-time.
+
+    \table
+      \header
+        \li Property \li Behavior
+      \row
+        \li fileName
+        \li The plugin is loaded from this path on disk.
+      \row
+        \li isLoaded
+        \li Returns \c true if the plugin was loaded successfully.
+      \row
+        \li loadHints
+        \li Hints are used to control how the plugin is resolved.
+    \endtable
+
+    The loader is used to resolve symbols exported by the plugin.
+    We recommend calling unload() when the plugin is no longer required.
+*/
+// Expected (after fixes):
+//   25: Microsoft.Passive 'is loaded'              (inside table — BUG B: currently 26)
+//   28: Microsoft.Passive 'was loaded'             (inside table — BUG B: currently 29)
+//   31: Microsoft.Passive 'are used', 'is resolved' (inside table — BUG B: currently 32)
+//   34: Microsoft.Passive 'is used'                (post-table — BUG A: currently 22)
+//   35: Microsoft.We      'We'                     (post-table — BUG A: currently 23)
+
+// Table test — passive voice in a multi-line \li cell.
+//   Source: deployment-plugins.qdoc.
+//   'are listed' is on a continuation line of a multi-line \li cell; Vale misses
+//   it entirely (false negative: only the first line of a \li cell is linted).
+//   'are built' is on a standalone \li and fires at the correct line.
+
+/*!
+    \page deployment-plugins-test.html
+    \title Deploying Plugins Test
+    \brief Tests for passive voice in table cells.
+
+    \table
+      \header
+        \li Problem \li Cause \li Solution
+      \row
+        \li Plugins silently fail to load even when opened directly by the application.
+            Qt Designer shows the plugin libraries in its Help|About Plugins dialog, but no
+            plugins are listed under each of them.
+        \li The application and its plugins are built in different modes.
+        \li Build the plugin in the same configuration as the executable.
+    \endtable
+*/
+// Current behavior:
+//   61: Microsoft.Passive 'are listed'  — NOT reported (false negative: continuation line of \li not linted)
+//   62: Microsoft.Passive 'are built'   — reported correctly
+// Expected (after fix):
+//   61: Microsoft.Passive 'are listed'  (continuation lines of \li cells should be linted)
+//   62: Microsoft.Passive 'are built'   (unchanged — already correct)

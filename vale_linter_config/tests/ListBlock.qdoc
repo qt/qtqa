@@ -1,0 +1,55 @@
+// Copyright (C) 2026 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+// Tests for Vale alerts inside \list blocks.
+//
+// BUG C — list_block duplicate alerts (Pass 1 + Pass 2):
+//   qdocCollectProse recurses into list_block (correct for sentence-scope
+//   rules), but Pass 1 already linted the same text nodes via the catch-all.
+//   Both passes fire, producing duplicate alerts.
+
+/*!
+    \class QLibrary
+    \brief Loads a shared library at run-time.
+
+    \list
+      \li The library is resolved on first access.
+      \li Symbols are exported by the shared object.
+      \li The handle is closed when unload() is called.
+    \endlist
+
+    The library path is set before the handle is opened.
+*/
+// Expected (after fixes):
+//   16: Microsoft.Passive 'is resolved'             (inside list — BUG C: currently fires twice, at 16+17)
+//   17: Microsoft.Passive 'are exported'            (inside list — BUG C: currently fires twice, at 17+19)
+//   18: Microsoft.Passive 'is closed', 'is called'  (inside list — BUG C: currently fires twice, at 18+21)
+//   21: Microsoft.Passive 'is set', 'is opened'     (post-list — correct already)
+
+// Minimal list test — passive voice in \li items (BUG C: cumulative +N offset per item).
+
+/*!
+    \class QNetworkInterface
+    \brief Provides a listing of network interfaces.
+
+    \list
+      \li The address is assigned by the network manager.
+      \li The interface is identified by its hardware address.
+      \li The route is selected automatically.
+    \endlist
+
+    The interface name is set at initialization.
+*/
+// Current behavior (BUG C: Pass 1 + Pass 2 both fire, cumulative +N offset per item):
+//   36: Microsoft.Passive 'is assigned'   (Pass 1 — correct)
+//   37: Microsoft.Passive 'is assigned'   (BUG C dup — Pass 2 offset +1)
+//   37: Microsoft.Passive 'is identified' (Pass 1 — correct)
+//   38: Microsoft.Passive 'is selected'   (Pass 1 — correct)
+//   39: Microsoft.Passive 'is identified' (BUG C dup — Pass 2 offset +2)
+//   41: Microsoft.Passive 'is selected'   (BUG C dup — Pass 2 offset +3)
+//   41: Microsoft.Passive 'is set'        (post-list — correct, no dup)
+// Expected (after fix — one alert per passive, correct lines):
+//   36: Microsoft.Passive 'is assigned'
+//   37: Microsoft.Passive 'is identified'
+//   38: Microsoft.Passive 'is selected'
+//   41: Microsoft.Passive 'is set'

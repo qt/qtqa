@@ -1,0 +1,73 @@
+// Copyright (C) 2026 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+// Tests for section heading trailing-macro line-number shift (BUG D).
+//
+// BUG D — section heading ending with inline macro drops trailing newlines (Pass 2):
+//   When a \section* heading ends with a custom macro (e.g. \MACRO1) rather than plain
+//   text, the \n at end of the heading line and the blank \n that follows both fall
+//   into the extras gap between consecutive AST markup nodes. qdocCollectProse never
+//   writes them to the prose builder, so all subsequent alerts are shifted N lines
+//   earlier (one per dropped \n). Each such heading adds 2 to the cumulative offset.
+//
+//   Trigger condition: BOTH of the following must hold:
+//     1. \section1 heading ENDS with a macro — no trailing plain text.
+//        '\section1 Title with \MACRO1 IDE' does NOT trigger (IDE absorbs the gap).
+//     2. The first non-blank token after the blank line is \l{target}{\MACRO}
+//        where the ALIAS is a macro command. A plain alias \l{target}{text}
+//        does NOT trigger.
+//   Indentation of the block comment does NOT affect whether the bug fires.
+//
+//   Fix (doc-level, no parser change required): either
+//     a) Append plain text after the macro in the heading:
+//        '\section1 Deploying with \QC IDE'  (IDE absorbs the \n\n gap)
+//     b) Use a plain-text alias in the \l command:
+//        '\l{\QC Documentation}{Qt Creator}'
+
+// BUG D — plain alias contrast: \l aliases are plain text, so BUG D does NOT fire.
+/*!
+    \class QRuntimeLoader
+    \brief Loads resources at run-time.
+
+    \section1 Startup behavior on \MACRO1
+
+    \l{QObject}{QObjects} are initialized when the application starts.
+    All components are loaded from the resource bundle automatically.
+
+    \section1 Shutdown with \BUILDVAR
+
+    \l{QObject::deleteLater()}{deleteLater()} is called before the loop stops.
+    All resources are released when the object is destroyed.
+*/
+// Expected (plain aliases — correct lines, BUG D not triggered):
+//   34: Microsoft.Passive 'are initialized'
+//   35: Microsoft.Passive 'are loaded'
+//   39: Microsoft.Passive 'is called'
+//   40: Microsoft.Passive 'are released', 'is destroyed'
+
+// BUG D — macro alias trigger: \section1 ends with \QC, next paragraph opens with
+//   \l{...}{\QC} (alias is a macro). Mirrors the deployment.qdoc false positive.
+/*!
+\page qtest-bugd.html
+\title Deploying Test Applications
+\brief Provides information on how to run test applications.
+
+Test documents are loaded and run by the test runtime. This includes the
+main engine along with the built-in module types and plugins. The
+runtime also provides access to third-party modules.
+
+Applications that use this system must invoke the runtime to run documents. You
+can do this by creating a QTestView or a QTestEngine, as described below. In
+addition, the package includes the \c qtest tool, which loads
+\c {.qml} files. This tool is useful for developing and testing code without
+having to write a C++ application to load the runtime.
+
+\section1 Deploying applications with \QC
+
+\l{\QC Documentation}{\QC} deploys and packages applications to various
+platforms. The resources are loaded from the bundle automatically.
+All components are released when the object is destroyed.
+*/
+// Expected (after fix):
+//   68: Microsoft.Passive 'are loaded'              (BUG D: currently reported at 66)
+//   69: Microsoft.Passive 'are released', 'is destroyed'  (BUG D: currently reported at 67)

@@ -11,7 +11,7 @@
 
     \section2 Supported Protocols And Their Usage
 
-    \section3 Error Handling And Recovery Strategies
+    \section3 Error handling and recovery strategies
 */
 
 // SHOULD NOT WARN: section headings use sentence case
@@ -31,7 +31,7 @@
 
 /*!
     \page good-title.html
-    \title Using Qt Network Module
+    \title Using Qt network Module
 
     This page describes the Qt Network Module.
 */

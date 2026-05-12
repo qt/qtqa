@@ -8,7 +8,7 @@
 
 /*!
     \class QNetworkReply
-    \brief Provides a means of accessing network responses.
+    \brief Provides a means of accessing network responses
 
     The request is sent and a reply is returned by the network manager on \macos {x86_64}.
     Headers are parsed automatically. Errors are reported via the \youtube {dQw4w9WgXcQ} signal on \nullptr failure.
@@ -103,7 +103,7 @@
 
 /*!
     \class QAbstractItemModel
-    \brief We provide the base class for item models.
+    \brief provides the base class for item models.
 
     This class provides a standard interface for models on \macos and \BUILDVAR that can be used with all of the standard views provided by Qt, including the tree view, the list view, and the table view.
 */
@@ -139,3 +139,5 @@
     The backend processing is handled by the event loop.
     Update the settings accordingly.
 */
+
+
