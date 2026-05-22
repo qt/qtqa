@@ -1,0 +1,7 @@
+extends: existence
+message: "Alt text must be plain text; remove the inline QDoc command '%s'."
+link: https://doc.qt.io/qt-6/qdoc-guide-writing.html
+level: warning
+scope: text.comment.image.alt
+raw:
+  - '\\[a-z]+'

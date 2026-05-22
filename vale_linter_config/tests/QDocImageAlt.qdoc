@@ -36,6 +36,46 @@
     Use \inlineimage logo.png {It is used in order to confirm} in running text.
 */
 
+// SHOULD WARN: alt text containing inline QDoc commands (\b, \i, etc.).
+// Qt.QDocImageAltInlineCmd fires on brace-delimited alt text that contains
+// a QDoc inline command. Plain (unbraced) alt text is not testable here
+// because the scanner stops at '\', truncating anything after it.
+// Note: \c is suppressed before this rule runs by the TokenIgnores entry
+// for \\c in .vale-qdoc.ini; use \b or \i to test this rule.
+
+/*!
+    \class QToolButton
+    \brief The base class of tool buttons.
+
+    \image toolbar.png {Click the \e widget to proceed}
+
+    Use \inlineimage icons/edit.png {Select \b File > Open} in running text.
+*/
+
+// SHOULD NOT WARN: plain (unbraced) alt text containing an inline command.
+// The image_alt_text scanner stops at '\', so the token contains only the
+// text before the command. The inline command is not captured as part of
+// the alt text and Qt.QDocImageAltInlineCmd cannot fire.
+
+/*!
+    \class QScrollBar
+    \brief The base class of scroll bar widgets.
+
+    \image scrollbar.png Use \e horizontal for scroll direction
+
+*/
+
+// SHOULD NOT WARN: brace-delimited alt text that contains no inline commands.
+
+/*!
+    \class QSplitter
+    \brief A widget that implements a splitter handle.
+
+    \image splitter.png {A horizontal splitter with two panes}
+
+    Use \inlineimage icons/help.png {Help icon for the toolbar} in running text.
+*/
+
 // SHOULD NOT WARN: filenames containing rejected vocab terms ("please", "thanks").
 // Vale.Terms must not fire on image filenames even if they contain rejected words.
 
