@@ -1,0 +1,10 @@
+extends: existence
+message: "Use present tense instead of future tense ('%s'). Example: 'returns' not 'will return'."
+link: https://learn.microsoft.com/en-us/style-guide/grammar/verbs
+ignorecase: true
+level: warning
+scope: sentence
+tokens:
+  - '\bwill (?:(?:not|also|then|still|always|never) )?[a-z]+'
+  - '\bwould (?:(?:not|also|then|still|always|never) )?[a-z]+'
+  - '\bshall (?:(?:not|also|then|still|always|never) )?[a-z]+'
