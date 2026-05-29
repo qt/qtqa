@@ -1,0 +1,12 @@
+# this is a comment line
+
+[Windows] # all windows systems
+QProcess skip # QProcess class is skipped. Don't build a fuzzer for it at all.
+QWidget::setVisible skip # Build a fuzzer, but ignore this function
+
+
+[Windows11] # just Windows 11
+QDockWidget::setAllowedArea expectCrash # expect this function to crash
+
+[All] # everywhere
+QWidget::setWindowFlags expectCrash

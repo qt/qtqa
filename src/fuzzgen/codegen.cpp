@@ -1,0 +1,1263 @@
+// Copyright (C) 2026 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR GPL-3.0-only
+
+#include "codegen.h"
+
+#include <algorithm>
+#include <fstream>
+#include <iostream>
+#include <map>
+#include <set>
+#include <sstream>
+#include <unordered_set>
+
+namespace QtFuzz {
+
+// ---------------------------------------------------------------------------
+// Type-to-fuzz-expression mapper
+//
+// Maps a C++ parameter type string to a FuzzData expression that produces
+// a suitable fuzzed value of that type.
+//
+// className is the enclosing class — used to qualify unscoped enum/type
+// names that are nested inside the class (e.g. InsertPolicy becomes
+// QComboBox::InsertPolicy).
+// ---------------------------------------------------------------------------
+
+// Qt types that are globally scoped (not nested in a class) and are always
+// complete / default-constructible without needing className:: qualification.
+static const std::unordered_set<std::string> kGlobalQtTypes = {
+    "QString", "QByteArray", "QVariant", "QStringList",
+    "QUrl", "QChar",
+    "QPoint", "QPointF", "QSize", "QSizeF",
+    "QRect", "QRectF", "QLine", "QLineF",
+    "QDate", "QTime", "QDateTime",
+    "QModelIndex", "QPersistentModelIndex",
+    "QLocale", "QMargins", "QMarginsF",
+    "QVector2D", "QVector3D", "QVector4D",
+    "QFont", "QIcon", "QPixmap", "QImage",
+    "QCursor", "QPalette", "QRegion", "QKeySequence",
+    "QColor",
+    "QDeadlineTimer",
+    "QAnyStringView",
+    "QCalendar",
+    "QTextCharFormat",
+    "QPainterPath",
+    "QPalette",
+    "QModelIndex",
+    "QPersistentModelIndex",
+    "QTimeZone",
+    "QPen",
+    "QBrush",
+    "QTransform",
+    "QMatrix4x4",
+    "QStringView",
+    "QKeyCombination",
+    "QAbstractAnimation",
+    // These are passed by pointer so handled by the '*' branch, but listed
+    // here so we don't accidentally qualify them.
+    "QObject", "QWidget", "QAbstractItemModel", "QAbstractItemView",
+};
+
+static std::string fuzzExprForType(const std::string &rawType,
+                                    const std::string &className)
+{
+    // Normalise whitespace.
+    std::string type;
+    bool lastSpace = true;
+    for (char c : rawType) {
+        if (std::isspace(static_cast<unsigned char>(c))) {
+            if (!lastSpace) {
+                type += ' ';
+                lastSpace = true;
+            }
+        } else {
+            type += c;
+            lastSpace = false;
+        }
+    }
+    while (!type.empty() && type.back() == ' ')
+        type.pop_back();
+
+    // Primitives.
+    // Each expression is wrapped in static_cast<Type>() so that when a class
+    // has multiple overloads with different numeric first parameters (e.g.
+    // QLocale::toString(qlonglong,int,char32_t) vs toString(int,int,char32_t))
+    // the compiler can always select the intended overload unambiguously.
+    if (type == "bool")
+        return "static_cast<bool>(fd.nextBool())";
+    if (type == "int" || type == "qint32")
+        return "static_cast<int>(fd.nextInt())";
+    if (type == "uint" || type == "quint32" || type == "unsigned int") {
+        return "static_cast<uint>(fd.nextUInt())";
+    }
+    if (type == "qint64" || type == "qlonglong" || type == "long long") {
+        return "static_cast<" + type + ">(fd.nextInt64())";
+    }
+    if (type == "quint64" || type == "qulonglong" || type == "unsigned long long") {
+        return "static_cast<" + type + ">(fd.nextUInt64())";
+    }
+    if (type == "double")
+        return "static_cast<double>(fd.nextDouble())";
+    if (type == "float")
+        return "static_cast<float>(fd.nextFloat())";
+    if (type == "qreal")
+        return "static_cast<qreal>(fd.nextDouble())";
+    if (type == "char")
+        return "static_cast<char>(fd.nextByte())";
+    if (type == "uchar" || type == "unsigned char")
+        return "static_cast<uchar>(fd.nextByte())";
+    if (type == "char32_t")
+        return "static_cast<char32_t>(fd.nextInt())";
+    if (type == "short" || type == "qint16")
+        return "static_cast<short>(fd.nextInt<short>())";
+    if (type == "ushort" || type == "quint16")
+        return "static_cast<ushort>(fd.nextInt<ushort>())";
+    if (type == "long")
+        return "static_cast<long>(fd.nextInt<long>())";
+    if (type == "ulong" || type == "unsigned long")
+        return "static_cast<ulong>(fd.nextInt<ulong>())";
+    if (type == "qsizetype")
+        return "static_cast<qsizetype>(fd.nextInt64())";
+    if (type == "qptrdiff")
+        return "static_cast<qptrdiff>(fd.nextInt64())";
+
+    // QString variants.
+    if (type == "QString" || type == "const QString &" || type == "const QString&") {
+        return "fd.nextQString()";
+    }
+
+    // QByteArray variants.
+    if (type == "QByteArray" || type == "const QByteArray &" || type == "const QByteArray&") {
+        return "fd.nextQByteArray()";
+    }
+
+    // std::chrono durations.
+    if (type == "std::chrono::nanoseconds")
+        return "std::chrono::nanoseconds(fd.nextInt64())";
+    if (type == "std::chrono::milliseconds")
+        return "std::chrono::milliseconds(fd.nextInt64())";
+    if (type == "std::chrono::seconds")
+        return "std::chrono::seconds(fd.nextInt64())";
+    if (type.find("std::chrono::") == 0)
+        return type + "(fd.nextInt64())";
+
+    // Common Qt value types.
+    if (type == "QChar")
+        return "QChar(fd.nextInt<ushort>())";
+    if (type == "QPoint")
+        return "QPoint(fd.nextInt(), fd.nextInt())";
+    if (type == "QPointF")
+        return "QPointF(fd.nextDouble(), fd.nextDouble())";
+    if (type == "QSize")
+        return "QSize(fd.nextInt(), fd.nextInt())";
+    if (type == "QSizeF")
+        return "QSizeF(fd.nextDouble(), fd.nextDouble())";
+    if (type == "QRect")
+        return "QRect(fd.nextInt(), fd.nextInt(), fd.nextInt(), fd.nextInt())";
+    if (type == "QRectF")
+        return "QRectF(fd.nextDouble(), fd.nextDouble(), fd.nextDouble(), fd.nextDouble())";
+    if (type == "QUrl" || type == "const QUrl &" || type == "const QUrl&") {
+        return "QUrl(fd.nextQString())";
+    }
+    if (type == "QColor" || type == "const QColor &" || type == "const QColor&") {
+        return "QColor(fd.nextByte(), fd.nextByte(), fd.nextByte(), fd.nextByte())";
+    }
+
+    if (type == "QDeadlineTimer")
+        return "QDeadlineTimer(fd.nextInt64())";
+    if (type == "QAnyStringView" || type == "const QAnyStringView &"
+        || type == "const QAnyStringView&") {
+        return "QAnyStringView(fd.nextQString())";
+    }
+
+    // Pointer types — cast nullptr to the exact pointer type to avoid
+    // ambiguity when multiple overloads take different pointer types.
+    if (!type.empty() && type.back() == '*')
+        return "static_cast<" + type + ">(nullptr)";
+
+    // Reference types — strip to base type and default-construct a temporary.
+    if (!type.empty() && type.back() == '&') {
+        std::string base = type;
+        while (!base.empty() && (base.back() == '&' || base.back() == ' '))
+            base.pop_back();
+        if (base.size() >= 6 && base.substr(0, 6) == "const ")
+            base = base.substr(6);
+        while (!base.empty() && base.back() == ' ')
+            base.pop_back();
+
+        // If the base type is a template like QList<ExtraSelection>, qualify
+        // any unscoped nested type inside the angle brackets with className::.
+        auto ltPos = base.find('<');
+        auto gtPos = base.rfind('>');
+        if (ltPos != std::string::npos && gtPos != std::string::npos
+            && gtPos > ltPos) {
+            std::string inner = base.substr(ltPos + 1, gtPos - ltPos - 1);
+            size_t ia = inner.find_first_not_of(" \t");
+            size_t ib = inner.find_last_not_of(" \t");
+            if (ia != std::string::npos)
+                inner = inner.substr(ia, ib - ia + 1);
+            if (!inner.empty()
+                && std::isupper(static_cast<unsigned char>(inner[0]))
+                && inner.find(':') == std::string::npos
+                && inner.find('<') == std::string::npos
+                && inner.find('*') == std::string::npos
+                && !(inner.size() >= 2
+                     && inner[0] == 'Q'
+                     && std::isupper(static_cast<unsigned char>(inner[1])))) {
+                base = base.substr(0, ltPos + 1)
+                     + className + "::" + inner
+                     + base.substr(gtPos);
+            }
+        }
+
+        return "/* ref */ " + base + "{}";
+    }
+
+    // Qt:: scoped enums/flags — cast a byte.
+    if (type.size() >= 4 && type.substr(0, 4) == "Qt::")
+        return "static_cast<" + type + ">(fd.nextByte())";
+
+    // Fully qualified types with :: — cast a byte (covers ClassName::Enum).
+    // Exclude std:: types: they are C++ standard-library classes/structs, not
+    // Qt enums, and must be default-constructed (e.g. std::exception_ptr{}).
+    if (type.find("::") != std::string::npos
+            && !(type.size() >= 5 && type.substr(0, 5) == "std::"))
+        return "static_cast<" + type + ">(fd.nextByte())";
+
+    // Single-word type starting with uppercase letter.
+    if (!type.empty() && std::isupper(static_cast<unsigned char>(type[0]))
+        && type.find('<') == std::string::npos) {
+        if (kGlobalQtTypes.count(type))
+            return type + "{}";
+        // Types that start with Q followed by a second uppercase letter are
+        // Qt classes in the global namespace (QByteArrayView, QStringView,
+        // QTextDocument, …).  Do NOT qualify them with className:: — that
+        // would generate nonsense like QByteArray::QByteArrayView.
+        if (type.size() >= 2 && type[0] == 'Q'
+                && std::isupper(static_cast<unsigned char>(type[1])))
+            return type + "{}";
+        // Everything else (OpenModeFlag, Direction, Format, …) is assumed to
+        // be a nested enum or typedef inside the class being fuzzed.
+        return "static_cast<" + className + "::" + type + ">(fd.nextByte())";
+    }
+
+    // std::optional<T> — use std::nullopt (implicitly converts to any optional).
+    if (type.find("std::optional") != std::string::npos)
+        return "std::nullopt";
+
+    // Other std:: types (std::exception_ptr, etc.) — default-construct.
+    if (type.size() >= 5 && type.substr(0, 5) == "std::")
+        return type + "{}";
+
+    // Fallback: lowercase leaked name → safe default.
+    if (!type.empty() && std::islower(static_cast<unsigned char>(type[0])))
+        return "fd.nextInt()";
+
+    return type + "{}";
+}
+
+// ---------------------------------------------------------------------------
+// Extra includes needed for method parameter and return types
+// ---------------------------------------------------------------------------
+
+// Scans a C++ type string for Qt class names (Q followed by an uppercase
+// letter) and emits a corresponding system include for each one found.
+// Also detects std::chrono types.  This is applied to both parameter types
+// and return types so that forward-declared companion types (e.g. QCborArray
+// forward-declared in qcborvalue.h) are included when the generated code
+// returns or receives them by value.
+static void extractQtIncludes(const std::string &typeStr,
+                               std::set<std::string> &includes)
+{
+    if (typeStr.find("std::chrono") != std::string::npos)
+        includes.insert("<chrono>");
+
+    size_t i = 0;
+    while (i < typeStr.size()) {
+        if (typeStr[i] == 'Q'
+                && i + 1 < typeStr.size()
+                && std::isupper(static_cast<unsigned char>(typeStr[i + 1]))) {
+            size_t start = i;
+            while (i < typeStr.size()
+                   && (std::isalnum(static_cast<unsigned char>(typeStr[i])) || typeStr[i] == '_')) {
+                ++i;
+            }
+            std::string word = typeStr.substr(start, i - start);
+            // Qt class names are CamelCase and never contain underscores.
+            // Names with underscores are macros (QT_CORE_CONSTEXPR_INLINE_SINCE,
+            // QT_GUI_REMOVED_SINCE, etc.) — skip them.
+            if (word.find('_') == std::string::npos)
+                includes.insert("<" + word + ">");
+        } else {
+            ++i;
+        }
+    }
+}
+
+// Returns true if a type string represents a pointer type, i.e. the last
+// non-space character is '*'.  Template arguments are intentionally ignored
+// so that QList<QObject *> (outer type is a value) is NOT treated as a pointer.
+static bool isPointerType(const std::string &t)
+{
+    size_t i = t.size();
+    while (i > 0 && t[i - 1] == ' ')
+        --i;
+    return i > 0 && t[i - 1] == '*';
+}
+
+static std::set<std::string> extraIncludesForMethods(const std::vector<MethodSignature> &methods)
+{
+    std::set<std::string> includes;
+    for (const auto &sig : methods) {
+        // Return type: value and reference returns may need a full type
+        // definition (e.g. destructor on a temporary).  Pointer returns only
+        // need a forward declaration — which the class's own header already
+        // provides — so skip them.  This avoids bogus includes for private or
+        // namespace-qualified types such as QtPrivate::QPropertyBindingData *.
+        if (!sig.returnType.empty()
+                && sig.returnType != "void"
+                && !isPointerType(sig.returnType))
+            extractQtIncludes(sig.returnType, includes);
+
+        // Parameter types: same rule — pointer params need no include.
+        for (const auto &param : sig.params) {
+            if (!isPointerType(param.type))
+                extractQtIncludes(param.type, includes);
+        }
+    }
+    return includes;
+}
+
+// ---------------------------------------------------------------------------
+// Direct-call fuzz function generation
+// ---------------------------------------------------------------------------
+
+static std::string buildDirectFuzzFunction(
+        const std::string &className,
+        const std::vector<MethodSignature> &methods)
+{
+    if (methods.empty())
+        return "";
+
+    std::ostringstream o;
+    o << "static void fuzz_direct(" << className << " &obj, FuzzData &fd)\n"
+      << "{\n"
+      << "    switch (fd.nextByte() % " << methods.size() << ") {\n";
+
+    size_t caseIdx = 0;
+    for (const auto &sig : methods) {
+        bool needsLocals = false;
+        for (const auto &p : sig.params) {
+            if (p.isNonConstRef) {
+                needsLocals = true;
+                break;
+            }
+        }
+
+        bool allBraces = !sig.params.empty();
+        for (const auto &p : sig.params) {
+            std::string expr = fuzzExprForType(p.type, className);
+            if (expr != "{}" && expr != "nullptr"
+             && expr != "static_cast<QWidget *>(nullptr)"
+             && expr != "fd.nextInt()")
+                allBraces = false;
+        }
+        if (allBraces) {
+            ++caseIdx;
+            continue;
+        }
+
+        o << "    case " << caseIdx++ << ":\n";
+        if (needsLocals) {
+            o << "        {\n";
+            for (size_t i = 0; i < sig.params.size(); ++i) {
+                if (sig.params[i].isNonConstRef) {
+                    std::string base = sig.params[i].type;
+                    while (!base.empty() && (base.back() == '&' || base.back() == ' '))
+                        base.pop_back();
+                    if (base.size() >= 6 && base.substr(0, 6) == "const ")
+                        base = base.substr(6);
+                    while (!base.empty() && base.back() == ' ')
+                        base.pop_back();
+                    o << "            " << base << " _p" << i << "{};\n";
+                }
+            }
+            o << "            (void)obj." << sig.name << "(";
+            for (size_t i = 0; i < sig.params.size(); ++i) {
+                if (i > 0)
+                    o << ", ";
+                if (sig.params[i].isNonConstRef)
+                    o << "_p" << i;
+                else
+                    o << fuzzExprForType(sig.params[i].type, className);
+            }
+            o << ");\n"
+              << "        }\n"
+              << "        break;\n";
+        } else {
+            o << "        (void)obj." << sig.name << "(";
+            for (size_t i = 0; i < sig.params.size(); ++i) {
+                if (i > 0)
+                    o << ", ";
+                o << fuzzExprForType(sig.params[i].type, className);
+            }
+            o << ");\n"
+              << "        break;\n";
+        }
+    }
+
+    o << "    }\n"
+      << "}\n";
+    return o.str();
+}
+
+// ---------------------------------------------------------------------------
+// Shared FuzzData struct text (embedded verbatim in both templates)
+// ---------------------------------------------------------------------------
+
+static const char kFuzzDataStruct[] = R"FUZZDATA(
+// ---------------------------------------------------------------------------
+// FuzzData — wraps a byte buffer and vends typed fuzz values.
+// ---------------------------------------------------------------------------
+struct FuzzData
+{
+    const uint8_t *data;
+    size_t         size;
+    size_t         pos = 0;
+
+    uint8_t nextByte()
+    {
+        if (size == 0) return 0;
+        return data[pos++ % size];
+    }
+
+    template <typename T>
+    T nextInt()
+    {
+        T v = 0;
+        for (size_t i = 0; i < sizeof(T); i++)
+            v = static_cast<T>((v << 8) | nextByte());
+        return v;
+    }
+
+    bool    nextBool()   { return nextByte() & 1; }
+    int     nextInt()    { return nextInt<int>(); }
+    uint    nextUInt()   { return nextInt<uint>(); }
+    qint64  nextInt64()  { return nextInt<qint64>(); }
+    quint64 nextUInt64() { return nextInt<quint64>(); }
+
+    double nextDouble()
+    {
+        uint64_t bits = nextInt<uint64_t>();
+        double v; std::memcpy(&v, &bits, sizeof(v));
+        return v;
+    }
+
+    float nextFloat()
+    {
+        uint32_t bits = nextInt<uint32_t>();
+        float v; std::memcpy(&v, &bits, sizeof(v));
+        return v;
+    }
+
+    QString nextQString(size_t maxLen = 256)
+    {
+        size_t len = nextInt<uint16_t>() % (maxLen + 1);
+        QByteArray ba;
+        ba.reserve(static_cast<int>(len));
+        for (size_t i = 0; i < len; i++)
+            ba.append(static_cast<char>(nextByte()));
+        return QString::fromUtf8(ba);
+    }
+
+    QByteArray nextQByteArray(size_t maxLen = 512)
+    {
+        size_t len = nextInt<uint16_t>() % (maxLen + 1);
+        QByteArray ba;
+        ba.reserve(static_cast<int>(len));
+        for (size_t i = 0; i < len; i++)
+            ba.append(static_cast<char>(nextByte()));
+        return ba;
+    }
+};
+)FUZZDATA";
+
+// ---------------------------------------------------------------------------
+// Template for classes WITH Q_OBJECT
+// Uses introspection (QMetaObject) + direct-call fuzzing.
+// ---------------------------------------------------------------------------
+
+const char *FuzzCppGenerator::kTemplateQObject = R"FUZZTEMPLATE(
+// Copyright (C) 2026 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR GPL-3.0-only
+//
+// Fuzz test for @@CLASS@@
+// Auto-generated by QtFuzz::FuzzCppGenerator — do not edit by hand.
+// Strategy: introspection-based (QMetaObject) + direct-call.
+//
+// Run:
+//   ./fuzz_@@CLASS@@ [--time <seconds>] [--seed <uint64>] [corpus_file ...]
+
+#include <@@CLASS@@>
+#include @@APP_INCLUDE@@
+#include <QMetaObject>
+#include <QMetaMethod>
+#include <QMetaType>
+#include <QGenericArgument>
+#include <QString>
+#include <QByteArray>
+#include <QUrl>
+#include <QPoint>
+#include <QPointF>
+#include <QSize>
+#include <QSizeF>
+#include <QRect>
+#include <QRectF>
+#if QT_GUI_LIB
+#include <QColor>
+#endif
+#include <QVariant>
+#include <QChar>
+#include <QDate>
+#include <QTime>
+#include <QDateTime>
+@@EXTRA_INCLUDES@@
+#include <chrono>
+#include <csignal>
+#include <cstdint>
+#include <cstdlib>
+#include <cstring>
+#include <fstream>
+#include <iostream>
+#include <iterator>
+#include <vector>
+
+@@FUZZ_DATA_STRUCT@@
+
+// QVariant generator for introspection-based fuzzing.
+static QVariant nextVariantForType(FuzzData &fd, QMetaType metaType)
+{
+    const int id = metaType.id();
+    switch (id) {
+    case QMetaType::Bool:       return QVariant(fd.nextBool());
+    case QMetaType::Int:        return QVariant(fd.nextInt());
+    case QMetaType::UInt:       return QVariant(fd.nextUInt());
+    case QMetaType::LongLong:   return QVariant(fd.nextInt64());
+    case QMetaType::ULongLong:  return QVariant(fd.nextUInt64());
+    case QMetaType::Double:     return QVariant(fd.nextDouble());
+    case QMetaType::Float:      return QVariant(fd.nextFloat());
+    case QMetaType::Long:       return QVariant::fromValue<long>(fd.nextInt<long>());
+    case QMetaType::Short:      return QVariant::fromValue<short>(fd.nextInt<short>());
+    case QMetaType::Char:       return QVariant::fromValue<char>(fd.nextInt<char>());
+    case QMetaType::ULong:      return QVariant::fromValue<ulong>(fd.nextInt<ulong>());
+    case QMetaType::UShort:     return QVariant::fromValue<ushort>(fd.nextInt<ushort>());
+    case QMetaType::UChar:      return QVariant::fromValue<uchar>(fd.nextInt<uchar>());
+    case QMetaType::SChar:      return QVariant::fromValue<signed char>(fd.nextInt<signed char>());
+    case QMetaType::QString:    return QVariant(fd.nextQString());
+    case QMetaType::QByteArray: return QVariant(fd.nextQByteArray());
+    case QMetaType::QChar:      return QVariant(QChar(fd.nextInt<ushort>()));
+    case QMetaType::QPoint:     return QVariant(QPoint(fd.nextInt(), fd.nextInt()));
+    case QMetaType::QPointF:    return QVariant(QPointF(fd.nextDouble(), fd.nextDouble()));
+    case QMetaType::QSize:      return QVariant(QSize(fd.nextInt(), fd.nextInt()));
+    case QMetaType::QSizeF:     return QVariant(QSizeF(fd.nextDouble(), fd.nextDouble()));
+    case QMetaType::QRect:      return QVariant(QRect(fd.nextInt(), fd.nextInt(), fd.nextInt(), fd.nextInt()));
+    case QMetaType::QRectF:     return QVariant(QRectF(fd.nextDouble(), fd.nextDouble(), fd.nextDouble(), fd.nextDouble()));
+#if QT_GUI_LIB
+    case QMetaType::QColor:     return QVariant(QColor(fd.nextByte(), fd.nextByte(), fd.nextByte(), fd.nextByte()));
+#endif
+    case QMetaType::QUrl:       return QVariant(QUrl(fd.nextQString()));
+    case QMetaType::QDate:
+        return QVariant(QDate(fd.nextInt<int>() % 9999 + 1,
+                              fd.nextByte() % 12 + 1, fd.nextByte() % 28 + 1));
+    case QMetaType::QTime:
+        return QVariant(QTime(fd.nextByte() % 24, fd.nextByte() % 60,
+                              fd.nextByte() % 60, fd.nextInt<uint16_t>() % 1000));
+    case QMetaType::QDateTime: {
+        QDate d(fd.nextInt<int>() % 9999 + 1, fd.nextByte() % 12 + 1, fd.nextByte() % 28 + 1);
+        QTime t(fd.nextByte() % 24, fd.nextByte() % 60, fd.nextByte() % 60);
+        return QVariant(QDateTime(d, t));
+    }
+    case QMetaType::QVariant: return fd.nextQString();
+    default:                  return QVariant(metaType, nullptr);
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Introspection-based fuzzing (slots / Q_INVOKABLE via QMetaObject)
+// ---------------------------------------------------------------------------
+
+static void invokeWithFuzzData(QObject *obj,
+                               const QMetaMethod &method,
+                               FuzzData &fd)
+{
+    const int paramCount = method.parameterCount();
+    if (paramCount > 10) return;
+
+    QVariant        storage[10];
+    QGenericArgument args[10];
+
+    for (int i = 0; i < paramCount; i++) {
+        storage[i] = nextVariantForType(fd, method.parameterMetaType(i));
+        args[i] = QGenericArgument(storage[i].typeName(), storage[i].constData());
+    }
+
+    method.invoke(obj, Qt::DirectConnection,
+                  args[0], args[1], args[2], args[3], args[4],
+                  args[5], args[6], args[7], args[8], args[9]);
+}
+
+static std::vector<QMetaMethod> collectMethods(const QMetaObject *mo)
+{
+    std::vector<QMetaMethod> result;
+    for (int i = mo->methodOffset(); i < mo->methodCount(); i++) {
+        QMetaMethod m = mo->method(i);
+        if (m.methodType() == QMetaMethod::Signal) continue;
+        QByteArray name = m.name();
+        if (name.startsWith("_q_"))  continue;
+        if (name == "deleteLater")   continue;
+        if (m.parameterCount() == 0) continue;
+        result.push_back(m);
+    }
+    return result;
+}
+
+static void fuzz_one(QObject *obj,
+                     const std::vector<QMetaMethod> &methods,
+                     const uint8_t *data, size_t size)
+{
+    if (methods.empty()) return;
+    FuzzData fd{ data, size };
+    const size_t idx = fd.nextByte() % methods.size();
+    invokeWithFuzzData(obj, methods[idx], fd);
+}
+
+// ---------------------------------------------------------------------------
+// Direct-call fuzzing (all public methods, incl. non-slots / non-Q_INVOKABLE)
+// ---------------------------------------------------------------------------
+@@DIRECT_FUZZ_FUNC@@
+// ---------------------------------------------------------------------------
+// Timeout
+// ---------------------------------------------------------------------------
+
+static volatile bool g_stop = false;
+static void onAlarm(int) { g_stop = true; }
+
+// ---------------------------------------------------------------------------
+// main
+// ---------------------------------------------------------------------------
+
+int main(int argc, char *argv[])
+{
+    @@APP_CLASS@@ app(argc, argv);
+
+    int      timeLimitSec = 30;
+    uint64_t seed         = 0xdeadbeefcafe1234ULL;
+    std::vector<std::string> corpusFiles;
+
+    for (int i = 1; i < argc; i++) {
+        std::string a(argv[i]);
+        if ((a == "--time" || a == "-t") && i + 1 < argc)
+            timeLimitSec = std::atoi(argv[++i]);
+        else if ((a == "--seed" || a == "-s") && i + 1 < argc)
+            seed = std::stoull(argv[++i]);
+        else if (a.rfind("--", 0) != 0)
+            corpusFiles.push_back(a);
+    }
+
+    @@CLASS@@ obj;
+
+    const QMetaObject *mo      = obj.metaObject();
+    auto               methods = collectMethods(mo);
+
+    std::cout << "[fuzz_@@CLASS@@] Class        : " << mo->className() << "\n";
+    std::cout << "[fuzz_@@CLASS@@] Meta methods : " << methods.size() << "\n";
+    for (const auto &m : methods)
+        std::cout << "                  " << m.methodSignature().constData() << "\n";
+
+    for (const auto &path : corpusFiles) {
+        std::ifstream f(path, std::ios::binary);
+        if (!f) { std::cerr << "[fuzz_@@CLASS@@] Cannot open: " << path << "\n"; continue; }
+        std::vector<uint8_t> buf(std::istreambuf_iterator<char>(f), {});
+        fuzz_one(&obj, methods, buf.data(), buf.size());
+@@DIRECT_FUZZ_CORPUS_CALL@@
+    }
+
+    std::signal(SIGALRM, onAlarm);
+    alarm(static_cast<unsigned>(timeLimitSec));
+
+    constexpr size_t     BUF_SIZE = 4096;
+    std::vector<uint8_t> buf(BUF_SIZE);
+    uint64_t             iterations = 0;
+    auto t0 = std::chrono::steady_clock::now();
+
+    while (!g_stop) {
+        seed ^= seed << 13; seed ^= seed >> 7; seed ^= seed << 17;
+        uint64_t s = seed;
+        for (size_t i = 0; i < BUF_SIZE; i++) {
+            s ^= s << 13; s ^= s >> 7; s ^= s << 17;
+            buf[i] = static_cast<uint8_t>(s & 0xff);
+        }
+        fuzz_one(&obj, methods, buf.data(), BUF_SIZE);
+@@DIRECT_FUZZ_LOOP_CALL@@
+        iterations++;
+    }
+
+    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now() - t0).count();
+
+    std::cout << "[fuzz_@@CLASS@@] Done. "
+              << iterations << " iterations in "
+              << elapsed / 1000.0 << "s  ("
+              << (iterations * 1000ULL / std::max(elapsed, static_cast<decltype(elapsed)>(1)))
+              << " iter/s)\n";
+
+    return 0;
+}
+)FUZZTEMPLATE";
+
+// ---------------------------------------------------------------------------
+// Template for classes WITHOUT Q_OBJECT
+// Direct-call fuzzing only — no QMetaObject machinery.
+// Suitable for any default-constructible Qt class regardless of ancestry.
+// ---------------------------------------------------------------------------
+
+const char *FuzzCppGenerator::kTemplateDirectOnly = R"FUZZTEMPLATE(
+// Copyright (C) 2024 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR GPL-3.0-only
+//
+// Fuzz test for @@CLASS@@
+// Auto-generated by QtFuzz::FuzzCppGenerator — do not edit by hand.
+// Strategy: direct-call (class does not have Q_OBJECT).
+//
+// Run:
+//   ./fuzz_@@CLASS@@ [--time <seconds>] [--seed <uint64>] [corpus_file ...]
+
+#include <@@CLASS@@>
+#include @@APP_INCLUDE@@
+#include <QString>
+#include <QByteArray>
+#include <QUrl>
+#include <QPoint>
+#include <QPointF>
+#include <QSize>
+#include <QSizeF>
+#include <QRect>
+#include <QRectF>
+#if QT_GUI_LIB
+#include <QColor>
+#endif
+#include <QChar>
+#include <QDate>
+#include <QTime>
+#include <QDateTime>
+@@EXTRA_INCLUDES@@
+#include <chrono>
+#include <csignal>
+#include <cstdint>
+#include <cstdlib>
+#include <cstring>
+#include <fstream>
+#include <iostream>
+#include <iterator>
+#include <vector>
+
+@@FUZZ_DATA_STRUCT@@
+
+// ---------------------------------------------------------------------------
+// Direct-call fuzzing (all public methods)
+// ---------------------------------------------------------------------------
+@@DIRECT_FUZZ_FUNC@@
+// ---------------------------------------------------------------------------
+// Timeout
+// ---------------------------------------------------------------------------
+
+static volatile bool g_stop = false;
+static void onAlarm(int) { g_stop = true; }
+
+// ---------------------------------------------------------------------------
+// main
+// ---------------------------------------------------------------------------
+
+int main(int argc, char *argv[])
+{
+    @@APP_CLASS@@ app(argc, argv);
+
+    int      timeLimitSec = 30;
+    uint64_t seed         = 0xdeadbeefcafe1234ULL;
+    std::vector<std::string> corpusFiles;
+
+    for (int i = 1; i < argc; i++) {
+        std::string a(argv[i]);
+        if ((a == "--time" || a == "-t") && i + 1 < argc)
+            timeLimitSec = std::atoi(argv[++i]);
+        else if ((a == "--seed" || a == "-s") && i + 1 < argc)
+            seed = std::stoull(argv[++i]);
+        else if (a.rfind("--", 0) != 0)
+            corpusFiles.push_back(a);
+    }
+
+    @@CLASS@@ obj;
+
+    std::cout << "[fuzz_@@CLASS@@] Class  : @@CLASS@@\n";
+
+    for (const auto &path : corpusFiles) {
+        std::ifstream f(path, std::ios::binary);
+        if (!f) { std::cerr << "[fuzz_@@CLASS@@] Cannot open: " << path << "\n"; continue; }
+        std::vector<uint8_t> buf(std::istreambuf_iterator<char>(f), {});
+@@DIRECT_FUZZ_CORPUS_CALL@@
+    }
+
+    std::signal(SIGALRM, onAlarm);
+    alarm(static_cast<unsigned>(timeLimitSec));
+
+    constexpr size_t     BUF_SIZE = 4096;
+    std::vector<uint8_t> buf(BUF_SIZE);
+    uint64_t             iterations = 0;
+    auto t0 = std::chrono::steady_clock::now();
+
+    while (!g_stop) {
+        seed ^= seed << 13; seed ^= seed >> 7; seed ^= seed << 17;
+        uint64_t s = seed;
+        for (size_t i = 0; i < BUF_SIZE; i++) {
+            s ^= s << 13; s ^= s >> 7; s ^= s << 17;
+            buf[i] = static_cast<uint8_t>(s & 0xff);
+        }
+@@DIRECT_FUZZ_LOOP_CALL@@
+        iterations++;
+    }
+
+    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now() - t0).count();
+
+    std::cout << "[fuzz_@@CLASS@@] Done. "
+              << iterations << " iterations in "
+              << elapsed / 1000.0 << "s  ("
+              << (iterations * 1000ULL / std::max(elapsed, static_cast<decltype(elapsed)>(1)))
+              << " iter/s)\n";
+
+    return 0;
+}
+)FUZZTEMPLATE";
+
+// ---------------------------------------------------------------------------
+// FuzzCppGenerator
+// ---------------------------------------------------------------------------
+
+FuzzCppGenerator::FuzzCppGenerator(std::string className,
+                                   fs::path outputPath,
+                                   AppType appType,
+                                   std::vector<MethodSignature> publicMethods,
+                                   bool hasQObject)
+    : m_className(std::move(className))
+    , m_outputPath(std::move(outputPath))
+    , m_appType(appType)
+    , m_publicMethods(std::move(publicMethods))
+    , m_hasQObject(hasQObject)
+{
+}
+
+std::string FuzzCppGenerator::buildSource() const
+{
+    const std::string outFilename = m_outputPath.filename().string();
+    const AppTypeInfo ati = appTypeInfo(m_appType);
+
+    // Guard each extra include with __has_include so the generated file
+    // compiles even when a companion type has no public module header
+    // (e.g. QCborSimpleType, QtPrivate types, etc.).
+    std::ostringstream extraIncludes;
+    for (const auto &inc : extraIncludesForMethods(m_publicMethods)) {
+        extraIncludes << "#if __has_include(" << inc << ")\n"
+                      << "#  include " << inc << "\n"
+                      << "#endif\n";
+    }
+
+    std::string directFuzzFunc = buildDirectFuzzFunction(m_className, m_publicMethods);
+
+    std::string directFuzzCorpusCall;
+    std::string directFuzzLoopCall;
+    if (!m_publicMethods.empty()) {
+        directFuzzCorpusCall =
+            "        { FuzzData fd{ buf.data(), buf.size() }; fuzz_direct(obj, fd); }";
+        directFuzzLoopCall =
+            "        { FuzzData fd{ buf.data(), BUF_SIZE }; fuzz_direct(obj, fd); }";
+    }
+
+    // Select template based on Q_OBJECT presence.
+    const char *tmpl = m_hasQObject ? kTemplateQObject : kTemplateDirectOnly;
+    std::string src(tmpl);
+
+    auto replace = [](std::string &s, const std::string &from, const std::string &to) {
+        size_t pos = 0;
+        while ((pos = s.find(from, pos)) != std::string::npos) {
+            s.replace(pos, from.size(), to);
+            pos += to.size();
+        }
+    };
+
+    replace(src, "@@CLASS@@", m_className);
+    replace(src, "@@OUTFILE@@", outFilename);
+    replace(src, "@@APP_INCLUDE@@", ati.includeHeader);
+    replace(src, "@@APP_CLASS@@", ati.className);
+    replace(src, "@@EXTRA_INCLUDES@@", extraIncludes.str());
+    replace(src, "@@FUZZ_DATA_STRUCT@@", kFuzzDataStruct);
+    replace(src, "@@DIRECT_FUZZ_FUNC@@", directFuzzFunc);
+    replace(src, "@@DIRECT_FUZZ_CORPUS_CALL@@", directFuzzCorpusCall);
+    replace(src, "@@DIRECT_FUZZ_LOOP_CALL@@", directFuzzLoopCall);
+
+    return src;
+}
+
+bool FuzzCppGenerator::generate() const
+{
+    std::error_code ec;
+    fs::create_directories(m_outputPath.parent_path(), ec);
+
+    std::ofstream out(m_outputPath);
+    if (!out) {
+        std::cerr << "[FuzzCppGenerator] ERROR: cannot write " << m_outputPath << "\n";
+        return false;
+    }
+    out << buildSource();
+    return true;
+}
+
+// ---------------------------------------------------------------------------
+// CMakeGenerator
+// ---------------------------------------------------------------------------
+
+CMakeGenerator::CMakeGenerator(Config cfg, fs::path outputPath)
+    : m_cfg(std::move(cfg))
+    , m_outputPath(std::move(outputPath))
+{
+}
+
+std::string CMakeGenerator::buildContent() const
+{
+    const std::string &cn = m_cfg.className;
+    const std::string targetName = "fuzz_" + cn;
+
+    std::ostringstream o;
+
+    o << "# CMakeLists.txt — fuzz test for " << cn << "\n"
+      << "# Auto-generated by QtFuzz::CMakeGenerator — do not edit by hand.\n"
+      << "\n"
+      << "cmake_minimum_required(VERSION 3.19)\n"
+      << "project(" << targetName << " LANGUAGES CXX)\n"
+      << "\n"
+      << "set(CMAKE_CXX_STANDARD 17)\n"
+      << "set(CMAKE_CXX_STANDARD_REQUIRED ON)\n"
+      << "\n";
+
+    if (!m_cfg.qtPrefix.empty()) {
+        o << "if(NOT DEFINED CMAKE_PREFIX_PATH)\n"
+          << "    set(CMAKE_PREFIX_PATH \"" << m_cfg.qtPrefix << "\")\n"
+          << "endif()\n\n";
+    }
+
+    o << "find_package(Qt6 REQUIRED COMPONENTS\n";
+    for (const auto &comp : m_cfg.components)
+        o << "    " << comp << "\n";
+    o << ")\n\n";
+
+    o << "# Sanitizers\n"
+      << "option(ENABLE_ASAN \"Enable AddressSanitizer + UBSan\" OFF)\n"
+      << "if(ENABLE_ASAN)\n"
+      << "    add_compile_options(-fsanitize=address,undefined -fno-omit-frame-pointer)\n"
+      << "    add_link_options   (-fsanitize=address,undefined)\n"
+      << "endif()\n\n";
+
+    o << "add_executable(" << targetName << "\n"
+      << "    " << m_cfg.fuzzCppFilename << "\n"
+      << ")\n\n"
+      << "target_link_libraries(" << targetName << " PRIVATE\n";
+    for (const auto &comp : m_cfg.components)
+        o << "    Qt6::" << comp << "\n";
+    o << ")\n\n"
+      << "set_target_properties(" << targetName << " PROPERTIES\n"
+      << "    AUTOMOC ON\n"
+      << "    AUTORCC ON\n"
+      << ")\n\n"
+      << "target_compile_options(" << targetName << " PRIVATE\n"
+      << "    $<$<CXX_COMPILER_ID:Clang,GNU>:-Wall -Wextra>\n"
+      << ")\n\n";
+
+    o << "include(CTest)\n"
+      << "enable_testing()\n\n"
+      << "set(FUZZ_TIME_SECONDS \"" << m_cfg.fuzzTimeSec << "\"\n"
+      << "    CACHE STRING \"Fuzz duration in seconds\")\n\n"
+      << "add_test(\n"
+      << "    NAME    " << targetName << "\n"
+      << "    COMMAND " << targetName << " --time ${FUZZ_TIME_SECONDS}\n"
+      << ")\n\n"
+      << "math(EXPR _TIMEOUT \"${FUZZ_TIME_SECONDS} + 10\")\n"
+      << "set_tests_properties(" << targetName << " PROPERTIES\n"
+      << "    TIMEOUT          ${_TIMEOUT}\n"
+      << "    LABELS           \"fuzz;" << m_cfg.module.component << "\"\n"
+      << "    PASS_REGULAR_EXPRESSION \"\\\\[fuzz_" << cn << "\\\\] Done\\.\"\n"
+      << ")\n\n"
+      << "add_custom_target(" << targetName << "_run\n"
+      << "    COMMAND " << targetName << " --time ${FUZZ_TIME_SECONDS}\n"
+      << "    DEPENDS " << targetName << "\n"
+      << "    COMMENT \"Fuzzing " << cn << " for ${FUZZ_TIME_SECONDS}s...\"\n"
+      << "    VERBATIM\n"
+      << ")\n";
+
+    return o.str();
+}
+
+bool CMakeGenerator::generate() const
+{
+    std::error_code ec;
+    fs::create_directories(m_outputPath.parent_path(), ec);
+
+    std::ofstream out(m_outputPath);
+    if (!out) {
+        std::cerr << "[CMakeGenerator] ERROR: cannot write " << m_outputPath << "\n";
+        return false;
+    }
+    out << buildContent();
+    return true;
+}
+
+// ---------------------------------------------------------------------------
+// TreeGenerator
+// ---------------------------------------------------------------------------
+
+TreeGenerator::TreeGenerator(Options opts)
+    : m_opts(std::move(opts))
+{
+}
+
+bool TreeGenerator::writeTopLevel(const std::vector<std::string> &moduleDirs) const
+{
+    const fs::path outPath = m_opts.outputRoot / "CMakeLists.txt";
+    std::ofstream out(outPath);
+    if (!out) {
+        std::cerr << "[TreeGenerator] ERROR: cannot write " << outPath << "\n";
+        return false;
+    }
+
+    out << "# tests/fuzzing/CMakeLists.txt\n"
+        << "# Auto-generated by QtFuzz::TreeGenerator — do not edit by hand.\n"
+        << "#\n"
+        << "# Build the entire fuzz suite:\n"
+        << "#   cmake -B <builddir> -S <submodule>/tests/fuzzing"
+        << (m_opts.qtPrefix.empty() ? "" : " -DCMAKE_PREFIX_PATH=" + m_opts.qtPrefix)
+        << "\n"
+        << "#   cmake --build <builddir>\n"
+        << "#   ctest --test-dir <builddir> --output-on-failure -L fuzz\n"
+        << "\n"
+        << "cmake_minimum_required(VERSION 3.19)\n"
+        << "project(QtFuzzSuite LANGUAGES CXX)\n"
+        << "\n"
+        << "set(CMAKE_CXX_STANDARD 17)\n"
+        << "set(CMAKE_CXX_STANDARD_REQUIRED ON)\n"
+        << "\n";
+
+    if (!m_opts.qtPrefix.empty()) {
+        out << "if(NOT DEFINED CMAKE_PREFIX_PATH)\n"
+            << "    set(CMAKE_PREFIX_PATH \"" << m_opts.qtPrefix << "\")\n"
+            << "endif()\n\n";
+    }
+
+    out << "set(FUZZ_TIME_SECONDS \"" << m_opts.fuzzTimeSec << "\"\n"
+        << "    CACHE STRING \"Default fuzz duration (seconds) passed to all tests\")\n\n"
+        << "option(ENABLE_ASAN \"Enable AddressSanitizer + UBSan for all fuzz targets\" OFF)\n\n"
+        << "include(CTest)\n"
+        << "enable_testing()\n\n";
+
+    for (const auto &dir : moduleDirs)
+        out << "add_subdirectory(" << dir << ")\n";
+
+    out << "\n"
+        << "add_custom_target(fuzz_all\n"
+        << "    COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure -L fuzz\n"
+        << "    COMMENT \"Running all fuzz tests...\"\n"
+        << "    VERBATIM\n"
+        << ")\n";
+
+    return true;
+}
+
+bool TreeGenerator::writeModuleLevel(const std::string &moduleSrcDir,
+                                     const std::vector<std::string> &classDirs,
+                                     const ModuleInfo &mod) const
+{
+    const fs::path outPath = m_opts.outputRoot / moduleSrcDir / "CMakeLists.txt";
+    std::ofstream out(outPath);
+    if (!out) {
+        std::cerr << "[TreeGenerator] ERROR: cannot write " << outPath << "\n";
+        return false;
+    }
+
+    out << "# tests/fuzzing/" << moduleSrcDir << "/CMakeLists.txt\n"
+        << "# Module: Qt6::" << mod.component << "\n"
+        << "# Auto-generated — do not edit by hand.\n"
+        << "\n";
+
+    for (const auto &dir : classDirs)
+        out << "add_subdirectory(" << dir << ")\n";
+
+    return true;
+}
+
+bool TreeGenerator::generate(const std::vector<DiscoveredClass> &classes) const
+{
+    std::error_code ec;
+    fs::create_directories(m_opts.outputRoot, ec);
+    if (ec) {
+        std::cerr << "[TreeGenerator] ERROR: cannot create " << m_opts.outputRoot
+                  << ": " << ec.message() << "\n";
+        return false;
+    }
+
+#if defined(_WIN32) || defined(_WIN64)
+    constexpr Platform kCurrentPlatform = Platform::Windows;
+#elif defined(__APPLE__)
+#include <TargetConditionals.h>
+#if TARGET_OS_IPHONE
+    constexpr Platform kCurrentPlatform = Platform::IOS;
+#else
+    constexpr Platform kCurrentPlatform = Platform::MacOS;
+#endif
+#elif defined(__ANDROID__)
+    constexpr Platform kCurrentPlatform = Platform::Android;
+#elif defined(__EMSCRIPTEN__)
+    constexpr Platform kCurrentPlatform = Platform::WASM;
+#elif defined(__linux__)
+    constexpr Platform kCurrentPlatform = Platform::Linux;
+#else
+    constexpr Platform kCurrentPlatform = Platform::All;
+#endif
+
+    bool ok = true;
+    size_t skipped = 0;
+
+    std::map<std::string, std::vector<const DiscoveredClass *>> byModule;
+    for (const auto &dc : classes) {
+        // Skip abstract and non-constructible classes.
+        if (dc.isAbstract || !dc.isDefaultConstructible) {
+            ++skipped;
+            if (m_opts.verbose) {
+                std::cout << "[TreeGenerator] Skipping (abstract/non-constructible): "
+                          << dc.className << "\n";
+            }
+            continue;
+        }
+        // Skip platform-restricted classes not available on this platform.
+        if (dc.availableOn != Platform::All
+            && !(dc.availableOn & kCurrentPlatform)) {
+            ++skipped;
+            if (m_opts.verbose) {
+                std::cout << "[TreeGenerator] Skipping (platform-restricted): "
+                          << dc.className << "\n";
+            }
+            continue;
+        }
+        // For classes without Q_OBJECT, skip if no public methods were
+        // extracted — there is nothing to fuzz.
+        if (!dc.hasQObject && dc.publicMethods.empty()) {
+            ++skipped;
+            if (m_opts.verbose) {
+                std::cout << "[TreeGenerator] Skipping (no Q_OBJECT, no public methods): "
+                          << dc.className << "\n";
+            }
+            continue;
+        }
+        // Skip classes that are in the skip list.
+        if (m_opts.skipList.isClassSkipped(dc.className)) {
+            ++skipped;
+            if (m_opts.verbose)
+                std::cout << "[TreeGenerator] Skipping (skiplist): " << dc.className << "\n";
+            continue;
+        }
+        byModule[dc.moduleSrcDir].push_back(&dc);
+    }
+
+    if (m_opts.verbose && skipped > 0)
+        std::cout << "[TreeGenerator] Skipped " << skipped << " class(es).\n";
+
+    std::vector<std::string> moduleDirs;
+    for (const auto &[srcDir, unused] : byModule)
+        moduleDirs.push_back(srcDir);
+    std::sort(moduleDirs.begin(), moduleDirs.end());
+
+    for (const auto &[srcDir, dcPtrs] : byModule) {
+        const ModuleInfo &mod = dcPtrs.front()->module;
+        std::vector<std::string> classDirs;
+
+        for (const auto *dc : dcPtrs) {
+            const fs::path classDir      = m_opts.outputRoot / srcDir / dc->className;
+            const std::string fuzzFilename = "fuzz_" + dc->className + ".cpp";
+            const fs::path fuzzPath      = classDir / fuzzFilename;
+            const fs::path cmakePath     = classDir / "CMakeLists.txt";
+
+            fs::create_directories(classDir, ec);
+
+            // Exclude methods known to crash — not safe to call with random input.
+            std::vector<MethodSignature> methods;
+            for (const auto &sig : dc->publicMethods) {
+                if (m_opts.skipList.expectsCrash(dc->className, sig.name)) {
+                    if (m_opts.verbose) {
+                        std::cout << "[TreeGenerator]   Skipping (expectCrash): " << dc->className
+                                  << "::" << sig.name << "\n";
+                    }
+                } else {
+                    methods.push_back(sig);
+                }
+            }
+
+            FuzzCppGenerator cpp(dc->className, fuzzPath, dc->module.appType, std::move(methods),
+                                 dc->hasQObject);
+            if (!cpp.generate()) {
+                ok = false;
+                continue;
+            }
+
+            const auto components = resolveComponents(dc->module);
+            CMakeGenerator::Config cfg{
+                dc->className, fuzzFilename, dc->module,
+                components, m_opts.qtPrefix, m_opts.fuzzTimeSec
+            };
+            CMakeGenerator cmake(std::move(cfg), cmakePath);
+            if (!cmake.generate()) {
+                ok = false;
+                continue;
+            }
+
+            classDirs.push_back(dc->className);
+
+            if (m_opts.verbose) {
+                std::cout << "[TreeGenerator] " << srcDir << "/" << dc->className
+                          << "  app=" << appTypeInfo(dc->module.appType).className
+                          << "  strategy=" << (dc->hasQObject ? "introspection+direct" : "direct-only")
+                          << "  directMethods=" << dc->publicMethods.size()
+                          << "\n";
+            }
+        }
+
+        const fs::path modDir = m_opts.outputRoot / srcDir;
+        fs::create_directories(modDir, ec);
+        ok &= writeModuleLevel(srcDir, classDirs, mod);
+    }
+
+    ok &= writeTopLevel(moduleDirs);
+
+    if (m_opts.verbose) {
+        std::cout << "[TreeGenerator] Tree written to " << m_opts.outputRoot << "\n"
+                  << "[TreeGenerator] Modules : " << byModule.size() << "\n"
+                  << "[TreeGenerator] Classes : "
+                  << (classes.size() - skipped) << " generated, "
+                  << skipped << " skipped\n";
+    }
+
+    return ok;
+}
+
+const char *fuzzDataStructSource()
+{
+    return kFuzzDataStruct;
+}
+
+} // namespace QtFuzz
