@@ -63,3 +63,50 @@
     timer.start(-1);
     \endcode
 */
+
+// SHOULD WARN: prose in a \qmltype block is linted — \qmltype must not
+// start the (?s)\\qml\s.*?\\endqml region; only \qml followed by
+// whitespace opens a code block. (Microsoft.Wordiness, Microsoft.We,
+// Microsoft.Passive)
+
+/*!
+    \qmltype FixtureSlider
+    \inqmlmodule QtQuick.Controls
+    \brief Selects a value by sliding a handle.
+
+    In order to react to changes, we recommend the handler.
+    The value is changed by the user.
+*/
+
+// SHOULD NOT WARN: \qml block contents are code, not prose
+
+/*!
+    \qmltype FixtureSlider
+    \inqmlmodule QtQuick.Controls
+    \brief Selects a value by sliding a handle.
+
+    \qml
+    Slider { value: 0.5 }  // In order to test, we utilize this
+    \endqml
+*/
+
+// SHOULD WARN: prose after \codeline is linted — \codeline must not
+// start the (?s)\\code\s.*?\\endcode region; only \code followed by
+// whitespace opens a code block. (Microsoft.Wordiness, Microsoft.We,
+// Microsoft.Passive)
+
+/*!
+    \fn void QFont::setFamily(const QString &family)
+    \brief Sets the font family.
+
+    \codeline qfont.setFamily("Arial");
+
+    In order to set a default, we recommend this approach.
+    The font is changed when the value is updated by the system.
+
+    \code
+    // We recommend utilizing this pattern in order to load fonts
+    QFont font("Arial");
+    font.setPointSize(12);
+    \endcode
+*/
