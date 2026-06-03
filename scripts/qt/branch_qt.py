@@ -648,13 +648,15 @@ class QtBranching:
 
         # datastream.cpp
         with open(datastream_cpp, mode="r", encoding="utf-8") as fd:
-            datastream_cpp_content = re.sub(
-                # Add documentation for new version (a line like '\value Qt_6_4 Same as Qt_6_0'):
-                rf"^( +\\value )({fromver} .+)$",
-                rf"\g<1>\g<2>\n\g<1>{tover} Same as {wasver}",
+            datastream_cpp_content, n = re.subn(
+                # Add documentation for new version
+                rf"^( +\\value )({fromver})$",
+                rf"\g<1>\g<2>\n\g<1>{tover}",
                 fd.read(),
                 flags=re.MULTILINE,
             )
+            if n == 0:
+                log.warning(f"\\value {fromver} not found in {datastream_cpp} — {tover} doc entry NOT added!")
         with open(datastream_cpp, mode="w", encoding="utf-8") as fd:
             fd.write(datastream_cpp_content)
 
