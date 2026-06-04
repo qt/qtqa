@@ -180,6 +180,10 @@ def submit_output(filename, branch, host_name, sha1_list):
                 "cov": coefficientOfVariation,
                 "iterations": iterations
             })
+    # If no valid benchmarks were found, we should not proceed with database insertion.
+    if not rows:
+        print("No valid benchmark results found in the file. Aborting upload.", file=sys.stderr)
+        return
 
     df = pd.DataFrame(rows)
 
