@@ -140,4 +140,61 @@
     Update the settings accordingly.
 */
 
+// SHOULD WARN: missing space after period (Microsoft.Spacing)
+
+/*!
+    \class QAbstractSocket
+    \brief Provides the base functionality common to all socket types.
+
+    Call connectToHost() to initiate a connection.The socket enters a
+    connecting state. Once connected, call write() to send data.The
+    bytesWritten() signal is emitted.
+*/
+
+// SHOULD WARN: missing space after period next to a Qt module name
+// (Microsoft.Spacing). The TokenIgnores entry for Qt module names must not
+// swallow a real sentence boundary that follows a module name.
+
+/*!
+    \class QQuickItemGuard
+    \brief Guards the sentence boundary next to a module name.
+
+    Import the module named QtQuick.Then rebuild the project.
+*/
+
+// SHOULD NOT WARN: qualified Qt module names must not trigger Microsoft.Spacing.
+// TokenIgnores blanks the enumerated QtQuick/QtQml module names before rules fire.
+
+/*!
+    \page qtquick-modules.html
+    \title Qt Quick Related Modules
+
+    Qt Quick spreads its functionality across several modules. The core
+    module is QtQuick. QtQuick.Layouts adds layout support. UI controls
+    come from QtQuick.Controls, with the style variants
+    QtQuick.Controls.Material, QtQuick.Controls.Universal,
+    QtQuick.Controls.Fusion, QtQuick.Controls.Imagine, and
+    QtQuick.Controls.iOS.
+
+    Particle effects use QtQuick.Particles. Vector graphics use
+    QtQuick.Shapes. Timeline-based animations use QtQuick.Timeline.
+    Native dialogs use QtQuick.Dialogs. Local storage access uses
+    QtQuick.LocalStorage. The virtual keyboard uses
+    QtQuick.VirtualKeyboard, and its settings live in
+    QtQuick.VirtualKeyboard.Settings. Scene integration uses
+    QtQuick.Scene2D and QtQuick.Scene3D.
+
+    For QML-side model types, see QtQml.Models and QtQml.XmlListModel.
+    Background workers use QtQml.WorkerScript.
+
+    Experimental APIs use the Qt.labs prefix. Examples are
+    Qt.labs.qmlmodels, Qt.labs.animation, and Qt.labs.platform. Others are
+    Qt.labs.folderlistmodel and Qt.labs.settings. The prefix also covers
+    Qt.labs.sharedimage and Qt.labs.wavefrontmesh.
+
+    3D rendering support uses QtQuick3D. Its post-processing effects live
+    in QtQuick3D.Effects, and its particle system lives in
+    QtQuick3D.Particles3D.
+*/
+
 
