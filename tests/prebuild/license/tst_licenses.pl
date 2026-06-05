@@ -127,7 +127,7 @@ my %excludedFiles = (
     'qttools'        => [
                           # Exclude QDoc test data and third party dependencies
                           qr{^src/qdoc/qdoc/tests/generatedoutput/expected_output/},
-                          qr{^src/qdoc/qdoc/tests/validateqdocoutputfiles/testdata/},
+                          qr{^src/qdoc/qdoc/tests/.*/testdata/},
                           qr{^src/qdoc/qdoc/src/qdoc/clang/AST/QualTypeNames.h},
                         ],
 );
