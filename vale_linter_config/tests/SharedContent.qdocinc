@@ -1,0 +1,100 @@
+// Copyright (C) 2026 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+// Shared content fragment for exercising lintQDocInc on bare .qdocinc
+// markup. No fixture includes it yet.
+
+// SHOULD WARN: passive voice (Microsoft.Passive)
+
+//! [passive-note]
+    \note The configuration is loaded automatically when the module is initialized.
+//! [passive-note]
+
+// SHOULD NOT WARN: active voice
+
+//! [active-note]
+    \note Qt loads the configuration automatically when the module initializes.
+//! [active-note]
+
+// SHOULD WARN: passive voice in cells and trailing \note (Microsoft.Passive)
+// SHOULD WARN: 'Utilize' in intro prose (Microsoft.Wordiness)
+// SHOULD NOT WARN: \c{} tokens, \l{}{} aliases, \macos macro
+
+//! [module-table]
+The following table summarizes the key \l{Qt Core}{Qt Core module} classes for managing
+application configuration. Utilize \c{QSettings} to persist user preferences,
+or \c{QCommandLineParser} to process command-line arguments at startup.
+
+\table 80%
+  \header
+    \li Class
+    \li Purpose
+    \li Notes
+  \row
+    \li \c{QSettings}
+    \li Stores and retrieves application settings across sessions.
+    \li On \macos, settings are stored in the user domain by default. On Linux,
+        an \c{.ini} file is written to \c{XDG_CONFIG_HOME}. Pass
+        \c{QSettings::IniFormat} to force the INI format on all platforms.
+  \row
+    \li \c{QCommandLineParser}
+    \li Parses command-line arguments and generates \c{--help} output automatically.
+    \li Add options with \c{addOption()} and retrieve values with \c{value()}.
+        Call \c{process()} to apply the parsed arguments to the \l{QApplication}{application}.
+  \row
+    \li \c{QProcess}
+    \li Starts external processes and communicates with them through standard I/O.
+    \li Use \c{start()} to launch the process. The \c{finished()} signal is emitted
+        when the process is terminated. The working directory is set with
+        \c{setWorkingDirectory()} before the process is started.
+  \row
+    \li \c{QFileSystemWatcher}
+    \li Monitors the file system for changes to files and directories.
+    \li Watched paths are added with \c{addPath()}. The \c{fileChanged()} and
+        \c{directoryChanged()} signals are emitted when the corresponding path
+        is modified by the operating system.
+\endtable
+
+\note On \macos and Linux, file system event delivery is handled by the OS kernel.
+The \c{QFileSystemWatcher} implementation is selected at build time.
+//! [module-table]
+
+// SHOULD WARN: \brief without period (Qt.QDocBrief)
+// SHOULD WARN: title-case section headings (Microsoft.Headings)
+// SHOULD WARN: passive voice in prose (Microsoft.Passive)
+// SHOULD NOT WARN: sentence-case headings, \c{} and \l{}{} in prose, \macos macro
+
+//! [config-section]
+\brief Manages application configuration and lifecycle
+
+\section1 Initialization And Startup Sequence
+
+Use \c{QCoreApplication::instance()} to access the application singleton.
+The initialization order is determined by the \l{Q_INIT_RESOURCE}{resource system}.
+
+\section2 Platform-Specific Configuration Options
+
+Each platform provides its own default storage location for \l{QSettings}{settings}.
+Call \c{QSettings::setPath()} to override the default path on \macos or Linux.
+
+\section1 Shutdown and cleanup
+
+Call \c{QCoreApplication::quit()} to terminate the event loop gracefully.
+All \l{QObject}{QObjects} registered with the application are destroyed on exit.
+
+\section2 Error handling and recovery
+
+Unhandled exceptions in the event loop cause the application to terminate.
+Use \c{QApplication::notify()} to install a global exception handler.
+//! [config-section]
+
+// SHOULD NOT WARN: brief ends with period, sentence-case headings
+
+//! [watcher-section]
+\brief Provides a cross-platform file system watcher.
+
+\section1 Monitoring files and directories
+
+Use \c{addPath()} to register a path for monitoring.
+Qt emits the \c{fileChanged()} signal when the file changes.
+//! [watcher-section]
