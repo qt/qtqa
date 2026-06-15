@@ -33,8 +33,9 @@ function checkoutQtModule {
 # buildQtModule <module name> <branch> <jobs>
 function buildQtModule {
     checkoutQtModule $1 $2
-    cd $dir/$1
-    ($moduleConfig)
+    mkdir -p $dir/build_$1
+    cd $dir/build_$1
+    ($dir/install/bin/qt-configure-module $dir/$1)
     ($makecmd)
     if [[ -n "$install" ]]; then
         ($install)
@@ -85,8 +86,9 @@ echo 'Running test suites: ' $benchmark_set
 
 # checkout and configure Qt Base
 checkoutQtModule qtbase $1
-cd $dir/qtbase
-./configure -developer-build -nomake tests -nomake examples -release -opensource -confirm-license -no-warnings-are-errors $prefix $EXTRA_CONFIGURE_ARGS
+mkdir -p $dir/build_qtbase
+cd $dir/build_qtbase
+../qtbase/configure -developer-build -nomake tests -nomake examples -release -opensource -confirm-license -no-warnings-are-errors $prefix $EXTRA_CONFIGURE_ARGS
 ($makecmd)
 if [[ -n "$install" ]]; then
     ($install)
