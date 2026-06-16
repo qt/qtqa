@@ -18,11 +18,19 @@ std::string detectQtPrefix()
         return qt6dir;
 
     // 2. Ask qmake
+#ifdef _WIN32
+    FILE *p = _popen("qmake -query QT_INSTALL_PREFIX 2>nul", "r");
+#else
     FILE *p = popen("qmake -query QT_INSTALL_PREFIX 2>/dev/null", "r");
+#endif
     if (p) {
         char buf[512] = {};
         const bool gotData = (fgets(buf, sizeof(buf), p) != nullptr);
+#ifdef _WIN32
+        _pclose(p);
+#else
         pclose(p);
+#endif
         if (gotData) {
             std::string s(buf);
             // Trim trailing whitespace / newlines

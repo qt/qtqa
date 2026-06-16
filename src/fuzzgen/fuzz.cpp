@@ -51,9 +51,15 @@
 #include <string>
 #include <vector>
 
-#include <csignal>
-#include <sys/wait.h>
-#include <unistd.h>
+#ifdef _WIN32
+#  define WIN32_LEAN_AND_MEAN
+#  define NOMINMAX
+#  include <windows.h>
+#else
+#  include <csignal>
+#  include <sys/wait.h>
+#  include <unistd.h>
+#endif
 
 namespace fs = std::filesystem;
 
@@ -70,8 +76,50 @@ static constexpr int EC_ERROR    = 3; // configuration / build error
 // ---------------------------------------------------------------------------
 static fs::path cacheRoot()
 {
+#ifdef _WIN32
+    const char *tmp = std::getenv("TEMP");
+    if (!tmp || !tmp[0])
+        tmp = std::getenv("TMP");
+    return fs::path(tmp ? tmp : "C:\\Temp") / "qtfuzz";
+#else
     const char *tmp = std::getenv("TMPDIR");
     return fs::path(tmp ? tmp : "/tmp") / "qtfuzz";
+#endif
+}
+
+// Convert MinGW/MSYS2 Unix-style paths (/c/Users/...) to Windows-style
+// (C:/Users/...) so cmd.exe and cmake.exe can resolve them.
+// On non-Windows or paths that don't match the pattern, returns the input unchanged.
+static std::string nativePath(const std::string &p)
+{
+#ifdef _WIN32
+    if (p.size() >= 2 && p[0] == '/' && std::isalpha(static_cast<unsigned char>(p[1]))
+        && (p.size() == 2 || p[2] == '/')) {
+        std::string r;
+        r += static_cast<char>(std::toupper(static_cast<unsigned char>(p[1])));
+        r += ':';
+        r += (p.size() > 2 ? p.substr(2) : "/");
+        return r;
+    }
+#endif
+    return p;
+}
+
+// Resolve the actual cmake prefix that contains Qt6Config.cmake.
+// Handles both installed Qt (<prefix>/lib/cmake/Qt6/) and supermodule builds
+// (<prefix>/qtbase/lib/cmake/Qt6/).  Returns the prefix unchanged when
+// Qt6Config.cmake cannot be found — cmake will then emit the usual error.
+static std::string resolveQtPrefix(const std::string &prefix)
+{
+    if (prefix.empty())
+        return prefix;
+    const fs::path qt6cmake = fs::path("lib") / "cmake" / "Qt6" / "Qt6Config.cmake";
+    if (fs::exists(fs::path(prefix) / qt6cmake))
+        return prefix;
+    const fs::path qtbaseSub = fs::path(prefix) / "qtbase";
+    if (fs::exists(qtbaseSub / qt6cmake))
+        return qtbaseSub.string();
+    return prefix;
 }
 
 // Replace any character that is not alphanumeric with '_'.
@@ -84,9 +132,12 @@ static std::string sanitize(const std::string &s)
     return r;
 }
 
-// Wrap a path in single quotes for shell commands, escaping embedded quotes.
+// Wrap a path in quotes for shell commands.
 static std::string shellQuote(const std::string &s)
 {
+#ifdef _WIN32
+    return "\"" + s + "\"";
+#else
     std::string r = "'";
     for (char c : s) {
         if (c == '\'')
@@ -96,6 +147,7 @@ static std::string shellQuote(const std::string &s)
     }
     r += "'";
     return r;
+#endif
 }
 
 static void usage(const char *prog)
@@ -410,7 +462,6 @@ static const char kFuzzerTemplate[] = R"FUZZ(
 #include <QTime>
 #include <QDateTime>
 #include <chrono>
-#include <csignal>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
@@ -425,9 +476,6 @@ static void fuzz_target(@@CLASS@@ &obj, FuzzData &fd)
 {
     @@FUNC_CALL@@
 }
-
-static volatile sig_atomic_t g_alarm = 0;
-static void onAlarm(int) { g_alarm = 1; }
 
 int main(int argc, char *argv[])
 {
@@ -460,17 +508,13 @@ int main(int argc, char *argv[])
     if (corpusOnly)
         return 1; // corpus processed without crash — exit code 1 = EC_GRACEFUL
 
-    if (timeLimitSec > 0) {
-        std::signal(SIGALRM, onAlarm);
-        alarm(static_cast<unsigned>(timeLimitSec));
-    }
-
     uint64_t         seed = 0xdeadbeefcafe1234ULL;
     constexpr size_t BUF_SIZE = 4096;
     std::vector<uint8_t> buf(BUF_SIZE);
     uint64_t             iterations = 0;
+    auto startTime = std::chrono::steady_clock::now();
 
-    while (!g_alarm) {
+    for (;;) {
         seed ^= seed << 13; seed ^= seed >> 7; seed ^= seed << 17;
         uint64_t s = seed;
         for (size_t i = 0; i < BUF_SIZE; i++) {
@@ -481,6 +525,9 @@ int main(int argc, char *argv[])
         fuzz_target(obj, fd);
         ++iterations;
         if (timeLimitSec <= 0) break; // no time limit: one iteration only
+        auto elapsed = std::chrono::steady_clock::now() - startTime;
+        if (std::chrono::duration_cast<std::chrono::seconds>(elapsed).count() >= timeLimitSec)
+            break;
     }
 
     std::cout << "[fuzz_@@CLASS@@_@@FUNC@@] " << iterations << " iterations\n";
@@ -563,7 +610,11 @@ static std::string generateFuzzerSource(const std::string &className,
 // Returns empty string on success, captured output on failure.
 static std::string runCommandCheck(const std::string &cmd)
 {
+#ifdef _WIN32
+    FILE *p = _popen((cmd + " 2>&1").c_str(), "r");
+#else
     FILE *p = popen((cmd + " 2>&1").c_str(), "r");
+#endif
     if (!p)
         return "popen() failed for: " + cmd;
 
@@ -572,11 +623,40 @@ static std::string runCommandCheck(const std::string &cmd)
     while (fgets(buf, sizeof(buf), p))
         out += buf;
 
-    int code = pclose(p);
+#ifdef _WIN32
+    const int code = _pclose(p);
+    if (code != 0)
+        return out.empty() ? "(no output)" : out;
+#else
+    const int code = pclose(p);
     if (code == -1 || WEXITSTATUS(code) != 0)
         return out.empty() ? "(no output)" : out;
+#endif
     return {};
 }
+
+#ifdef _WIN32
+// Locate vcvarsall.bat via vswhere.exe so cmake runs in the MSVC environment.
+static std::string findVcVarsAll()
+{
+    const std::string vswhere =
+            "C:\\Program Files (x86)\\Microsoft Visual Studio\\Installer\\vswhere.exe";
+    if (!fs::exists(vswhere))
+        return {};
+    FILE *p = _popen(("\"" + vswhere + "\" -latest -property installationPath 2>nul").c_str(), "r");
+    if (!p)
+        return {};
+    char buf[512] = {};
+    const bool got = fgets(buf, sizeof(buf), p) != nullptr;
+    _pclose(p);
+    if (!got)
+        return {};
+    std::string path(buf);
+    while (!path.empty() && (path.back() == '\n' || path.back() == '\r' || path.back() == ' '))
+        path.pop_back();
+    return path.empty() ? std::string{} : path + "\\VC\\Auxiliary\\Build\\vcvarsall.bat";
+}
+#endif
 
 static std::string buildFuzzer(const fs::path &srcDir,
                                  const fs::path &buildDir,
@@ -587,6 +667,32 @@ static std::string buildFuzzer(const fs::path &srcDir,
     if (!qtPrefix.empty())
         configCmd += " -DCMAKE_PREFIX_PATH=" + shellQuote(qtPrefix);
 
+#ifdef _WIN32
+    // Specify MSVC explicitly; without this cmake picks up whatever c++ is
+    // first in PATH (e.g. MinGW from Strawberry Perl).
+    configCmd += " -G Ninja -DCMAKE_CXX_COMPILER=cl -DCMAKE_C_COMPILER=cl";
+    // cmake must run inside the MSVC developer environment.
+    // Write a small batch file that initialises it then drives both cmake steps.
+    const fs::path batchFile = srcDir / "_build.bat";
+    {
+        std::ofstream bat(batchFile);
+        if (!bat)
+            return "Cannot write build script: " + batchFile.string();
+        const std::string vcvarsall = findVcVarsAll();
+        if (!vcvarsall.empty())
+            bat << "@call \"" << vcvarsall << "\" x64 >nul 2>&1\r\n";
+        // Delete stale CMakeCache.txt so a compiler change never causes a mismatch error.
+        bat << "@if exist " << shellQuote(buildDir.string() + "\\CMakeCache.txt") << " del /f /q "
+            << shellQuote(buildDir.string() + "\\CMakeCache.txt") << "\r\n";
+        bat << "@" << configCmd << "\r\n"
+            << "@if errorlevel 1 exit /b 1\r\n"
+            << "@cmake --build " << shellQuote(buildDir.string()) << "\r\n";
+    }
+    const std::string err = runCommandCheck("cmd /c " + shellQuote(batchFile.string()));
+    if (!err.empty())
+        return "build failed:\n" + err;
+    return {};
+#else
     std::string err = runCommandCheck(configCmd);
     if (!err.empty())
         return "cmake configure failed:\n" + err;
@@ -596,11 +702,82 @@ static std::string buildFuzzer(const fs::path &srcDir,
         return "cmake build failed:\n" + err;
 
     return {};
+#endif
 }
 
 // ---------------------------------------------------------------------------
 // Subprocess runner
 // ---------------------------------------------------------------------------
+#ifdef _WIN32
+static int runFuzzer(const fs::path &exe, const std::vector<std::string> &args, int timeoutSec,
+                     const std::string &qtPrefix)
+{
+    std::string cmdLine = "\"" + exe.string() + "\"";
+    for (const auto &a : args) {
+        cmdLine += ' ';
+        if (a.find(' ') != std::string::npos)
+            cmdLine += "\"" + a + "\"";
+        else
+            cmdLine += a;
+    }
+
+    // Prepend Qt's bin directory to PATH so the generated fuzzer can load Qt DLLs.
+    std::string envBlock;
+    if (!qtPrefix.empty()) {
+        const std::string qtBin = qtPrefix + "\\bin";
+        char currentPath[32768] = {};
+        GetEnvironmentVariableA("PATH", currentPath, sizeof(currentPath));
+        const std::string newPath = "PATH=" + qtBin + ";" + currentPath;
+        // Environment block: null-terminated strings, double-null at end.
+        envBlock = newPath;
+        envBlock.push_back('\0');
+        // Copy remaining environment variables.
+        const char *env = GetEnvironmentStringsA();
+        if (env) {
+            for (const char *p = env; *p; p += std::strlen(p) + 1) {
+                if (std::strncmp(p, "PATH=", 5) != 0 && std::strncmp(p, "Path=", 5) != 0
+                    && std::strncmp(p, "path=", 5) != 0) {
+                    envBlock.append(p, std::strlen(p) + 1);
+                }
+            }
+            FreeEnvironmentStringsA(const_cast<char *>(env));
+        }
+        envBlock.push_back('\0'); // double-null terminator
+    }
+
+    STARTUPINFOA si = {};
+    si.cb = sizeof(si);
+    PROCESS_INFORMATION pi = {};
+
+    const char *envPtr = envBlock.empty() ? nullptr : envBlock.data();
+    if (!CreateProcessA(nullptr, const_cast<char *>(cmdLine.c_str()), nullptr, nullptr, FALSE, 0,
+                        const_cast<char *>(envPtr), nullptr, &si, &pi)) {
+        std::cerr << "[fuzz] CreateProcess failed with error " << GetLastError() << "\n";
+        return EC_ERROR;
+    }
+
+    const DWORD waitMs = static_cast<DWORD>((timeoutSec + 30) * 1000);
+    const DWORD result = WaitForSingleObject(pi.hProcess, waitMs);
+
+    int exitCode = EC_CRASH;
+    if (result == WAIT_OBJECT_0) {
+        DWORD code = 0;
+        if (GetExitCodeProcess(pi.hProcess, &code)) {
+            if (code == 0)
+                exitCode = EC_TIMEOUT;
+            else if (code == 1)
+                exitCode = EC_GRACEFUL;
+        }
+    } else {
+        std::cerr << "[fuzz] Fuzzer timed out (safety), terminating.\n";
+        TerminateProcess(pi.hProcess, 1);
+    }
+
+    CloseHandle(pi.hProcess);
+    CloseHandle(pi.hThread);
+    return exitCode;
+}
+#else
 static volatile sig_atomic_t g_parentKilled = 0;
 static pid_t                 g_childPid     = -1;
 
@@ -662,6 +839,7 @@ static int runFuzzer(const fs::path &exe,
 
     return EC_CRASH;
 }
+#endif
 
 // ---------------------------------------------------------------------------
 // main
@@ -724,7 +902,11 @@ int main(int argc, char *argv[])
             if (!entry.is_directory())
                 continue;
             const std::string name = entry.path().filename().string();
+#ifdef _WIN32
+            const fs::path binary = entry.path() / "build" / ("fuzz_" + name + ".exe");
+#else
             const fs::path binary = entry.path() / "build" / ("fuzz_" + name);
+#endif
             std::error_code ec2;
             const bool built = fs::exists(binary, ec2);
             std::cout << name << (built ? "  [built]" : "  [source only]") << "\n";
@@ -778,9 +960,14 @@ int main(int argc, char *argv[])
         inputText = ss.str();
     }
 
+    // ── Normalize paths (MinGW /c/... → C:/... for cmd.exe / cmake) ──────────
+    submodule = nativePath(submodule);
+    qtPrefix = nativePath(qtPrefix);
+
     // ── Auto-detect Qt prefix ────────────────────────────────────────────────
     if (qtPrefix.empty())
         qtPrefix = QtFuzz::detectQtPrefix();
+    qtPrefix = resolveQtPrefix(qtPrefix);
 
     // ── Look up class and function ───────────────────────────────────────────
     auto classOpt = QtFuzz::scanSingleClass(className, fs::path(submodule));
@@ -840,7 +1027,11 @@ int main(int argc, char *argv[])
     const fs::path    srcFile    = cDir / (targetName + ".cpp");
     const fs::path    cmakeFile  = cDir / "CMakeLists.txt";
     const fs::path    buildDir   = cDir / "build";
+#ifdef _WIN32
+    const fs::path    binaryPath = buildDir / (targetName + ".exe");
+#else
     const fs::path    binaryPath = buildDir / targetName;
+#endif
 
     // ── Generate and build (if not cached) ──────────────────────────────────
     if (!fs::exists(binaryPath)) {
@@ -924,5 +1115,9 @@ int main(int argc, char *argv[])
         fuzzArgs.push_back(std::to_string(timeSec));
     }
 
+#ifdef _WIN32
+    return runFuzzer(binaryPath, fuzzArgs, timeSec, qtPrefix);
+#else
     return runFuzzer(binaryPath, fuzzArgs, timeSec);
+#endif
 }

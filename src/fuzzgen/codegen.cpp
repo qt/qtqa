@@ -524,7 +524,6 @@ const char *FuzzCppGenerator::kTemplateQObject = R"FUZZTEMPLATE(
 #include <QDateTime>
 @@EXTRA_INCLUDES@@
 #include <chrono>
-#include <csignal>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
@@ -637,13 +636,6 @@ static void fuzz_one(QObject *obj,
 // ---------------------------------------------------------------------------
 @@DIRECT_FUZZ_FUNC@@
 // ---------------------------------------------------------------------------
-// Timeout
-// ---------------------------------------------------------------------------
-
-static volatile bool g_stop = false;
-static void onAlarm(int) { g_stop = true; }
-
-// ---------------------------------------------------------------------------
 // main
 // ---------------------------------------------------------------------------
 
@@ -683,15 +675,12 @@ int main(int argc, char *argv[])
 @@DIRECT_FUZZ_CORPUS_CALL@@
     }
 
-    std::signal(SIGALRM, onAlarm);
-    alarm(static_cast<unsigned>(timeLimitSec));
-
     constexpr size_t     BUF_SIZE = 4096;
     std::vector<uint8_t> buf(BUF_SIZE);
     uint64_t             iterations = 0;
     auto t0 = std::chrono::steady_clock::now();
 
-    while (!g_stop) {
+    while (std::chrono::steady_clock::now() - t0 < std::chrono::seconds(timeLimitSec)) {
         seed ^= seed << 13; seed ^= seed >> 7; seed ^= seed << 17;
         uint64_t s = seed;
         for (size_t i = 0; i < BUF_SIZE; i++) {
@@ -753,7 +742,6 @@ const char *FuzzCppGenerator::kTemplateDirectOnly = R"FUZZTEMPLATE(
 #include <QDateTime>
 @@EXTRA_INCLUDES@@
 #include <chrono>
-#include <csignal>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
@@ -768,13 +756,6 @@ const char *FuzzCppGenerator::kTemplateDirectOnly = R"FUZZTEMPLATE(
 // Direct-call fuzzing (all public methods)
 // ---------------------------------------------------------------------------
 @@DIRECT_FUZZ_FUNC@@
-// ---------------------------------------------------------------------------
-// Timeout
-// ---------------------------------------------------------------------------
-
-static volatile bool g_stop = false;
-static void onAlarm(int) { g_stop = true; }
-
 // ---------------------------------------------------------------------------
 // main
 // ---------------------------------------------------------------------------
@@ -808,15 +789,12 @@ int main(int argc, char *argv[])
 @@DIRECT_FUZZ_CORPUS_CALL@@
     }
 
-    std::signal(SIGALRM, onAlarm);
-    alarm(static_cast<unsigned>(timeLimitSec));
-
     constexpr size_t     BUF_SIZE = 4096;
     std::vector<uint8_t> buf(BUF_SIZE);
     uint64_t             iterations = 0;
     auto t0 = std::chrono::steady_clock::now();
 
-    while (!g_stop) {
+    while (std::chrono::steady_clock::now() - t0 < std::chrono::seconds(timeLimitSec)) {
         seed ^= seed << 13; seed ^= seed >> 7; seed ^= seed << 17;
         uint64_t s = seed;
         for (size_t i = 0; i < BUF_SIZE; i++) {
