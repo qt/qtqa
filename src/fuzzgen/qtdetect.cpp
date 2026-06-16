@@ -24,7 +24,7 @@ std::string detectQtPrefix()
     FILE *p = popen("qmake -query QT_INSTALL_PREFIX 2>/dev/null", "r");
 #endif
     if (p) {
-        char buf[512] = {};
+        char buf[512] = { };
         const bool gotData = (fgets(buf, sizeof(buf), p) != nullptr);
 #ifdef _WIN32
         _pclose(p);
@@ -34,16 +34,16 @@ std::string detectQtPrefix()
         if (gotData) {
             std::string s(buf);
             // Trim trailing whitespace / newlines
-            s.erase(std::find_if(s.rbegin(), s.rend(), [](unsigned char c) {
-                        return !std::isspace(c);
-                    }).base(),
+            s.erase(std::find_if(s.rbegin(), s.rend(),
+                                 [](unsigned char c) { return !std::isspace(c); })
+                            .base(),
                     s.end());
             if (!s.empty() && s != "**Unknown**")
                 return s;
         }
     }
 
-    return {}; // Let CMake find Qt itself
+    return { }; // Let CMake find Qt itself
 }
 
 } // namespace QtFuzz

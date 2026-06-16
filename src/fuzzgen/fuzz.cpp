@@ -66,10 +66,10 @@ namespace fs = std::filesystem;
 // ---------------------------------------------------------------------------
 // Exit codes (match what callers expect)
 // ---------------------------------------------------------------------------
-static constexpr int EC_TIMEOUT  = 0; // ran to timeout without crash
+static constexpr int EC_TIMEOUT = 0; // ran to timeout without crash
 static constexpr int EC_GRACEFUL = 1; // corpus processed without crash
-static constexpr int EC_CRASH    = 2; // crash
-static constexpr int EC_ERROR    = 3; // configuration / build error
+static constexpr int EC_CRASH = 2; // crash
+static constexpr int EC_ERROR = 3; // configuration / build error
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -282,15 +282,13 @@ static std::string fuzzExpr(const std::string &rawType, const std::string &class
         return "static_cast<" + type + ">(fd.nextByte())";
 
     // Fully qualified with :: (not std::) → enum cast
-    if (type.find("::") != std::string::npos
-            && !(type.size() >= 5 && type.substr(0, 5) == "std::"))
+    if (type.find("::") != std::string::npos && !(type.size() >= 5 && type.substr(0, 5) == "std::"))
         return "static_cast<" + type + ">(fd.nextByte())";
 
     // Single-word uppercase Qt types
     if (!type.empty() && std::isupper(static_cast<unsigned char>(type[0]))
-            && type.find('<') == std::string::npos) {
-        if (type.size() >= 2 && type[0] == 'Q'
-                && std::isupper(static_cast<unsigned char>(type[1])))
+        && type.find('<') == std::string::npos) {
+        if (type.size() >= 2 && type[0] == 'Q' && std::isupper(static_cast<unsigned char>(type[1])))
             return type + "{}";
         // Nested enum / typedef inside the fuzzed class
         return "static_cast<" + className + "::" + type + ">(fd.nextByte())";
@@ -325,14 +323,13 @@ static void writeU32Be(uint32_t v, std::vector<uint8_t> &out)
 {
     out.push_back((v >> 24) & 0xFF);
     out.push_back((v >> 16) & 0xFF);
-    out.push_back((v >>  8) & 0xFF);
-    out.push_back( v        & 0xFF);
+    out.push_back((v >> 8) & 0xFF);
+    out.push_back(v & 0xFF);
 }
 
 // Returns false and emits a warning if the type cannot be serialized precisely.
-static bool serializeParam(const std::string &rawType,
-                            const std::string &text,
-                            std::vector<uint8_t> &out)
+static bool serializeParam(const std::string &rawType, const std::string &text,
+                           std::vector<uint8_t> &out)
 {
     const std::string type = normType(rawType);
 
@@ -342,39 +339,53 @@ static bool serializeParam(const std::string &rawType,
     }
     if (type == "int" || type == "qint32") {
         int32_t v = 0;
-        try { v = static_cast<int32_t>(std::stol(text)); } catch (...) {}
+        try {
+                v = static_cast<int32_t>(std::stol(text));
+            } catch (...) { }
         writeU32Be(static_cast<uint32_t>(v), out);
         return true;
     }
     if (type == "uint" || type == "quint32" || type == "unsigned int") {
         uint32_t v = 0;
-        try { v = static_cast<uint32_t>(std::stoul(text)); } catch (...) {}
+        try {
+                v = static_cast<uint32_t>(std::stoul(text));
+            } catch (...) { }
         writeU32Be(v, out);
         return true;
     }
     if (type == "qint64" || type == "qlonglong" || type == "long long") {
         int64_t v = 0;
-        try { v = std::stoll(text); } catch (...) {}
+        try {
+                v = std::stoll(text);
+            } catch (...) { }
         writeU64Be(static_cast<uint64_t>(v), out);
         return true;
     }
     if (type == "quint64" || type == "qulonglong" || type == "unsigned long long") {
         uint64_t v = 0;
-        try { v = std::stoull(text); } catch (...) {}
+        try {
+                v = std::stoull(text);
+            } catch (...) { }
         writeU64Be(v, out);
         return true;
     }
     if (type == "double" || type == "qreal") {
         double d = 0.0;
-        try { d = std::stod(text); } catch (...) {}
-        uint64_t bits = 0; std::memcpy(&bits, &d, 8);
+        try {
+                d = std::stod(text);
+            } catch (...) { }
+        uint64_t bits = 0;
+        std::memcpy(&bits, &d, 8);
         writeU64Be(bits, out);
         return true;
     }
     if (type == "float") {
         float f = 0.0f;
-        try { f = std::stof(text); } catch (...) {}
-        uint32_t bits = 0; std::memcpy(&bits, &f, 4);
+        try {
+                f = std::stof(text);
+            } catch (...) { }
+        uint32_t bits = 0;
+        std::memcpy(&bits, &f, 4);
         writeU32Be(bits, out);
         return true;
     }
@@ -384,55 +395,62 @@ static bool serializeParam(const std::string &rawType,
     }
     if (type == "short" || type == "qint16") {
         int16_t v = 0;
-        try { v = static_cast<int16_t>(std::stoi(text)); } catch (...) {}
+        try {
+                v = static_cast<int16_t>(std::stoi(text));
+            } catch (...) { }
         out.push_back(static_cast<uint8_t>((v >> 8) & 0xFF));
-        out.push_back(static_cast<uint8_t>( v       & 0xFF));
+        out.push_back(static_cast<uint8_t>(v & 0xFF));
         return true;
     }
     if (type == "ushort" || type == "quint16") {
         uint16_t v = 0;
-        try { v = static_cast<uint16_t>(std::stoul(text)); } catch (...) {}
+        try {
+                v = static_cast<uint16_t>(std::stoul(text));
+            } catch (...) { }
         out.push_back(static_cast<uint8_t>((v >> 8) & 0xFF));
-        out.push_back(static_cast<uint8_t>( v       & 0xFF));
+        out.push_back(static_cast<uint8_t>(v & 0xFF));
         return true;
     }
     // QString-like: nextQString reads uint16_t len then len bytes.
     // With maxLen=256: len = uint16_val % 257, so len ≤ 256.
-    if (type == "QString"        || type == "const QString &"        || type == "const QString&"
-     || type == "QUrl"           || type == "const QUrl &"           || type == "const QUrl&"
-     || type == "QAnyStringView" || type == "const QAnyStringView &") {
+    if (type == "QString" || type == "const QString &" || type == "const QString&" || type == "QUrl"
+        || type == "const QUrl &" || type == "const QUrl&" || type == "QAnyStringView"
+        || type == "const QAnyStringView &") {
         size_t len = std::min(text.size(), size_t(256));
-        auto   ul  = static_cast<uint16_t>(len);
+        auto ul = static_cast<uint16_t>(len);
         out.push_back(static_cast<uint8_t>((ul >> 8) & 0xFF));
-        out.push_back(static_cast<uint8_t>( ul       & 0xFF));
+        out.push_back(static_cast<uint8_t>(ul & 0xFF));
         out.insert(out.end(), text.begin(), text.begin() + static_cast<ptrdiff_t>(len));
         return true;
     }
     // QByteArray: nextQByteArray reads uint16_t len then len bytes, maxLen=512.
     if (type == "QByteArray" || type == "const QByteArray &" || type == "const QByteArray&") {
         size_t len = std::min(text.size(), size_t(512));
-        auto   ul  = static_cast<uint16_t>(len);
+        auto ul = static_cast<uint16_t>(len);
         out.push_back(static_cast<uint8_t>((ul >> 8) & 0xFF));
-        out.push_back(static_cast<uint8_t>( ul       & 0xFF));
+        out.push_back(static_cast<uint8_t>(ul & 0xFF));
         out.insert(out.end(), text.begin(), text.begin() + static_cast<ptrdiff_t>(len));
         return true;
     }
     // QChar: nextInt<ushort>() → 2 bytes
     if (type == "QChar") {
-        uint16_t v = text.empty() ? 0u
-                   : static_cast<uint16_t>(static_cast<unsigned char>(text[0]));
+        uint16_t v = text.empty() ? 0u : static_cast<uint16_t>(static_cast<unsigned char>(text[0]));
         if (text.size() > 1 && std::isdigit(static_cast<unsigned char>(text[0])))
-            try { v = static_cast<uint16_t>(std::stoul(text)); } catch (...) {}
+            try {
+                    v = static_cast<uint16_t>(std::stoul(text));
+            } catch (...) { }
         out.push_back(static_cast<uint8_t>((v >> 8) & 0xFF));
-        out.push_back(static_cast<uint8_t>( v       & 0xFF));
+        out.push_back(static_cast<uint8_t>(v & 0xFF));
         return true;
     }
 
     // Unknown / complex type — write 4 zero bytes as best-effort nextInt() fallback.
     std::cerr << "[fuzz] WARNING: no precise serializer for type '" << rawType
               << "'; using 4 zero bytes.\n";
-    out.push_back(0); out.push_back(0);
-    out.push_back(0); out.push_back(0);
+    out.push_back(0);
+    out.push_back(0);
+    out.push_back(0);
+    out.push_back(0);
     return false;
 }
 
@@ -524,7 +542,8 @@ int main(int argc, char *argv[])
         FuzzData fd{ buf.data(), BUF_SIZE };
         fuzz_target(obj, fd);
         ++iterations;
-        if (timeLimitSec <= 0) break; // no time limit: one iteration only
+        if (timeLimitSec <= 0)
+            break; // no time limit: one iteration only
         auto elapsed = std::chrono::steady_clock::now() - startTime;
         if (std::chrono::duration_cast<std::chrono::seconds>(elapsed).count() >= timeLimitSec)
             break;
@@ -537,9 +556,8 @@ int main(int argc, char *argv[])
 
 // Build the call expression for fuzz_target(), handling non-const ref params
 // by creating stack locals (can't bind a non-const ref to a temporary).
-static std::string buildFuncCall(const std::string &funcName,
-                                  const QtFuzz::MethodSignature &sig,
-                                  const std::string &className)
+static std::string buildFuncCall(const std::string &funcName, const QtFuzz::MethodSignature &sig,
+                                 const std::string &className)
 {
     std::ostringstream o;
 
@@ -561,9 +579,8 @@ static std::string buildFuncCall(const std::string &funcName,
     for (size_t i = 0; i < sig.params.size(); ++i) {
         if (i > 0)
             o << ", ";
-        o << (sig.params[i].isNonConstRef
-                  ? "_p" + std::to_string(i)
-                  : fuzzExpr(sig.params[i].type, className));
+        o << (sig.params[i].isNonConstRef ? "_p" + std::to_string(i)
+                                          : fuzzExpr(sig.params[i].type, className));
     }
     o << ");";
 
@@ -574,13 +591,11 @@ static std::string buildFuncCall(const std::string &funcName,
     return o.str();
 }
 
-static std::string generateFuzzerSource(const std::string &className,
-                                          const std::string &funcName,
-                                          const QtFuzz::MethodSignature &sig,
-                                          QtFuzz::AppType appType)
+static std::string generateFuzzerSource(const std::string &className, const std::string &funcName,
+                                        const QtFuzz::MethodSignature &sig, QtFuzz::AppType appType)
 {
     const QtFuzz::AppTypeInfo ati = QtFuzz::appTypeInfo(appType);
-    const std::string funcCall    = buildFuncCall(funcName, sig, className);
+    const std::string funcCall = buildFuncCall(funcName, sig, className);
 
     std::string src(kFuzzerTemplate);
 
@@ -592,11 +607,11 @@ static std::string generateFuzzerSource(const std::string &className,
         }
     };
 
-    replace(src, "@@CLASS@@",           className);
-    replace(src, "@@FUNC@@",            funcName);
-    replace(src, "@@APP_INCLUDE@@",     ati.includeHeader);
-    replace(src, "@@APP_CLASS@@",       ati.className);
-    replace(src, "@@FUNC_CALL@@",       funcCall);
+    replace(src, "@@CLASS@@", className);
+    replace(src, "@@FUNC@@", funcName);
+    replace(src, "@@APP_INCLUDE@@", ati.includeHeader);
+    replace(src, "@@APP_CLASS@@", ati.className);
+    replace(src, "@@FUNC_CALL@@", funcCall);
     replace(src, "@@FUZZ_DATA_STRUCT@@", QtFuzz::fuzzDataStructSource());
 
     return src;
@@ -632,7 +647,7 @@ static std::string runCommandCheck(const std::string &cmd)
     if (code == -1 || WEXITSTATUS(code) != 0)
         return out.empty() ? "(no output)" : out;
 #endif
-    return {};
+    return { };
 }
 
 #ifdef _WIN32
@@ -642,28 +657,27 @@ static std::string findVcVarsAll()
     const std::string vswhere =
             "C:\\Program Files (x86)\\Microsoft Visual Studio\\Installer\\vswhere.exe";
     if (!fs::exists(vswhere))
-        return {};
+        return { };
     FILE *p = _popen(("\"" + vswhere + "\" -latest -property installationPath 2>nul").c_str(), "r");
     if (!p)
-        return {};
-    char buf[512] = {};
+        return { };
+    char buf[512] = { };
     const bool got = fgets(buf, sizeof(buf), p) != nullptr;
     _pclose(p);
     if (!got)
-        return {};
+        return { };
     std::string path(buf);
     while (!path.empty() && (path.back() == '\n' || path.back() == '\r' || path.back() == ' '))
         path.pop_back();
-    return path.empty() ? std::string{} : path + "\\VC\\Auxiliary\\Build\\vcvarsall.bat";
+    return path.empty() ? std::string{ } : path + "\\VC\\Auxiliary\\Build\\vcvarsall.bat";
 }
 #endif
 
-static std::string buildFuzzer(const fs::path &srcDir,
-                                 const fs::path &buildDir,
-                                 const std::string &qtPrefix)
+static std::string buildFuzzer(const fs::path &srcDir, const fs::path &buildDir,
+                               const std::string &qtPrefix)
 {
-    std::string configCmd = "cmake -B " + shellQuote(buildDir.string())
-                          + " -S " + shellQuote(srcDir.string());
+    std::string configCmd =
+            "cmake -B " + shellQuote(buildDir.string()) + " -S " + shellQuote(srcDir.string());
     if (!qtPrefix.empty())
         configCmd += " -DCMAKE_PREFIX_PATH=" + shellQuote(qtPrefix);
 
@@ -691,7 +705,7 @@ static std::string buildFuzzer(const fs::path &srcDir,
     const std::string err = runCommandCheck("cmd /c " + shellQuote(batchFile.string()));
     if (!err.empty())
         return "build failed:\n" + err;
-    return {};
+    return { };
 #else
     std::string err = runCommandCheck(configCmd);
     if (!err.empty())
@@ -701,7 +715,7 @@ static std::string buildFuzzer(const fs::path &srcDir,
     if (!err.empty())
         return "cmake build failed:\n" + err;
 
-    return {};
+    return { };
 #endif
 }
 
@@ -725,7 +739,7 @@ static int runFuzzer(const fs::path &exe, const std::vector<std::string> &args, 
     std::string envBlock;
     if (!qtPrefix.empty()) {
         const std::string qtBin = qtPrefix + "\\bin";
-        char currentPath[32768] = {};
+        char currentPath[32768] = { };
         GetEnvironmentVariableA("PATH", currentPath, sizeof(currentPath));
         const std::string newPath = "PATH=" + qtBin + ";" + currentPath;
         // Environment block: null-terminated strings, double-null at end.
@@ -745,9 +759,9 @@ static int runFuzzer(const fs::path &exe, const std::vector<std::string> &args, 
         envBlock.push_back('\0'); // double-null terminator
     }
 
-    STARTUPINFOA si = {};
+    STARTUPINFOA si = { };
     si.cb = sizeof(si);
-    PROCESS_INFORMATION pi = {};
+    PROCESS_INFORMATION pi = { };
 
     const char *envPtr = envBlock.empty() ? nullptr : envBlock.data();
     if (!CreateProcessA(nullptr, const_cast<char *>(cmdLine.c_str()), nullptr, nullptr, FALSE, 0,
@@ -779,7 +793,7 @@ static int runFuzzer(const fs::path &exe, const std::vector<std::string> &args, 
 }
 #else
 static volatile sig_atomic_t g_parentKilled = 0;
-static pid_t                 g_childPid     = -1;
+static pid_t g_childPid = -1;
 
 static void onParentAlarm(int)
 {
@@ -788,9 +802,7 @@ static void onParentAlarm(int)
         kill(g_childPid, SIGKILL);
 }
 
-static int runFuzzer(const fs::path &exe,
-                      const std::vector<std::string> &args,
-                      int timeoutSec)
+static int runFuzzer(const fs::path &exe, const std::vector<std::string> &args, int timeoutSec)
 {
     const pid_t pid = fork();
     if (pid < 0) {
@@ -810,7 +822,7 @@ static int runFuzzer(const fs::path &exe,
     }
 
     // Parent: wait with a safety timeout so a hung child cannot block forever.
-    g_childPid     = pid;
+    g_childPid = pid;
     g_parentKilled = 0;
     std::signal(SIGALRM, onParentAlarm);
     alarm(static_cast<unsigned>(timeoutSec + 30));
@@ -972,8 +984,8 @@ int main(int argc, char *argv[])
     // ── Look up class and function ───────────────────────────────────────────
     auto classOpt = QtFuzz::scanSingleClass(className, fs::path(submodule));
     if (!classOpt) {
-        std::cerr << "[fuzz] ERROR: class '" << className
-                  << "' not found under " << submodule << ".\n";
+        std::cerr << "[fuzz] ERROR: class '" << className << "' not found under " << submodule
+                  << ".\n";
         return EC_ERROR;
     }
     const QtFuzz::DiscoveredClass &dc = *classOpt;
@@ -985,8 +997,8 @@ int main(int argc, char *argv[])
     }
 
     if (matches.empty()) {
-        std::cerr << "[fuzz] ERROR: function '" << funcName
-                  << "' not found in class '" << className << "'.\n"
+        std::cerr << "[fuzz] ERROR: function '" << funcName << "' not found in class '" << className
+                  << "'.\n"
                   << "       Known public methods:\n";
         for (const auto &sig : dc.publicMethods)
             std::cerr << "         " << sig.name << "\n";
@@ -1021,22 +1033,22 @@ int main(int argc, char *argv[])
     }
 
     // ── Cache setup ──────────────────────────────────────────────────────────
-    const std::string safeName   = sanitize(className) + "_" + sanitize(funcName);
+    const std::string safeName = sanitize(className) + "_" + sanitize(funcName);
     const std::string targetName = "fuzz_" + safeName;
-    const fs::path    cDir       = cacheRoot() / safeName;
-    const fs::path    srcFile    = cDir / (targetName + ".cpp");
-    const fs::path    cmakeFile  = cDir / "CMakeLists.txt";
-    const fs::path    buildDir   = cDir / "build";
+    const fs::path cDir = cacheRoot() / safeName;
+    const fs::path srcFile = cDir / (targetName + ".cpp");
+    const fs::path cmakeFile = cDir / "CMakeLists.txt";
+    const fs::path buildDir = cDir / "build";
 #ifdef _WIN32
-    const fs::path    binaryPath = buildDir / (targetName + ".exe");
+    const fs::path binaryPath = buildDir / (targetName + ".exe");
 #else
-    const fs::path    binaryPath = buildDir / targetName;
+    const fs::path binaryPath = buildDir / targetName;
 #endif
 
     // ── Generate and build (if not cached) ──────────────────────────────────
     if (!fs::exists(binaryPath)) {
-        std::cerr << "[fuzz] Building cached fuzzer for "
-                  << className << "::" << funcName << " ...\n";
+        std::cerr << "[fuzz] Building cached fuzzer for " << className << "::" << funcName
+                  << " ...\n";
 
         std::error_code ec;
         fs::create_directories(cDir, ec);
@@ -1058,9 +1070,9 @@ int main(int argc, char *argv[])
         // Write CMakeLists.txt via existing CMakeGenerator.
         // Use safeName as the cmake "className" so the target is fuzz_QDir_mkdir etc.
         auto components = QtFuzz::resolveComponents(dc.module);
-        QtFuzz::CMakeGenerator::Config cfg{
-            safeName, targetName + ".cpp", dc.module, components, qtPrefix, timeSec
-        };
+        QtFuzz::CMakeGenerator::Config cfg{ safeName, targetName + ".cpp",
+                                            dc.module, components,
+                                            qtPrefix, timeSec };
         QtFuzz::CMakeGenerator cmakeGen(std::move(cfg), cmakeFile);
         if (!cmakeGen.generate()) {
             std::cerr << "[fuzz] ERROR: cannot write CMakeLists.txt\n";
