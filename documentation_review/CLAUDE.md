@@ -110,6 +110,7 @@ load their own skills, fetch patches, and verify their own output.**
 | Module structure audit | doc-structure-auditor | opus |
 | Documentation builds | doc-builder | opus |
 | Vale linting of QDoc sources | vale-qdoc-linter | opus |
+| Testing a skill or agent | artifact-tester | opus |
 
 ### Post-Agent Output Handling
 
@@ -292,6 +293,7 @@ paste skill content.
 | skill-qdoc-output | HTML filename patterns |
 | skill-all-docs | Module/repository info |
 | skill-vale-qdoc-lint | Vale binary setup, config, pre-commit hook, lint commands |
+| skill-artifact-testing | 9-layer methodology for testing skills/agents |
 
 ### Agent Inventory
 
@@ -304,6 +306,7 @@ paste skill content.
 | doc-shaper | Create, scaffold, or fill docs from source code |
 | doc-builder | Documentation builds |
 | vale-qdoc-linter | Vale linting of QDoc source files |
+| artifact-tester | Test a skill or agent (9-layer methodology) |
 
 ## Environment
 
