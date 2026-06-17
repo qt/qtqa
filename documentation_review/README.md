@@ -59,6 +59,7 @@ Detailed usage instructions are in `~/.claude/instructions/`:
 |-------|--------------|---------|
 | qt-doc-reviewer | `how-to-use-qt-doc-reviewer.md` | Review patches before merge |
 | qdoc-warning-fixer | `how-to-use-qdoc-warning-fixer.md` | Fix QDoc build warnings |
+| artifact-tester | — | Test a skill or agent (9-layer methodology) |
 
 ## Using with Claude Desktop (Cowork)
 

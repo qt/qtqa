@@ -10,6 +10,7 @@
 | **doc-shaper** | Creates new documentation from source code | Header/source files or module path | Doc-diff with new/stub docs |
 | **doc-structure-auditor** | Audits a module's entire doc structure for health | Module name/path | Audit report (Missing/Orphan/Broken/Incomplete) |
 | **doc-builder** | Builds documentation locally | Product/module name + branch | Build output or troubleshooting |
+| **artifact-tester** | Tests a skill or agent against the 9-layer methodology | Skill/agent path or Gerrit change | Per-layer report + verdict + fixture |
 
 ## Sample Prompts
 
@@ -21,6 +22,7 @@
 | **doc-shaper** | "Write full docs for qtbase/src/corelib/io/qsavefile.h" |
 | **doc-structure-auditor** | "Audit Qt Wayland Compositor module documentation health" |
 | **doc-builder** | "Build Qt Multimedia docs from dev branch" |
+| **artifact-tester** | "Test the skill at skills/skill-line-wrap using artifact-tester" |
 
 ## Pipeline View
 
