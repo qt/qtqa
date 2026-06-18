@@ -110,13 +110,13 @@ static std::string fuzzExprForType(const std::string &rawType,
     if (type == "char32_t")
         return "static_cast<char32_t>(fd.nextInt())";
     if (type == "short" || type == "qint16")
-        return "static_cast<short>(fd.nextInt<short>())";
+        return "static_cast<short>(fd.nextRaw<short>())";
     if (type == "ushort" || type == "quint16")
-        return "static_cast<ushort>(fd.nextInt<ushort>())";
+        return "static_cast<ushort>(fd.nextRaw<ushort>())";
     if (type == "long")
-        return "static_cast<long>(fd.nextInt<long>())";
+        return "static_cast<long>(fd.nextRaw<long>())";
     if (type == "ulong" || type == "unsigned long")
-        return "static_cast<ulong>(fd.nextInt<ulong>())";
+        return "static_cast<ulong>(fd.nextRaw<ulong>())";
     if (type == "qsizetype")
         return "static_cast<qsizetype>(fd.nextInt64())";
     if (type == "qptrdiff")
@@ -144,7 +144,7 @@ static std::string fuzzExprForType(const std::string &rawType,
 
     // Common Qt value types.
     if (type == "QChar")
-        return "QChar(fd.nextInt<ushort>())";
+        return "QChar(fd.nextRaw<ushort>())";
     if (type == "QPoint")
         return "QPoint(fd.nextInt(), fd.nextInt())";
     if (type == "QPointF")
@@ -433,7 +433,7 @@ struct FuzzData
     }
 
     template <typename T>
-    T nextInt()
+    T nextRaw()
     {
         T v = 0;
         for (size_t i = 0; i < sizeof(T); i++)
@@ -441,29 +441,29 @@ struct FuzzData
         return v;
     }
 
-    bool    nextBool()   { return nextByte() & 1; }
-    int     nextInt()    { return nextInt<int>(); }
-    uint    nextUInt()   { return nextInt<uint>(); }
-    qint64  nextInt64()  { return nextInt<qint64>(); }
-    quint64 nextUInt64() { return nextInt<quint64>(); }
+    bool    nextBool()   { return (nextByte() & 1) != 0; }
+    int     nextInt()    { return nextRaw<int>(); }
+    uint    nextUInt()   { return nextRaw<uint>(); }
+    qint64  nextInt64()  { return nextRaw<qint64>(); }
+    quint64 nextUInt64() { return nextRaw<quint64>(); }
 
     double nextDouble()
     {
-        uint64_t bits = nextInt<uint64_t>();
+        uint64_t bits = nextRaw<uint64_t>();
         double v; std::memcpy(&v, &bits, sizeof(v));
         return v;
     }
 
     float nextFloat()
     {
-        uint32_t bits = nextInt<uint32_t>();
+        uint32_t bits = nextRaw<uint32_t>();
         float v; std::memcpy(&v, &bits, sizeof(v));
         return v;
     }
 
     QString nextQString(size_t maxLen = 256)
     {
-        size_t len = nextInt<uint16_t>() % (maxLen + 1);
+        size_t len = nextRaw<uint16_t>() % (maxLen + 1);
         QByteArray ba;
         ba.reserve(static_cast<int>(len));
         for (size_t i = 0; i < len; i++)
@@ -473,7 +473,7 @@ struct FuzzData
 
     QByteArray nextQByteArray(size_t maxLen = 512)
     {
-        size_t len = nextInt<uint16_t>() % (maxLen + 1);
+        size_t len = nextRaw<uint16_t>() % (maxLen + 1);
         QByteArray ba;
         ba.reserve(static_cast<int>(len));
         for (size_t i = 0; i < len; i++)
@@ -498,6 +498,13 @@ const char *FuzzCppGenerator::kTemplateQObject = R"FUZZTEMPLATE(
 //
 // Run:
 //   ./fuzz_@@CLASS@@ [--time <seconds>] [--seed <uint64>] [corpus_file ...]
+
+// Prevent Windows SDK min/max macros from shadowing std::max.
+#if defined(_WIN32) || defined(_WIN64)
+#  ifndef NOMINMAX
+#    define NOMINMAX
+#  endif
+#endif
 
 #include <@@CLASS@@>
 #include @@APP_INCLUDE@@
@@ -546,16 +553,16 @@ static QVariant nextVariantForType(FuzzData &fd, QMetaType metaType)
     case QMetaType::ULongLong:  return QVariant(fd.nextUInt64());
     case QMetaType::Double:     return QVariant(fd.nextDouble());
     case QMetaType::Float:      return QVariant(fd.nextFloat());
-    case QMetaType::Long:       return QVariant::fromValue<long>(fd.nextInt<long>());
-    case QMetaType::Short:      return QVariant::fromValue<short>(fd.nextInt<short>());
-    case QMetaType::Char:       return QVariant::fromValue<char>(fd.nextInt<char>());
-    case QMetaType::ULong:      return QVariant::fromValue<ulong>(fd.nextInt<ulong>());
-    case QMetaType::UShort:     return QVariant::fromValue<ushort>(fd.nextInt<ushort>());
-    case QMetaType::UChar:      return QVariant::fromValue<uchar>(fd.nextInt<uchar>());
-    case QMetaType::SChar:      return QVariant::fromValue<signed char>(fd.nextInt<signed char>());
+    case QMetaType::Long:       return QVariant::fromValue<long>(fd.nextRaw<long>());
+    case QMetaType::Short:      return QVariant::fromValue<short>(fd.nextRaw<short>());
+    case QMetaType::Char:       return QVariant::fromValue<char>(fd.nextRaw<char>());
+    case QMetaType::ULong:      return QVariant::fromValue<ulong>(fd.nextRaw<ulong>());
+    case QMetaType::UShort:     return QVariant::fromValue<ushort>(fd.nextRaw<ushort>());
+    case QMetaType::UChar:      return QVariant::fromValue<uchar>(fd.nextRaw<uchar>());
+    case QMetaType::SChar:      return QVariant::fromValue<signed char>(fd.nextRaw<signed char>());
     case QMetaType::QString:    return QVariant(fd.nextQString());
     case QMetaType::QByteArray: return QVariant(fd.nextQByteArray());
-    case QMetaType::QChar:      return QVariant(QChar(fd.nextInt<ushort>()));
+    case QMetaType::QChar:      return QVariant(QChar(fd.nextRaw<ushort>()));
     case QMetaType::QPoint:     return QVariant(QPoint(fd.nextInt(), fd.nextInt()));
     case QMetaType::QPointF:    return QVariant(QPointF(fd.nextDouble(), fd.nextDouble()));
     case QMetaType::QSize:      return QVariant(QSize(fd.nextInt(), fd.nextInt()));
@@ -567,13 +574,13 @@ static QVariant nextVariantForType(FuzzData &fd, QMetaType metaType)
 #endif
     case QMetaType::QUrl:       return QVariant(QUrl(fd.nextQString()));
     case QMetaType::QDate:
-        return QVariant(QDate(fd.nextInt<int>() % 9999 + 1,
+        return QVariant(QDate(fd.nextRaw<int>() % 9999 + 1,
                               fd.nextByte() % 12 + 1, fd.nextByte() % 28 + 1));
     case QMetaType::QTime:
         return QVariant(QTime(fd.nextByte() % 24, fd.nextByte() % 60,
-                              fd.nextByte() % 60, fd.nextInt<uint16_t>() % 1000));
+                              fd.nextByte() % 60, fd.nextRaw<uint16_t>() % 1000));
     case QMetaType::QDateTime: {
-        QDate d(fd.nextInt<int>() % 9999 + 1, fd.nextByte() % 12 + 1, fd.nextByte() % 28 + 1);
+        QDate d(fd.nextRaw<int>() % 9999 + 1, fd.nextByte() % 12 + 1, fd.nextByte() % 28 + 1);
         QTime t(fd.nextByte() % 24, fd.nextByte() % 60, fd.nextByte() % 60);
         return QVariant(QDateTime(d, t));
     }
@@ -721,6 +728,13 @@ const char *FuzzCppGenerator::kTemplateDirectOnly = R"FUZZTEMPLATE(
 //
 // Run:
 //   ./fuzz_@@CLASS@@ [--time <seconds>] [--seed <uint64>] [corpus_file ...]
+
+// Prevent Windows SDK min/max macros from shadowing std::max.
+#if defined(_WIN32) || defined(_WIN64)
+#  ifndef NOMINMAX
+#    define NOMINMAX
+#  endif
+#endif
 
 #include <@@CLASS@@>
 #include @@APP_INCLUDE@@
@@ -939,10 +953,14 @@ std::string CMakeGenerator::buildContent() const
     o << ")\n\n";
 
     o << "# Sanitizers\n"
-      << "option(ENABLE_ASAN \"Enable AddressSanitizer + UBSan\" OFF)\n"
+      << "option(ENABLE_ASAN \"Enable AddressSanitizer\" OFF)\n"
       << "if(ENABLE_ASAN)\n"
-      << "    add_compile_options(-fsanitize=address,undefined -fno-omit-frame-pointer)\n"
-      << "    add_link_options   (-fsanitize=address,undefined)\n"
+      << "    if(MSVC)\n"
+      << "        add_compile_options(/fsanitize=address)\n"
+      << "    else()\n"
+      << "        add_compile_options(-fsanitize=address,undefined -fno-omit-frame-pointer)\n"
+      << "        add_link_options   (-fsanitize=address,undefined)\n"
+      << "    endif()\n"
       << "endif()\n\n";
 
     o << "add_executable(" << targetName << "\n"
@@ -1095,9 +1113,9 @@ bool TreeGenerator::generate(const std::vector<DiscoveredClass> &classes) const
 #elif defined(__APPLE__)
 #include <TargetConditionals.h>
 #if TARGET_OS_IPHONE
-    constexpr Platform kCurrentPlatform = Platform::IOS;
+    constexpr Platform kCurrentPlatform = Platform::iOS;
 #else
-    constexpr Platform kCurrentPlatform = Platform::MacOS;
+    constexpr Platform kCurrentPlatform = Platform::macOS;
 #endif
 #elif defined(__ANDROID__)
     constexpr Platform kCurrentPlatform = Platform::Android;

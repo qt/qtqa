@@ -248,6 +248,76 @@ std::string elideNonLinuxPlatformBlocks(const std::string &source)
     return result;
 }
 
+// Elide blocks guarded exclusively by Q_OS_UNIX or Q_OS_LINUX so that
+// Unix/Linux-only methods (e.g. QProcess::childProcessModifier()) are not
+// emitted in generated fuzz tests that must compile on all platforms.
+// A block is considered Unix-only when the guard line mentions Q_OS_UNIX or
+// Q_OS_LINUX but does NOT also mention any other OS macro (Q_OS_WIN*, etc.).
+std::string elideUnixOnlyBlocks(const std::string &source)
+{
+    static const std::regex kUnixOs(
+        R"(\bQ_OS_(UNIX|LINUX)\b)",
+        std::regex::optimize);
+    static const std::regex kNonUnixOs(
+        R"(\bQ_OS_(WIN\w*|WINDOWS|MAC\w*|DARWIN|IOS|TVOS|WATCHOS|VISIONOS|ANDROID\w*|WASM|VXWORKS|INTEGRITY|QNX)\b)",
+        std::regex::optimize);
+
+    std::string result;
+    result.reserve(source.size());
+
+    size_t i = 0;
+    while (i < source.size()) {
+        size_t lineStart = i;
+        while (i < source.size() && source[i] != '\n')
+            ++i;
+        size_t lineEnd    = i;
+        bool   hasNewline = (i < source.size());
+        if (hasNewline)
+            ++i;
+
+        std::string line = source.substr(lineStart, lineEnd - lineStart);
+        std::string kw   = ppKeyword(line);
+
+        bool isIfLike     = (kw == "if" || kw == "ifdef" || kw == "ifndef");
+        bool mentionsUnix = isIfLike && std::regex_search(line, kUnixOs);
+        bool mentionsOther = isIfLike && std::regex_search(line, kNonUnixOs);
+
+        if (mentionsUnix && !mentionsOther) {
+            result.append(lineEnd - lineStart, ' ');
+            if (hasNewline)
+                result += '\n';
+
+            int depth = 1;
+            while (i < source.size() && depth > 0) {
+                size_t bStart = i;
+                while (i < source.size() && source[i] != '\n')
+                    ++i;
+                size_t bEnd = i;
+                bool bHasNewline = (i < source.size());
+                if (bHasNewline)
+                    ++i;
+
+                std::string bline = source.substr(bStart, bEnd - bStart);
+                std::string bkw   = ppKeyword(bline);
+
+                if (bkw == "if" || bkw == "ifdef" || bkw == "ifndef")
+                    ++depth;
+                else if (bkw == "endif")
+                    --depth;
+
+                result.append(bEnd - bStart, ' ');
+                if (bHasNewline)
+                    result += '\n';
+            }
+        } else {
+            result += line;
+            if (hasNewline)
+                result += '\n';
+        }
+    }
+    return result;
+}
+
 // Elide blocks guarded by a simple '#ifdef X' where X is an optional
 // compile-time feature macro that may not be defined in a standard Linux
 // Qt desktop build (e.g. QT_KEYPAD_NAVIGATION, Q_QDOC, QT_NO_WHEELEVENT).
@@ -876,6 +946,7 @@ collectPublicMethods(const std::string &stripped,
     }
     body = elideRemovedSinceBlocks(body);
     body = elideNonLinuxPlatformBlocks(body);
+    body = elideUnixOnlyBlocks(body);
     body = elideOptionalIfdefBlocks(body);
     body = stripPreprocessorLines(body);
 
@@ -2056,11 +2127,7 @@ moduleForHeader(const fs::path &headerPath, const fs::path &submoduleRoot)
     if (mi)
         return std::make_pair(lower, *mi);
 
-    std::string comp = dirName;
-    if (!comp.empty())
-        comp[0] = static_cast<char>(std::toupper(comp[0]));
-    ModuleInfo fallback{ comp, "Qt6::" + comp, { "Core" }, AppType::Core };
-    return std::make_pair(lower, fallback);
+    return std::nullopt; // Directory not in module map — skip all classes under it.
 }
 
 std::optional<fs::path> findHeader(const std::string &className,

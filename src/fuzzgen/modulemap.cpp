@@ -47,7 +47,7 @@ const std::map<std::string, ModuleInfo> &moduleMap()
         { "sql",               { "Sql",               "Qt6::Sql",               {"Core"},                                                 AppType::Core    } },
         { "xml",               { "Xml",               "Qt6::Xml",               {"Core"},                                                 AppType::Core    } },
         { "concurrent",        { "Concurrent",        "Qt6::Concurrent",        {"Core"},                                                 AppType::Core    } },
-        { "test",              { "Test",              "Qt6::Test",              {"Core"},                                                 AppType::Core    } },
+        { "testlib",           { "Test",              "Qt6::Test",              {"Core"},                                                 AppType::Core    } },
         { "statemachine",      { "StateMachine",      "Qt6::StateMachine",      {"Core"},                                                 AppType::Core    } },
         { "scxml",             { "Scxml",             "Qt6::Scxml",             {"Core"},                                                 AppType::Core    } },
         { "remoteobjects",     { "RemoteObjects",     "Qt6::RemoteObjects",     {"Core", "Network"},                                      AppType::Core    } },
@@ -57,7 +57,7 @@ const std::map<std::string, ModuleInfo> &moduleMap()
         { "nfc",               { "Nfc",               "Qt6::Nfc",               {"Core"},                                                 AppType::Core    } },
 
         // Gui-tier (QGuiApplication required)
-        { "dbus",              { "DBus",              "Qt6::DBus",              {"Core"},                                                 AppType::Gui     } },
+        { "dbus",              { "DBus",              "Qt6::DBus",              {"Core"},                                                 AppType::Core    } },
         { "gui",               { "Gui",               "Qt6::Gui",               {"Core"},                                                 AppType::Gui     } },
         { "opengl",            { "OpenGL",            "Qt6::OpenGL",            {"Core", "Gui"},                                          AppType::Gui     } },
 
