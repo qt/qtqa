@@ -237,6 +237,14 @@ static std::string fuzzExprForType(const std::string &rawType,
         if (type.size() >= 2 && type[0] == 'Q'
                 && std::isupper(static_cast<unsigned char>(type[1])))
             return type + "{}";
+        // OpenGL types (GLint, GLenum, GLfloat, …) are global C typedefs in
+        // <GLES2/gl2.h> / <GL/gl.h>, not nested types of any Qt class.
+        if (type.size() >= 2 && type[0] == 'G' && type[1] == 'L')
+            return "static_cast<" + type + ">(fd.nextByte())";
+        // Vulkan handle/enum types (VkResult, VkDevice, …) are similarly global.
+        if (type.size() >= 3 && type[0] == 'V' && type[1] == 'k'
+            && std::isupper(static_cast<unsigned char>(type[2])))
+            return "static_cast<" + type + ">(fd.nextByte())";
         // Everything else (OpenModeFlag, Direction, Format, …) is assumed to
         // be a nested enum or typedef inside the class being fuzzed.
         return "static_cast<" + className + "::" + type + ">(fd.nextByte())";
@@ -255,6 +263,22 @@ static std::string fuzzExprForType(const std::string &rawType,
         return "fd.nextInt()";
 
     return type + "{}";
+}
+
+// Wrapper that respects isNestedStruct — nested struct value types are
+// default-constructed with {} rather than cast from a raw byte, because
+// they may have no integral constructor (e.g. QFont::Tag).
+// Reference types (const T &) are handled by fuzzExprForType which already
+// strips the ref qualifier and emits T{}, so we delegate those.
+static std::string fuzzExprForParam(const MethodParam &p, const std::string &className)
+{
+    if (p.isNestedStruct) {
+        const std::string &t = p.type;
+        bool isRef = !t.empty() && t.back() == '&';
+        if (!isRef)
+            return p.type + "{}";
+    }
+    return fuzzExprForType(p.type, className);
 }
 
 // ---------------------------------------------------------------------------
@@ -357,7 +381,7 @@ static std::string buildDirectFuzzFunction(
 
         bool allBraces = !sig.params.empty();
         for (const auto &p : sig.params) {
-            std::string expr = fuzzExprForType(p.type, className);
+            std::string expr = fuzzExprForParam(p, className);
             if (expr != "{}" && expr != "nullptr"
              && expr != "static_cast<QWidget *>(nullptr)"
              && expr != "fd.nextInt()")
@@ -390,7 +414,7 @@ static std::string buildDirectFuzzFunction(
                 if (sig.params[i].isNonConstRef)
                     o << "_p" << i;
                 else
-                    o << fuzzExprForType(sig.params[i].type, className);
+                    o << fuzzExprForParam(sig.params[i], className);
             }
             o << ");\n"
               << "        }\n"
@@ -400,7 +424,7 @@ static std::string buildDirectFuzzFunction(
             for (size_t i = 0; i < sig.params.size(); ++i) {
                 if (i > 0)
                     o << ", ";
-                o << fuzzExprForType(sig.params[i].type, className);
+                o << fuzzExprForParam(sig.params[i], className);
             }
             o << ");\n"
               << "        break;\n";
@@ -1167,6 +1191,22 @@ bool TreeGenerator::generate(const std::vector<DiscoveredClass> &classes) const
             if (m_opts.verbose)
                 std::cout << "[TreeGenerator] Skipping (skiplist): " << dc.className << "\n";
             continue;
+        }
+        // Skip classes whose installed Qt module header does not exist.
+        // QPA classes (QPlatformNativeInterface, etc.) live in the source
+        // tree but are not installed as public <ClassName> module headers,
+        // so #include <ClassName> would fail to compile.
+        if (!m_opts.qtPrefix.empty()) {
+            const fs::path mhdr = fs::path(m_opts.qtPrefix) / "include"
+                    / ("Qt" + dc.module.component) / dc.className;
+            std::error_code ec2;
+            if (!fs::exists(mhdr, ec2)) {
+                ++skipped;
+                if (m_opts.verbose)
+                    std::cout << "[TreeGenerator] Skipping (no installed module header): "
+                              << dc.className << "\n";
+                continue;
+            }
         }
         byModule[dc.moduleSrcDir].push_back(&dc);
     }

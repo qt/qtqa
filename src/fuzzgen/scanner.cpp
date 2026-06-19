@@ -974,6 +974,18 @@ collectPublicMethods(const std::string &stripped,
         for (auto it = std::sregex_iterator(body.begin(), body.end(), kNestedClassRe);
              it != std::sregex_iterator(); ++it)
             nestedClasses.insert((*it)[1].str());
+        // typedef declarations: add the alias name to nestedClasses so that
+        // methods using private or pointer-aliased typedefs as params are
+        // skipped (e.g. QWinEventNotifier::HANDLE is typedef Qt::HANDLE HANDLE
+        // in the private section — inaccessible and non-castable from uint8_t).
+        // Exclude function-pointer typedefs (contain '(' before ';') to avoid
+        // catastrophic backtracking on headers like qopenglextrafunctions.h
+        // that have thousands of PFNGL* typedefs.
+        static const std::regex kTypedefRe(R"(\btypedef\b[^;(]*\s+(\w+)\s*;)",
+                                           std::regex::optimize);
+        for (auto it = std::sregex_iterator(body.begin(), body.end(), kTypedefRe);
+             it != std::sregex_iterator(); ++it)
+            nestedClasses.insert((*it)[1].str());
     }
 
     static const std::regex kAccessRe(
@@ -1369,6 +1381,7 @@ collectPublicMethods(const std::string &stripped,
                                             || !std::isalnum(static_cast<unsigned char>(mp.type[p+base.size()])));
                             if (leftOk && rightOk) {
                                 mp.type.replace(p, base.size(), className + "::" + base);
+                                mp.isNestedStruct = true;
                                 break; // type name appears at most once
                             }
                             p = mp.type.find(base, p + 1);

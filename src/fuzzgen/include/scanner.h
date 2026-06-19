@@ -47,6 +47,7 @@ struct MethodParam {
     std::string type; // e.g. "const QString &", "std::chrono::nanoseconds"
     std::string name; // e.g. "text" (may be empty for unnamed params)
     bool isNonConstRef = false;
+    bool isNestedStruct = false; // true when type was qualified from a nested struct
 };
 
 // A public method signature extracted from a class header.
