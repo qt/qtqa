@@ -90,6 +90,15 @@ if(COMMAND qt_add_tool)
         "${_FUZZGEN_INCLUDE_DIR}"
     )
 
+    # qt_tara: TARA launcher — scans Qt-Security score:critical files and
+    #          spawns qt_fuzz_gen in parallel for every class found
+    qt_add_tool(qt_tara
+        TOOLS_TARGET    Core
+        INSTALL_DIR     "${INSTALL_LIBEXECDIR}"
+        SOURCES
+            qt_tara.cpp
+    )
+
 # ── Standalone build path ─────────────────────────────────────────────────────
 
 else()
@@ -122,7 +131,14 @@ else()
     add_executable(fuzz fuzz.cpp)
     target_link_libraries(fuzz PRIVATE QtFuzzLib)
 
-    install(TARGETS qt_fuzzgen qt_fuzz_gen fuzz
+    # TARA launcher — scans Qt-Security score:critical files, spawns qt_fuzz_gen
+    add_executable(qt_tara qt_tara.cpp)
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND
+       CMAKE_CXX_COMPILER_VERSION VERSION_LESS "9")
+        target_link_libraries(qt_tara PRIVATE stdc++fs)
+    endif()
+
+    install(TARGETS qt_fuzzgen qt_fuzz_gen fuzz qt_tara
         RUNTIME DESTINATION bin
     )
 
