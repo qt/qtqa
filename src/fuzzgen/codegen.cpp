@@ -59,6 +59,23 @@ static const std::unordered_set<std::string> kGlobalQtTypes = {
     "QObject", "QWidget", "QAbstractItemModel", "QAbstractItemView",
 };
 
+// True when an unscoped single-word uppercase type needs className::
+// qualification to compile — a nested enum, typedef, or alias such as
+// OpenModeFlag. Global types must not be prefixed: Q+uppercase Qt classes
+// (QColor, QFont, …) and kGlobalQtTypes members. Types that are already
+// qualified, templated, or pointers are left alone as well.
+static bool needsClassQualification(const std::string &type)
+{
+    if (type.empty() || !std::isupper(static_cast<unsigned char>(type[0])))
+        return false;
+    if (type.find(':') != std::string::npos || type.find('<') != std::string::npos
+        || type.find('*') != std::string::npos)
+        return false;
+    if (type.size() >= 2 && type[0] == 'Q' && std::isupper(static_cast<unsigned char>(type[1])))
+        return false;
+    return !kGlobalQtTypes.count(type);
+}
+
 static std::string fuzzExprForType(const std::string &rawType,
                                     const std::string &className)
 {
@@ -197,19 +214,17 @@ static std::string fuzzExprForType(const std::string &rawType,
             size_t ib = inner.find_last_not_of(" \t");
             if (ia != std::string::npos)
                 inner = inner.substr(ia, ib - ia + 1);
-            if (!inner.empty()
-                && std::isupper(static_cast<unsigned char>(inner[0]))
-                && inner.find(':') == std::string::npos
-                && inner.find('<') == std::string::npos
-                && inner.find('*') == std::string::npos
-                && !(inner.size() >= 2
-                     && inner[0] == 'Q'
-                     && std::isupper(static_cast<unsigned char>(inner[1])))) {
+            if (needsClassQualification(inner)) {
                 base = base.substr(0, ltPos + 1)
                      + className + "::" + inner
                      + base.substr(gtPos);
             }
         }
+
+        // Qualify unscoped single-word uppercase types with className:: so the
+        // generated code compiles (see needsClassQualification).
+        if (needsClassQualification(base))
+            base = className + "::" + base;
 
         return "/* ref */ " + base + "{}";
     }
@@ -218,7 +233,14 @@ static std::string fuzzExprForType(const std::string &rawType,
     if (type.size() >= 4 && type.substr(0, 4) == "Qt::")
         return "static_cast<" + type + ">(fd.nextByte())";
 
-    // Fully qualified types with :: — cast a byte (covers ClassName::Enum).
+    // Q<Class>:: nested types — may be an enum or a value-class (e.g.
+    // QFont::Tag has no integral constructor). Use default construction which
+    // is valid for both enums and default-constructible value classes.
+    if (type.size() >= 2 && type[0] == 'Q' && std::isupper(static_cast<unsigned char>(type[1]))
+        && type.find("::") != std::string::npos)
+        return type + "{}";
+
+    // Other fully qualified types with :: — cast a byte (covers ClassName::Enum).
     // Exclude std:: types: they are C++ standard-library classes/structs, not
     // Qt enums, and must be default-constructed (e.g. std::exception_ptr{}).
     if (type.find("::") != std::string::npos
@@ -404,6 +426,10 @@ static std::string buildDirectFuzzFunction(
                         base = base.substr(6);
                     while (!base.empty() && base.back() == ' ')
                         base.pop_back();
+                    // Qualify unscoped uppercase non-Qt-global types with
+                    // className:: (same logic as fuzzExprForType ref path).
+                    if (needsClassQualification(base))
+                        base = className + "::" + base;
                     o << "            " << base << " _p" << i << "{};\n";
                 }
             }
