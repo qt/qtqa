@@ -1192,6 +1192,19 @@ bool TreeGenerator::generate(const std::vector<DiscoveredClass> &classes) const
                 std::cout << "[TreeGenerator] Skipping (skiplist): " << dc.className << "\n";
             continue;
         }
+        // QOpenGLFunctions and QOpenGLExtraFunctions expose the raw OpenGL C API.
+        // Every method call requires an active QOpenGLContext; without one the
+        // dispatch crashes immediately, making these classes useless as fuzz
+        // targets.  Their GL* parameter types (GLenum, GLuint, …) also trigger
+        // spurious MSVC C2039 "not a member of QOpenGLFunctions" errors when
+        // compiled alongside <QGuiApplication> on Windows.
+        if (dc.className == "QOpenGLFunctions" || dc.className == "QOpenGLExtraFunctions") {
+            ++skipped;
+            if (m_opts.verbose)
+                std::cout << "[TreeGenerator] Skipping (requires active GL context): "
+                          << dc.className << "\n";
+            continue;
+        }
         // Skip classes whose installed Qt module header does not exist.
         // QPA classes (QPlatformNativeInterface, etc.) live in the source
         // tree but are not installed as public <ClassName> module headers,
