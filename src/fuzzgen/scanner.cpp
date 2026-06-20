@@ -1791,6 +1791,7 @@ struct ClassMatch {
     std::string name;
     std::vector<std::string> baseNames; // Q-prefixed bases only (may be empty)
     size_t pos;
+    bool isExported = false; // true when a Q_..._EXPORT macro is present
 };
 
 bool isTemplateClass(const std::string &source, size_t classPos)
@@ -1851,11 +1852,12 @@ std::vector<ClassMatch> extractClassMatches(const std::string &stripped)
     //   class [EXPORT_MACRO] ClassName [: bases] {
     // Group 1: ClassName  (required, must start with uppercase)
     // Group 2: base list  (optional, captured after ':')
+    // Group 1: export macro (e.g. Q_CORE_EXPORT) — present on public API classes.
+    // Group 2: ClassName  (required, must start with uppercase)
+    // Group 3: base list  (optional, captured after ':')
+    // (?!::) rejects scoped definitions like "class QMetaObject::Connection {".
     static const std::regex kClassRe(
-            // (?!::) rejects scoped definitions like "class QMetaObject::Connection {"
-            // — those would capture "QMetaObject" as the name but refer to a nested
-            // class body, not the QMetaObject struct itself.
-            R"(\bclass\s+(?:Q_\w+_EXPORT\s+)?([A-Z]\w*)(?!::)\s*(?::([^{;]*))?(?=\{))",
+            R"(\bclass\s+(Q_\w+_EXPORT\s+)?([A-Z]\w*)(?!::)\s*(?::([^{;]*))?(?=\{))",
             std::regex::optimize);
 
     std::vector<ClassMatch> result;
@@ -1865,8 +1867,9 @@ std::vector<ClassMatch> extractClassMatches(const std::string &stripped)
     auto end = std::sregex_iterator();
 
     for (; it != end; ++it) {
-        const std::smatch &m    = *it;
-        std::string        name = m[1].str();
+        const std::smatch &m = *it;
+        bool isExp = m[1].matched && !m[1].str().empty();
+        std::string name = m[2].str();
 
         if (name.empty() || name[0] != 'Q')
             continue;
@@ -1886,10 +1889,10 @@ std::vector<ClassMatch> extractClassMatches(const std::string &stripped)
         // Extract Q-prefixed base names for abstract propagation.
         // The base list may be empty for standalone classes (e.g. QPoint).
         std::vector<std::string> bases;
-        if (m[2].matched)
-            bases = extractBaseNames(m[2].str());
+        if (m[3].matched)
+            bases = extractBaseNames(m[3].str());
 
-        result.push_back({ name, bases, pos });
+        result.push_back({ name, bases, pos, isExp });
     }
     return result;
 }
@@ -1954,7 +1957,8 @@ buildUniverseMap(const fs::path &srcRoot, bool verbose)
 
         const std::string stripped = stripBlockComments(source);
 
-        for (const auto &[name, baseNames, matchPos] : extractClassMatches(stripped)) {
+        for (const auto &[name, baseNames, matchPos, isExported] : extractClassMatches(stripped)) {
+            (void)isExported; // universe includes all classes for abstract propagation
             if (!seen.insert(name).second)
                 continue;
 
@@ -2251,7 +2255,13 @@ std::vector<DiscoveredClass> scanClasses(const fs::path &submoduleRoot,
         for (char &c : stemLower)
             c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
 
-        for (const auto &[name, baseNames, matchPos] : extractClassMatches(stripped)) {
+        for (const auto &[name, baseNames, matchPos, isExported] : extractClassMatches(stripped)) {
+            // Only generate fuzz tests for classes that are part of Qt's public
+            // exported API (have a Q_..._EXPORT macro).  Internal helper classes
+            // that happen to start with 'Q' are excluded.
+            if (!isExported)
+                continue;
+
             // Check header-stem prefix rule.
             {
                 std::string cnameLower = name;
@@ -2403,7 +2413,8 @@ std::optional<DiscoveredClass> scanSingleClass(const std::string &className,
             if (src.empty())
                 continue;
             const std::string stripped2 = stripBlockComments(src);
-            for (const auto &[name, bases, matchPos] : extractClassMatches(stripped2)) {
+            for (const auto &[name, bases, matchPos, isExp] : extractClassMatches(stripped2)) {
+                (void)isExp;
                 if (name == className) {
                     headerPath = p;
                     break;
@@ -2426,7 +2437,8 @@ std::optional<DiscoveredClass> scanSingleClass(const std::string &className,
     // Locate the class declaration inside the header.
     size_t classPos = std::string::npos;
     std::vector<std::string> baseNames;
-    for (const auto &[name, bases, matchPos] : extractClassMatches(stripped)) {
+    for (const auto &[name, bases, matchPos, isExp] : extractClassMatches(stripped)) {
+        (void)isExp;
         if (name == className) {
             classPos = matchPos;
             baseNames = bases;
