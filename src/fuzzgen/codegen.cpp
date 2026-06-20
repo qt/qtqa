@@ -62,8 +62,9 @@ static const std::unordered_set<std::string> kGlobalQtTypes = {
 // True when an unscoped single-word uppercase type needs className::
 // qualification to compile — a nested enum, typedef, or alias such as
 // OpenModeFlag. Global types must not be prefixed: Q+uppercase Qt classes
-// (QColor, QFont, …) and kGlobalQtTypes members. Types that are already
-// qualified, templated, or pointers are left alone as well.
+// (QColor, QFont, …), Q_ALLCAPS structs (Q_IPV6ADDR), OpenGL / Vulkan
+// typedefs, and kGlobalQtTypes members. Types that are already qualified,
+// templated, or pointers are left alone as well.
 static bool needsClassQualification(const std::string &type)
 {
     if (type.empty() || !std::isupper(static_cast<unsigned char>(type[0])))
@@ -72,6 +73,13 @@ static bool needsClassQualification(const std::string &type)
         || type.find('*') != std::string::npos)
         return false;
     if (type.size() >= 2 && type[0] == 'Q' && std::isupper(static_cast<unsigned char>(type[1])))
+        return false;
+    if (type.size() >= 3 && type[0] == 'Q' && type[1] == '_')
+        return false;
+    if (type.size() >= 2 && type[0] == 'G' && type[1] == 'L')
+        return false;
+    if (type.size() >= 3 && type[0] == 'V' && type[1] == 'k'
+        && std::isupper(static_cast<unsigned char>(type[2])))
         return false;
     return !kGlobalQtTypes.count(type);
 }
@@ -259,17 +267,27 @@ static std::string fuzzExprForType(const std::string &rawType,
         if (type.size() >= 2 && type[0] == 'Q'
                 && std::isupper(static_cast<unsigned char>(type[1])))
             return type + "{}";
-        // OpenGL types (GLint, GLenum, GLfloat, …) are global C typedefs in
-        // <GLES2/gl2.h> / <GL/gl.h>, not nested types of any Qt class.
+        // Q_ALLCAPS types (Q_ followed by underscore) are globally-defined
+        // Qt structs / typedefs (e.g. Q_IPV6ADDR). They live in the global
+        // namespace and must not be qualified with className::.
+        if (type.size() >= 3 && type[0] == 'Q' && type[1] == '_')
+            return type + "{}";
+        // OpenGL types (GLint, GLenum, …) are global C typedefs.
+        // GLsync is a pointer handle (struct __GLsync*), so use T{} for
+        // zero-initialization (covers integer types = 0 and pointer = nullptr).
         if (type.size() >= 2 && type[0] == 'G' && type[1] == 'L')
-            return "static_cast<" + type + ">(fd.nextByte())";
-        // Vulkan handle/enum types (VkResult, VkDevice, …) are similarly global.
+            return type + "{}";
+        // Vulkan types are either enums (VkResult) or opaque pointer handles
+        // (VkDevice, VkInstance, …). Dispatchable handles are pointer typedefs
+        // that cannot be constructed from an integer; zero-init covers both.
         if (type.size() >= 3 && type[0] == 'V' && type[1] == 'k'
             && std::isupper(static_cast<unsigned char>(type[2])))
-            return "static_cast<" + type + ">(fd.nextByte())";
-        // Everything else (OpenModeFlag, Direction, Format, …) is assumed to
-        // be a nested enum or typedef inside the class being fuzzed.
-        return "static_cast<" + className + "::" + type + ">(fd.nextByte())";
+            return type + "{}";
+        // Everything else (OpenModeFlag, Direction, Format, DebugFilter, …)
+        // is assumed to be a nested enum, typedef, or alias inside the class.
+        // Use default construction: valid for enums (value 0), QFlags (0),
+        // function pointers (nullptr), std::function (empty), and value types.
+        return className + "::" + type + "{}";
     }
 
     // std::optional<T> — use std::nullopt (implicitly converts to any optional).
