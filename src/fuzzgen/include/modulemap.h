@@ -55,6 +55,10 @@ const std::map<std::string, ModuleInfo> &moduleMap();
 // Returns nullptr if the directory is not in the map.
 const ModuleInfo *findModuleByDir(const std::string &srcDirName);
 
+// Look up module info by component name (case-insensitive).
+// Returns nullptr if not found.
+const ModuleInfo *findModuleByComponent(const std::string &componentName);
+
 // Returns all components needed to link against mod (including its
 // transitive dependencies), in dependency-first order.
 std::vector<std::string> resolveComponents(const ModuleInfo &mod);

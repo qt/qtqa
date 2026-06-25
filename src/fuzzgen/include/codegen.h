@@ -47,11 +47,15 @@ public:
     // hasQObject:    true  → emit introspection-based fuzzing via QMetaObject
     //                        in addition to direct-call fuzzing.
     //                false → emit direct-call fuzzing only.
+    // classInclude:  The include directive text (e.g. "<QLottieAnimation>" or
+    //                "<QtLottie/private/qlottieanimation_p.h>").
+    //                Empty means use the default "<ClassName>" form.
     FuzzCppGenerator(std::string className,
                      fs::path outputPath,
                      AppType appType = AppType::Core,
                      std::vector<MethodSignature> publicMethods = {},
-                     bool hasQObject = true);
+                     bool hasQObject = true,
+                     std::string classInclude = {});
 
     // Write the generated .cpp to outputPath. Returns true on success.
     bool generate() const;
@@ -67,6 +71,7 @@ private:
     AppType m_appType;
     std::vector<MethodSignature> m_publicMethods;
     bool m_hasQObject;
+    std::string m_classInclude; // e.g. "<QtLottie/private/qlottieanimation_p.h>"
 
     std::string buildSource() const;
 
@@ -93,6 +98,7 @@ public:
         std::vector<std::string> components; // resolved deps, dep-first order
         std::string qtPrefix; // installed Qt prefix, may be empty
         int fuzzTimeSec = 30;
+        std::vector<std::string> privateComponents; // e.g. {"LottiePrivate"}
     };
 
     explicit CMakeGenerator(Config cfg, fs::path outputPath);

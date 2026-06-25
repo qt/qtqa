@@ -186,9 +186,10 @@ const std::map<std::string, ModuleInfo> &moduleMap()
         { "httpserver",        { "HttpServer",        "Qt6::HttpServer",        {"Core", "Network"},                                      AppType::Core    } },
 
         // -----------------------------------------------------------------------
-        // qtlottie  (src/bodymovin)
+        // qtlottie  (src/bodymovin, src/vectorimagehelpers)
         // -----------------------------------------------------------------------
-        { "bodymovin",         { "Lottie",            "Qt6::Lottie",            {"Core", "Gui", "Quick"},                                 AppType::Gui     } },
+        { "bodymovin",             { "Lottie",                    "Qt6::Lottie",                    {"Core", "Gui", "Quick"},                                 AppType::Gui     } },
+        { "vectorimagehelpers",    { "LottieVectorImageHelpers",  "Qt6::LottieVectorImageHelpers",  {"Core", "Gui", "Quick"},                                 AppType::Gui     } },
 
         // -----------------------------------------------------------------------
         // qtpdf  (src/pdf, src/pdfwidgets)
@@ -252,6 +253,20 @@ const ModuleInfo *findModuleByDir(const std::string &srcDirName)
     std::transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
     auto it = moduleMap().find(lower);
     return it != moduleMap().end() ? &it->second : nullptr;
+}
+
+const ModuleInfo *findModuleByComponent(const std::string &componentName)
+{
+    std::string lowerQuery = componentName;
+    std::transform(lowerQuery.begin(), lowerQuery.end(), lowerQuery.begin(), ::tolower);
+
+    for (const auto &[dir, info] : moduleMap()) {
+        std::string lowerComp = info.component;
+        std::transform(lowerComp.begin(), lowerComp.end(), lowerComp.begin(), ::tolower);
+        if (lowerComp == lowerQuery)
+            return &info;
+    }
+    return nullptr;
 }
 
 std::vector<std::string> resolveComponents(const ModuleInfo &mod)

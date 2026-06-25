@@ -59,6 +59,7 @@ static void usage(const char *prog)
               << "  --skiplist <path>   Skip list file (optional)\n"
               << "  --qt-prefix <path>   Qt install prefix (auto-detected)\n"
               << "  --time      <sec>    Fuzz duration in seconds (default: 30)\n"
+              << "  --qml                Also include QML-exposed private classes (_p.h)\n"
               << "  --verbose            Verbose output\n";
 }
 
@@ -88,6 +89,7 @@ int main(int argc, char *argv[])
     std::vector<std::string> moduleFilter;
     int timeSec = 30;
     bool verbose = false;
+    bool includeQml = false;
 
     for (int i = 1; i < argc; i++) {
         std::string a(argv[i]);
@@ -106,6 +108,8 @@ int main(int argc, char *argv[])
             qtPrefix = argv[++i];
         } else if ((a == "--time" || a == "-t") && i + 1 < argc) {
             timeSec = std::atoi(argv[++i]);
+        } else if (a == "--qml") {
+            includeQml = true;
         } else if (a == "--verbose" || a == "-v") {
             verbose = true;
         }
@@ -143,8 +147,10 @@ int main(int argc, char *argv[])
 
     QtFuzz::SkipList skipList(skipListFile);
 
+    if (includeQml)
+        std::cout << "[qt_fuzzgen] QML mode: including QML-exposed private classes.\n";
     std::cout << "[qt_fuzzgen] Scanning submodule/src for default-constructible Qt classes...\n";
-    auto classes = QtFuzz::scanClasses(submoduleRoot, moduleFilter, verbose, skipList);
+    auto classes = QtFuzz::scanClasses(submoduleRoot, moduleFilter, verbose, skipList, includeQml);
 
     if (classes.empty()) {
         std::cerr << "[qt_fuzzgen] No classes found. "

@@ -71,6 +71,8 @@ struct DiscoveredClass {
     bool hasQObject = false; // true if class body contains Q_OBJECT
     Platform availableOn = Platform::All;
     std::vector<MethodSignature> publicMethods;
+    bool isQmlExposed = false;           // true for classes from _p.h with QML macros
+    std::string privateHeaderInclude;    // e.g. "QtLottie/private/qlottieanimation_p.h"
 };
 
 // Scans submoduleRoot/src recursively for all default-constructible Qt classes.
@@ -90,7 +92,8 @@ struct DiscoveredClass {
 std::vector<DiscoveredClass> scanClasses(const fs::path &submoduleRoot,
                                          const std::vector<std::string> &moduleFilter = { },
                                          bool verbose = false,
-                                         const SkipList &skipList = SkipList{ });
+                                         const SkipList &skipList = SkipList{ },
+                                         bool includeQmlPrivate = false);
 
 // Determine which module a header path belongs to by examining its path
 // relative to submoduleRoot/src/<module>/...
@@ -99,8 +102,10 @@ moduleForHeader(const fs::path &headerPath, const fs::path &submoduleRoot);
 
 // Given a submodule root, find the header that likely declares className.
 // Looks for <lowercase(className)>.h under submoduleRoot/src.
+// When includeQmlPrivate is true, also tries <lowercase(className)>_p.h.
 std::optional<fs::path> findHeader(const std::string &className,
-                                   const fs::path &submoduleRoot);
+                                   const fs::path &submoduleRoot,
+                                   bool includeQmlPrivate = false);
 
 // Find and parse a single class by name from the submodule source tree.
 // Returns all discovered information including public methods and module
@@ -110,7 +115,8 @@ std::optional<fs::path> findHeader(const std::string &className,
 // abstract due to unresolved inherited pure virtuals will still compile-fail
 // when instantiated — the build step in the fuzz tool catches this.
 std::optional<DiscoveredClass> scanSingleClass(const std::string &className,
-                                               const fs::path &submoduleRoot);
+                                               const fs::path &submoduleRoot,
+                                               bool includeQmlPrivate = false);
 
 // Returns true if source (the text of a header) contains a pure virtual
 // method declaration inside the class body of className.

@@ -175,6 +175,31 @@ static void collectClassNames(const std::string &src, std::set<std::string> &out
     }
 }
 
+// A private header is in scope for --qml when it registers a QML type
+// (QML_ELEMENT / QML_NAMED_ELEMENT) that exposes properties.
+static bool hasQmlType(const std::string &src)
+{
+    const bool hasRegistration = src.find("QML_ELEMENT") != std::string::npos
+            || src.find("QML_NAMED_ELEMENT") != std::string::npos;
+    return hasRegistration && src.find("Q_PROPERTY") != std::string::npos;
+}
+
+// For _p.h files with QML_ELEMENT / QML_NAMED_ELEMENT: class names need not be
+// Q-prefixed or exported (e.g. SphereGeometry, StateMachine, ColorGradient).
+static void collectQmlClassNames(const std::string &src, std::set<std::string> &out)
+{
+    static const std::regex kRe(R"(\bclass\s+(?:Q_\w+_EXPORT\s+)?([A-Z][A-Za-z0-9]+)\b)",
+                                std::regex::optimize);
+
+    for (auto it = std::sregex_iterator(src.cbegin(), src.cend(), kRe);
+         it != std::sregex_iterator(); ++it) {
+        const std::string name = (*it)[1].str();
+        if (name.find('_') != std::string::npos)
+            continue;
+        out.insert(name);
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Locate qt_fuzz_gen next to our own binary, fall back to PATH
 // ---------------------------------------------------------------------------
@@ -203,6 +228,7 @@ int main(int argc, char *argv[])
     std::string qtPrefix;
     std::string scanDirArg;
     bool listOnly = false;
+    bool includeQml = false;
 
     for (int i = 1; i < argc; ++i) {
         const std::string a = argv[i];
@@ -212,6 +238,8 @@ int main(int argc, char *argv[])
             qtPrefix = a.substr(12);
         } else if (a == "--list-classes") {
             listOnly = true;
+        } else if (a == "--qml") {
+            includeQml = true;
         } else if (a == "-h" || a == "--help") {
             std::cout
                     << "Usage: qt_tara --qt-prefix <path> [<directory>]\n\n"
@@ -224,6 +252,8 @@ int main(int argc, char *argv[])
                     << "  --qt-prefix <path>   Qt install prefix (required unless --list-classes)\n"
                     << "  --list-classes        Print in-scope class names and exit without "
                        "running qt_fuzz_gen\n"
+                    << "  --qml                Pass --qml to qt_fuzz_gen (include QML-exposed "
+                       "private classes)\n"
                     << "  <directory>          Directory to scan (default: .)\n";
             return 0;
         } else if (a.rfind("--", 0) != 0) {
@@ -268,9 +298,14 @@ int main(int argc, char *argv[])
         const std::string stem = entry.path().stem().string();
         std::cout << "[qt_tara] critical: " << entry.path().filename().string() << "\n";
 
-        // Private headers (*_p.h) contain implementation classes, not public API.
-        if (stem.size() >= 2 && stem[stem.size() - 2] == '_' && stem[stem.size() - 1] == 'p')
+        // Private headers (*_p.h) contain implementation classes, not public API —
+        // unless --qml is active and the file exposes a QML type + Q_PROPERTY.
+        if (stem.size() >= 2 && stem[stem.size() - 2] == '_' && stem[stem.size() - 1] == 'p') {
+            if (!includeQml || !hasQmlType(src))
+                continue;
+            collectQmlClassNames(src, classes);
             continue;
+        }
 
         collectClassNames(src, classes);
 
@@ -281,6 +316,17 @@ int main(int argc, char *argv[])
             const fs::path hFile = entry.path().parent_path() / (stem + ".h");
             if (fs::exists(hFile))
                 collectClassNames(readFile(hFile), classes);
+
+            // With --qml, QML types may be declared in the same-stem private
+            // header instead, without the header carrying the marker itself.
+            if (includeQml) {
+                const fs::path pFile = entry.path().parent_path() / (stem + "_p.h");
+                if (fs::exists(pFile)) {
+                    const std::string pSrc = readFile(pFile);
+                    if (hasQmlType(pSrc))
+                        collectQmlClassNames(pSrc, classes);
+                }
+            }
         }
     }
 
@@ -307,7 +353,10 @@ int main(int argc, char *argv[])
 
     for (const auto &cls : classes) {
         std::cout << "[qt_tara]   → " << cls << "\n";
-        handles.push_back(spawnBackground(fuzzGen, { cls, "--qt-prefix", qtPrefix }));
+        std::vector<std::string> fgArgs = { cls, "--qt-prefix", qtPrefix };
+        if (includeQml)
+            fgArgs.push_back("--qml");
+        handles.push_back(spawnBackground(fuzzGen, fgArgs));
     }
 
     // ── 3. Wait for all children ─────────────────────────────────────────────

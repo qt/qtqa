@@ -46,7 +46,8 @@ static void usage(const char *prog)
                  "lookup)\n"
               << "  --qt-prefix  <path>   Qt install prefix (auto-detected)\n"
               << "  --skiplist  <path>   Path to skip list file (optional)\n"
-              << "  --time       <sec>    Fuzz duration for ctest (default: 30)\n";
+              << "  --time       <sec>    Fuzz duration for ctest (default: 30)\n"
+              << "  --qml                Also search _p.h files for QML-exposed private classes\n";
 }
 
 static std::string readFile(const fs::path &p)
@@ -73,6 +74,7 @@ int main(int argc, char *argv[])
     fs::path skipListFile;
     std::string qtPrefix;
     int timeSec = 30;
+    bool includeQml = false;
 
     for (int i = 1; i < argc; i++) {
         std::string a(argv[i]);
@@ -91,6 +93,8 @@ int main(int argc, char *argv[])
             skipListFile = argv[++i];
         } else if ((a == "--time" || a == "-t") && i + 1 < argc) {
             timeSec = std::atoi(argv[++i]);
+        } else if (a == "--qml") {
+            includeQml = true;
         } else if (a.rfind("--", 0) != 0) {
             className = a;
         }
@@ -108,21 +112,20 @@ int main(int argc, char *argv[])
     QtFuzz::AppType appType = QtFuzz::AppType::Core;
     QtFuzz::ModuleInfo mod = { "Core", "Qt6::Core", { }, QtFuzz::AppType::Core };
     bool hasQObject = false; // default: direct-call only (always compiles)
+    std::string classInclude; // empty = use default <ClassName> form
+    bool isQmlExposed = false;
 
     if (!submoduleRoot.empty() && fs::exists(submoduleRoot)) {
-        auto headerOpt = QtFuzz::findHeader(className, submoduleRoot);
-        if (headerOpt) {
-            // Detect Q_OBJECT from the actual header source.
-            std::string src = readFile(*headerOpt);
-            hasQObject = !src.empty() && QtFuzz::classHasQObjectMacro(src, className);
-
-            auto modOpt = QtFuzz::moduleForHeader(*headerOpt, submoduleRoot);
-            if (modOpt) {
-                mod     = modOpt->second;
-                appType = mod.appType;
-            }
+        auto dcOpt = QtFuzz::scanSingleClass(className, submoduleRoot, includeQml);
+        if (dcOpt) {
+            hasQObject    = dcOpt->hasQObject;
+            mod           = dcOpt->module;
+            appType       = mod.appType;
+            isQmlExposed  = dcOpt->isQmlExposed;
+            if (isQmlExposed && !dcOpt->privateHeaderInclude.empty())
+                classInclude = "<" + dcOpt->privateHeaderInclude + ">";
         } else {
-            std::cerr << "WARNING: header for " << className
+            std::cerr << "WARNING: class " << className
                       << " not found under " << submoduleRoot
                       << ". Using Qt6::Core and direct-call-only as fallback.\n";
         }
@@ -139,9 +142,11 @@ int main(int argc, char *argv[])
               << "[qt_fuzz_gen] Strategy : "
               << (hasQObject ? "introspection + direct-call" : "direct-call only")
               << "\n";
+    if (isQmlExposed)
+        std::cout << "[qt_fuzz_gen] QML-exposed private class: " << classInclude << "\n";
 
     // Generate fuzz .cpp
-    QtFuzz::FuzzCppGenerator cppGen(className, outFile, appType, {}, hasQObject);
+    QtFuzz::FuzzCppGenerator cppGen(className, outFile, appType, {}, hasQObject, classInclude);
     if (!cppGen.generate())
         return 1;
     std::cout << "Written: " << outFile
@@ -155,8 +160,13 @@ int main(int argc, char *argv[])
         auto components = QtFuzz::resolveComponents(mod);
         const std::string fuzzFilename = fs::path(outFile).filename().string();
 
+        std::vector<std::string> privateComponents;
+        if (isQmlExposed)
+            privateComponents.push_back(mod.component + "Private");
+
         QtFuzz::CMakeGenerator::Config cfg{
-            className, fuzzFilename, mod, components, qtPrefix, timeSec
+            className, fuzzFilename, mod, components, qtPrefix, timeSec,
+            privateComponents
         };
         QtFuzz::CMakeGenerator cmakeGen(std::move(cfg), cmakeFile);
         if (!cmakeGen.generate())

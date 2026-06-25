@@ -574,7 +574,7 @@ const char *FuzzCppGenerator::kTemplateQObject = R"FUZZTEMPLATE(
 #  endif
 #endif
 
-#include <@@CLASS@@>
+#include @@CLASS_INCLUDE@@
 #include @@APP_INCLUDE@@
 #include <QMetaObject>
 #include <QMetaMethod>
@@ -804,7 +804,7 @@ const char *FuzzCppGenerator::kTemplateDirectOnly = R"FUZZTEMPLATE(
 #  endif
 #endif
 
-#include <@@CLASS@@>
+#include @@CLASS_INCLUDE@@
 #include @@APP_INCLUDE@@
 #include <QString>
 #include <QByteArray>
@@ -908,12 +908,14 @@ FuzzCppGenerator::FuzzCppGenerator(std::string className,
                                    fs::path outputPath,
                                    AppType appType,
                                    std::vector<MethodSignature> publicMethods,
-                                   bool hasQObject)
+                                   bool hasQObject,
+                                   std::string classInclude)
     : m_className(std::move(className))
     , m_outputPath(std::move(outputPath))
     , m_appType(appType)
     , m_publicMethods(std::move(publicMethods))
     , m_hasQObject(hasQObject)
+    , m_classInclude(classInclude.empty() ? "<" + m_className + ">" : std::move(classInclude))
 {
 }
 
@@ -956,6 +958,7 @@ std::string FuzzCppGenerator::buildSource() const
     };
 
     replace(src, "@@CLASS@@", m_className);
+    replace(src, "@@CLASS_INCLUDE@@", m_classInclude);
     replace(src, "@@OUTFILE@@", outFilename);
     replace(src, "@@APP_INCLUDE@@", ati.includeHeader);
     replace(src, "@@APP_CLASS@@", ati.className);
@@ -1018,6 +1021,8 @@ std::string CMakeGenerator::buildContent() const
     o << "find_package(Qt6 REQUIRED COMPONENTS\n";
     for (const auto &comp : m_cfg.components)
         o << "    " << comp << "\n";
+    for (const auto &priv : m_cfg.privateComponents)
+        o << "    " << priv << "\n";
     o << ")\n\n";
 
     o << "# Sanitizers\n"
@@ -1037,6 +1042,8 @@ std::string CMakeGenerator::buildContent() const
       << "target_link_libraries(" << targetName << " PRIVATE\n";
     for (const auto &comp : m_cfg.components)
         o << "    Qt6::" << comp << "\n";
+    for (const auto &priv : m_cfg.privateComponents)
+        o << "    Qt6::" << priv << "\n";
     o << ")\n\n"
       << "set_target_properties(" << targetName << " PROPERTIES\n"
       << "    AUTOMOC ON\n"
@@ -1301,17 +1308,26 @@ bool TreeGenerator::generate(const std::vector<DiscoveredClass> &classes) const
                 }
             }
 
+            // For QML-exposed private classes, pass the private header include path.
+            std::string classInclude;
+            if (dc->isQmlExposed && !dc->privateHeaderInclude.empty())
+                classInclude = "<" + dc->privateHeaderInclude + ">";
+
             FuzzCppGenerator cpp(dc->className, fuzzPath, dc->module.appType, std::move(methods),
-                                 dc->hasQObject);
+                                 dc->hasQObject, classInclude);
             if (!cpp.generate()) {
                 ok = false;
                 continue;
             }
 
             const auto components = resolveComponents(dc->module);
+            std::vector<std::string> privateComponents;
+            if (dc->isQmlExposed)
+                privateComponents.push_back(dc->module.component + "Private");
             CMakeGenerator::Config cfg{
                 dc->className, fuzzFilename, dc->module,
-                components, m_opts.qtPrefix, m_opts.fuzzTimeSec
+                components, m_opts.qtPrefix, m_opts.fuzzTimeSec,
+                privateComponents
             };
             CMakeGenerator cmake(std::move(cfg), cmakePath);
             if (!cmake.generate()) {

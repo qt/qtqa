@@ -35,6 +35,7 @@
 //   Phase 3 – collect results for requested modules.
 
 #include "scanner.h"
+#include "modulemap.h"
 
 #include <algorithm>
 #include <cassert>
@@ -50,6 +51,16 @@
 namespace QtFuzz {
 
 namespace {
+
+// Returns true if src contains any QML exposure macro.
+static bool hasQmlMarker(const std::string &src)
+{
+    return src.find("QML_ELEMENT")       != std::string::npos
+        || src.find("QML_NAMED_ELEMENT") != std::string::npos
+        || src.find("QML_UNCREATABLE")   != std::string::npos
+        || src.find("QML_INTERFACE")     != std::string::npos
+        || src.find("QML_ANONYMOUS")     != std::string::npos;
+}
 
 std::string readFile(const fs::path &p)
 {
@@ -1791,7 +1802,8 @@ struct ClassMatch {
     std::string name;
     std::vector<std::string> baseNames; // Q-prefixed bases only (may be empty)
     size_t pos;
-    bool isExported = false; // true when a Q_..._EXPORT macro is present
+    bool isExported = false;    // true when a Q_..._EXPORT macro is present
+    std::string exportMacro;    // e.g. "Q_LOTTIE_EXPORT" (empty if not exported)
 };
 
 bool isTemplateClass(const std::string &source, size_t classPos)
@@ -1850,8 +1862,6 @@ std::vector<ClassMatch> extractClassMatches(const std::string &stripped)
 {
     // Match classes with optional inheritance:
     //   class [EXPORT_MACRO] ClassName [: bases] {
-    // Group 1: ClassName  (required, must start with uppercase)
-    // Group 2: base list  (optional, captured after ':')
     // Group 1: export macro (e.g. Q_CORE_EXPORT) — present on public API classes.
     // Group 2: ClassName  (required, must start with uppercase)
     // Group 3: base list  (optional, captured after ':')
@@ -1869,6 +1879,14 @@ std::vector<ClassMatch> extractClassMatches(const std::string &stripped)
     for (; it != end; ++it) {
         const std::smatch &m = *it;
         bool isExp = m[1].matched && !m[1].str().empty();
+        std::string exportMacroStr;
+        if (isExp) {
+            exportMacroStr = m[1].str();
+            // trim trailing whitespace
+            while (!exportMacroStr.empty()
+                   && std::isspace(static_cast<unsigned char>(exportMacroStr.back())))
+                exportMacroStr.pop_back();
+        }
         std::string name = m[2].str();
 
         if (name.empty() || name[0] != 'Q')
@@ -1892,7 +1910,7 @@ std::vector<ClassMatch> extractClassMatches(const std::string &stripped)
         if (m[3].matched)
             bases = extractBaseNames(m[3].str());
 
-        result.push_back({ name, bases, pos, isExp });
+        result.push_back({ name, bases, pos, isExp, exportMacroStr });
     }
     return result;
 }
@@ -1922,8 +1940,10 @@ struct UniverseEntry {
 // Scans all public headers under srcRoot and builds a map of every
 // Q-prefixed class encountered. No ancestry filter is applied — all
 // Q-prefixed classes, regardless of their base classes, are admitted.
+// When includeQmlPrivate is true, _p.h / /private/ files that contain
+// QML macros are also scanned.
 std::unordered_map<std::string, UniverseEntry>
-buildUniverseMap(const fs::path &srcRoot, bool verbose)
+buildUniverseMap(const fs::path &srcRoot, bool verbose, bool includeQmlPrivate = false)
 {
     std::unordered_map<std::string, UniverseEntry> universe;
     std::set<std::string> seen;
@@ -1943,22 +1963,34 @@ buildUniverseMap(const fs::path &srcRoot, bool verbose)
 
         {
             std::string pathStr = p.string();
-            if (pathStr.find("/private/") != std::string::npos)
-                continue;
-            if (pathStr.find("_p.h") != std::string::npos)
-                continue;
-            if (pathStr.find("private.h") != std::string::npos)
-                continue;
+            bool isPrivatePath = pathStr.find("/private/") != std::string::npos;
+            bool isPrivateHeader = pathStr.find("_p.h") != std::string::npos;
+            bool isPrivateName = pathStr.find("private.h") != std::string::npos;
+
+            if (isPrivatePath || isPrivateHeader || isPrivateName) {
+                if (!includeQmlPrivate)
+                    continue;
+                if (isPrivateName)
+                    continue;
+            }
         }
 
         std::string source = readFile(p);
         if (source.empty())
             continue;
 
+        {
+            std::string pathStr = p.string();
+            bool isPrivatePath = pathStr.find("/private/") != std::string::npos;
+            bool isPrivateHeader = pathStr.find("_p.h") != std::string::npos;
+            if ((isPrivatePath || isPrivateHeader) && !hasQmlMarker(source))
+                continue;
+        }
+
         const std::string stripped = stripBlockComments(source);
 
-        for (const auto &[name, baseNames, matchPos, isExported] : extractClassMatches(stripped)) {
-            (void)isExported; // universe includes all classes for abstract propagation
+        for (const auto &[name, baseNames, matchPos, isExported, exportMacro] : extractClassMatches(stripped)) {
+            (void)isExported; (void)exportMacro; // universe includes all classes for abstract propagation
             if (!seen.insert(name).second)
                 continue;
 
@@ -2148,11 +2180,13 @@ moduleForHeader(const fs::path &headerPath, const fs::path &submoduleRoot)
 }
 
 std::optional<fs::path> findHeader(const std::string &className,
-                                   const fs::path &submoduleRoot)
+                                   const fs::path &submoduleRoot,
+                                   bool includeQmlPrivate)
 {
     std::string lower = className;
     std::transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
-    const std::string filename = lower + ".h";
+    const std::string filename    = lower + ".h";
+    const std::string filenameP   = lower + "_p.h"; // private header variant
 
     std::error_code ec;
     for (const auto &entry : fs::recursive_directory_iterator(submoduleRoot, ec)) {
@@ -2162,15 +2196,22 @@ std::optional<fs::path> findHeader(const std::string &className,
         }
         if (!entry.is_regular_file())
             continue;
-        if (entry.path().filename().string() == filename)
+        const std::string fn = entry.path().filename().string();
+        if (fn == filename)
             return entry.path();
+        if (includeQmlPrivate && fn == filenameP) {
+            // Only return the private header if it has QML markers.
+            const std::string src = readFile(entry.path());
+            if (!src.empty() && hasQmlMarker(src))
+                return entry.path();
+        }
     }
     return std::nullopt;
 }
 
 std::vector<DiscoveredClass> scanClasses(const fs::path &submoduleRoot,
                                          const std::vector<std::string> &moduleFilter, bool verbose,
-                                         const SkipList &skipList)
+                                         const SkipList &skipList, bool includeQmlPrivate)
 {
     const fs::path srcRoot = submoduleRoot / "src";
 
@@ -2182,7 +2223,7 @@ std::vector<DiscoveredClass> scanClasses(const fs::path &submoduleRoot,
     if (verbose)
         std::cout << "[Scanner] Phase 1: scanning all headers for Q-prefixed classes...\n";
 
-    auto universe = buildUniverseMap(srcRoot, verbose);
+    auto universe = buildUniverseMap(srcRoot, verbose, includeQmlPrivate);
 
     if (verbose)
         std::cout << "[Scanner] Propagating abstract flags...\n";
@@ -2227,18 +2268,30 @@ std::vector<DiscoveredClass> scanClasses(const fs::path &submoduleRoot,
         if (!filterSet.empty() && filterSet.find(srcDir) == filterSet.end())
             continue;
 
+        // Determine if this is a private header
+        bool isPrivateFile = false;
         {
             std::string pathStr = p.string();
-            if (pathStr.find("/private/") != std::string::npos)
-                continue;
-            if (pathStr.find("_p.h") != std::string::npos)
-                continue;
-            if (pathStr.find("private.h") != std::string::npos)
-                continue;
+            bool isPrivatePath   = pathStr.find("/private/") != std::string::npos;
+            bool isPrivateHeader = pathStr.find("_p.h") != std::string::npos;
+            bool isPrivateName   = pathStr.find("private.h") != std::string::npos;
+
+            if (isPrivateName)
+                continue; // always skip "private.h" files
+
+            if (isPrivatePath || isPrivateHeader) {
+                if (!includeQmlPrivate)
+                    continue;
+                isPrivateFile = true;
+            }
         }
 
         std::string source = readFile(p);
         if (source.empty())
+            continue;
+
+        // For private headers in QML mode: only proceed if file has QML markers
+        if (isPrivateFile && !hasQmlMarker(source))
             continue;
 
         ++filesScanned;
@@ -2254,11 +2307,14 @@ std::vector<DiscoveredClass> scanClasses(const fs::path &submoduleRoot,
         std::string stemLower = p.stem().string();
         for (char &c : stemLower)
             c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+        // For _p.h files, strip the trailing _p suffix for the prefix check.
+        std::string stemLowerForCheck = stemLower;
+        if (isPrivateFile && stemLowerForCheck.size() > 2
+            && stemLowerForCheck.substr(stemLowerForCheck.size() - 2) == "_p") {
+            stemLowerForCheck.resize(stemLowerForCheck.size() - 2);
+        }
 
-        for (const auto &[name, baseNames, matchPos, isExported] : extractClassMatches(stripped)) {
-            // Only generate fuzz tests for classes that are part of Qt's public
-            // exported API (have a Q_..._EXPORT macro).  Internal helper classes
-            // that happen to start with 'Q' are excluded.
+        for (const auto &[name, baseNames, matchPos, isExported, exportMacro] : extractClassMatches(stripped)) {
             if (!isExported)
                 continue;
 
@@ -2267,11 +2323,11 @@ std::vector<DiscoveredClass> scanClasses(const fs::path &submoduleRoot,
                 std::string cnameLower = name;
                 for (char &c : cnameLower)
                     c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
-                // stemLower must be a prefix of cnameLower, otherwise this class
+                // stemLowerForCheck must be a prefix of cnameLower, otherwise this class
                 // is defined in an unrelated header (e.g. QXmlString in qxmlutils.h)
                 // and has no public <ClassName> module header.
-                if (cnameLower.size() < stemLower.size()
-                    || cnameLower.substr(0, stemLower.size()) != stemLower) {
+                if (cnameLower.size() < stemLowerForCheck.size()
+                    || cnameLower.substr(0, stemLowerForCheck.size()) != stemLowerForCheck) {
                     continue;
                 }
             }
@@ -2299,9 +2355,37 @@ std::vector<DiscoveredClass> scanClasses(const fs::path &submoduleRoot,
             else
                 ++directOnlyCount;
 
+            // For private QML headers, the module inferred from path may be wrong.
+            // Try to recover via the export macro as fallback.
+            ModuleInfo effectiveMod = mod;
+            std::string effectiveSrcDir = srcDir;
+            if (isPrivateFile && !exportMacro.empty()) {
+                // Extract module part: strip "Q_" prefix and "_EXPORT" suffix, lowercase
+                std::string macroLower = exportMacro;
+                for (char &c : macroLower)
+                    c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+                if (macroLower.size() > 2 && macroLower.substr(0, 2) == "q_")
+                    macroLower = macroLower.substr(2);
+                const std::string kSuffix = "_export";
+                if (macroLower.size() > kSuffix.size()
+                    && macroLower.substr(macroLower.size() - kSuffix.size()) == kSuffix) {
+                    macroLower.resize(macroLower.size() - kSuffix.size());
+                }
+                const ModuleInfo *mi = findModuleByComponent(macroLower);
+                if (mi) {
+                    effectiveMod = *mi;
+                    for (const auto &[dir, info] : moduleMap()) {
+                        if (info.component == mi->component) {
+                            effectiveSrcDir = dir;
+                            break;
+                        }
+                    }
+                }
+            }
+
             if (verbose) {
                 std::cout << "[Scanner]   " << name
-                          << "  (" << srcDir << ")  " << p.filename();
+                          << "  (" << effectiveSrcDir << ")  " << p.filename();
                 if (isAbstract)
                     std::cout << "  [abstract]";
                 if (!isDefaultConstructible)
@@ -2311,6 +2395,8 @@ std::vector<DiscoveredClass> scanClasses(const fs::path &submoduleRoot,
                               << std::hex << static_cast<uint32_t>(availableOn)
                               << std::dec << "]";
                 }
+                if (isPrivateFile)
+                    std::cout << "  [qml-private]";
                 std::cout << (hasQObject ? "  [Q_OBJECT]" : "  [direct-only]")
                           << "\n";
             }
@@ -2339,9 +2425,15 @@ std::vector<DiscoveredClass> scanClasses(const fs::path &submoduleRoot,
 
             std::string primaryBase = baseNames.empty() ? "" : baseNames.front();
 
-            result.push_back(DiscoveredClass{ name, primaryBase, p, srcDir, mod, isAbstract,
-                                              isDefaultConstructible, hasQObject, availableOn,
-                                              std::move(methods) });
+            DiscoveredClass dc{ name, primaryBase, p, effectiveSrcDir, effectiveMod, isAbstract,
+                                isDefaultConstructible, hasQObject, availableOn,
+                                std::move(methods) };
+            if (isPrivateFile) {
+                dc.isQmlExposed = true;
+                dc.privateHeaderInclude = "Qt" + effectiveMod.component
+                                        + "/private/" + p.filename().string();
+            }
+            result.push_back(std::move(dc));
         }
     }
 
@@ -2364,11 +2456,13 @@ std::vector<DiscoveredClass> scanClasses(const fs::path &submoduleRoot,
 }
 
 std::optional<DiscoveredClass> scanSingleClass(const std::string &className,
-                                               const fs::path &submoduleRoot)
+                                               const fs::path &submoduleRoot,
+                                               bool includeQmlPrivate)
 {
     // Fast path: filename == <lowercase(class)>.h (works for QDir → qdir.h, etc.)
+    // Also try <lowercase(class)>_p.h when in QML mode.
     fs::path headerPath;
-    if (auto h = findHeader(className, submoduleRoot))
+    if (auto h = findHeader(className, submoduleRoot, includeQmlPrivate))
         headerPath = *h;
 
     // Slow path: multiple classes can share one header (e.g. QDomDocument,
@@ -2393,28 +2487,40 @@ std::optional<DiscoveredClass> scanSingleClass(const std::string &className,
                 continue;
 
             const std::string ps = p.string();
-            if (ps.find("/private/") != std::string::npos)
+            bool isPrivatePath   = ps.find("/private/") != std::string::npos;
+            bool isPrivateHeader = ps.find("_p.h") != std::string::npos;
+            bool isPrivateName   = ps.find("private.h") != std::string::npos;
+
+            if (isPrivateName)
                 continue;
-            if (ps.find("_p.h") != std::string::npos)
-                continue;
-            if (ps.find("private.h") != std::string::npos)
-                continue;
+            if (isPrivatePath || isPrivateHeader) {
+                if (!includeQmlPrivate)
+                    continue;
+            }
 
             std::string stemLower = p.stem().string();
             for (char &c : stemLower)
                 c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+            // Strip _p suffix for private headers
+            std::string stemLowerCheck = stemLower;
+            if ((isPrivatePath || isPrivateHeader) && stemLowerCheck.size() > 2
+                && stemLowerCheck.substr(stemLowerCheck.size() - 2) == "_p") {
+                stemLowerCheck.resize(stemLowerCheck.size() - 2);
+            }
 
             // stemLower must be a non-empty prefix of cnameLower
-            if (stemLower.empty() || cnameLower.size() < stemLower.size()
-                || cnameLower.substr(0, stemLower.size()) != stemLower)
+            if (stemLowerCheck.empty() || cnameLower.size() < stemLowerCheck.size()
+                || cnameLower.substr(0, stemLowerCheck.size()) != stemLowerCheck)
                 continue;
 
             const std::string src = readFile(p);
             if (src.empty())
                 continue;
+            if ((isPrivatePath || isPrivateHeader) && !hasQmlMarker(src))
+                continue;
             const std::string stripped2 = stripBlockComments(src);
-            for (const auto &[name, bases, matchPos, isExp] : extractClassMatches(stripped2)) {
-                (void)isExp;
+            for (const auto &[name, bases, matchPos, isExp, expMacro] : extractClassMatches(stripped2)) {
+                (void)isExp; (void)expMacro;
                 if (name == className) {
                     headerPath = p;
                     break;
@@ -2434,14 +2540,20 @@ std::optional<DiscoveredClass> scanSingleClass(const std::string &className,
 
     const std::string stripped = stripBlockComments(source);
 
+    // Check if this is a private/QML header
+    const std::string hPathStr = headerPath.string();
+    bool isPrivateFile = hPathStr.find("/private/") != std::string::npos
+                      || hPathStr.find("_p.h") != std::string::npos;
+
     // Locate the class declaration inside the header.
     size_t classPos = std::string::npos;
     std::vector<std::string> baseNames;
-    for (const auto &[name, bases, matchPos, isExp] : extractClassMatches(stripped)) {
-        (void)isExp;
+    std::string foundExportMacro;
+    for (const auto &[name, bases, matchPos, isExp, expMacro] : extractClassMatches(stripped)) {
         if (name == className) {
             classPos = matchPos;
             baseNames = bases;
+            foundExportMacro = expMacro;
             break;
         }
     }
@@ -2451,7 +2563,31 @@ std::optional<DiscoveredClass> scanSingleClass(const std::string &className,
     auto modOpt = moduleForHeader(headerPath, submoduleRoot);
     if (!modOpt)
         return std::nullopt;
-    const auto &[srcDir, mod] = *modOpt;
+    auto [srcDir, mod] = *modOpt;
+
+    // For private QML headers, try to recover module via export macro
+    if (isPrivateFile && !foundExportMacro.empty()) {
+        std::string macroLower = foundExportMacro;
+        for (char &c : macroLower)
+            c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+        if (macroLower.size() > 2 && macroLower.substr(0, 2) == "q_")
+            macroLower = macroLower.substr(2);
+        const std::string kSuffix = "_export";
+        if (macroLower.size() > kSuffix.size()
+            && macroLower.substr(macroLower.size() - kSuffix.size()) == kSuffix) {
+            macroLower.resize(macroLower.size() - kSuffix.size());
+        }
+        const ModuleInfo *mi = findModuleByComponent(macroLower);
+        if (mi) {
+            mod = *mi;
+            for (const auto &[dir, info] : moduleMap()) {
+                if (info.component == mi->component) {
+                    srcDir = dir;
+                    break;
+                }
+            }
+        }
+    }
 
     const bool hasQObject = bodyHasQObjectMacro(stripped, classPos);
     const bool isAbstract = bodyHasPureVirtual(source, classPos);
@@ -2461,9 +2597,15 @@ std::optional<DiscoveredClass> scanSingleClass(const std::string &className,
 
     const std::string primaryBase = baseNames.empty() ? "" : baseNames.front();
 
-    return DiscoveredClass{ className, primaryBase, headerPath, srcDir, mod,
-                            isAbstract, isDefaultConstructible, hasQObject,
-                            availableOn, std::move(publicMethods) };
+    DiscoveredClass dc{ className, primaryBase, headerPath, srcDir, mod,
+                        isAbstract, isDefaultConstructible, hasQObject,
+                        availableOn, std::move(publicMethods) };
+    if (isPrivateFile) {
+        dc.isQmlExposed = true;
+        dc.privateHeaderInclude = "Qt" + mod.component
+                                + "/private/" + headerPath.filename().string();
+    }
+    return dc;
 }
 
 } // namespace QtFuzz
