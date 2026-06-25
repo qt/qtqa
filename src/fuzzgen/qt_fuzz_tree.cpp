@@ -86,7 +86,7 @@ int main(int argc, char *argv[])
 
     fs::path submoduleRoot;
     fs::path outputRoot;
-    fs::path skipListFile;
+    std::vector<fs::path> skipListFiles;
     std::string qtPrefix;
     std::vector<std::string> moduleFilter;
     int timeSec = 30;
@@ -106,7 +106,7 @@ int main(int argc, char *argv[])
         } else if (a == "--modules" && i + 1 < argc) {
             moduleFilter = splitComma(argv[++i]);
         } else if (a == "--skiplist" && i + 1 < argc) {
-            skipListFile = argv[++i];
+            skipListFiles.push_back(argv[++i]);
         } else if (a == "--qt-prefix" && i + 1 < argc) {
             qtPrefix = argv[++i];
         } else if ((a == "--time" || a == "-t") && i + 1 < argc) {
@@ -141,8 +141,8 @@ int main(int argc, char *argv[])
               << "[qt_fuzzgen] output   : " << outputRoot << "\n";
     if (!qtPrefix.empty())
         std::cout << "[qt_fuzzgen] Qt pfx  : " << qtPrefix << "\n";
-    if (!skipListFile.empty())
-        std::cout << "[qt_fuzzgen] skiplist: " << skipListFile << "\n";
+    for (const auto &sl : skipListFiles)
+        std::cout << "[qt_fuzzgen] skiplist: " << sl << "\n";
     if (!moduleFilter.empty()) {
         std::cout << "[qt_fuzzgen] Modules : ";
         for (const auto &m : moduleFilter)
@@ -150,7 +150,9 @@ int main(int argc, char *argv[])
         std::cout << "\n";
     }
 
-    QtFuzz::SkipList skipList(skipListFile);
+    QtFuzz::SkipList skipList;
+    for (const auto &sl : skipListFiles)
+        skipList.load(sl);
 
     if (includeQml)
         std::cout << "[qt_fuzzgen] QML mode: including QML-exposed private classes.\n";

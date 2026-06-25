@@ -26,6 +26,9 @@ public:
     SkipList() = default;
     explicit SkipList(const fs::path &path);
 
+    // Load an additional skiplist file, merging its entries into this list.
+    void load(const fs::path &path);
+
     // Returns true if no fuzzer should be generated for className.
     bool isClassSkipped(const std::string &className) const;
 

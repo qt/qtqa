@@ -27,7 +27,9 @@ static bool tagMatchesCurrentPlatform(const std::string &tag)
 #endif
 }
 
-SkipList::SkipList(const fs::path &path)
+static void parseInto(const fs::path &path, std::unordered_set<std::string> &skippedClasses,
+                       std::unordered_set<std::string> &skippedFunctions,
+                       std::unordered_set<std::string> &crashFunctions)
 {
     if (path.empty())
         return;
@@ -41,12 +43,10 @@ SkipList::SkipList(const fs::path &path)
 
     std::string line;
     while (std::getline(file, line)) {
-        // Strip trailing comment.
         const auto commentPos = line.find('#');
         if (commentPos != std::string::npos)
             line.resize(commentPos);
 
-        // Trim whitespace.
         const auto first = line.find_first_not_of(" \t\r\n");
         if (first == std::string::npos)
             continue;
@@ -56,7 +56,6 @@ SkipList::SkipList(const fs::path &path)
         if (line.empty())
             continue;
 
-        // Platform section tag: [TagName]
         if (line.front() == '[' && line.back() == ']') {
             std::string tag = line.substr(1, line.size() - 2);
             const auto tf = tag.find_first_not_of(" \t");
@@ -75,7 +74,6 @@ SkipList::SkipList(const fs::path &path)
         if (!sectionSeen || !applies)
             continue;
 
-        // Parse: TARGET ACTION
         std::string target, action;
         std::istringstream ss(line);
         if (!(ss >> target >> action))
@@ -85,14 +83,24 @@ SkipList::SkipList(const fs::path &path)
 
         if (action == "skip") {
             if (isFunction)
-                m_skippedFunctions.insert(target);
+                skippedFunctions.insert(target);
             else
-                m_skippedClasses.insert(target);
+                skippedClasses.insert(target);
         } else if (action == "expectCrash") {
             if (isFunction)
-                m_crashFunctions.insert(target);
+                crashFunctions.insert(target);
         }
     }
+}
+
+SkipList::SkipList(const fs::path &path)
+{
+    parseInto(path, m_skippedClasses, m_skippedFunctions, m_crashFunctions);
+}
+
+void SkipList::load(const fs::path &path)
+{
+    parseInto(path, m_skippedClasses, m_skippedFunctions, m_crashFunctions);
 }
 
 bool SkipList::isClassSkipped(const std::string &className) const
