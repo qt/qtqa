@@ -28,8 +28,8 @@ static bool tagMatchesCurrentPlatform(const std::string &tag)
 }
 
 static void parseInto(const fs::path &path, std::unordered_set<std::string> &skippedClasses,
-                       std::unordered_set<std::string> &skippedFunctions,
-                       std::unordered_set<std::string> &crashFunctions)
+                      std::unordered_set<std::string> &skippedFunctions,
+                      std::unordered_set<std::string> &crashFunctions)
 {
     if (path.empty())
         return;
