@@ -51,16 +51,18 @@ namespace fs = std::filesystem;
 
 static void usage(const char *prog)
 {
-    std::cerr << "Usage: " << prog << " --submodule <path> [options]\n"
-              << "Options:\n"
-              << "  --submodule <path>   Qt submodule source root (required)\n"
-              << "  --out       <path>   Output root (default: <submodule>/tests/fuzzing)\n"
-              << "  --modules   a,b,...  Module filter, e.g. corelib,network,widgets\n"
-              << "  --skiplist <path>   Skip list file (optional)\n"
-              << "  --qt-prefix <path>   Qt install prefix (auto-detected)\n"
-              << "  --time      <sec>    Fuzz duration in seconds (default: 30)\n"
-              << "  --qml                Also include QML-exposed private classes (_p.h)\n"
-              << "  --verbose            Verbose output\n";
+    std::cerr
+            << "Usage: " << prog << " --submodule <path> [options]\n"
+            << "Options:\n"
+            << "  --submodule <path>   Qt submodule source root (required)\n"
+            << "  --out       <path>   Output root (default: <submodule>/tests/fuzzing)\n"
+            << "  --modules   a,b,...  Module filter, e.g. corelib,network,widgets\n"
+            << "  --skiplist <path>    Skip list file (optional; may be given multiple times)\n"
+            << "  --qt-prefix <path>   Qt install prefix (auto-detected)\n"
+            << "  --time      <sec>    Fuzz duration in seconds (default: 30)\n"
+            << "  --qml                Also include QML-exposed private classes (_p.h)\n"
+            << "  --embedded           Omit project()/find_package() for parent-project inclusion\n"
+            << "  --verbose            Verbose output\n";
 }
 
 static std::vector<std::string> splitComma(const std::string &s)
@@ -90,6 +92,7 @@ int main(int argc, char *argv[])
     int timeSec = 30;
     bool verbose = false;
     bool includeQml = false;
+    bool embedded = false;
 
     for (int i = 1; i < argc; i++) {
         std::string a(argv[i]);
@@ -110,6 +113,8 @@ int main(int argc, char *argv[])
             timeSec = std::atoi(argv[++i]);
         } else if (a == "--qml") {
             includeQml = true;
+        } else if (a == "--embedded") {
+            embedded = true;
         } else if (a == "--verbose" || a == "-v") {
             verbose = true;
         }
@@ -159,23 +164,28 @@ int main(int argc, char *argv[])
     }
     std::cout << "[qt_fuzzgen] Found " << classes.size() << " classes.\n";
 
-    QtFuzz::TreeGenerator::Options opts{ submoduleRoot, outputRoot, qtPrefix,
-                                         timeSec,       verbose,    std::move(skipList) };
+    QtFuzz::TreeGenerator::Options opts{ submoduleRoot, outputRoot,          qtPrefix, timeSec,
+                                         verbose,       std::move(skipList), embedded };
     QtFuzz::TreeGenerator treeGen(opts);
     if (!treeGen.generate(classes)) {
         std::cerr << "[qt_fuzzgen] Tree generation had errors.\n";
         return 1;
     }
 
-    std::cout << "\n[qt_fuzzgen] Done.\n"
-              << "\nNext steps:\n"
-              << "  cmake -B build -S " << outputRoot;
-    if (!qtPrefix.empty())
-        std::cout << " -DCMAKE_PREFIX_PATH=" << qtPrefix;
-
-    std::cout << "\n"
-              << "  cmake --build build\n"
-              << "  ctest --test-dir build --output-on-failure -L fuzz\n";
+    std::cout << "\n[qt_fuzzgen] Done.\n";
+    if (embedded) {
+        std::cout << "\n[qt_fuzzgen] Embedded mode: add the generated tree to your parent\n"
+                  << "CMake project with:\n"
+                  << "  add_subdirectory(" << outputRoot << " <build_sub_dir>)\n";
+    } else {
+        std::cout << "\nNext steps:\n"
+                  << "  cmake -B build -S " << outputRoot;
+        if (!qtPrefix.empty())
+            std::cout << " -DCMAKE_PREFIX_PATH=" << qtPrefix;
+        std::cout << "\n"
+                  << "  cmake --build build\n"
+                  << "  ctest --test-dir build --output-on-failure -L fuzz\n";
+    }
 
     return 0;
 }

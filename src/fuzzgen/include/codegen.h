@@ -99,6 +99,7 @@ public:
         std::string qtPrefix; // installed Qt prefix, may be empty
         int fuzzTimeSec = 30;
         std::vector<std::string> privateComponents; // e.g. {"LottiePrivate"}
+        bool embedded = false; // omit project()/find_package() for parent-project inclusion
     };
 
     explicit CMakeGenerator(Config cfg, fs::path outputPath);
@@ -140,6 +141,7 @@ public:
         int fuzzTimeSec = 30;
         bool verbose = false;
         SkipList skipList;
+        bool embedded = false; // generate files suitable for parent-project inclusion
     };
 
     explicit TreeGenerator(Options opts);
