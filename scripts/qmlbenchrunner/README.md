@@ -7,6 +7,9 @@ results to the qt testresults timeseries database.
 
 Prerequisites
 -------------
+-Qt library
+    -initialized and configured Qt modules
+-Qmlbench repository
 - Python3
     - 'requests' module
 
@@ -26,9 +29,7 @@ Windows-specific Prerequisites:
 
 Usage
 -----
-QMLBenchrunner will clone copies of required Qt Git repositories as well as qmlbench into the working directory.
-Is is best practice to run qmlbenchrunner from a parent directory so that the cloned repos are not
-cloned into the qmlbenchrunner directory directly. See the examples below.
+QMLBenchrunner will build the required Qt Git repositories as well as qmlbench into the local machine.
 
 Always set environment variables TIMESCALEDBUSER and TIMESCALEDBPASSWORD in the console before calling the build_and_test
 script. Results will still be saved to disk in "results.json" even if unable to write to the database.
@@ -49,7 +50,6 @@ and DISPLAY in the console before running this script.
 
     Args:
         QtVersion (required) | MachineName (required) | BuildCores (required) |
-        QtDeclarativeVersion (optional, leave missing if same as main QtVersion)
 
     Example:
         export TIMESCALEDBUSER=dbuser1
