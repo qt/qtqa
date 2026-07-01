@@ -21,7 +21,7 @@ echo "Benchmarking $1."
 # Qt6 introduced breaking changes for qmlbench. Use qmlbench/dev for Qt6+ builds.
 echo "Using CMake for qt6+"
 echo "Rebasing to $1"
-cd $dir/../../qt6_qmltest
+cd $dir/../../qt6
 
 git fetch origin
 git checkout $1
@@ -45,7 +45,7 @@ trap cleanup EXIT
 mkdir -p build
 
 cd build
-../qt6_qmltest/configure $moduleConfig
+../qt6/configure $moduleConfig
 ninja -j $3
 
 echo "=== Building qmlbench ==="
