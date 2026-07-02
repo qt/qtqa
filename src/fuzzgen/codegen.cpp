@@ -1051,12 +1051,16 @@ std::string CMakeGenerator::buildContent() const
         o << "    Qt6::" << comp << "\n";
     for (const auto &priv : m_cfg.privateComponents)
         o << "    Qt6::" << priv << "\n";
-    o << ")\n\n"
-      << "set_target_properties(" << targetName << " PROPERTIES\n"
-      << "    AUTOMOC ON\n"
-      << "    AUTORCC ON\n"
-      << ")\n\n"
-      << "target_compile_options(" << targetName << " PRIVATE\n"
+    o << ")\n\n";
+
+    if (!m_cfg.embedded) {
+        o << "set_target_properties(" << targetName << " PROPERTIES\n"
+          << "    AUTOMOC ON\n"
+          << "    AUTORCC ON\n"
+          << ")\n\n";
+    }
+
+    o << "target_compile_options(" << targetName << " PRIVATE\n"
       << "    $<$<CXX_COMPILER_ID:Clang,GNU>:-Wall -Wextra>\n"
       << ")\n\n";
 
