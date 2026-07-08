@@ -69,7 +69,7 @@ echo "=== Running benchmarks ==="
 ./src/qmlbench --json --shell frame-count $benchmark_set > ../results.json
 
 # Move results.json to working directory
-mv ../../results.json $dir
+mv ../results.json $dir
 
 module_revisions_str=$(IFS=, ; echo "${module_revisions[*]}")
 
