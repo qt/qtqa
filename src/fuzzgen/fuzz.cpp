@@ -14,6 +14,7 @@
 //   -c <ClassName>       Qt class to fuzz (required)
 //   -f <functionName>    Function to fuzz (required)
 //   -t <seconds>         Fuzz duration for random mode (default: 30)
+//   -n / --iterations N  Fuzz a fixed number of iterations instead of / in addition to -t
 //   -d <data>            Inline input: one argument value per line
 //   -i <file>            File with input data (same format as -d)
 //   -b <file>            Raw binary corpus file (may be repeated; no serialization)
@@ -23,6 +24,7 @@
 //   --cleanup            Remove all cached fuzzers from the temp directory
 //
 // -d and -i are mutually exclusive.
+// -t and -n may be combined: the loop stops when either limit is reached.
 // Input format: one argument value per line, with exactly
 //   (numParams × N) lines for N function calls.
 //   Example: a 2-param function called twice uses 4 lines.
@@ -155,18 +157,19 @@ static void usage(const char *prog)
     std::cerr << "Usage: " << prog << " -c <ClassName> -f <functionName> [options]\n"
               << "       " << prog << " --cleanup\n\n"
               << "Options:\n"
-              << "  -c <ClassName>       Qt class to fuzz (required)\n"
-              << "  -f <functionName>    Function to fuzz (required)\n"
-              << "  -t <seconds>         Fuzz duration — random mode (default: 30)\n"
-              << "  -d <data>            Inline input: one argument value per line\n"
-              << "  -i <file>            File with input data (same format as -d)\n"
-              << "  -b <file>            Raw binary corpus (may repeat; bypasses serialization)\n"
-              << "  --submodule <path>   Qt submodule root for class/function discovery\n"
-              << "  --qt-prefix <path>   Qt install prefix (auto-detected if omitted)\n"
-              << "  --list-cached        List all cached fuzzers and their build status\n"
-              << "  --cleanup            Remove all cached fuzzers\n\n"
+              << "  -c <ClassName>         Qt class to fuzz (required)\n"
+              << "  -f <functionName>      Function to fuzz (required)\n"
+              << "  -t <seconds>           Fuzz duration — random mode (default: 30)\n"
+              << "  -n / --iterations <N>  Stop after N iterations (may combine with -t)\n"
+              << "  -d <data>              Inline input: one argument value per line\n"
+              << "  -i <file>              File with input data (same format as -d)\n"
+              << "  -b <file>              Raw binary corpus (may repeat; bypasses serialization)\n"
+              << "  --submodule <path>     Qt submodule root for class/function discovery\n"
+              << "  --qt-prefix <path>     Qt install prefix (auto-detected if omitted)\n"
+              << "  --list-cached          List all cached fuzzers and their build status\n"
+              << "  --cleanup              Remove all cached fuzzers\n\n"
               << "Return codes:\n"
-              << "  0  Fuzzer ran full -t seconds without crash.\n"
+              << "  0  Fuzzer ran to the -t / -n limit without crash.\n"
               << "  1  Fuzzer processed specific -d/-i input without crash.\n"
               << "  2  Fuzzer crashed.\n"
               << "  3  Error (class/function not found, build failure, etc.).\n";
@@ -506,14 +509,20 @@ int main(int argc, char *argv[])
 {
     @@APP_CLASS@@ app(argc, argv);
 
-    int  timeLimitSec = 0;
-    bool corpusOnly   = false;
+    int      timeLimitSec  = 0;
+    uint64_t maxIterations = 0;
+    bool     corpusOnly    = false;
     std::vector<std::string> corpusFiles;
 
     for (int i = 1; i < argc; i++) {
         std::string a(argv[i]);
         if ((a == "--time" || a == "-t") && i + 1 < argc)
             timeLimitSec = std::atoi(argv[++i]);
+        else if ((a == "--iterations" || a == "-i") && i + 1 < argc) {
+            // Clamp negative values to 0 so they don't wrap to a huge uint64_t.
+            const long long n = std::atoll(argv[++i]);
+            maxIterations = n > 0 ? static_cast<uint64_t>(n) : 0;
+        }
         else if (a == "--corpus-only")
             corpusOnly = true;
         else if (a.rfind("--", 0) != 0)
@@ -549,11 +558,15 @@ int main(int argc, char *argv[])
         FuzzData fd{ buf.data(), BUF_SIZE };
         fuzz_target(obj, fd);
         ++iterations;
-        if (timeLimitSec <= 0)
-            break; // no time limit: one iteration only
-        auto elapsed = std::chrono::steady_clock::now() - startTime;
-        if (std::chrono::duration_cast<std::chrono::seconds>(elapsed).count() >= timeLimitSec)
+        if (maxIterations > 0 && iterations >= maxIterations)
             break;
+        if (timeLimitSec <= 0 && maxIterations == 0)
+            break; // no limit specified: one iteration only
+        if (timeLimitSec > 0) {
+            auto elapsed = std::chrono::steady_clock::now() - startTime;
+            if (std::chrono::duration_cast<std::chrono::seconds>(elapsed).count() >= timeLimitSec)
+                break;
+        }
     }
 
     std::cout << "[fuzz_@@CLASS@@_@@FUNC@@] " << iterations << " iterations\n";
@@ -873,6 +886,8 @@ int main(int argc, char *argv[])
     std::string qtPrefix;
     std::vector<std::string> rawCorpusFiles;
     int timeSec = 30;
+    bool timeset = false;
+    uint64_t maxIterations = 0;
     bool doCleanup = false;
     bool doListCached = false;
 
@@ -891,6 +906,15 @@ int main(int argc, char *argv[])
             funcName = argv[++i];
         } else if (a == "-t" && i + 1 < argc) {
             timeSec = std::atoi(argv[++i]);
+            timeset = true;
+        } else if ((a == "-n" || a == "--iterations") && i + 1 < argc) {
+            const long long n = std::atoll(argv[++i]);
+            if (n <= 0) {
+                std::cerr << "[fuzz] ERROR: " << a << " requires a positive number, got '"
+                          << argv[i] << "'.\n";
+                return EC_ERROR;
+            }
+            maxIterations = static_cast<uint64_t>(n);
         } else if (a == "-d" && i + 1 < argc) {
             inlineData = argv[++i];
         } else if (a == "-i" && i + 1 < argc) {
@@ -1129,14 +1153,24 @@ int main(int argc, char *argv[])
         for (const auto &p : corpusPaths)
             fuzzArgs.push_back(p);
     } else {
-        // Random fuzzing mode: run for -t seconds.
-        fuzzArgs.push_back("--time");
-        fuzzArgs.push_back(std::to_string(timeSec));
+        if (maxIterations > 0) {
+            fuzzArgs.push_back("--iterations");
+            fuzzArgs.push_back(std::to_string(maxIterations));
+        }
+        if (timeset || maxIterations == 0) {
+            fuzzArgs.push_back("--time");
+            fuzzArgs.push_back(std::to_string(timeSec));
+        }
     }
 
+    // Safety timeout for the parent: when only iterations are specified (no -t),
+    // there is no meaningful time bound — use 24 h so the parent never kills a
+    // legitimately long run.
+    const int safetyTimeout = (!timeset && maxIterations > 0) ? 86400 : timeSec;
+
 #ifdef _WIN32
-    return runFuzzer(binaryPath, fuzzArgs, timeSec, qtPrefix);
+    return runFuzzer(binaryPath, fuzzArgs, safetyTimeout, qtPrefix);
 #else
-    return runFuzzer(binaryPath, fuzzArgs, timeSec);
+    return runFuzzer(binaryPath, fuzzArgs, safetyTimeout);
 #endif
 }
