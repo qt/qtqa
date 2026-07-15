@@ -121,14 +121,22 @@ class Selector(object): # Select interesting changes, discard boring.
         For these purposes, treat the security header as part of the banner. It
         can be changed without affecting source or binary compatibility.
         """
+        endAt = 0
         for i, line in enumerate(seq, 1):
-            if spdxHeader in line:
-                if i < len(seq) and secHeader in seq[i]:
-                    return i + 1
-                return i
             if oldMarker in line:
                 return i + 2
-        return 0
+            if spdxHeader in line:
+                endAt = i
+                # But we might later have:
+            elif secHeader in line:
+                return i
+            # Heuristic: new-style copyright headers are short and
+            # blank lines won't happen until after them. Don't iterate
+            # the (potentially very long) whole file looking for a
+            # missing secHeader:
+            if endAt and not line and i > 10:
+                break
+        return endAt
 
     from difflib import SequenceMatcher
     # Can we supply a useful function isjunk, detecting pure-boring
@@ -261,8 +269,16 @@ class Selector(object): # Select interesting changes, discard boring.
         undo (only) the boring parts.
         """
         tag, startOld, endOld, startNew, endNew = hunk.pop(0)
-        # First deal with copyright header changes: always boring
-        while endNew <= self.__headNew and endOld <= self.__headOld:
+        # First deal with copyright header changes: always boring.
+
+        # If a security header has landed later than immediately after
+        # the SPDX one, the position in the old will be after the end
+        # of its copyright header. So as long as the old is empty
+        # (i.e. just giving the position of the new's addition
+        # relative to the old) and the new is before the end of its
+        # copyright header, accept the addition as being in the
+        # copyright header.
+        while endNew <= self.__headNew and endOld <= max(self.__headOld, startOld):
             if tag == 'equal':
                 # Stricly: we should copy from old; but it makes no difference:
                 self.__copy(tag, startOld, endOld, startNew, endNew)
