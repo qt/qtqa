@@ -2172,6 +2172,20 @@ moduleForHeader(const fs::path &headerPath, const fs::path &submoduleRoot)
     std::string lower = dirName;
     std::transform(lower.begin(), lower.end(), lower.begin(), ::tolower);
 
+    // "core" is ambiguous across submodules: it means WebEngineCore in
+    // qtwebengine (src/core), but e.g. qtdeclarative also has a src/core
+    // (the QmlCore QML plugin, a private, non-linkable target). Only honor
+    // the WebEngineCore mapping when actually scanning qtwebengine; treat it
+    // as unmapped otherwise so those classes are skipped like any other
+    // directory with no resolvable public target.
+    if (lower == "core") {
+        std::string moduleRootName = submoduleRoot.filename().string();
+        std::transform(moduleRootName.begin(), moduleRootName.end(), moduleRootName.begin(),
+                        ::tolower);
+        if (moduleRootName.find("webengine") == std::string::npos)
+            return std::nullopt;
+    }
+
     const ModuleInfo *mi = findModuleByDir(lower);
     if (mi)
         return std::make_pair(lower, *mi);
