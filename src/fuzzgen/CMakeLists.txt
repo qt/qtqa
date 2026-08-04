@@ -43,6 +43,23 @@ set(_FUZZGEN_LIB_SOURCES
 
 set(_FUZZGEN_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include")
 
+# ── Embed include/crashdiag.h as a C++ string constant ───────────────────────
+# codegen.cpp splices this verbatim into every generated fuzz test (see
+# @@CRASH_DIAGNOSTICS@@ in FuzzCppGenerator's templates), so the crash-
+# attribution runtime never depends on the source tree being present when a
+# generated fuzz test is later compiled/run on its own.
+set(_CRASHDIAG_HEADER "${CMAKE_CURRENT_SOURCE_DIR}/include/crashdiag.h")
+set(_CRASHDIAG_EMBED  "${CMAKE_CURRENT_BINARY_DIR}/crashdiag_embed.h")
+file(READ "${_CRASHDIAG_HEADER}" _CRASHDIAG_CONTENTS)
+# Strip "#pragma once" — meaningless (and warns under -Wall) once spliced
+# directly into the middle of a generated .cpp instead of #included.
+string(REPLACE "#pragma once" "" _CRASHDIAG_CONTENTS "${_CRASHDIAG_CONTENTS}")
+file(WRITE "${_CRASHDIAG_EMBED}"
+    "// Auto-generated from include/crashdiag.h by CMake — do not edit.\n"
+    "static const char kCrashDiagSource[] = R\"QTFUZZ_CRASHDIAG(${_CRASHDIAG_CONTENTS})QTFUZZ_CRASHDIAG\";\n"
+)
+set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${_CRASHDIAG_HEADER}")
+
 # ── Qt-internal build path ───────────────────────────────────────────────────
 
 if(COMMAND qt_add_tool)
@@ -62,6 +79,7 @@ if(COMMAND qt_add_tool)
 
     target_include_directories(qt_fuzzgen PRIVATE
         "${_FUZZGEN_INCLUDE_DIR}"
+        "${CMAKE_CURRENT_BINARY_DIR}"
     )
 
     # qt_fuzz_gen: single-class convenience tool, installed alongside
@@ -75,6 +93,7 @@ if(COMMAND qt_add_tool)
 
     target_include_directories(qt_fuzz_gen PRIVATE
         "${_FUZZGEN_INCLUDE_DIR}"
+        "${CMAKE_CURRENT_BINARY_DIR}"
     )
 
     # fuzz: targeted single-function fuzzer runner
@@ -88,6 +107,7 @@ if(COMMAND qt_add_tool)
 
     target_include_directories(fuzz PRIVATE
         "${_FUZZGEN_INCLUDE_DIR}"
+        "${CMAKE_CURRENT_BINARY_DIR}"
     )
 
     # qt_tara: TARA launcher — scans Qt-Security score:critical files and
@@ -111,7 +131,10 @@ else()
 
     # Shared library of generator logic
     add_library(QtFuzzLib STATIC ${_FUZZGEN_LIB_SOURCES})
-    target_include_directories(QtFuzzLib PUBLIC "${_FUZZGEN_INCLUDE_DIR}")
+    target_include_directories(QtFuzzLib PUBLIC
+        "${_FUZZGEN_INCLUDE_DIR}"
+        "${CMAKE_CURRENT_BINARY_DIR}"
+    )
 
     # GCC < 9 needs explicit -lstdc++fs for <filesystem>
     if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND
@@ -141,6 +164,10 @@ else()
     install(TARGETS qt_fuzzgen qt_fuzz_gen fuzz qt_tara
         RUNTIME DESTINATION bin
     )
+
+    # ── Autotests (crash-attribution feature) ─────────────────────────────────
+    enable_testing()
+    add_subdirectory(tests)
 
     # ── Convenience: generate the fuzz tree immediately after build ───────────
     #    (mirrors what qtbase/tests/fuzzing/CMakeLists.txt does when this tool
