@@ -1,5 +1,23 @@
 # skill-language-style Changelog
 
+- **4.0** (2026-07-17): Progressive-disclosure restructure (no rule content changed)
+  - Split monolithic SKILL.md (~14k tokens) into a ~3.8k-token core + 8 on-demand
+    reference files under references/. Previous single file exceeded the 5k
+    per-skill re-attach cap (~2.8x) and lost its tail after context compaction,
+    including the MANDATORY Fix Verification section at the end of the file.
+  - Core retains: Overview, Verification Workflow, Rule & Source Enumeration
+    (now a router), Core Principles R1-R10, Common Mistakes, R38, and the
+    MANDATORY Fix Verification section.
+  - Moved rule bodies to references/: prose-rules (R11-R13, R28-R29),
+    api-docs (R14-R19), examples-alttext (R20-R27),
+    qdoc-formatting (R39-R41, R63-R64), ui-tools (R42-R44), linking (R45-R51b),
+    structured-content (R52-R57), page-templates (R58-R62).
+  - All 57 rule definitions preserved verbatim; only their location changed.
+  - Validated via A/B baseline test (n=4/arm): full rule coverage preserved,
+    ~14% fewer tokens per review, no quality regression.
+  - Aligned frontmatter version (was stale at 3.7) with the changelog.
+
+
 - **3.9** (2026-03-16): R60 link verification requirement
   - Added "Reviewer pre-verification (BLOCKING)" note to R60
   - References skill-qdoc/references/link-resolution.md for full checklist
