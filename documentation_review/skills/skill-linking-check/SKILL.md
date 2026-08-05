@@ -2,7 +2,7 @@
 name: skill-linking-check
 description: Reference for checking documentation link integrity after code changes. Covers link target generation, anchor rules, search patterns, and cross-module dependencies.
 metadata:
-  version: "1.3.0"
+  version: "1.4.0"
 ---
 
 # Documentation Link Integrity Reference
@@ -314,6 +314,62 @@ grep -rn "\\\\keyword.*OldName" --include="*.qdoc" qt*/
 **Severity:** Always **Breaking**, even though QDoc produces no warning.
 Silent misdirection is harder to detect than a broken link.
 
+### Genus Mismatch Detection
+
+A **genus mismatch** occurs when a `\l` link resolves to a valid target
+in the wrong language domain (C++ vs QML). QDoc produces no warning.
+See link-resolution.md "Genus Mismatch" for the full mechanism.
+
+**Common pattern:** Inside a `\qmlproperty` or `\qmltype` doc block, a
+bare `\l propertyName` resolves to a same-name C++ property via
+parent-chain walking, instead of the intended QML type `PropertyName`.
+Case normalization (`asAsciiPrintable()`) makes `propertyName` and
+`PropertyName` equivalent, so the C++ property wins by being found first.
+
+**Review heuristic — flag these patterns during review:**
+
+| Context | Link pattern | Likely mismatch |
+|---------|-------------|-----------------|
+| `\qmlproperty` / `\qmlsignal` / `\qmlmethod` block | `\l camelCaseName` matching a C++ property on the native type | Intended QML type `PascalCaseName` |
+| `\qmltype` block | `\l ClassName` matching a C++ class | Intended QML type (needs `\l [QML]`) |
+| `\class` / `\fn` block | `\l TypeName` matching a QML type | Intended C++ class (needs `\l [CPP]`) |
+
+**Detection in existing documentation:**
+
+```bash
+# Find \l targets inside QML doc blocks that use camelCase
+# (potential C++ property matches instead of QML types)
+grep -B5 "\\\\l [a-z][a-zA-Z]*[A-Z]" --include="*.cpp" --include="*.qdoc" <module>/
+
+# Cross-reference: check if same name exists as both C++ property and QML type
+grep "\\\\qmltype" --include="*.cpp" --include="*.qdoc" <module>/ | grep -i "<name>"
+grep "Q_PROPERTY.*<name>" --include="*.h" <module>/
+```
+
+**Post-build HTML audit:**
+
+After building docs, check for links whose display text casing differs
+from the resolved page title:
+
+```bash
+# Extract links and compare display text to page title
+# A link showing "playbackOptions" pointing to "PlaybackOptions" page
+# indicates a genus mismatch or wrong-case resolution
+grep -oP '<a href="[^"]*">[^<]*</a>' <output-dir>/*.html \
+  | grep -i "<name>"
+```
+
+**Prevention:** Use genus qualifiers in ambiguous contexts:
+
+```qdoc
+\l [QML]{PlaybackOptions}    // Forces QML-only resolution
+\l [CPP]{QMediaPlayer}       // Forces C++-only resolution
+```
+
+**Severity:** **Stale** (link works but points to wrong page). Upgrade
+to **Breaking** if the misdirection leads to a page in a different module
+or a fundamentally different concept.
+
 ### Keyword and Target Aliases
 
 `\keyword`, `\target`, and `\title` all create link targets that participate
@@ -434,6 +490,16 @@ qtdoc (links to everything)
 ---
 
 ## Version History
+
+- **v1.4** (2026-04-22): Added Genus Mismatch Detection
+  - New "Genus Mismatch Detection" section after Silent Misdirection
+  - Documents how `\l` in QML doc blocks can silently resolve to C++ properties
+    (and vice versa) due to parent-chain walking + case normalization
+  - Review heuristics: flag camelCase `\l` targets in QML blocks that match
+    C++ property names
+  - Detection patterns for existing docs and post-build HTML audit
+  - Prevention via `\l [QML]` / `\l [CPP]` genus qualifiers
+  - Cross-references link-resolution.md for full mechanism
 
 - **v1.3** (2026-04-10): QDoc source-verified resolution behavior
   - Fixed case sensitivity: QDoc normalizes targets to lowercase

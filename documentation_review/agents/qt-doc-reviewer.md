@@ -195,6 +195,19 @@ For EVERY new/changed line, check against the rules loaded from the skill:
    - If mixed: flag the **minority** style as inconsistent, suggest
      aligning to the **majority** style used on the page
    - If all consistent (even if title case): OK — no flag needed
+7. **Present-tense scan (R4):** grep added/changed lines for `will ` +
+   verb (will be, will return, will copy, will show, will throw).
+   **Scan `\value`, `\enum`, and `\qmlenum` descriptions, not just
+   narrative prose** — enumerator meanings are atemporal. Flag unless
+   conditional future ("if X, Y will occur") or planned deprecation
+   ("will be removed in Qt 7"). Prefer present tense or a bare noun
+   phrase ("A 2D texture").
+8. **Conciseness scan (R2):** flag wordy/filler phrasing per the R2
+   SCAN trigger (a lot of, kind of, sort of, in order to).
+
+**Invariant:** every skill rule carrying a `SCAN trigger` must have a
+matching mandatory scan above. Currently: R2, R3, R4, R7, R11, R12,
+R38, R40.
 
 ### 4.3 Markup Scan (MANDATORY)
 

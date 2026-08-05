@@ -175,6 +175,10 @@ issue and present corrected suggestions directly.
 6. Title case consistency (R12) — extract all `\section`/`\title`/`\tab`
    titles, confirm agent flagged any mixed case (sentence case is default;
    title case is OK if consistent across the page)
+7. Present tense (R4) — grep the patch's added `\value`/`\enum`/prose
+   lines for `will `+verb; confirm the agent flagged them. The gate's
+   language re-scans MUST be a superset of the agent's §4.2 scans, never
+   a subset — otherwise a scan-list drift slips through unbacked.
 
 **doc-impact-analyzer:**
 1. Search completeness — all renamed items were searched

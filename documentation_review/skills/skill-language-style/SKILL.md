@@ -245,6 +245,18 @@ Always use official capitalization and spelling for Qt products and modules:
 | codebase | code base | Single word |
 | standalone | stand-alone | Single word |
 
+**Qt-Specific Spellings (API-driven)** — *Qt-only reference; seed list, expand
+as decisions are confirmed*:
+
+For terms where general or external style guides disagree or are split, Qt's
+spelling follows its **API identifiers** and dominant in-house usage. These
+take precedence over external sources (e.g., S9 Microsoft Style Guide) when
+they conflict. Verify the API identifier before adding an entry.
+
+| Correct (Qt) | Avoid | Why |
+|--------------|-------|-----|
+| antialiasing | anti-aliasing | Matches the API: `QPainter::Antialiasing` (render hint) and the QML `Item.antialiasing` property. ~85–100% of Qt docs use one word (incl. "multisample antialiasing"). Industry/3D-API usage is split — formal specs and acronym expansions (MSAA = Multisample Anti-Aliasing, FXAA, TAA) often hyphenate — but Qt's API decides. Exception: a branded, proper-noun acronym expansion (e.g., NVIDIA "Fast Approximate Anti-Aliasing") may keep its own hyphenation. |
+
 **Sources**: S2 (QUIP 25), S1 (Qt Writing Guidelines), S7 (Qt Terms and Concepts)
 
 **IMPORTANT - Authoritative Source Verification**:

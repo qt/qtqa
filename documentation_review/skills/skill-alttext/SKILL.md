@@ -145,6 +145,47 @@ Use these questions to determine alt text approach:
 
 **Decorative images:** Mark as decorative (empty alt); screen readers skip them. Most Qt documentation images are informative, not decorative.
 
+## Common Review Corrections (reinforcements)
+
+Recurring fixes from real reviews. These reinforce the rules above — apply
+them before submitting, and to suggested replacement text.
+
+1. **Avoid rendering/drawing-API verbs.** Describe the visible result in plain
+   terms, not the API operation. (Sibling to the "no Qt class names" rule.)
+   - ❌ "Square outline stroked in dark teal" → ✅ "Dark teal square outline"
+   - ❌ "Green square filled and stroked with an outline" → ✅ "Filled green
+     square with a dark teal outline"
+   - "stroked" → *outline / outlined*; keep "filled" only when plain and needed.
+
+2. **Classify the image type first** — a literal screenshot/scene, or a
+   schematic **diagram / chart / sequence**? Frame diagrams as diagrams and
+   describe the relationship or insight, not a literal scene (see the
+   Wireframes and Diagrams pattern).
+   - ❌ "Two devices over the Earth with a magnet nearby"
+   - ✅ "Diagram comparing geomagnetic readings, with the axes aligned to the
+     Magnetic North Pole, against raw readings skewed by a nearby magnet"
+
+3. **Prefer the shortest accurate description.** Omit non-essential detail and
+   redundancy; favor brevity over completeness.
+   - Drop unneeded orientation words ("upright"), element/color counts, and
+     redundancies ("baseline lines" → "baselines"; "wavy sine line" → "sine
+     wave").
+   - Avoid uncommon/jargon adjectives ("monoblock device" → "device").
+
+4. **For example-output images, cross-check the example code.** When the image
+   shows the result of a code snippet, read the snippet to get the exact
+   geometry before describing it — number of curves vs. straight edges, which
+   corners are rounded (and by how much), how many arcs/segments.
+   - ❌ "Green leaf bounded by a quadratic curve and a straight edge" (the code
+     draws two `quadraticCurveTo` calls) → ✅ "Pointed green leaf shape formed
+     by two quadratic curves"
+   - ❌ "Square with only its bottom-right corner rounded" (radii were
+     `0,40,20,80`) → ✅ "Green square with a sharp top-left corner and three
+     rounded corners of differing radius"
+
+5. **Read visible text literally.** Transcribe on-screen text exactly; don't
+   substitute a placeholder (e.g., handwriting recognizing "hello", not "Abc").
+
 ## Alt Text Patterns by Content Type
 
 ### 1. Example Page Main Images

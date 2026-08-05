@@ -485,6 +485,66 @@ Resolution path:
 - Inside property/function docs linking to sibling members
 - Any autolink-qualified name within its own class scope
 
+#### Genus Mismatch (Silent Resolution to Wrong Domain)
+
+**Source:** `qdocdatabase.cpp:1528` (`findNodeForAtom()`), `utilities.cpp:157-197` (`asAsciiPrintable()`)
+
+QDoc assigns each documented entity a **genus** — the language domain it
+belongs to:
+
+| Genus | Entities |
+|-------|----------|
+| C++ | `\class`, `\fn`, `\enum`, `\property`, `\typedef` |
+| QML | `\qmltype`, `\qmlproperty`, `\qmlsignal`, `\qmlmethod` |
+
+A **genus mismatch** occurs when a `\l` link resolves to a valid target
+in the **wrong genus** for the documentation context. QDoc produces no
+warning because the link resolved successfully.
+
+**How it happens:**
+
+1. Parent-chain walking finds same-name members before type-level targets.
+   Inside `\qmlproperty ... MediaPlayer::playbackOptions`, the bare link
+   `\l playbackOptions` walks up to QMediaPlayer and finds the C++ property
+   `playbackOptions` — a valid hit that stops resolution.
+
+2. Case normalization via `asAsciiPrintable()` collapses `playbackOptions`
+   and `PlaybackOptions` to the same key (`playbackoptions`), so even if
+   the author intended the PascalCase QML type, the camelCase C++ property
+   matches first.
+
+**Example:**
+
+```
+Documentation context: \qmlproperty ... MediaPlayer::playbackOptions
+Link written:          \l playbackOptions
+Author intended:       PlaybackOptions (QML type)
+QDoc resolved to:      QMediaPlayer::playbackOptions (C++ property)
+Result:                Link works, points to wrong page, no warning
+```
+
+**Prevention — genus qualifiers:**
+
+Force QDoc to resolve within a specific genus using bracket syntax:
+
+```qdoc
+\l [QML]{PlaybackOptions}       // Resolves only against QML types
+\l [CPP]{QMediaPlayer}          // Resolves only against C++ entities
+\l [QML QtMultimedia]{PlaybackOptions}  // QML genus + specific module
+```
+
+**When to use genus qualifiers:**
+
+| Documentation context | Link target | Qualifier needed? |
+|-----------------------|-------------|-------------------|
+| `\qmlproperty` block | QML type with same name as a C++ property | Yes: `\l [QML]{Type}` |
+| `\qmltype` block | C++ class (e.g., native type) | Yes: `\l [CPP]{Class}` |
+| `\class` block | QML type (e.g., for cross-reference) | Yes: `\l [QML]{Type}` |
+| Any block | Target name is unambiguous across genera | No |
+
+**Detection:** See skill-linking-check "Genus Mismatch Detection" for
+review heuristics and search patterns.
+
 #### Cross-Module Autolink Resolution
 
 **Source:** `qttools/src/qdoc/qdoc/src/qdoc/qdocdatabase.cpp:37-45`
@@ -959,6 +1019,14 @@ grep 'name="TargetName"' */doc/*/*.index
 ---
 
 ## Version History
+
+- **v1.6** (2026-04-22): Added Genus Mismatch documentation
+  - New "Genus Mismatch (Silent Resolution to Wrong Domain)" section after
+    Context-Aware Resolution
+  - Explains how parent-chain walking + case normalization causes `\l` links
+    to resolve to C++ properties instead of intended QML types (and vice versa)
+  - Documents `\l [QML]` / `\l [CPP]` genus qualifiers as prevention
+  - Cross-references skill-linking-check for detection patterns
 
 - **v1.5** (2026-03-16): Added Reviewer Verification Checklist
   - New "Reviewer Verification Checklist (BLOCKING)" section
