@@ -119,6 +119,21 @@ if(COMMAND qt_add_tool)
             qt_tara.cpp
     )
 
+    # qtdiff: lists the Qt classes whose header/source files differ between
+    #         the current branch's local HEAD and its upstream branch
+    qt_add_tool(qtdiff
+        TOOLS_TARGET    Core
+        INSTALL_DIR     "${INSTALL_LIBEXECDIR}"
+        SOURCES
+            ${_FUZZGEN_LIB_SOURCES}
+            qtdiff.cpp
+    )
+
+    target_include_directories(qtdiff PRIVATE
+        "${_FUZZGEN_INCLUDE_DIR}"
+        "${CMAKE_CURRENT_BINARY_DIR}"
+    )
+
 # ── Standalone build path ─────────────────────────────────────────────────────
 
 else()
@@ -161,7 +176,12 @@ else()
         target_link_libraries(qt_tara PRIVATE stdc++fs)
     endif()
 
-    install(TARGETS qt_fuzzgen qt_fuzz_gen fuzz qt_tara
+    # qtdiff: lists the Qt classes whose header/source files differ between
+    #         the current branch's local HEAD and its upstream branch
+    add_executable(qtdiff qtdiff.cpp)
+    target_link_libraries(qtdiff PRIVATE QtFuzzLib)
+
+    install(TARGETS qt_fuzzgen qt_fuzz_gen fuzz qt_tara qtdiff
         RUNTIME DESTINATION bin
     )
 

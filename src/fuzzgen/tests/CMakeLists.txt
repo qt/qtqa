@@ -13,6 +13,10 @@
 #                               lists, asserting on the generated source
 #                               text (array/case alignment, no leftover
 #                               @@..@@ placeholders). Always runs.
+#   Tier 2 (scanner_diff_selftest): zero Qt dependency. Calls the real
+#                               classesDeclaredIn()/classesDefinedIn()
+#                               (used by qtdiff) against hand-written
+#                               header/source fixtures. Always runs.
 #   Tier 3 (crashdiag_e2e):     requires Qt6::Core. Generates, compiles, and
 #                               runs a real fuzz harness against a synthetic
 #                               crashy class, end to end. Skipped when no
@@ -48,6 +52,11 @@ add_executable(codegen_selftest codegen_selftest.cpp)
 target_link_libraries(codegen_selftest PRIVATE QtFuzzLib)
 
 add_test(NAME codegen_selftest COMMAND codegen_selftest)
+
+add_executable(scanner_diff_selftest scanner_diff_selftest.cpp)
+target_link_libraries(scanner_diff_selftest PRIVATE QtFuzzLib)
+
+add_test(NAME scanner_diff_selftest COMMAND scanner_diff_selftest)
 
 # ── Tier 3: end-to-end, only when Qt6::Core is available ─────────────────────
 

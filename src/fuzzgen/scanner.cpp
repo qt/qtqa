@@ -2155,6 +2155,257 @@ bool classHasQObjectMacro(const std::string &source, const std::string &classNam
     }
 }
 
+// Finds the '}' matching the first '{' at or after searchFrom, tracking
+// brace depth over the raw text (same string-and-comment-blind approach
+// bodyHasQObjectMacro already uses for class bodies — accepted here for
+// the same reason: a stray unbalanced brace inside a string/char literal
+// or comment is vanishingly rare in Qt's own class/method bodies).
+// Returns std::string::npos if no '{' follows, or braces are unbalanced.
+size_t matchingCloseBrace(const std::string &source, size_t searchFrom)
+{
+    const size_t pos = source.find('{', searchFrom);
+    if (pos == std::string::npos)
+        return std::string::npos;
+
+    int depth = 0;
+    for (size_t i = pos; i < source.size(); ++i) {
+        if (source[i] == '{') {
+            ++depth;
+        } else if (source[i] == '}') {
+            --depth;
+            if (depth == 0)
+                return i;
+        }
+    }
+    return std::string::npos;
+}
+
+int lineNumberAt(const std::string &source, size_t pos)
+{
+    return 1 + static_cast<int>(std::count(source.begin(),
+                                            source.begin() + static_cast<ptrdiff_t>(pos), '\n'));
+}
+
+std::vector<ClassSpan> classDeclarationSpansIn(const std::string &headerContent)
+{
+    const std::string stripped = stripBlockComments(headerContent);
+
+    std::vector<ClassSpan> result;
+    for (const auto &match : extractClassMatches(stripped)) {
+        const size_t closePos = matchingCloseBrace(stripped, match.pos);
+        if (closePos == std::string::npos)
+            continue;
+        result.push_back({ match.name, lineNumberAt(stripped, match.pos),
+                            lineNumberAt(stripped, closePos) });
+    }
+    return result;
+}
+
+std::vector<std::string> classesDeclaredIn(const std::string &headerContent)
+{
+    std::vector<std::string> result;
+    std::set<std::string> seen;
+    for (const auto &span : classDeclarationSpansIn(headerContent)) {
+        if (seen.insert(span.className).second)
+            result.push_back(span.className);
+    }
+    return result;
+}
+
+// Returns true if the character at pos is escaped by an odd number of
+// immediately preceding backslashes. A single preceding backslash escapes
+// it ("\\\""), but a preceding *pair* of backslashes is itself an escaped
+// backslash and does not escape pos ("\\\\\"" — literal backslash followed
+// by an unescaped, string-terminating quote): the escaping backslashes
+// must be counted, not merely checked for presence one character back.
+bool isEscaped(const std::string &s, size_t pos)
+{
+    size_t backslashes = 0;
+    while (pos > backslashes && s[pos - 1 - backslashes] == '\\')
+        ++backslashes;
+    return (backslashes % 2) == 1;
+}
+
+std::vector<ClassSpan> classDefinitionSpansIn(const std::string &sourceContent)
+{
+    const std::string stripped = stripBlockComments(sourceContent);
+
+    // Build a copy where all text at brace depth > 0, inside string/char
+    // literals, or in a "//" line comment is blanked out, so the definition
+    // regex below can only match genuine depth-0 out-of-line definitions —
+    // never code inside a function body, a string literal, or a comment.
+    // Positions found in depth0 index the *same* offsets in stripped (both
+    // strings are built character-for-character, same length), so once a
+    // match's position is known, the body-and-span search below continues
+    // directly against stripped.
+    std::string depth0;
+    depth0.reserve(stripped.size());
+    int depth = 0;
+    bool inString = false;
+    bool inChar = false;
+    size_t i = 0;
+    while (i < stripped.size()) {
+        const char c = stripped[i];
+
+        if (!inChar && c == '"' && !isEscaped(stripped, i)) {
+            inString = !inString;
+            depth0 += (depth == 0) ? c : ' ';
+            ++i;
+            continue;
+        }
+        if (!inString && c == '\'' && !isEscaped(stripped, i)) {
+            inChar = !inChar;
+            depth0 += (depth == 0) ? c : ' ';
+            ++i;
+            continue;
+        }
+        if (inString || inChar) {
+            depth0 += (depth == 0) ? c : ' ';
+            ++i;
+            continue;
+        }
+
+        if (c == '/' && i + 1 < stripped.size() && stripped[i + 1] == '/') {
+            while (i < stripped.size() && stripped[i] != '\n') {
+                depth0 += ' ';
+                ++i;
+            }
+            continue; // leave the '\n' itself to be handled next iteration
+        }
+
+        if (c == '{') {
+            ++depth;
+            depth0 += ' ';
+            ++i;
+            continue;
+        }
+        if (c == '}') {
+            if (depth > 0)
+                --depth;
+            depth0 += ' ';
+            ++i;
+            continue;
+        }
+
+        depth0 += (depth == 0) ? c : ' ';
+        ++i;
+    }
+
+    static const std::regex kDefRe(
+            R"(\b(Q[A-Za-z0-9_]*)::[A-Za-z_~]\w*\s*\()",
+            std::regex::optimize);
+
+    std::vector<ClassSpan> result;
+
+    auto it  = std::sregex_iterator(depth0.begin(), depth0.end(), kDefRe);
+    auto end = std::sregex_iterator();
+    for (; it != end; ++it) {
+        const std::smatch &m = *it;
+        const std::string name = m[1].str();
+        const size_t matchPos = static_cast<size_t>(m.position());
+        const size_t parenOpen = matchPos + m[0].length() - 1; // position of '('
+
+        // Find the matching ')' for the parameter list in `stripped` (not
+        // depth0 — depth0 blanks everything past depth 0, but the
+        // parameter list is itself still depth-0 text, since it precedes
+        // the body's opening '{').
+        int parenDepth = 1;
+        size_t parenClose = std::string::npos;
+        for (size_t p = parenOpen + 1; p < stripped.size(); ++p) {
+            if (stripped[p] == '(') {
+                ++parenDepth;
+            } else if (stripped[p] == ')') {
+                --parenDepth;
+                if (parenDepth == 0) {
+                    parenClose = p;
+                    break;
+                }
+            }
+        }
+        if (parenClose == std::string::npos)
+            continue;
+
+        // Scan forward past trailing modifiers (const, noexcept(...),
+        // override, …) — skipping any nested parens so noexcept(expr)
+        // doesn't confuse the search — to the first depth-0 '{', ';', or
+        // ':'. A real out-of-line definition is followed by '{' (the body)
+        // or ':' (a constructor's initializer list, itself eventually
+        // followed by '{'). Anything else — ';' for a bare call statement
+        // or "= default;"/"= delete;" — means this is not a definition
+        // with a body, so it contributes no span.
+        size_t j = parenClose + 1;
+        int localParenDepth = 0;
+        while (j < stripped.size()) {
+            const char c = stripped[j];
+            if (c == '(') {
+                ++localParenDepth;
+                ++j;
+            } else if (c == ')') {
+                if (localParenDepth > 0)
+                    --localParenDepth;
+                ++j;
+            } else if (localParenDepth > 0) {
+                ++j;
+            } else if (c == '{' || c == ';' || c == ':') {
+                break;
+            } else {
+                ++j;
+            }
+        }
+
+        if (j < stripped.size() && stripped[j] == ':') {
+            // Constructor initializer list: find the '{' that follows it,
+            // skipping nested parens (member initializer arguments).
+            size_t k = j + 1;
+            int pd = 0;
+            bool foundBrace = false;
+            while (k < stripped.size()) {
+                const char c2 = stripped[k];
+                if (c2 == '(') {
+                    ++pd;
+                    ++k;
+                } else if (c2 == ')') {
+                    if (pd > 0)
+                        --pd;
+                    ++k;
+                } else if (pd > 0) {
+                    ++k;
+                } else if (c2 == '{') {
+                    foundBrace = true;
+                    break;
+                } else if (c2 == ';') {
+                    break; // no body after all
+                } else {
+                    ++k;
+                }
+            }
+            j = foundBrace ? k : stripped.size();
+        }
+
+        if (j >= stripped.size() || stripped[j] != '{')
+            continue; // not a definition with a body — skip
+
+        const size_t closePos = matchingCloseBrace(stripped, j);
+        if (closePos == std::string::npos)
+            continue;
+
+        result.push_back({ name, lineNumberAt(stripped, matchPos),
+                            lineNumberAt(stripped, closePos) });
+    }
+    return result;
+}
+
+std::vector<std::string> classesDefinedIn(const std::string &sourceContent)
+{
+    std::vector<std::string> result;
+    std::set<std::string> seen;
+    for (const auto &span : classDefinitionSpansIn(sourceContent)) {
+        if (seen.insert(span.className).second)
+            result.push_back(span.className);
+    }
+    return result;
+}
+
 // ---------------------------------------------------------------------------
 
 std::optional<std::pair<std::string, ModuleInfo>>

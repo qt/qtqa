@@ -131,4 +131,47 @@ bool classIsAbstract(const std::string &source, const std::string &className);
 // introspection; all other classes are fuzzed via direct method calls only.
 bool classHasQObjectMacro(const std::string &source, const std::string &className);
 
+// A class's declaration/definition span in some file's text, as 1-based,
+// inclusive line numbers: for a header, the span of "class Foo { ... }";
+// for a source file, the span of one out-of-line "Foo::member(...) { ... }"
+// definition. A class with several out-of-line definitions in the same
+// source file (e.g. QDomDocument has many methods defined in qdom.cpp)
+// appears once per definition, not once per class, so a caller (qtdiff) can
+// test each definition's own line range against a specific diff hunk
+// instead of treating "this file changed somewhere" as "every class this
+// file mentions changed".
+struct ClassSpan {
+    std::string className;
+    int startLine = 0;
+    int endLine = 0;
+};
+
+// Returns the declaration span of every Q-prefixed class in headerContent.
+// Uses the same class-declaration parser as scanClasses(), scoped to one
+// file's text with no export/module/stem filtering.
+std::vector<ClassSpan> classDeclarationSpansIn(const std::string &headerContent);
+
+// Returns the span of every out-of-line "ClassName::member(...) { ... }"
+// definition in sourceContent that has an actual body. A qualified name
+// followed by "(...)" with no body — a plain call statement, or
+// "= default;"/"= delete;" — is not a definition and is excluded:
+// attributing a whole file to a class just because one of its static
+// methods is *called* there would be a false positive.
+std::vector<ClassSpan> classDefinitionSpansIn(const std::string &sourceContent);
+
+// Returns the distinct class names from classDeclarationSpansIn(headerContent),
+// discarding the per-class line spans. qtdiff itself calls
+// classDeclarationSpansIn() directly (it needs the spans to test against a
+// diff hunk's changed lines); this wrapper is for callers that just want
+// "which classes does this header mention" with no line-range filtering.
+std::vector<std::string> classesDeclaredIn(const std::string &headerContent);
+
+// Returns the distinct class names from classDefinitionSpansIn(sourceContent),
+// discarding the per-class line spans. qtdiff itself calls
+// classDefinitionSpansIn() directly (it needs the spans to test against a
+// diff hunk's changed lines); this wrapper is for callers that just want
+// "which classes are implemented in this source file" with no line-range
+// filtering.
+std::vector<std::string> classesDefinedIn(const std::string &sourceContent);
+
 } // namespace QtFuzz
