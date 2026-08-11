@@ -64,9 +64,9 @@
     \endcode
 */
 
-// SHOULD WARN: prose in a \qmltype block is linted — \qmltype must not
-// start the (?s)\\qml\s.*?\\endqml region; only \qml followed by
-// whitespace opens a code block. (Microsoft.Wordiness, Microsoft.We,
+// SHOULD WARN: prose in a \qmltype block is linted. Only a \qml code
+// block is skipped; \qmltype is a topic command and its prose is
+// linted normally. (Microsoft.Wordiness, Microsoft.We,
 // Microsoft.Passive)
 
 /*!
@@ -90,9 +90,9 @@
     \endqml
 */
 
-// SHOULD WARN: prose after \codeline is linted — \codeline must not
-// start the (?s)\\code\s.*?\\endcode region; only \code followed by
-// whitespace opens a code block. (Microsoft.Wordiness, Microsoft.We,
+// SHOULD WARN: prose after \codeline is linted. \codeline is a
+// single-line command, not a code-block opener, so the prose that
+// follows it is linted normally. (Microsoft.Wordiness, Microsoft.We,
 // Microsoft.Passive)
 
 /*!

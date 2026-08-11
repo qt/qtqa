@@ -11,7 +11,8 @@ The directory includes two config files, a set of rules, and a
 vocabulary list:
 
 - `.vale-qdoc.ini` — for linting QDoc source files (.qdoc, .qdocinc,
-  .qml, .cpp). Requires a patched Vale build with QDoc parser support.
+  .qml, .cpp). Requires a Vale build with QDoc parser support; see
+  step 1 below.
 - `.vale.ini` — for linting generated HTML output. Works with the
   standard Vale release.
 
@@ -19,10 +20,23 @@ Follow these steps to get started:
 
 1. Install Vale:
 
-   - To lint QDoc sources (.qdoc, .qdocinc, .qml, .cpp), download
-     the patched Vale binary with QDoc parser support (minimum
-     v3.15.1-qdoc) from
-     https://github.com/veshivas/vale/releases.
+   - To lint QDoc sources (.qdoc, .qdocinc, .qml, .cpp), you need a
+     Vale build with QDoc parser support. As of this writing, no
+     tagged release — neither from https://github.com/veshivas/vale/releases
+     nor from https://github.com/vale-cli/vale/releases — reliably
+     passes the QDoc functional probe below (for example, fork release
+     v3.15.1-qdoc predates the `text.class.brief` scope that
+     `Qt.QDocBrief` now uses). Build from source instead:
+
+     ```
+     git clone --branch v3 https://github.com/vale-cli/vale.git
+     cd vale
+     CGO_ENABLED=1 go build -o ~/.local/bin/vale ./cmd/vale
+     ```
+
+     Requires a Go toolchain and a C compiler (`CGO_ENABLED=1` is
+     needed for the tree-sitter parsers). Always verify a binary
+     before relying on it — see step 3.
 
    - To lint generated HTML only, install the standard Vale release
      from a package manager or from
@@ -41,6 +55,17 @@ Follow these steps to get started:
 
 3. Run `vale ls-config` to verify Vale finds the config. You should see
    the config printed in JSON format.
+
+   For QDoc sources, also confirm the binary actually has working QDoc
+   parser support (a plain `--version` string is not a reliable
+   indicator — see step 1):
+
+   ```
+   vale --config=.vale-qdoc.ini --output=line tests/QDocBrief.qdoc | grep Qt.QDocBrief
+   ```
+
+   If this prints no output, the binary does not have QDoc parser
+   support and QDoc sources will silently lint as plain text.
 
 4. Run Vale against your files:
 
@@ -96,8 +121,17 @@ You can bypass it with `git commit --no-verify`.
 
 ### Requirements
 
-The hook requires the patched Vale build described in step 1 above,
-installed and available on PATH.
+The hook requires a Vale build with QDoc parser support, as described
+in step 1 above. It resolves the binary and config path in this
+order, using the first one that resolves:
+
+1. `~/.vale-qdoc-agent.json` — `vale_qdoc_bin` / `vale_config_path`
+   fields, if present.
+2. The `VALE_QDOC_BIN` / `VALE_CONFIG_PATH` environment variables.
+3. For the binary only, the `vale` found on PATH.
+
+If neither the binary nor the config resolves, the hook exits with an
+error rather than skipping silently.
 
 When running the hook outside of qtqa (for example in qtbase or
 qtdoc), set `VALE_CONFIG_PATH` to point to the config file in qtqa:
@@ -107,7 +141,8 @@ VALE_CONFIG_PATH=/path/to/qtqa/vale_linter_config/.vale-qdoc.ini git commit
 ```
 
 Set this variable permanently in your shell profile to avoid passing
-it on every commit.
+it on every commit. If you also need a non-PATH Vale binary, set
+`VALE_QDOC_BIN` the same way.
 
 ### Installation
 

@@ -2,7 +2,7 @@ extends: capitalization
 message: "Page titles should use title-style capitalization: '%s'."
 link: https://learn.microsoft.com/en-us/style-guide/capitalization
 level: warning
-scope: text.comment.title
+scope: heading.h1
 match: $title
 indicators:
   - ':'

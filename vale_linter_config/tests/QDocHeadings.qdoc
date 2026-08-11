@@ -1,7 +1,9 @@
 // Copyright (C) 2026 The Qt Company Ltd.
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
 
-// SHOULD WARN: section headings use title case (Microsoft.Headings)
+// SHOULD WARN (Microsoft.Headings): requires sentence case; these
+// section headings use title case instead.
+// SHOULD WARN (Qt.QDocPageTitle): \title is not title case.
 
 /*!
     \page bad-sections.html
@@ -14,7 +16,9 @@
     \section3 Error handling and recovery strategies
 */
 
-// SHOULD NOT WARN: section headings use sentence case
+// SHOULD NOT WARN (Microsoft.Headings): section headings correctly
+// use sentence case.
+// SHOULD WARN (Qt.QDocPageTitle): \title is not title case.
 
 /*!
     \page good-sections.html
@@ -27,7 +31,9 @@
     \section3 Error handling and recovery strategies
 */
 
-// SHOULD NOT WARN: \title is exempt from sentence case
+// SHOULD NOT WARN (Microsoft.Headings): \title is exempt from the
+// sentence-case check.
+// SHOULD WARN (Qt.QDocPageTitle): \title is not title case.
 
 /*!
     \page good-title.html
@@ -36,7 +42,8 @@
     This page describes the Qt Network Module.
 */
 
-// SHOULD NOT WARN: proper nouns are exempt
+// SHOULD NOT WARN (Microsoft.Headings, Qt.QDocPageTitle): proper
+// nouns are exempt from case checks.
 
 /*!
     \page good-proper-nouns.html
@@ -47,7 +54,9 @@
     \section2 Deploying to Android and iOS
 */
 
-// SHOULD WARN: heading ends with punctuation (Microsoft.HeadingPunctuation)
+// SHOULD WARN (Microsoft.HeadingPunctuation): section headings end
+// with punctuation.
+// SHOULD WARN (Qt.QDocPageTitle): \title is not title case.
 
 /*!
     \page bad-heading-punctuation.html
@@ -58,7 +67,9 @@
     \section2 Disconnecting at runtime!
 */
 
-// SHOULD WARN: acronym in heading (Microsoft.HeadingAcronyms)
+// SHOULD WARN (Microsoft.HeadingAcronyms): acronym in a section
+// heading.
+// SHOULD WARN (Qt.QDocPageTitle): \title is not title case.
 
 /*!
     \page bad-heading-acronyms.html
@@ -69,7 +80,11 @@
     \section2 Validating with DTD
 */
 
-// SHOULD WARN: lowercase word after colon in heading (Microsoft.HeadingColons)
+// SHOULD WARN (Microsoft.HeadingColons): lowercase word after a
+// colon in a section heading.
+// NOTE: \title "Network configuration" is not title case, but
+// Qt.QDocPageTitle does not fire on it here — a known gap, not
+// asserted as SHOULD WARN or SHOULD NOT WARN.
 
 /*!
     \page bad-heading-colons.html

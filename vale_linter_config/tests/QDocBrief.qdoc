@@ -28,9 +28,12 @@
     A size is specified by a width() and a height().
 */
 
+// SHOULD NOT WARN: \brief ending with a \c-terminated sentence. Braced form
+// \c{false} keeps the period outside the code span, avoiding the upstream
+// qdocToHTML quirk where \c word. greedily includes the period in <code>.
 /*!
     \fn bool QRect::isValid() const
-    \brief Returns \c true if the rectangle is valid otherwise returns \c false.
+    \brief Returns \c{true} if the rectangle is valid, \c{false} otherwise.
 
     A valid rectangle has a positive width() and height().
     \sa isNull(), isEmpty()
