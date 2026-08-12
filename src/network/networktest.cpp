@@ -156,7 +156,7 @@ std::unique_ptr<QDnsLookup> lookupCommon(QDnsLookup::Type type, const QString &d
     QEventLoop loop;
     QObject::connect(lookup.get(), &QDnsLookup::finished, &loop, &QEventLoop::quit);
     bool timeout = false;
-    QTimer::singleShot(2000, &loop, [&]{
+    QTimer::singleShot(30000, &loop, [&]{
         timeout = true;
         loop.quit();
     });
