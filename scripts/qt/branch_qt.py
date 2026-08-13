@@ -484,6 +484,8 @@ class QtBranching:
         elif repo_name == "qtnetworkauth":
             conanfile = "qtnetworkauth/([0-9.]+)"
             bumpers.update((str(p), conanfile) for p in Path("examples/").rglob("conanfile.txt"))
+        elif repo_name == "meta-qt6":
+            bumpers["conf/layer.conf"] = r'^QT_VERSION = "([0-9.]+)"$'
 
         bumped_files = self.bump_repo(repo_name, bumpers, self.fromVersion, self.toBranch)
 
