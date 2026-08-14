@@ -35,9 +35,9 @@ the topic command.
 | `\compareswith` | Comparison with other types | 6.7 |
 | `\qmlenumeratorsfrom` | Copy enum docs to QML | 6.8 |
 | `\toc` / `\tocentry` | Table of contents | 6.11 |
-| `\previouspage` | Navigation link | - |
-| `\nextpage` | Navigation link | - |
-| `\startpage` | Navigation start | - |
+| `\previouspage` | Legacy; superseded by the TOC tree | - |
+| `\nextpage` | Legacy; superseded by the TOC tree | - |
+| `\startpage` | Legacy; superseded by the TOC tree | - |
 | `\title` | Page title | - |
 | `\subtitle` | Page subtitle | - |
 
@@ -524,21 +524,13 @@ Creates hierarchical table of contents.
 
 ---
 
-### `\previouspage` / `\nextpage` / `\startpage`
+### `\previouspage` / `\nextpage` / `\startpage` (legacy)
 
-Creates navigation links between pages.
-
-**Syntax:**
-```qdoc
-\previouspage Getting Started
-\nextpage Advanced Topics
-\startpage Qt Reference Documentation
-```
-
-**With custom display text:**
-```qdoc
-\previouspage {Getting Started with Qt} {Previous}
-```
+Superseded by the module TOC tree. Page order comes from the
+`\list` on the module's TOC page, named in `navigation.toctitles`;
+that mechanism overwrites any `\previouspage`/`\nextpage` links on
+listed pages. Do not add these commands to new documentation. See
+`skill-toc-tree`.
 
 ---
 

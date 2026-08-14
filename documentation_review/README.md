@@ -21,6 +21,7 @@ unzip qt-doc-review-workflow.zip -d ~/.claude/
 │   ├── skill-language-style/      # Language rules R1-R51
 │   ├── skill-qdoc/                # QDoc syntax and internals
 │   ├── skill-qdoc-output/         # HTML filename patterns
+│   ├── skill-toc-tree/            # Topic tree (TOC, navigation)
 │   ├── skill-alttext/             # Image alt text guidelines
 │   ├── skill-line-wrap/           # 80-column rule
 │   ├── skill-module-export/       # Qt export macros

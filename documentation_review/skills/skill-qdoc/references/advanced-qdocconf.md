@@ -204,7 +204,7 @@ qhp.QtCore.indexRoot =
 qhp.QtCore.subprojects = manual examples classes
 
 qhp.QtCore.subprojects.manual.title = Qt Core
-qhp.QtCore.subprojects.manual.indexTitle = Qt Core
+qhp.QtCore.subprojects.manual.indexTitle = Qt Core module topics
 qhp.QtCore.subprojects.manual.type = manual
 
 qhp.QtCore.subprojects.examples.title = Examples
@@ -220,13 +220,18 @@ qhp.QtCore.subprojects.classes.sortPages = true
 
 For QML modules, add:
 ```qdocconf
-qhp.QtQuick.subprojects = manual examples classes qmltypes
+qhp.QtQuick.subprojects = manual examples qmltypes classes
 
 qhp.QtQuick.subprojects.qmltypes.title = QML Types
 qhp.QtQuick.subprojects.qmltypes.indexTitle = Qt Quick QML Types
 qhp.QtQuick.subprojects.qmltypes.selectors = qmlclass
 qhp.QtQuick.subprojects.qmltypes.sortPages = true
 ```
+
+Subproject/tree semantics (branch order, `type = manual`, the TOC
+page, selectors) are owned by
+`skill-toc-tree/references/qhp-subprojects.md` — read it before
+editing subprojects.
 
 ### Selectors
 

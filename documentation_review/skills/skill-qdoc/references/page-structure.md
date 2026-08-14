@@ -198,41 +198,22 @@ link without generating a visible page.
 
 ---
 
-## Navigation Commands
+## Page Order and Navigation
 
-For sequential documentation (manuals, tutorials).
-
-### Syntax
-
-```qdoc
-\previouspage {link-target}
-\nextpage {link-target}
-\startpage {title-of-first-page}
-```
-
-Optional second argument for display text:
-```qdoc
-\previouspage {link-target} {Display Text}
-\nextpage {link-target} {Display Text}
-```
-
-### Usage in codebase
-
-393 occurrences across 61 files. Used almost exclusively in
-manual-style sequential docs:
-- Qt Designer manual (35 occurrences)
-- qmake manual (29 occurrences)
-- QDoc manual (20+ occurrences)
-- Qt Linguist manual
-- Qt Assistant manual
-
-**Not used** in module index pages, API reference, or example
-docs. Most modules use TOC pages with `\list` navigation instead.
+Page order (previous/next links, tree placement) comes from the
+module's TOC page (`<module>-toc.qdoc`, named in
+`navigation.toctitles`) — see `skill-toc-tree`. The legacy
+`\previouspage`/`\nextpage`/`\startpage` commands are superseded:
+the TOC mechanism overwrites their links on listed pages. Do not
+add them to new documentation.
 
 ---
 
 ## Version History
 
+- **v1.1** (2026-08-14): Navigation Commands section replaced by a
+  pointer to skill-toc-tree; `\previouspage`/`\nextpage`/`\startpage`
+  documented as legacy
 - **v1.0** (2026-03-26): Initial version from audit of 991
   `\page`, 532 `\example`, 1,236 `\externalpage`, and 393
   navigation command usages

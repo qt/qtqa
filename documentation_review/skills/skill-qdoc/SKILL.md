@@ -2,7 +2,7 @@
 name: skill-qdoc
 description: This skill should be used when discussing QDoc internals, node systems, link resolution, warning diagnosis, index files, qdocconf configuration, macros, Qt Help files, or documentation generation architecture. Provides comprehensive reference for QDoc's documentation generation system.
 metadata:
-  version: "1.0.0"
+  version: "1.1.0"
 ---
 
 # QDoc Architecture Reference

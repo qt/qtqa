@@ -85,7 +85,7 @@ there.
 | Topic overview | `topics-{name}.html` | `\page`, `\title`, `\keyword topics-{name}`, `\brief`, `\ingroup explanations-{category}` | `references/page-structure.md` |
 | Module landing | `{module}-index.html` | `\page`, `\title`, `\ingroup frameworks-technologies`, `\brief`, body | `references/page-structure.md` ("Module Overview Page Template") |
 | How-to / guide | `{topic}.html` | `\page`, `\title`, `\brief`, `\section1`s | `references/page-structure.md` |
-| Tutorial chain | `{tutorial}-chapter{N}.html` | `\page`, `\title`, `\nextpage`/`\previouspage`, `\brief` | `references/page-structure.md` (Navigation Commands) |
+| Tutorial chain | `{tutorial}-chapter{N}.html` | `\page`, `\title`, `\brief`; chapters listed in order in `<module>-toc.qdoc` | `skill-toc-tree` |
 | Porting guide | `porting-from-{old}-to-{new}.html` | `\page`, `\title`, `\brief` | `references/page-structure.md` |
 | Changes / release | `{module}-changes-qt{N}.html` | `\page`, `\title`, `\ingroup changes-qt-{prev}-to-{N}`, `\brief` | `references/page-structure.md` |
 | Group | `{groupname}.html` | `\group`, `\title`, `\brief`, optional `\generatelist{related}` | `references/group-and-organization.md` |

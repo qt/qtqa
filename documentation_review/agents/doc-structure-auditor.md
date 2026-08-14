@@ -86,9 +86,16 @@ Checks cite these authoritative sources from skill-language-style:
 
 **All pages must be reachable from the index.**
 
+**GATE: Read `~/.claude/skills/skill-toc-tree/SKILL.md` before this
+check. Run its Procedure C (orphan audit): a manually written page is
+in the topic tree only if listed on the module's TOC page
+(`<module>-toc.qdoc`); group membership does not count as
+reachability. Report unlisted pages as ORPHAN.**
+
 | Check | Description | Source |
 |-------|-------------|--------|
 | Forward links | Index links to all subpages | S1 |
+| TOC page coverage | Manually written pages listed in `<module>-toc.qdoc` | skill-toc-tree |
 | Group membership | Subpages use `\ingroup` correctly | S10 |
 | Breadcrumb path | Each page can trace back to index | S1 |
 | No orphan pages | Every .qdoc file is linked somewhere | S1 |

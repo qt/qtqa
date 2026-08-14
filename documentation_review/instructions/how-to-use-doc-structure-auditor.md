@@ -69,7 +69,7 @@ run doc-structure-auditor: check if all public classes in qtgrpc are documented
 | # | Category | What It Checks |
 |---|---|---|
 | 1 | Module Index Page | `\page`, `\title`, `\brief`, required sections (overview, using, reference, examples, licenses) |
-| 2 | Navigation | All pages reachable from index, no orphan pages, breadcrumb paths |
+| 2 | Navigation | All pages reachable from index, no orphan pages, breadcrumb paths; topic tree coverage via skill-toc-tree Procedure C |
 | 3 | Examples | 11 mandatory elements per example (title, brief, screenshot, walkthrough...) |
 | 4 | Examples Group | `\group` defined, `\ingroup all-examples` |
 | 5 | CMake Commands | Group page, individual command pages, cross-links |

@@ -179,6 +179,8 @@ issue and present corrected suggestions directly.
    lines for `will `+verb; confirm the agent flagged them. The gate's
    language re-scans MUST be a superset of the agent's §4.2 scans, never
    a subset — otherwise a scan-list drift slips through unbacked.
+8. TOC attachment — if the patch adds a `\page`, confirm a TOC page
+   entry exists (or the agent flagged its absence); see skill-toc-tree.
 
 **doc-impact-analyzer:**
 1. Search completeness — all renamed items were searched
@@ -295,6 +297,7 @@ paste skill content.
 | skill-module-export | Public API detection via export macros |
 | skill-linking-check | Broken link detection after code changes |
 | skill-qdoc-output | HTML filename patterns |
+| skill-toc-tree | Topic tree: module tree branches, TOC page, framework tree |
 | skill-all-docs | Module/repository info |
 | skill-vale-qdoc-lint | Vale binary setup, config, pre-commit hook, lint commands |
 | skill-artifact-testing | 9-layer methodology for testing skills/agents |

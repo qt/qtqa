@@ -226,6 +226,11 @@ Read these with the Read tool before generating any stub:
    the table in stub-patterns.md (e.g., `qml-topic-commands.md`
    for QML, `cmake-reference.md` for CMake, `page-structure.md`
    for `\page` documents).
+7. **Read** `~/.claude/skills/skill-toc-tree/SKILL.md` when
+   stubbing a new `\page` document — after generating the stub,
+   apply its Procedure A: propose the entry to add to the
+   module's TOC page (`<module>-toc.qdoc`) so the new page is
+   attached to the topic tree.
 
 #### Step 2b: Read at least one sibling
 
@@ -414,6 +419,11 @@ Read these with the Read tool before generating output:
    — for cross-reference of brief rules and required commands.
 8. **Read** `~/.claude/skills/skill-language-style/SKILL.md`
    — for brief rules and 80-col compliance.
+9. **Read** `~/.claude/skills/skill-toc-tree/SKILL.md`
+   — for the module contract (five matching titles), the qhp
+   subprojects branch order, and Procedure B: a new module also
+   needs a `<node toc="…"/>` entry in
+   `qtdoc/doc/config/style/tree_config.xml`.
 
 #### Step 2b (Scaffold): Read sibling module
 
@@ -555,8 +565,8 @@ round-trips.
 
 ### Page-type stubs additionally:
 - [ ] Page sub-type matches the user's request
-- [ ] For tutorial chains, `\nextpage`/`\previouspage` form a
-  consistent ring across chapters
+- [ ] For tutorial chains, chapters appear in order under the
+  module's TOC page (`<module>-toc.qdoc`, see `skill-toc-tree`)
 - [ ] CMake reference pages use `\summary {…}` not `\brief`
 - [ ] `\section1` titles use sentence case unless the page
   follows title case throughout (R12)
@@ -627,8 +637,8 @@ agent output. These checks are BLOCKING.**
    algorithm.
 3. **CMake pages** — `\summary {…}` not `\brief`; group name
    matches sibling (`cmake-commands-{module}` etc.).
-4. **Tutorial chains** — `\nextpage`/`\previouspage` form a
-   consistent ring across chapters.
+4. **Tutorial chains** — chapters appear in order under the
+   module's TOC page (`<module>-toc.qdoc`, see `skill-toc-tree`).
 5. **Copyright + SPDX header** — Required for new standalone
    `.qdoc` files; current calendar year.
 

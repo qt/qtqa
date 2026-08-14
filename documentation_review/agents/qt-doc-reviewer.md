@@ -132,6 +132,7 @@ tool to load the rules and format templates into your context.
 | Lines > 80 chars | `~/.claude/skills/skill-line-wrap/SKILL.md` |
 | `*Private`, `_p.h` classes | `~/.claude/skills/skill-module-export/SKILL.md` |
 | `\table` | `~/.claude/skills/skill-qdoc/references/structured-content.md` |
+| Diff adds a `\page` command | `~/.claude/skills/skill-toc-tree/SKILL.md` |
 
 ### After loading, output:
 
@@ -228,6 +229,11 @@ from skill-qdoc/references/markup-commands.md:
   Apply rules from skill-alttext. View images if accessible.
 - **Links** (if `\l`, `\sa` present):
   Verify targets before suggesting changes. See Step 5.
+- **TOC attachment** (if the diff adds a `\page` command):
+  Apply skill-toc-tree Procedure A — the patch (or a linked change)
+  must add the new page to the module's TOC page (the `\title` named
+  in `navigation.toctitles`, conventionally `<module>-toc.qdoc`).
+  QDoc emits no warning for an unattached page; flag it if missing.
 
 ### 4.5 Documentation Completeness Scan
 
