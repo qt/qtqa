@@ -22,9 +22,20 @@ For diagnostic purposes, the following command line options are available:
   --help-all                      Displays help, including generic Qt options.
   --input-file, -i <jsonFile>     JSON input file to parse
   --timeout, --to, -t <timeout>   Overall timeout in milliseconds
+  --dns-timeout, --dt <dnsTimeout> Timeout for a single DNS lookup in
+                                  milliseconds (default: 2000)
+  --max-losses, --ml <maxLosses>  Number of tolerated UDP packet losses (DNS
+                                  lookup timeouts) per record before it counts
+                                  as an error (default: 0)
   --warn-only, --wo               Just warn, exit 0 on error.
   --verbosity, -d <verbosity>     0=silent, 1=summary, 2=all errors, 3=all
                                   errors and successes
   --copy-default-file, -o <file>  Write a copy of the default file to the given
                                   path
   --show-progress, -p             Show progress
+
+Instead of passing command line arguments directly, they can be provided via
+the CI_NETWORK_TESTARGS environment variable, which is expected to contain a
+string of command line arguments in the usual shell-quoted form. If set and
+non-empty, its content overrides all command line arguments passed to the
+executable, and the override is logged.

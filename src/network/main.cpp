@@ -15,6 +15,7 @@
 #include "networktest.h"
 #include <QCoreApplication>
 #include <QCommandLineParser>
+#include <QProcess>
 
 int main(int argc, char *argv[])
 {
@@ -28,6 +29,14 @@ int main(int argc, char *argv[])
     const QCommandLineOption inputOption({"input-file", "i"},
                                          "JSON input file to parse", "jsonFile");
     const QCommandLineOption timeoutOption({"timeout", "to", "t"}, "Overall timeout in milliseconds", "timeout");
+    const QCommandLineOption dnsTimeoutOption(
+            { "dns-timeout", "dt" }, "Timeout for a single DNS lookup in milliseconds",
+            "dnsTimeout", QString::number(NetworkTest::defaultDnsTimeout));
+    const QCommandLineOption maxLossesOption({ "max-losses", "ml" },
+                                             "Number of tolerated UDP packet losses (DNS lookup "
+                                             "timeouts) per record before it counts as an error",
+                                             "maxLosses",
+                                             QString::number(NetworkTest::defaultMaxLosses));
     const QCommandLineOption warnOnlyOption({"warn-only", "wo"}, "Just warn, exit 0 on error.");
     const QCommandLineOption verbosityOption({"verbosity", "d"}, NetworkTest::verbosityStrings().join("\n"), "verbosity");
     const QCommandLineOption copyOption({"copy-default-file", "o"},
@@ -38,12 +47,23 @@ int main(int argc, char *argv[])
 
     parser.addOption(inputOption);
     parser.addOption(timeoutOption);
+    parser.addOption(dnsTimeoutOption);
+    parser.addOption(maxLossesOption);
     parser.addOption(warnOnlyOption);
     parser.addOption(verbosityOption);
     parser.addOption(copyOption);
     parser.addOption(showProgressOption);
     parser.addOption(fileNameOption);
-    parser.process(a);
+
+    QStringList arguments = QCoreApplication::arguments();
+    const QString envArgs = qEnvironmentVariable("CI_NETWORK_TESTARGS");
+    if (!envArgs.isEmpty()) {
+        qWarning().noquote() << "CI_NETWORK_TESTARGS is set - overriding command line arguments"
+                                " with:"
+                             << envArgs;
+        arguments = QStringList{ arguments.constFirst() } + QProcess::splitCommand(envArgs);
+    }
+    parser.process(arguments);
 
     if (parser.isSet(fileNameOption)) {
         const QString extension = parser.value(fileNameOption);
@@ -54,6 +74,8 @@ int main(int argc, char *argv[])
     constexpr QLatin1StringView defaultFile(":/tests/DNSLookup.json");
     const QString input = parser.isSet(inputOption) ? parser.value(inputOption) : defaultFile;
     const int timeout = parser.value(timeoutOption).toInt();
+    const int dnsTimeout = parser.value(dnsTimeoutOption).toInt();
+    const int maxLosses = parser.value(maxLossesOption).toInt();
     const bool warnOnly = parser.isSet(warnOnlyOption);
     const bool showProgress = parser.isSet(showProgressOption);
 
@@ -77,7 +99,7 @@ int main(int argc, char *argv[])
             qWarning() << "Could not create" << oFile;
     }
 
-    NetworkTest test(input, warnOnly, showProgress, timeout, verbosity);
+    NetworkTest test(input, warnOnly, showProgress, timeout, dnsTimeout, maxLosses, verbosity);
     const bool success = test.test();
     return success ? 0 : 1;
 }

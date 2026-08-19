@@ -34,7 +34,10 @@ public:
     Q_ENUM(Verbosity)
     static constexpr int verbosityCount = 4;
 
-    NetworkTest(const QString &fileName, bool warnOnly, bool showProgress, int timeout, Verbosity verbosity);
+    NetworkTest(const QString &fileName, bool warnOnly, bool showProgress, int timeout,
+                int dnsTimeout, int maxLosses, Verbosity verbosity);
+    static constexpr int defaultDnsTimeout = 2000;
+    static constexpr int defaultMaxLosses = 0;
     bool test();
     static Verbosity toVerbosity(int verbosity, bool *ok);
     static QString verbosityString(Verbosity verbosity);
@@ -50,6 +53,8 @@ private:
     const bool m_warnOnly;
     const bool m_showProgress;
     const int m_timeout;
+    const int m_dnsTimeout;
+    const int m_maxLosses;
     const Verbosity m_verbosity;
     const QString m_fileName;
     static const QVersionNumber m_version;

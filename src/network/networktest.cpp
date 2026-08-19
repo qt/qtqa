@@ -1,6 +1,6 @@
 // Copyright (C) 2025 The Qt Company Ltd.
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
-// Qt-Security score:critical reason:data-parser
+// Qt-Security score:significant
 
 //
 //  W A R N I N G
@@ -43,12 +43,15 @@ QString NetworkTest::versionString()
     return version().toString();
 }
 
-NetworkTest::NetworkTest(const QString &fileName, bool warnOnly, bool showProgress, int timeout, Verbosity verbosity)
-    : m_warnOnly(warnOnly)
-    , m_timeout(timeout)
-    , m_showProgress(showProgress)
-    , m_verbosity(verbosity)
-    , m_fileName(fileName)
+NetworkTest::NetworkTest(const QString &fileName, bool warnOnly, bool showProgress, int timeout,
+                         int dnsTimeout, int maxLosses, Verbosity verbosity)
+    : m_warnOnly(warnOnly),
+      m_timeout(timeout),
+      m_dnsTimeout(dnsTimeout),
+      m_maxLosses(maxLosses),
+      m_showProgress(showProgress),
+      m_verbosity(verbosity),
+      m_fileName(fileName)
 {
     QFile file(m_fileName);
 
@@ -146,43 +149,65 @@ QString domainName(const QString &input)
     return input + normalDomain;
 }
 
-std::unique_ptr<QDnsLookup> lookupCommon(QDnsLookup::Type type, const QString &domain)
+std::unique_ptr<QDnsLookup> lookupCommon(QDnsLookup::Type type, const QString &domain,
+                                         int dnsTimeout, int maxLosses)
 {
+    const auto me = QMetaEnum::fromType<QDnsLookup::Type>();
+
+    // A timeout is treated as a presumably lost UDP packet and retried up to
+    // maxLosses times; ServerFailureError/ServerRefusedError are real answers
+    // from the server and are never retried.
+    for (int attempt = 0;; ++attempt) {
 #if QT_VERSION < QT_VERSION_CHECK(6, 8, 0)
-    auto lookup = std::make_unique<QDnsLookup>(type, domainName(domain));
+        auto lookup = std::make_unique<QDnsLookup>(type, domainName(domain));
 #else
-    auto lookup = std::make_unique<QDnsLookup>(type, domainName(domain), QDnsLookup::Protocol::Standard, QHostAddress(), 53);
+        auto lookup = std::make_unique<QDnsLookup>(
+                type, domainName(domain), QDnsLookup::Protocol::Standard, QHostAddress(), 53);
 #endif
-    QEventLoop loop;
-    QObject::connect(lookup.get(), &QDnsLookup::finished, &loop, &QEventLoop::quit);
-    bool timeout = false;
-    QTimer::singleShot(30000, &loop, [&]{
-        timeout = true;
-        loop.quit();
-    });
-    lookup->lookup();
-    loop.exec();
-    QDnsLookup::Error error = lookup->error();
+        QEventLoop loop;
+        QObject::connect(lookup.get(), &QDnsLookup::finished, &loop, &QEventLoop::quit);
+        bool timeout = false;
+        QTimer::singleShot(dnsTimeout, &loop, [&] {
+            timeout = true;
+            loop.quit();
+        });
+        lookup->lookup();
+        loop.exec();
+        QDnsLookup::Error error = lookup->error();
 #if QT_VERSION >= QT_VERSION_CHECK(6, 8, 0)
-    if (timeout)
-        error = QDnsLookup::TimeoutError;
+        if (timeout)
+            error = QDnsLookup::TimeoutError;
 #endif
 
-    if (error == QDnsLookup::ServerFailureError
-        || error == QDnsLookup::ServerRefusedError
+        if (error == QDnsLookup::ServerFailureError || error == QDnsLookup::ServerRefusedError) {
+            const QString msg =
+                    QString("Server refused or was unable to answer query; %1 type %3: %2")
+                            .arg(domain, lookup->errorString(), QString(me.valueToKey(int(type))));
+            qCritical() << msg;
+            return { };
+        }
+
+        const bool timedOut =
 #if QT_VERSION < QT_VERSION_CHECK(6, 8, 0)
-        || timeout) {
+                timeout;
 #else
-        || error == QDnsLookup::TimeoutError) {
+                error == QDnsLookup::TimeoutError;
 #endif
-            const auto me = QMetaEnum::fromType<QDnsLookup::Type>();
+        if (timedOut) {
+            if (attempt < maxLosses) {
+                qWarning() << "Presumed UDP packet loss for" << domain << "type"
+                           << me.valueToKey(int(type)) << "- tolerating loss" << (attempt + 1)
+                           << "of" << maxLosses << "and retrying";
+                continue;
+            }
             const QString msg = QString("Server refused or was unable to answer query; %1 type %3: %2")
                         .arg(domain, lookup->errorString(), QString(me.valueToKey(int(type))));
-            qCritical() << msg;
-        return {};
-    }
+            qCritical() << msg << "- exceeded tolerated packet loss of" << maxLosses;
+            return { };
+        }
 
-    return lookup;
+        return lookup;
+    }
 }
 
 QStringList NetworkTest::formatReply(const QDnsLookup *lookup) const
@@ -308,6 +333,8 @@ bool NetworkTest::test()
             qInfo() << "Timeout after" << m_timeout << "milliseconds";
         else
             qInfo() << "Never time out";
+        qInfo() << "DNS lookup timeout:" << m_dnsTimeout << "milliseconds";
+        qInfo() << "Tolerated UDP packet losses per lookup:" << m_maxLosses;
 
         qInfo().noquote() << "Verbosity:" << verbosityString(m_verbosity);
         QString progress = QString("Show progress: %1").arg(m_showProgress ? "true" : "false");
@@ -350,7 +377,7 @@ bool NetworkTest::test()
         const QString domain = obj.value("Domain").toString();
         const QString expected = obj.value("Expected").toString();
 
-        std::unique_ptr<QDnsLookup> lookup = lookupCommon(type, domain);
+        std::unique_ptr<QDnsLookup> lookup = lookupCommon(type, domain, m_dnsTimeout, m_maxLosses);
         if (!lookup) {
             ERROR << "Failed to create QDnsLookup object. Aborting.";
             ++errors;
