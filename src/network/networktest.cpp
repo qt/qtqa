@@ -149,6 +149,18 @@ QString domainName(const QString &input)
     return input + normalDomain;
 }
 
+QString reproductionCommand(QDnsLookup::Type type, const QString &domain)
+{
+    const auto me = QMetaEnum::fromType<QDnsLookup::Type>();
+    const QString typeName = QString::fromLatin1(me.valueToKey(int(type)));
+    const QString fqdn = domainName(domain);
+#ifdef Q_OS_WINDOWS
+    return QString("nslookup -type=%1 %2").arg(typeName, fqdn);
+#else
+    return QString("dig %1 %2").arg(typeName, fqdn);
+#endif
+}
+
 std::unique_ptr<QDnsLookup> lookupCommon(QDnsLookup::Type type, const QString &domain,
                                          int dnsTimeout, int maxLosses)
 {
@@ -184,6 +196,7 @@ std::unique_ptr<QDnsLookup> lookupCommon(QDnsLookup::Type type, const QString &d
                     QString("Server refused or was unable to answer query; %1 type %3: %2")
                             .arg(domain, lookup->errorString(), QString(me.valueToKey(int(type))));
             qCritical() << msg;
+            qCritical().noquote() << "Reproduce with:" << reproductionCommand(type, domain);
             return { };
         }
 
@@ -203,6 +216,7 @@ std::unique_ptr<QDnsLookup> lookupCommon(QDnsLookup::Type type, const QString &d
             const QString msg = QString("Server refused or was unable to answer query; %1 type %3: %2")
                         .arg(domain, lookup->errorString(), QString(me.valueToKey(int(type))));
             qCritical() << msg << "- exceeded tolerated packet loss of" << maxLosses;
+            qCritical().noquote() << "Reproduce with:" << reproductionCommand(type, domain);
             return { };
         }
 
@@ -386,6 +400,7 @@ bool NetworkTest::test()
 
         if (lookup->error() != QDnsLookup::NoError) {
             ERROR << "DNS Lookup error" << lookup->error() << lookup->errorString();
+            ERROR.noquote() << "Reproduce with:" << reproductionCommand(type, domain);
             ++errors;
         }
 
@@ -394,6 +409,7 @@ bool NetworkTest::test()
             SUCCESS << "Succeeded:" << domain << "-->" << result;
         } else {
             ERROR << "Expected" << expected << "and got" << result << "for" << domain;
+            ERROR.noquote() << "Reproduce with:" << reproductionCommand(type, domain);
             ++errors;
         }
     }

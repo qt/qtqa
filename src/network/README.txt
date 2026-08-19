@@ -39,3 +39,8 @@ the CI_NETWORK_TESTARGS environment variable, which is expected to contain a
 string of command line arguments in the usual shell-quoted form. If set and
 non-empty, its content overrides all command line arguments passed to the
 executable, and the override is logged.
+
+Whenever a lookup fails, whether because of a server error, an unexpected
+result, or exceeding --max-losses, the shell command needed to reproduce it
+manually is logged ("dig <type> <fqdn>" on Linux/macOS, "nslookup -type=<type>
+<fqdn>" on Windows).
