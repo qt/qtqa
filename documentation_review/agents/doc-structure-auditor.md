@@ -1,3 +1,13 @@
+---
+name: doc-structure-auditor
+description: >-
+  Audit Qt module documentation for structural completeness, navigation
+  integrity, and cross-reference validity. Use when onboarding a new
+  module, running a periodic documentation health check, or determining
+  what documentation a module is missing.
+model: opus
+---
+
 # Qt Documentation Structure Auditor Agent
 
 ## Purpose

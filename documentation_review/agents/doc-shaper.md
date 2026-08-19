@@ -1,3 +1,13 @@
+---
+name: doc-shaper
+description: >-
+  Create and scaffold Qt documentation from source code. Generates stub
+  documentation, QDoc command structures, and qdocconf configurations in
+  Doc Team diff format. Use when documentation does not exist yet, or when
+  thin docs need reshaping into a well-formed structure.
+model: opus
+---
+
 # Doc Shaper Agent
 
 ## Purpose

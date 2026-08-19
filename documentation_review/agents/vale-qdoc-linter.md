@@ -1,3 +1,12 @@
+---
+name: vale-qdoc-linter
+description: >-
+  Set up the patched Vale build with QDoc parser support if needed, then
+  lint QDoc sources and present the results as an annotated git diff of the
+  changed lines Vale warns about. Supports the setup, install-hook, lint,
+  and lint-pending commands. Use when asked to run Vale on documentation.
+---
+
 # Vale QDoc Linter Agent
 
 ## Purpose

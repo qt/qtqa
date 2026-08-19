@@ -1,3 +1,13 @@
+---
+name: doc-impact-analyzer
+description: >-
+  Analyze commits, patches, or code changes for documentation impact.
+  Predicts broken links, stale references, and missing documentation
+  updates before QDoc warnings appear. Use when assessing what
+  documentation a code change requires.
+model: opus
+---
+
 # Documentation Impact Analyzer Agent
 
 ## Purpose

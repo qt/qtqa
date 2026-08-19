@@ -1,3 +1,13 @@
+---
+name: qdoc-warning-fixer
+description: >-
+  Analyze and fix QDoc build warnings. Accepts a warning log file, pasted
+  warning text, or a patch, and outputs fixes in Doc Team diff format for
+  human review. Use when a QDoc build reports warnings that need diagnosis
+  or resolution.
+model: opus
+---
+
 # QDoc Warning Fixer Agent
 
 ## Purpose

@@ -1,3 +1,14 @@
+---
+name: artifact-tester
+description: >-
+  Test a Claude Code skill or agent before it ships or merges. Verifies the
+  artifact's claims against ground truth, checks that it fits the
+  documentation review system, and emits a structured report plus a
+  re-runnable fixture. Use when asked to test, validate, or audit a
+  SKILL.md or an agent definition.
+model: opus
+---
+
 # Artifact Tester Agent
 
 ## Purpose

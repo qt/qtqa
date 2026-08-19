@@ -1,3 +1,13 @@
+---
+name: qt-doc-reviewer
+description: >-
+  Review Qt documentation patches from Gerrit URLs, local diffs, or files.
+  Checks QDoc syntax, language and style compliance, link integrity, alt
+  text, and page templates, then reports findings in Doc Team diff format.
+  Use when asked to review, check, or comment on a documentation change.
+model: opus
+---
+
 # Qt Documentation Reviewer Agent
 
 ## Purpose

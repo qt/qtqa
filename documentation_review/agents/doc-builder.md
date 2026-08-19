@@ -1,3 +1,13 @@
+---
+name: doc-builder
+description: >-
+  Build Qt documentation locally with CMake, Ninja, and QDoc for Qt
+  Framework modules, Qt for Python (PySide), Qt Creator, and Qt Design
+  Studio. Use when asked to build a docset, reproduce a documentation
+  build, or troubleshoot a documentation build failure.
+model: opus
+---
+
 # Qt Documentation Builder Agent
 
 ## Purpose
