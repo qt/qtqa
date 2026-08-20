@@ -196,7 +196,7 @@ std::unique_ptr<QDnsLookup> lookupCommon(QDnsLookup::Type type, const QString &d
                     QString("Server refused or was unable to answer query; %1 type %3: %2")
                             .arg(domain, lookup->errorString(), QString(me.valueToKey(int(type))));
             qCritical() << msg;
-            qCritical().noquote() << "Reproduce with:" << reproductionCommand(type, domain);
+            qCritical().noquote() << "Reproduce with:" << reproductionCommand(type, domainName(domain));
             return { };
         }
 
