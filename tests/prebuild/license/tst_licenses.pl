@@ -855,7 +855,9 @@ sub checkSPDXLicenseIdentifier
 {
     my $expression = shift;
     my $shortfilename = shift;
+    # REUSE-IgnoreStart
     $expression =~ s/[^:]+:\s*//;    # remove the "SPDX-License-Identifier: " prefix
+    # REUSE-IgnoreEnd
     foreach (split(/\s+/, $expression)) {
         # Skip operators in the expression.
         if (/OR|AND|WITH|\(|\)/) {
@@ -900,8 +902,10 @@ sub checkLicense_SPDX
     close $fileHandle;
 
     my $currentLine = 0;
+    # REUSE-IgnoreStart
     my $copyrightRegEx = qr/\b((?:Copyright \([cC]\))|(?:SPDX-FileCopyrightText:))/;
     my $licenseIdRegEx = qr/\b((?:SPDX-License-Identifier:\s*[\(\)a-zA-Z0-9.\- ]+))/;
+    # REUSE-IgnoreEnd
 
     my @copyrightTags = ();
     my @licenseIdentifiers = ();
@@ -985,7 +989,9 @@ sub shouldScan
     close $fileHandle;
 
     if ($repositoryLicenseType eq "SPDX") {
+        # REUSE-IgnoreStart
         return grep(/SPDX-License-Identifier:/, @lines);
+        # REUSE-IgnoreEnd
     }
     return grep(/QT_BEGIN_LICENSE/, @lines);
 }
