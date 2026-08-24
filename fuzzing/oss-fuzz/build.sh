@@ -28,7 +28,9 @@ cd $WORK/qt
 $SOURCES/qtbase/configure -opensource -confirm-license -prefix $PWD \
                           -platform linux-clang-libc++ -release -static \
                           -qt-libmd4c -no-opengl -no-widgets -force-asserts -- \
-                          -DCMAKE_CXX_FLAGS_RELEASE="-O1" -DQT_USE_DEFAULT_CMAKE_OPTIMIZATION_FLAGS=ON
+                          -DCMAKE_C_FLAGS_RELEASE="-O1" \
+                          -DCMAKE_CXX_FLAGS_RELEASE="-O1" \
+                          -DQT_USE_DEFAULT_CMAKE_OPTIMIZATION_FLAGS=ON
 VERBOSE=1 cmake --build . --parallel
 
 # build additional modules
