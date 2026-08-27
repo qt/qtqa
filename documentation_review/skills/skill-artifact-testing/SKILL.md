@@ -10,7 +10,7 @@ description: >
   verify a skill's claims against ground truth. Provides per-layer criteria,
   a prompt library, a one-page checklist, and a fixture template.
 metadata:
-  version: "1.0.0"
+  version: "1.1.0"
 ---
 
 # Artifact Testing Methodology
@@ -116,6 +116,26 @@ be verified from the file itself. Quote each with its line number.
 Is <TARGET> the right CATEGORY — passive reference (skill) vs active workflow
 (agent)? Quote the content that proves it. Do its name, location, and
 frontmatter match its siblings in <DIR>?
+```
+
+**Frontmatter validation (every skill and agent).** Confirm the file opens
+with a `---` block that parses as valid YAML, carries the required keys, and
+matches fleet conventions. Missing, unterminated, or malformed frontmatter
+means the harness never registers the artifact — a silent Layer 4 failure the
+read-through misses.
+
+```
+Validate the frontmatter of <TARGET>:
+1. PRESENT — the file starts with a `---` block closed by a matching `---`.
+2. PARSES — the block is valid YAML: no tabs, consistent 2-space indent,
+   quoted version strings.
+3. REQUIRED KEYS — agent: `name`, `description`, `model`; skill: `name`,
+   `description`, `metadata.version`.
+4. NAME MATCHES — `name` equals the file (agent) or directory (skill) basename.
+5. MODEL PIN — an agent's `model` is the explicit fleet ID `claude-opus-4-7`,
+   not the floating `opus` alias; a skill carries no `model` key.
+Report each miss with its line number, and confirm the indentation style
+matches sibling artifacts in <DIR>.
 ```
 
 ### Layer 3 — System integration (the centralization test)
@@ -323,6 +343,7 @@ CONTRACT
 STATIC
 [ ] No contradictions, miscounts, broken refs, unverifiable claims
 [ ] Correct category (skill vs agent); conventions match siblings
+[ ] Frontmatter present, valid YAML, required keys; model pinned to claude-opus-4-7 (agents)
 SYSTEM INTEGRATION (centralization)
 [ ] No capability overlap with a sibling (or it replaces one)
 [ ] Composes: references siblings instead of restating what they own
