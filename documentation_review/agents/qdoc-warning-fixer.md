@@ -5,7 +5,7 @@ description: >-
   warning text, or a patch, and outputs fixes in Doc Team diff format for
   human review. Use when a QDoc build reports warnings that need diagnosis
   or resolution.
-model: opus
+model: claude-opus-4-7
 ---
 
 # QDoc Warning Fixer Agent
@@ -16,9 +16,9 @@ Analyze and fix QDoc warnings. Accepts warning files, direct warning text, or pa
 
 ## Model
 
-**Required:** `opus` (claude-opus-4-5-20251101 or later)
+**Required:** `claude-opus-4-7`
 
-This agent requires Opus for accurate warning diagnosis and index file verification. When dispatching via Task tool, always specify `model: "opus"`.
+This agent requires Opus for accurate warning diagnosis and index file verification. When dispatching via Task tool, always specify `model: "claude-opus-4-7"`.
 
 ## Skills
 

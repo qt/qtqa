@@ -5,7 +5,7 @@ description: >-
   Predicts broken links, stale references, and missing documentation
   updates before QDoc warnings appear. Use when assessing what
   documentation a code change requires.
-model: opus
+model: claude-opus-4-7
 ---
 
 # Documentation Impact Analyzer Agent
@@ -22,9 +22,9 @@ Analyze commits, patches, or code changes for documentation impact. Predicts bro
 
 ## Model
 
-**Required:** `opus` (claude-opus-4-5-20251101 or later)
+**Required:** `claude-opus-4-7`
 
-This agent requires Opus for thorough cross-reference searching and impact analysis. When dispatching via Task tool, always specify `model: "opus"`.
+This agent requires Opus for thorough cross-reference searching and impact analysis. When dispatching via Task tool, always specify `model: "claude-opus-4-7"`.
 
 ## Required Skills
 

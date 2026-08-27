@@ -8,6 +8,8 @@ description: >
   paths, index file availability, link mechanisms per product, and search procedures
   in priority order. Use alongside doc-impact-analyzer Steps 5–6 or standalone when
   auditing cross-product reference breakage.
+metadata:
+  version: "1.0"
 ---
 
 # Qt Cross-Product Reference Check

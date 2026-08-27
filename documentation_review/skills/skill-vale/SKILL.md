@@ -2,7 +2,7 @@
 name: skill-vale
 description: Generic Vale configuration reference — config file resolution, StylesPath, vale sync, format detection, MinAlertLevel, exit codes, and common error diagnosis
 metadata:
-    version: "1.0"
+  version: "1.0"
 ---
 
 # skill-vale

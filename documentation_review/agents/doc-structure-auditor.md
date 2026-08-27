@@ -5,7 +5,7 @@ description: >-
   integrity, and cross-reference validity. Use when onboarding a new
   module, running a periodic documentation health check, or determining
   what documentation a module is missing.
-model: opus
+model: claude-opus-4-7
 ---
 
 # Qt Documentation Structure Auditor Agent
@@ -16,7 +16,7 @@ Audit Qt module documentation for structural completeness, navigation integrity,
 
 ## Model
 
-**Required:** `opus` (claude-opus-4-5-20251101 or later)
+**Required:** `claude-opus-4-7`
 
 Structural audits require comprehensive analysis across multiple files and verification of cross-module dependencies.
 

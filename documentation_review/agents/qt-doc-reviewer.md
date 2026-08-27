@@ -5,7 +5,7 @@ description: >-
   Checks QDoc syntax, language and style compliance, link integrity, alt
   text, and page templates, then reports findings in Doc Team diff format.
   Use when asked to review, check, or comment on a documentation change.
-model: opus
+model: claude-opus-4-7
 ---
 
 # Qt Documentation Reviewer Agent
@@ -20,10 +20,10 @@ resolves output fields, and verifies its own suggestions.
 
 ## Model
 
-**Required:** `opus` (claude-opus-4-5-20251101 or later)
+**Required:** `claude-opus-4-7`
 
 This agent requires Opus for thorough language audits and multi-rule
-verification. When dispatching via Task tool, always specify `model: "opus"`.
+verification. When dispatching via Task tool, always specify `model: "claude-opus-4-7"`.
 
 ## Output Formats
 

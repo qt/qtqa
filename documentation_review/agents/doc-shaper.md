@@ -5,7 +5,7 @@ description: >-
   documentation, QDoc command structures, and qdocconf configurations in
   Doc Team diff format. Use when documentation does not exist yet, or when
   thin docs need reshaping into a well-formed structure.
-model: opus
+model: claude-opus-4-7
 ---
 
 # Doc Shaper Agent
@@ -25,7 +25,7 @@ source code, and verifies its own output.
 
 ## Model
 
-**Required:** `opus` (claude-opus-4-5-20251101 or later)
+**Required:** `claude-opus-4-7`
 
 ## Modes
 

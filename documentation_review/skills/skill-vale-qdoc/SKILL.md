@@ -2,7 +2,7 @@
 name: skill-vale-qdoc
 description: Vale QDoc parser fork reference — file routing by extension, QDoc scopes produced, code block exclusion, sentence-rule requirements, and common rule-not-firing causes
 metadata:
-    version: "1.0"
+  version: "1.0"
 ---
 
 # skill-vale-qdoc

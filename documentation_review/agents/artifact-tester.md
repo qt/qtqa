@@ -6,7 +6,7 @@ description: >-
   documentation review system, and emits a structured report plus a
   re-runnable fixture. Use when asked to test, validate, or audit a
   SKILL.md or an agent definition.
-model: opus
+model: claude-opus-4-7
 ---
 
 # Artifact Tester Agent
@@ -31,9 +31,9 @@ Qt **documentation** patches, use `qt-doc-reviewer`.
 
 ## Model
 
-**Required:** `opus`. The verification and system-integration layers require
-thorough cross-file reasoning. When dispatching via the Task tool, specify
-`model: "opus"`.
+**Required:** `claude-opus-4-7`. The verification and system-integration
+layers require thorough cross-file reasoning. When dispatching via the Task
+tool, specify `model: "claude-opus-4-7"`.
 
 ## Required Skills
 

@@ -5,6 +5,7 @@ description: >-
   lint QDoc sources and present the results as an annotated git diff of the
   changed lines Vale warns about. Supports the setup, install-hook, lint,
   and lint-pending commands. Use when asked to run Vale on documentation.
+model: claude-opus-4-7
 ---
 
 # Vale QDoc Linter Agent

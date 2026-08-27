@@ -5,7 +5,7 @@ description: >-
   Framework modules, Qt for Python (PySide), Qt Creator, and Qt Design
   Studio. Use when asked to build a docset, reproduce a documentation
   build, or troubleshoot a documentation build failure.
-model: opus
+model: claude-opus-4-7
 ---
 
 # Qt Documentation Builder Agent
@@ -18,10 +18,10 @@ Studio.
 
 ## Model
 
-**Required:** `opus` (claude-opus-4-5-20251101 or later)
+**Required:** `claude-opus-4-7`
 
 This agent handles complex build orchestration and troubleshooting. When
-dispatching via Task tool, always specify `model: "opus"`.
+dispatching via Task tool, always specify `model: "claude-opus-4-7"`.
 
 ## Product Coverage
 

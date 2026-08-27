@@ -68,7 +68,7 @@ load their own skills, fetch patches, and verify their own output.**
    ```
    Agent tool:
      subagent_type: "general-purpose"
-     model: "opus"
+     model: "claude-opus-4-7"
      prompt: |
        You are the {agent-name} agent.
        Your agent definition is at: ~/.claude/agents/{agent}.md
@@ -96,21 +96,21 @@ load their own skills, fetch patches, and verify their own output.**
 - [ ] Patch fetched via `curl` on Gerrit REST API (NEVER WebFetch)
 - [ ] Bug report fetched if commit has Task-number (MCP -> note)
 - [ ] Image paths verified if patch has `\image`
-- [ ] `model: "opus"` specified
+- [ ] `model: "claude-opus-4-7"` specified
 - [ ] Agent prompt contains ONLY the diff (not full proposed file)
 
 ### Dispatch Rules
 
 | Task | Agent | Model |
 |------|-------|-------|
-| Documentation review | qt-doc-reviewer | opus |
-| Create/scaffold docs | doc-shaper | opus |
-| QDoc warnings | qdoc-warning-fixer | opus |
-| Impact analysis | doc-impact-analyzer | opus |
-| Module structure audit | doc-structure-auditor | opus |
-| Documentation builds | doc-builder | opus |
-| Vale linting of QDoc sources | vale-qdoc-linter | opus |
-| Testing a skill or agent | artifact-tester | opus |
+| Documentation review | qt-doc-reviewer | claude-opus-4-7 |
+| Create/scaffold docs | doc-shaper | claude-opus-4-7 |
+| QDoc warnings | qdoc-warning-fixer | claude-opus-4-7 |
+| Impact analysis | doc-impact-analyzer | claude-opus-4-7 |
+| Module structure audit | doc-structure-auditor | claude-opus-4-7 |
+| Documentation builds | doc-builder | claude-opus-4-7 |
+| Vale linting of QDoc sources | vale-qdoc-linter | claude-opus-4-7 |
+| Testing a skill or agent | artifact-tester | claude-opus-4-7 |
 
 ### Post-Agent Output Handling
 

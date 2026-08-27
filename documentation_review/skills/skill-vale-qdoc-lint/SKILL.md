@@ -5,7 +5,7 @@ description: >-
   pre-commit hook installation, lint commands, annotated diff and
   grouped report formats, known caveats
 metadata:
-    version: "1.0"
+  version: "1.0"
 ---
 
 # skill-vale-qdoc-lint
