@@ -1,0 +1,5 @@
+extends: script
+message: "Line appears underfilled: next line's first word would fit within 80 cols."
+level: suggestion
+scope: raw
+script: Underfilled.tengo

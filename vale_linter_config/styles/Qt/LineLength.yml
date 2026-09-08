@@ -1,0 +1,6 @@
+extends: script
+message: "Line exceeds 80 characters. Wrap at a word boundary."
+link: https://wiki.qt.io/Qt_Coding_Style
+level: warning
+scope: raw
+script: LineLength.tengo

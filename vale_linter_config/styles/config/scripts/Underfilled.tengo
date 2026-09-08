@@ -1,0 +1,71 @@
+// UNDERFILLED detector: line + next-line first-word would fit in 80 cols
+// joined. Mirrors documentation_review/skills/skill-line-wrap/scripts/
+// wrapcheck.py (Gerrit 760143).
+text := import("text")
+matches := []
+MAX := 80
+
+// Structural prefixes: a wrap adjacent to any of these is deliberate.
+struct_prefixes := [
+    "\\section", "\\list", "\\endlist", "\\li", "\\table", "\\endtable",
+    "\\header", "\\row", "\\snippet", "\\image", "\\inlineimage",
+    "\\qml", "\\endqml", "\\code", "\\endcode", "\\badcode", "\\note",
+    "\\important", "\\warning", "\\target", "\\div", "\\enddiv",
+    "\\page", "\\title", "\\brief", "\\include", "\\annotatedlist",
+    "\\qmlmodule", "\\ingroup", "\\sa", "\\quotefile", "\\dots",
+    "*/", "/*!", "//"
+]
+
+is_boundary := func(line) {
+    s := text.trim_space(line)
+    if s == "" { return true }
+    for p in struct_prefixes {
+        if text.has_prefix(s, p) { return true }
+    }
+    return false
+}
+
+// Split on any whitespace: replace tabs with spaces, then split on space,
+// then drop empty tokens.
+words_of := func(s) {
+    s = text.replace(s, "\t", " ", -1)
+    raw := text.split(s, " ")
+    out := []
+    for w in raw {
+        if w != "" { out = append(out, w) }
+    }
+    return out
+}
+
+// First unbreakable unit of the continuation line, or "" to skip.
+next_unit := func(next_line) {
+    ws := words_of(text.trim_space(next_line))
+    if len(ws) == 0 { return "" }
+    first := ws[0]
+    if text.has_prefix(first, "{") { return "" }
+    if text.has_prefix(first, "\\") && text.contains(first, "{") == false && len(ws) > 1 {
+        return first + " " + ws[1]
+    }
+    return first
+}
+
+lines := text.split(scope, "\n")
+offset := 0
+for i := 0; i < len(lines); i++ {
+    line := lines[i]
+    line_len := len(line)
+    if i == len(lines) - 1 || is_boundary(line) {
+        offset += line_len + 1
+        continue
+    }
+    nxt := lines[i+1]
+    if is_boundary(nxt) {
+        offset += line_len + 1
+        continue
+    }
+    unit := next_unit(nxt)
+    if unit != "" && line_len + 1 + len(unit) <= MAX {
+        matches = append(matches, {begin: offset, end: offset + line_len})
+    }
+    offset += line_len + 1
+}

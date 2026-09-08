@@ -1,0 +1,52 @@
+// LINE LENGTH detector: report source lines longer than 80 columns.
+//
+// A `script` rule, not `existence`. The regex form this replaced was routed
+// through Vale's token pipeline, where a standalone vocabulary term anywhere
+// on the line suppressed the match: `Qul::PlatformInterface::DrawingEngine`,
+// `\QUL`, `Renesas` and 200-odd other accepted terms all silenced it. Recall
+// measured 46% over doc/src (112 of 245 over-long lines), and the blind spot
+// tracked Qt API names, so it was worst exactly where Qt docs are densest.
+// Reading the raw text here bypasses that pipeline entirely, which is also
+// why the sibling Underfilled.tengo has never had the problem.
+text := import("text")
+matches := []
+MAX := 80
+
+// Commented-out source is exempt, matching the previous rule's `(?!\s*//)`.
+// Only `//` — a QDoc `\` command is prose markup, not a comment.
+is_comment := func(line) {
+    return text.has_prefix(text.trim_space(line), "//")
+}
+
+// Column count, not byte count. `len()` is bytes, so a line carrying ™, ®,
+// µ or an em dash measures long and reports a false positive -- exactly what
+// qtul-supported-platforms.qdoc:363 did (79 columns, 81 bytes). `.` matches
+// one rune in Go's regexp, so counting matches gives the column count.
+// Only called for lines already over MAX in bytes: bytes >= runes always,
+// so a shorter line cannot be over the limit, and the scan stays cheap on
+// the long files (attributions.qdoc is 82k lines).
+runelen := func(s) {
+    m := text.re_find(".", s, -1)
+    if is_undefined(m) { return 0 }
+    return len(m)
+}
+
+// Only lines inside a `/*! ... */` block are measured. .cpp/.h are routed
+// through the qdoc format, so `raw` is the whole source file, code included:
+// `int v = f(); // trailing comment` past column 80 was flagged, as was any
+// long signature. The 80-column rule is for documentation; code follows the
+// Qt coding style. .qdoc/.qdocinc/.qml keep their docs in `/*!` blocks too.
+in_doc := false
+
+lines := text.split(scope, "\n")
+offset := 0
+for line in lines {
+    if text.contains(line, "/*!") { in_doc = true }
+    n := len(line)
+    if in_doc && n > MAX && !is_comment(line) && runelen(line) > MAX {
+        matches = append(matches, {begin: offset, end: offset + n})
+    }
+    if in_doc && text.contains(line, "*/") { in_doc = false }
+    // +1 for the newline consumed by the split.
+    offset = offset + n + 1
+}

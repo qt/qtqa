@@ -1,0 +1,43 @@
+// Copyright (C) 2026 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+// Fixture for Qt.LineLength. Lines are tagged to say whether the rule must
+// report them. Run with tests/run-linelength-test.sh.
+//
+// The rule was previously `extends: existence` with a raw regex. That form
+// went through Vale's token pipeline, where any standalone vocabulary term
+// silenced the match. The vocabulary cases below are the regression guard.
+// silenced the match. The VOCAB cases below are the regression guard.
+/*!
+    \page linelength-fixture.html
+    \title LineLength fixture
+
+    \section1 Plain prose
+
+    EXPECT-CLEAN short line, well under the limit.
+    EXPECT-FLAG alpha bravo charlie delta echo foxtrot golf hotel india juliet kilo lima
+    EXPECT-CLEAN exactly eighty columns wide, counting every character here ok
+
+    \section1 Vocabulary terms must not suppress the rule
+
+    EXPECT-FLAG \QUL alpha bravo charlie delta echo foxtrot golf hotel india juliet kilo
+    EXPECT-FLAG Qul::PlatformInterface::log alpha bravo charlie delta echo foxtrot golf hotel
+    EXPECT-FLAG Renesas alpha bravo charlie delta echo foxtrot golf hotel india juliet kilo
+    EXPECT-FLAG \li \sup{\l{Qul::PlatformInterface::DrawingEngine}{Hardware accelerated blitting}}
+
+    \section1 Macros and brace commands must not suppress it
+
+    EXPECT-FLAG \supportedWithNote 1 alpha bravo charlie delta echo foxtrot golf hotel india
+    EXPECT-FLAG \uicontrol{Apply} alpha bravo charlie delta echo foxtrot golf hotel india ju
+    EXPECT-FLAG \tm{PSOC} alpha bravo charlie delta echo foxtrot golf hotel india juliet kil
+
+    \section1 Columns, not bytes
+
+    EXPECT-CLEAN \li \l{Infineon PSOC Edge E84}{Infineon PSOC™ Edge E84 Kit}
+    EXPECT-FLAG \li PSOC™ alpha bravo charlie delta echo foxtrot golf hotel india juliet kilo
+
+    \section1 Comment exemption
+
+    EXPECT-CLEAN is the next line: a commented-out long line stays exempt.
+//  EXPECT-CLEAN alpha bravo charlie delta echo foxtrot golf hotel india juliet kilo lima mike
+*/

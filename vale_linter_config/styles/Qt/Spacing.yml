@@ -1,0 +1,16 @@
+extends: existence
+message: "'%s' should have one space."
+link: https://learn.microsoft.com/en-us/style-guide/punctuation/periods
+level: error
+nonword: true
+# Same as Microsoft.Spacing, plus exceptions for Qt/NXP product names that
+# are legitimately written as lowercase-letter + period + uppercase-letter
+# (e.g. 'i.MX'). Microsoft.Spacing has no way to carve out exceptions since
+# the Qt vocabulary list is not consulted for `nonword` rules (see
+# errata-ai/vale#1058), so this rule replaces it.
+tokens:
+  - '[a-z][.?!] {2,}[A-Z]'
+  - '\b[a-z]\w*\.[A-Z]'
+  - '\w[?!][A-Z]'
+exceptions:
+  - i.M
