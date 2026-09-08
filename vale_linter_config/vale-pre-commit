@@ -12,9 +12,48 @@
 # at the start of a line is not reported if only the end of that line changed.
 # Multi-line hunks and pure additions treat all columns as new.
 #
-# Requires Vale built from the feat/qdoc-parser branch of errata-ai/vale,
-# which adds the QDoc tree-sitter parser. The system Vale does not understand
-# .qdoc/.qdocinc files and will produce incorrect results.
+# Exit codes and severity:
+#
+#   error, warning  ->  reported, exit 1 (commit blocked)
+#   suggestion      ->  reported, exit 0 (commit proceeds)
+#
+# Suggestions are advisory by the style's own choice of `level:`, so they are
+# shown under a separate heading and never block. Vale itself is invoked with
+# --output=JSON, not =line, because the line format omits severity and the
+# hook cannot make this split without it. Reported alerts are printed as:
+#
+#   <path>:<line>:<col>:<severity>:<Style.Rule>:<message>
+#
+# If Vale fails to run at all (unloadable config, missing StylesPath), the
+# hook prints the reason and exits 0. A broken linter must not block commits.
+#
+# Requires a QDoc-aware Vale build: an upstream vale-cli/vale release, a
+# veshivas/vale fork release, or a build of vale-cli/vale branch v3. See
+# skill-vale-qdoc-lint for how to obtain and verify one. A stock Vale does
+# not understand .qdoc/.qdocinc files and produces incorrect results.
+#
+# Requires `vale sync` to have been run against the config:
+#
+#   vale --config=<vale_linter_config>/.vale-qdoc.ini sync
+#
+# Vale runs here with --no-global so that only .vale-qdoc.ini governs the
+# result and a developer's personal config cannot gate other people's
+# commits. That also drops the machine-global StylesPath from the search,
+# so every style the config names must be present under
+# vale_linter_config/styles/.
+#
+# styles/Microsoft/ is a sync download and is not committed. Without sync,
+# the hook does NOT fail: because rules are enabled individually below
+# (Style.Rule = YES) rather than through BasedOnStyles, every unresolvable
+# Microsoft.* rule is skipped in silence. The hook still exits 0/1 on the
+# Qt.* rules alone, so a fresh clone under-lints with no visible warning.
+# Check the download is present before trusting a clean run:
+#
+#   ls <vale_linter_config>/styles/Microsoft/ >/dev/null || echo 'run sync'
+#
+# `ls-config` does not answer this — it echoes the rules named in the ini
+# whether or not their .yml files resolve, so it reports the same count
+# either way.
 #
 # Installation (run once from the repository root):
 #
@@ -93,11 +132,23 @@ CPP_STAGED=$(git diff --cached --name-only --diff-filter=ACM \
 
 [ -z "$QDOC_STAGED" ] && [ -z "$CPP_STAGED" ] && exit 0
 
+# Iterate and join by newline only, and disable globbing, so staged
+# filenames containing spaces or glob metacharacters (e.g. "release
+# notes.qdoc") are handled as single, correct paths instead of being
+# word-split or glob-expanded — both here and where $QDOC_ABS/$CPP_ABS
+# are expanded below. Restored once that expansion is done.
+_OLD_IFS=$IFS
+IFS='
+'
+set -f
+
 QDOC_ABS=""
-for f in $QDOC_STAGED; do QDOC_ABS="$QDOC_ABS $REPO_ROOT/$f"; done
+for f in $QDOC_STAGED; do QDOC_ABS="$QDOC_ABS
+$REPO_ROOT/$f"; done
 
 CPP_ABS=""
-for f in $CPP_STAGED; do CPP_ABS="$CPP_ABS $REPO_ROOT/$f"; done
+for f in $CPP_STAGED; do CPP_ABS="$CPP_ABS
+$REPO_ROOT/$f"; done
 
 PY_SCRIPT=$(mktemp)
 trap 'rm -f "$PY_SCRIPT"' EXIT INT TERM
@@ -109,7 +160,11 @@ vale-pre-commit helper.
 Usage:
     python3 script.py repo_root vale_bin vale_config [qdoc_files...] -- [cpp_files...]
 """
-import sys, os, re, subprocess, tempfile, pathlib
+import sys, os, re, json, subprocess, tempfile, pathlib
+
+
+class ValeError(Exception):
+    """Vale itself failed — distinct from Vale reporting lint alerts."""
 
 
 # ── Diff parsing ──────────────────────────────────────────────────────────────
@@ -165,61 +220,88 @@ def in_changed_region(lineno, colno, regions):
 
 # ── Vale output parsing ───────────────────────────────────────────────────────
 
+# Severities that block the commit. Vale emits these lowercase in JSON.
+BLOCKING = ('error', 'warning')
+
+
 def run_vale(vale_bin, vale_config, files):
+    """
+    Run Vale and return {path_as_passed: [alert_dict, ...]}.
+
+    --output=JSON rather than =line because the hook has to tell a warning
+    from a suggestion, and the line format omits severity entirely.
+
+    --no-global keeps the machine-global config out of the merge. Without
+    it, --config selects vale_config but Vale still layers the global
+    config underneath (macOS: ~/Library/Application Support/vale/.vale.ini),
+    so a developer's personal rules would gate other people's commits.
+    """
     if not files:
-        return ''
+        return {}
     result = subprocess.run(
-        [vale_bin, '--config', vale_config,
-         '--output=line'] + list(files),
+        [vale_bin, '--no-global', '--config', vale_config,
+         '--output=JSON'] + list(files),
         capture_output=True, text=True
     )
-    return result.stdout
-
-
-def parse_alert(line):
-    """
-    Parse a Vale --output=line alert line.
-    Format: filepath:lineno:colno:check:message
-    Returns (filepath, lineno, colno, tail) where tail = "lineno:colno:...".
-    Uses pathlib.Path.drive to skip a Windows drive-letter colon (e.g. C:)
-    so it is not mistaken for the field separator.
-    """
-    drive = pathlib.Path(line).drive   # 'C:' on Windows, '' elsewhere
-    c1 = line.find(':', len(drive))
-    if c1 < 0:
-        return None
-    filepath = line[:c1]
-    tail = line[c1 + 1:]
-    c2 = tail.find(':')
-    if c2 < 0:
-        return None
     try:
-        lineno = int(tail[:c2])
+        data = json.loads(result.stdout)
     except ValueError:
-        return None
-    rest = tail[c2 + 1:]
-    c3 = rest.find(':')
-    if c3 < 0:
-        return None
-    try:
-        colno = int(rest[:c3])
-    except ValueError:
-        return None
-    return filepath, lineno, colno, tail
+        # A config Vale cannot load is reported as a JSON error object on
+        # stderr, leaving stdout empty. Pull out its Text field rather than
+        # echoing the whole object at the user.
+        raise ValeError(vale_error_text(result.stderr, result.stdout))
+    if not isinstance(data, dict):
+        return {}
+    # An error object is also a dict; alert reports map path -> list.
+    if data and not any(isinstance(v, list) for v in data.values()):
+        raise ValeError(vale_error_text(result.stdout, result.stderr))
+    return data
 
 
-def filter_alerts(vale_output, file_regions):
+def vale_error_text(*streams):
+    """Best-effort human-readable message from Vale's error output."""
+    for stream in streams:
+        text = (stream or '').strip()
+        if not text:
+            continue
+        try:
+            obj = json.loads(text)
+        except ValueError:
+            return text.splitlines()[0]
+        if isinstance(obj, dict) and obj.get('Text'):
+            first = str(obj['Text']).strip().splitlines()
+            code = obj.get('Code', '')
+            detail = next((s for s in first[1:] if s.strip()), first[0])
+            return ('%s: %s' % (code, detail.strip())).strip(': ')
+        return text.splitlines()[0]
+    return 'Vale produced no parsable output'
+
+
+def alert_fields(alert):
+    """(lineno, colno, severity, check, message) from a Vale JSON alert."""
+    span = alert.get('Span') or [1]
+    return (alert.get('Line', 0), span[0],
+            (alert.get('Severity') or '').lower(),
+            alert.get('Check', ''), alert.get('Message', ''))
+
+
+def format_alert(display_path, lineno, colno, severity, check, message):
+    return '%s:%d:%d:%s:%s:%s' % (display_path, lineno, colno,
+                                  severity, check, message)
+
+
+def filter_alerts(vale_data, file_regions):
+    """Return [(severity, display_line), ...] for alerts on changed columns."""
     results = []
-    for line in vale_output.splitlines():
-        if not line:
-            continue
-        parsed = parse_alert(line)
-        if not parsed:
-            continue
-        filepath, lineno, colno, _ = parsed
+    for filepath, alerts in vale_data.items():
         canon = str(pathlib.Path(filepath).resolve())
-        if in_changed_region(lineno, colno, file_regions.get(canon, {})):
-            results.append(line)
+        regions = file_regions.get(canon, {})
+        for alert in alerts or []:
+            lineno, colno, severity, check, message = alert_fields(alert)
+            if in_changed_region(lineno, colno, regions):
+                results.append((severity,
+                                format_alert(filepath, lineno, colno,
+                                             severity, check, message)))
     return results
 
 
@@ -282,20 +364,18 @@ def process_cpp_files(vale_bin, vale_config, cpp_files):
                 for i, line in enumerate(file_lines, 1):
                     tmp.write((line if i in block_line_set else '') + '\n')
 
-            vale_output = run_vale(vale_bin, vale_config, [tmp_path])
+            vale_data = run_vale(vale_bin, vale_config, [tmp_path])
             tmp_regions = {ln: regions[ln] for ln in target_lines}
 
-            prefix = tmp_path + ':'
-            for alert_line in vale_output.splitlines():
-                if not alert_line.startswith(prefix):
-                    continue
-                tail = alert_line[len(prefix):]
-                parsed = parse_alert(cpp_file + ':' + tail)
-                if not parsed:
-                    continue
-                _, lineno, colno, _ = parsed
-                if in_changed_region(lineno, colno, tmp_regions):
-                    results.append(cpp_file + ':' + tail)
+            # Blank-line padding kept line numbers, so an alert's line maps
+            # straight back onto cpp_file; only the reported path changes.
+            for alerts in vale_data.values():
+                for alert in alerts or []:
+                    lineno, colno, severity, check, message = alert_fields(alert)
+                    if in_changed_region(lineno, colno, tmp_regions):
+                        results.append((severity,
+                                        format_alert(cpp_file, lineno, colno,
+                                                     severity, check, message)))
         finally:
             try:
                 os.unlink(tmp_path)
@@ -320,14 +400,35 @@ def main():
         qdoc_files = rest
         cpp_files = []
 
-    results = (process_qdoc_files(vale_bin, vale_config, qdoc_files) +
-               process_cpp_files(vale_bin, vale_config, cpp_files))
+    try:
+        results = (process_qdoc_files(vale_bin, vale_config, qdoc_files) +
+                   process_cpp_files(vale_bin, vale_config, cpp_files))
+    except ValeError as exc:
+        print('vale-pre-commit: Vale failed to run: %s' % exc)
+        print('vale-pre-commit: Not blocking the commit on a linter failure.')
+        sys.exit(0)
 
-    if results:
-        print('vale-pre-commit: Issues in changed lines:\n')
-        for r in results:
-            print(r)
-        print("\nvale-pre-commit: Fix the issues above, or use 'git commit --no-verify' to skip.")
+    blocking = [line for sev, line in results if sev in BLOCKING]
+    advisory = [line for sev, line in results if sev not in BLOCKING]
+
+    if blocking:
+        print('vale-pre-commit: Errors and warnings in changed lines:\n')
+        for line in blocking:
+            print(line)
+
+    if advisory:
+        if blocking:
+            print('')
+        print('vale-pre-commit: Suggestions in changed lines '
+              '(not blocking):\n')
+        for line in advisory:
+            print(line)
+
+    # Only errors and warnings block. Suggestions are advisory by the style's
+    # own choice of level:, so they are shown and the commit proceeds.
+    if blocking:
+        print("\nvale-pre-commit: Fix the errors and warnings above, or use "
+              "'git commit --no-verify' to skip.")
         sys.exit(1)
 
     sys.exit(0)
@@ -355,3 +456,7 @@ if [ -z "$PYTHON" ]; then
     exit 0
 fi
 "$PYTHON" "$PY_SCRIPT" "$REPO_ROOT" "$VALE_BIN" "$VALE_CONFIG" $QDOC_ABS -- $CPP_ABS
+STATUS=$?
+IFS=$_OLD_IFS
+set +f
+exit $STATUS
