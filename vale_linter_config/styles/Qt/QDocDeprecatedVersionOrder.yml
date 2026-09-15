@@ -1,0 +1,32 @@
+# QDoc expects the bracketed version first: `\deprecated [X] Desc` or the
+# alias `\obsolete [X] Desc` (qdoc-manual-contextcmds.qdoc, "\deprecated
+# command takes two optional arguments: a version in square brackets, then a
+# string with more information"). It then annotates the deprecated member
+# with the version, and generates the deprecated-members page entry from it.
+#
+# docparser.cpp, case NOT_A_CMD: after `\deprecated`/`\obsolete`,
+# `isLeftBracketAhead(maxNewlines=1)` looks for `[` within at most one
+# newline of whitespace. If found, `getBracketedArgument()` consumes it as
+# the version and it never reaches the description text. Otherwise -- the
+# bracket sits after other words on the same line, or two or more newlines
+# separate the command from it -- the command captures no version, and
+# `[X]` stays in the description and renders literally. QDoc never warns
+# about this either way, so a misplaced clause goes unnoticed.
+extends: existence
+message: "QDoc ignores this version bracket; it must immediately follow the command: \\deprecated [X] Description, or \\obsolete [X] Description."
+link: https://doc.qt.io/qt-6/20-qdoc-commands-contextcommands.html#deprecated-command
+level: error
+scope: 'text & doc(p)'
+vocab: false
+nonword: true
+raw:
+  # \deprecated/\obsolete name nothing to mask, unlike \value, so a correctly
+  # captured bracket simply never reaches this scope at all: it is consumed
+  # by getBracketedArgument() before the paragraph is ever built. Any bare
+  # `[N.N]` bracket that does show up here, preceded by other text, is
+  # therefore always one the command failed to capture. `\S[ \t]+` requires
+  # that preceding text -- a paragraph whose only content is a bracket at
+  # the very start (no leading word) is a narrower gap this pattern does not
+  # catch. Never use a `^` anchor: anchors do not bind inside a narrowed
+  # block, and every raw pattern needs a literal to survive MightMatch.
+  - '\S[ \t]+\[\d+(?:\.\d+)+\]'

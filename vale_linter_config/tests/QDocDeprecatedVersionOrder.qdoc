@@ -1,0 +1,66 @@
+// Copyright (C) 2026 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+// SHOULD WARN: the version bracket follows the \deprecated description, so
+// QDoc records no deprecation version and renders the bracket literally.
+
+/*!
+    \fn void QWidget::repaintLater()
+    \deprecated Use update() instead. [6.5]
+*/
+
+/*!
+    \fn void QWidget::drawLater()
+    \deprecated
+
+    The replacement is update() [6.9]
+*/
+
+// SHOULD WARN: \obsolete is an alias for \deprecated and fails the same way.
+// Two or more blank lines put more than one newline of whitespace between
+// the command and the bracket, so isLeftBracketAhead(maxNewlines=1) rejects
+// it even though the bracket is the first thing in the paragraph.
+
+/*!
+    \fn void QWidget::redrawLater()
+    \obsolete Use update() instead. [6.5]
+*/
+
+/*!
+    \fn void QWidget::undrawLater()
+    \obsolete
+
+
+    Use update() instead. [6.5]
+*/
+
+// SHOULD NOT WARN: the version bracket immediately follows the command, for
+// both spellings.
+
+/*!
+    \fn void QWidget::paintLater()
+    \deprecated [6.5] Use update() instead.
+*/
+
+/*!
+    \fn void QWidget::renderLater()
+    \obsolete [6.5] Use update() instead.
+*/
+
+// SHOULD NOT WARN: zero blank lines between the command and the bracket is
+// still within isLeftBracketAhead's default tolerance of one newline.
+
+/*!
+    \fn void QWidget::scheduleLater()
+    \obsolete
+    [6.5] Bracket on the very next line, no blank line in between.
+*/
+
+// SHOULD NOT WARN: \since takes a bare version, not a bracketed one, and is
+// a different command entirely.
+
+/*!
+    \fn void QWidget::updateLater()
+    \since 6.5
+    Schedules an update.
+*/

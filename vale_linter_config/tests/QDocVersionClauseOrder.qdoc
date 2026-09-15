@@ -1,0 +1,38 @@
+// Copyright (C) 2026 The Qt Company Ltd.
+// SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
+
+// SHOULD WARN: the [since] clause follows the value name, so QDoc treats it as
+// description text and renders it literally.
+
+/*!
+    \enum Qt::InputMethodHint
+
+    \value ImhNone No hints.
+    \value ImhNoFullscreen [since 6.12] Do not use full screen input.
+    \value Qt::ImhHiddenText [since 6.4] Characters are masked.
+    \value ImhTabbed	[since 6.9] Separated from the clause by a tab.
+    \value ImhMultiple   [since 6.10]   Separated by several spaces.
+*/
+
+// SHOULD NOT WARN: the [since] clause precedes the value name, or there is no
+// clause at all.
+
+/*!
+    \enum Qt::Alignment
+    \brief This is a [since 7.8] enum
+
+    \value AlignLeft Align with the left edge. [since 6.9]
+    \value [since 6.5] AlignBaseline Align with the baseline.
+    \value [since 6.5]	AlignTrailing Separated by a tab.
+    \value Qt::AlignCenter Center the contents.
+*/
+
+// SHOULD NOT WARN: a bracketed word other than a since clause, and prose that
+// merely mentions a version, are not the misplaced-clause defect.
+
+/*!
+    \enum Qt::Other
+
+    \value ImhDate See the [reference] table for details.
+    \value ImhTime Added in [since 6.12] and still supported.
+*/

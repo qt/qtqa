@@ -1,0 +1,27 @@
+# QDoc expects the bracketed version clause first: `\value [since X] Name
+# Desc`. It then annotates the item with the version that introduced it.
+# Placed after the name or the description instead, the clause is not a
+# clause at all: QDoc records no version and renders the bracket literally
+# as description text. QDoc never warns about the clause either way, so a
+# misplaced one goes unnoticed. See docparser.cpp, case CMD_VALUE:
+# `getArgument()` reads only the token immediately after `\value`, so a
+# `[since X]` anywhere else is never recognized, no matter how it got there.
+extends: existence
+message: "QDoc ignores this '[since ...]' clause; it must immediately follow the command: \\value [since X] Name Description."
+link: https://doc.qt.io/qt-6/10-qdoc-commands-tablesandlists.html#value-command
+level: error
+scope: 'text & doc(p)'
+# The accepted vocabulary is matched unanchored against the whole span this rule
+# reports, so an accepted word anywhere inside the match would suppress it --
+# `Qt` in `\value Qt::ImhHiddenText [since 6.4]`, for one.
+vocab: false
+nonword: true
+raw:
+  # This scope sees the converted text, where the `\value` token is already
+  # gone and the name is masked to a run of `*` the same length as the name.
+  # A correctly placed clause (`\value [since X] Name Desc`) is consumed
+  # before the mask is emitted, so the mask is never followed by `[since` in
+  # that case -- only a misplaced one produces this adjacency. Match the
+  # mask, never a `^` anchor: anchors do not bind inside a narrowed block,
+  # and every raw pattern needs a literal to survive MightMatch.
+  - '\*[ \t]+\[[Ss]ince'
