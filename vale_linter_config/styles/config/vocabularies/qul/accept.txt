@@ -5,4 +5,14 @@ TRAVEO
 (?i)tvii.*
 layerwarp*
 toolchain[s]
+Ambiq
+Espressif
+Generalplus
 Infineon
+Xilinx
+Xtensa
+Zynq
+bpp
+Gerda
+Nuvoton
+qmlproject
