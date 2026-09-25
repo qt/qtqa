@@ -1,0 +1,21 @@
+# R2 (skill-language-style) SCAN trigger: wordy constructions with no fixed
+# single-word replacement (the object varies), so flagged rather than
+# substituted -- "causes the crash to occur" -> "causes the crash", not a
+# literal string swap.
+extends: existence
+message: "'%s' is wordy; drop the redundant clause (see R2)."
+link: https://learn.microsoft.com/en-us/style-guide/word-choice/use-simple-words-concise-sentences
+level: suggestion
+ignorecase: true
+# vocab: false -- without it, this rule silently never fires under the real
+# .vale-qdoc.ini (Vocab = Qt, qul, Figma enabled): a bounded-repetition,
+# multi-word token like the "causes ... to occur" one below stops matching
+# entirely once any Vocab list is active, even though no word in the
+# matched span is itself a vocab entry. vocab: false confirmed to fix it in
+# isolation; nonword: true independently fixes it too, but vocab: false
+# matches the precedent already set by QDocDeprecatedVersionOrder.yml and
+# QDocVersionClauseOrder.yml for the same class of problem.
+vocab: false
+tokens:
+  - 'causes? \w+(?: \w+){0,3} to occur\b'
+  - 'a frequent requirement is to\b'

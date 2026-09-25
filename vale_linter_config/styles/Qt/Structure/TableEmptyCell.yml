@@ -1,0 +1,35 @@
+# R55 (skill-language-style): a table cell must not be blank in a data
+# column; use "None"/"Not applicable" instead. This flags any `\li` with no
+# content on its line -- an approximation: it can't distinguish an
+# intentionally blank "Notes"-style column (R55's own documented exception)
+# from a data column, and it also fires on an ordinary blank `\list` item,
+# since QDoc uses `\li` for both.
+#
+# A properly `doc(td)`-scoped version was attempted and reverted: verified
+# empirically that `occurrence`/`metric` rules do not measure leaf elements
+# (`td`, `th`, `li`) at all in this Vale build -- an occurrence rule scoped
+# to bare `doc(td)` never fires, even at min: 10000 on a 271-byte fixture
+# (see styles/Qt/Structure/README.md for the full probe). Container-level scopes
+# (`doc(table)`, `doc(ul)`, `doc(p)`, `doc(section)`) ARE measurable; leaf
+# scopes are not. `existence` rules CAN reach leaf content via
+# `text & doc(td)` (see TableGenericHeaders.yml), but existence can only
+# assert presence of a bad pattern, not absence of any content: an
+# anchor-only pattern (`^\s*$`, `\A\s*\z`) never matches because Vale's
+# MightMatch pre-filter requires a literal in the pattern to consider it at
+# all (documented in styles/Qt/Structure/QDocVersionClauseOrder.yml). And RE2 (Vale's
+# regex engine) has no lookaround, so a raw-scope pattern can't be bounded
+# to "inside \table...\endtable" without also being able to leak across an
+# \endtable boundary. Net result: this specific check is not expressible as
+# a properly table-scoped Vale rule with the tools available; left as the
+# best-effort file-wide version rather than a non-functional "fixed" one.
+extends: existence
+message: "Empty table/list cell; use 'None' or 'Not applicable' instead of leaving it blank (see R55)."
+link: https://learn.microsoft.com/en-us/style-guide/scannable-content/tables
+level: suggestion
+scope: raw
+nonword: true
+# (?m): scope: raw sees the whole file as one string, so `$` needs the
+# multiline flag to anchor per line (empirically confirmed -- see
+# styles/Qt/Structure/README.md).
+raw:
+  - '(?m)\\li[ \t]*$'

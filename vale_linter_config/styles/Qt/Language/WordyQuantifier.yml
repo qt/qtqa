@@ -1,0 +1,10 @@
+# R2 (skill-language-style): "a lot of" is a vague quantifier with a fixed
+# one-word replacement -- the same category Microsoft.Wordiness already
+# covers ("a (?:large)? number of: many", "an appreciable number of: many").
+# Extends that rule directly (docs.vale.sh/topics/styles#extending-another-rule)
+# instead of duplicating a substitution-type rule as a separate existence
+# check; see Qt.Language.WordyFillers for the fillers that have no fixed
+# replacement and stay a standalone existence rule.
+extends: Microsoft.Wordiness
+swap+:
+  a lot of: many

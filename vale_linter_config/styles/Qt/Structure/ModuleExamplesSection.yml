@@ -1,0 +1,24 @@
+# R58 (skill-language-style): a module landing page ({module}-index.qdoc)
+# must include an Examples section and a Reference section. Modeled directly
+# on styles/QtSelectors/PageOverview.yml's proven pattern: an `occurrence`
+# rule with `min: 1` on a `doc(section:has(> h2:contains("...")))` selector
+# reports once per file, at 1:1, if the required section is absent.
+# Verified: fires on a page missing the section, stays silent on one that
+# has it (see styles/Qt/Structure/README.md).
+#
+# `:contains()` is case-insensitive and matches substrings (see
+# SectionSubtree.yml's own warning), so a heading like "Example Gallery"
+# also satisfies "Examples" -- an accepted false-negative-avoidance
+# trade-off, not a bug.
+# APPLICABILITY: this is a whole-file presence check, scoped in
+# .vale-qdoc.ini to a [*-index.qdoc] section, not the general [*.{qdoc,...}]
+# section, so it only applies to {module}-index.qdoc files -- the real Qt
+# filename convention for module landing pages (verified against
+# qtwidgets-index.qdoc, qtcore-index.qdoc, qtxml-index.qdoc in qtbase/qtdeclarative).
+extends: occurrence
+message: "This page has no Examples section (see R58)."
+link: https://doc.qt.io/qt-6/qdoc-guide-writing.html
+level: warning
+scope: 'doc(section:has(> h2:contains("Examples")))'
+token: '(?s).'
+min: 1

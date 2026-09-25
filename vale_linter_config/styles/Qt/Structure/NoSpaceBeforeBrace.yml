@@ -1,0 +1,12 @@
+# R39 (skill-language-style): prefer no space between a QDoc command and its
+# opening curly brace (\l{target} not \l {target}) -- a style preference for
+# 80-column compactness, not a parser requirement. scope: raw sees the
+# original QDoc source, not the converted prose.
+extends: existence
+message: "Prefer '%s' without the space before '{' (see R39)."
+link: https://doc.qt.io/qt-6/qdoc-guide-writing.html
+level: suggestion
+scope: raw
+nonword: true
+raw:
+  - '\\(?:l|sa|c|b|e|i|sub|sup) \{'

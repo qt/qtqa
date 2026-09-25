@@ -1,0 +1,12 @@
+# R43 (skill-language-style): keyboard shortcuts are Ctrl+B, not Control+B
+# or Ctrl + B (no spaces around the +).
+extends: existence
+message: "Use the compact shortcut form, e.g. 'Ctrl+B', not '%s' (see R43)."
+link: https://wiki.qt.io/Qt_Writing_Guidelines
+level: suggestion
+scope: text
+nonword: true
+tokens:
+  - '\bControl\+[A-Za-z]'
+  - '\b(?:Ctrl|Alt|Shift|Cmd|Meta)\s+\+\s*[A-Za-z]'
+  - '\b(?:Ctrl|Alt|Shift|Cmd|Meta)\+\s+[A-Za-z]'

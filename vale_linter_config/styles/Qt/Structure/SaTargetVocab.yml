@@ -1,0 +1,12 @@
+# R41 (skill-language-style): every \sa target must resolve to a real doc
+# target. PROOF-OF-CONCEPT ONLY: a real implementation needs a build-time
+# generated vocabulary from QDoc .index files (grep 'name="Target"'), not a
+# hand-written list. This hard-codes 3 "valid" targets to prove the
+# mechanism -- flag any \sa entry that ISN'T one of them.
+extends: existence
+message: "\\sa target '%s' is not in the known-valid target list (proof-of-concept vocab) (see R41)."
+level: warning
+scope: raw
+nonword: true
+raw:
+  - '(?m)^\s*\\sa\s+(?!(?:QWidget::show\(\)|QDialog::exec\(\)|QWidget::hide\(\)))\S+'

@@ -3,7 +3,7 @@
 
 // SHOULD WARN (Microsoft.Headings): requires sentence case; these
 // section headings use title case instead.
-// SHOULD WARN (Qt.QDocPageTitle): \title is not title case.
+// SHOULD WARN (Qt.Language.QDocPageTitle): \title is not title case.
 
 /*!
     \page bad-sections.html
@@ -18,7 +18,7 @@
 
 // SHOULD NOT WARN (Microsoft.Headings): section headings correctly
 // use sentence case.
-// SHOULD WARN (Qt.QDocPageTitle): \title is not title case.
+// SHOULD WARN (Qt.Language.QDocPageTitle): \title is not title case.
 
 /*!
     \page good-sections.html
@@ -33,7 +33,7 @@
 
 // SHOULD NOT WARN (Microsoft.Headings): \title is exempt from the
 // sentence-case check.
-// SHOULD WARN (Qt.QDocPageTitle): \title is not title case.
+// SHOULD WARN (Qt.Language.QDocPageTitle): \title is not title case.
 
 /*!
     \page good-title.html
@@ -42,7 +42,7 @@
     This page describes the Qt Network Module.
 */
 
-// SHOULD NOT WARN (Microsoft.Headings, Qt.QDocPageTitle): proper
+// SHOULD NOT WARN (Microsoft.Headings, Qt.Language.QDocPageTitle): proper
 // nouns are exempt from case checks.
 
 /*!
@@ -56,7 +56,7 @@
 
 // SHOULD WARN (Microsoft.HeadingPunctuation): section headings end
 // with punctuation.
-// SHOULD WARN (Qt.QDocPageTitle): \title is not title case.
+// SHOULD WARN (Qt.Language.QDocPageTitle): \title is not title case.
 
 /*!
     \page bad-heading-punctuation.html
@@ -69,7 +69,7 @@
 
 // SHOULD WARN (Microsoft.HeadingAcronyms): acronym in a section
 // heading.
-// SHOULD WARN (Qt.QDocPageTitle): \title is not title case.
+// SHOULD WARN (Qt.Language.QDocPageTitle): \title is not title case.
 
 /*!
     \page bad-heading-acronyms.html
@@ -83,7 +83,7 @@
 // SHOULD WARN (Microsoft.HeadingColons): lowercase word after a
 // colon in a section heading.
 // NOTE: \title "Network configuration" is not title case, but
-// Qt.QDocPageTitle does not fire on it here — a known gap, not
+// Qt.Language.QDocPageTitle does not fire on it here — a known gap, not
 // asserted as SHOULD WARN or SHOULD NOT WARN.
 
 /*!

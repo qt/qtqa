@@ -1,7 +1,0 @@
-extends: existence
-message: "Add alt text for image '%s'."
-link: https://doc.qt.io/qt-6/qdoc-guide-writing.html
-level: warning
-scope: meta.image
-raw:
-  - '\S+'

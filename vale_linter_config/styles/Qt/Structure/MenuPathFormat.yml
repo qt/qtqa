@@ -1,0 +1,13 @@
+# R44 (skill-language-style): menu navigation paths use bold elements
+# separated by '>' -- **File** > **New Project**, not File > New Project.
+# Heuristic: a capitalized word > capitalized word span with no ** markers
+# on either side. Expected to be noisy outside UI-tools docs (Qt Creator,
+# Qt Design Studio) -- see the test fixture note on false positives.
+extends: existence
+message: "Bold each menu element: '%s' should read like '**File** > **New Project**' (see R44)."
+link: https://wiki.qt.io/Qt_Writing_Guidelines
+level: suggestion
+scope: text
+nonword: true
+raw:
+  - '(?<!\*\*)\b[A-Z][a-zA-Z]*(?<!\*\*)\s*>\s*(?!\*\*)[A-Z][a-zA-Z]*(?!\*\*)'

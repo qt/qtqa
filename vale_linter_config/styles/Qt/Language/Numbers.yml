@@ -1,0 +1,13 @@
+# R13 (skill-language-style): spell out one through nine; use numerals for
+# 10 and above. EXPERIMENTAL -- flagged for empirical testing: this is
+# expected to over-fire on version numbers, dimensions, and code values,
+# which R13 explicitly exempts and a lexical rule can't distinguish from
+# prose counts. See test fixture for the false-positive evidence.
+extends: existence
+message: "Spell out '%s' (one through nine) in prose, unless it's a dimension, version, or code value (see R13)."
+link: https://learn.microsoft.com/en-us/style-guide/numbers
+level: suggestion
+scope: text
+nonword: true
+tokens:
+  - '(?<![\w.])[1-9](?![\w.%])'

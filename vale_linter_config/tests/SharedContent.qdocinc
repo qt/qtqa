@@ -59,7 +59,7 @@ or \c{QCommandLineParser} to process command-line arguments at startup.
 The \c{QFileSystemWatcher} implementation is selected at build time.
 //! [module-table]
 
-// SHOULD WARN: \brief without period (Qt.QDocBrief)
+// SHOULD WARN: \brief without period (Qt.Structure.QDocBrief)
 // SHOULD WARN: title-case section headings (Microsoft.Headings)
 // SHOULD WARN: passive voice in prose (Microsoft.Passive)
 // SHOULD NOT WARN: sentence-case headings, \c{} and \l{}{} in prose, \macos macro

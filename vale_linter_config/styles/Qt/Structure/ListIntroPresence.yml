@@ -1,0 +1,22 @@
+# R54 (skill-language-style): a \list/\table should be introduced by
+# preceding prose. Redesigned: the original approach used a CSS
+# previous-sibling selector, `doc(ul:not(p + ul))`, to express "not
+# immediately preceded by a <p>" -- infeasible, this Vale build's doc()
+# dialect (cascadia) doesn't support sibling combinators (`+`/`~`) in a
+# working way.
+#
+# Replacement heuristic: scope: raw, matched against the source text
+# directly. Flags a \list/\table whose nearest preceding non-blank line is
+# itself a QDoc command (starts with \) rather than prose -- i.e., nothing
+# introduces it. This only catches the clearest case (command immediately
+# before the list/table); it will not catch every missing-intro case, e.g.
+# two blank lines or a stray \note in between are not flagged. Kept
+# deliberately narrow to avoid false positives on legitimately-introduced
+# lists. Still disabled in .vale-qdoc.ini pending validation against the real
+# doc corpus.
+extends: existence
+message: "This list has no introductory sentence before it (see R54)."
+level: warning
+scope: raw
+raw:
+  - '(?m)^[ \t]*\\(?:section[1-4]|title|brief|note|warning|li|row|list|table|endlist|endtable|target|keyword)\b[^\n]*\n(?:[ \t]*\n)?[ \t]*\\(?:list|table)\b'

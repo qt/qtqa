@@ -1,0 +1,15 @@
+# R63 (skill-language-style): a \warning must state a concrete consequence,
+# not hedge ("use with caution", "be careful", "take care"). Modeled
+# directly on styles/QtSelectors/AdmonitionAdvisory.yml's proven pattern:
+# `\warning` converts to <div class="warning">, so `doc(div.warning)`
+# reaches only that block, not \note or plain prose.
+extends: existence
+message: "Hedging phrase '%s' in \\warning; state the concrete consequence instead (see R63)."
+level: warning
+scope: 'text & doc(div.warning)'
+vocab: false
+ignorecase: true
+tokens:
+  - 'use (?:this|it) with caution'
+  - 'be careful'
+  - 'take care'

@@ -1,0 +1,16 @@
+# R26 (skill-language-style): alt text uses generic, lowercase UI terms,
+# not Qt class names (Button, not QPushButton or Button-as-QML-type-name).
+# Heuristic: a CamelCase word (internal capital) or a bare Q-prefixed
+# identifier inside alt text is very likely a class name, not prose.
+#
+# scope: raw, not text.comment.image.alt -- see Qt.Structure.AltTextFormat
+# for why. Matched only inside an \image/\inlineimage {...} span so it
+# doesn't fire on class names used correctly elsewhere in prose.
+extends: existence
+message: "Use a generic, lowercase UI term instead of the class name '%s' in alt text."
+link: https://doc.qt.io/qt-6/qdoc-guide-writing.html
+level: warning
+scope: raw
+nonword: true
+raw:
+  - '(?m)\\(?:inline)?image\s+\S+\s+\{[^}]*\b(?:Q[A-Z][A-Za-z]*|[A-Z][a-z]+[A-Z][A-Za-z]*)\b[^}]*\}'

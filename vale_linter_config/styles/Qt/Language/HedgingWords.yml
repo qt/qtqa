@@ -1,0 +1,19 @@
+# R38 (skill-language-style): hedging/filler adverbs to omit. Extends
+# Microsoft.Wordiness rather than duplicating it -- Wordiness already
+# covers "in order to" and "utilize"/"make use of"; this fills the gap
+# for words whose fix is deletion, not substitution, so they're modeled
+# as `existence` (flag-only) instead of `substitution` (replace-with).
+extends: existence
+message: "Consider removing '%s' — it adds no information here."
+link: https://learn.microsoft.com/en-us/style-guide/word-choice/use-simple-words-concise-sentences
+level: suggestion
+ignorecase: true
+nonword: true
+tokens:
+  - '\bsimply\b'
+  - '\bobviously\b'
+  - '\bclearly\b'
+  - '\bbasically\b'
+  - '\bessentially\b'
+  - '\bindeed\b'
+  - '\bactually\b'

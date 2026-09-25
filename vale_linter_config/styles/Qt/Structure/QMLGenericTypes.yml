@@ -1,0 +1,14 @@
+# R51 (skill-language-style): \qmlmethod/\qmlproperty signatures use
+# generic QML/JS types (object, var, string, list), never the underlying
+# C++ type. scope: raw matches the QDoc command line directly.
+extends: existence
+message: "Use the generic QML type instead of the C++ type '%s' in this signature (see R51)."
+link: https://wiki.qt.io/QML_Documentation_Style
+level: warning
+scope: raw
+nonword: true
+# A single alternation, not a multi-entry raw list: this Vale build only
+# reliably evaluates the first entry of a `raw:` list with more than one
+# pattern (empirically confirmed -- see styles/Qt/Structure/README.md).
+raw:
+  - '\\qml(?:method|property)\s+\S*\bQObject\s*\*|\\qml(?:method|property)\s+\S*\bQVariant\b|\\qml(?:method|property)\s+\S*\bQString\b|\\qml(?:method|property)\s+\S*\bQList<|\\qml(?:method|property)\s+QtQml::QtObject\b|\\qml(?:method|property)\s+QtObject\b'

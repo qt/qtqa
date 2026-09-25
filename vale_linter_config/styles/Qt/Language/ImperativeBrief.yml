@@ -1,0 +1,12 @@
+# R5 (skill-language-style): briefs use imperative mood ("Returns...",
+# "Sets..."), not indicative wrappers like "This function is used to...".
+# Scoped to text.class.brief, the proven scope from styles/Qt/Structure/QDocBrief.yml.
+extends: existence
+message: "Brief should open with an imperative verb, not '%s' (see R5)."
+level: warning
+scope: text.class.brief
+ignorecase: true
+nonword: true
+tokens:
+  - '^This (?:function|method) is used to\b'
+  - '^This (?:function|method) will\b'

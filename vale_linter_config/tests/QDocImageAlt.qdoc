@@ -37,7 +37,7 @@
 */
 
 // SHOULD WARN: alt text containing inline QDoc commands (\b, \i, etc.).
-// Qt.QDocImageAltInlineCmd fires on brace-delimited alt text that contains
+// Qt.Structure.QDocImageAltInlineCmd fires on brace-delimited alt text that contains
 // a QDoc inline command. Plain (unbraced) alt text is not testable here
 // because the scanner stops at '\', truncating anything after it.
 // Note: \c is suppressed before this rule runs by the TokenIgnores entry
@@ -55,7 +55,7 @@
 // SHOULD NOT WARN: plain (unbraced) alt text containing an inline command.
 // The image_alt_text scanner stops at '\', so the token contains only the
 // text before the command. The inline command is not captured as part of
-// the alt text and Qt.QDocImageAltInlineCmd cannot fire.
+// the alt text and Qt.Structure.QDocImageAltInlineCmd cannot fire.
 
 /*!
     \class QScrollBar

@@ -1,0 +1,11 @@
+# R23 (skill-language-style): example/tutorial titles shouldn't repeat the
+# word "Example" -- the page is already filed under Examples. Reuses the
+# heading.h1 scope Qt already binds \title to (see Qt.Language.QDocPageTitle).
+extends: existence
+message: "Title repeats '%s'; the page is already an example (see R23)."
+link: https://wiki.qt.io/Writing_Example_Documentation_and_Tutorials
+level: suggestion
+scope: heading.h1
+ignorecase: true
+tokens:
+  - 'Example'

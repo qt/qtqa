@@ -1,0 +1,13 @@
+# R38 (skill-language-style): "since"/"as" used for causation should be
+# "because" -- Latin-adjacent formality, not a Latin term itself.
+# EXPERIMENTAL -- flagged for empirical testing: "since"/"as" are also
+# legitimately temporal ("since Qt 6.0", "as the event arrives"), and a
+# lexical rule can't reliably tell the two senses apart. See test fixture.
+extends: existence
+message: "If '%s' means 'because' here, write 'because' -- keep 'since'/'as' for time (see R38)."
+link: https://learn.microsoft.com/en-us/style-guide/word-choice
+level: suggestion
+scope: sentence
+ignorecase: true
+tokens:
+  - '^(?:Since|As) (?!Qt |soon |long )[a-z]+ '

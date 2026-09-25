@@ -2,7 +2,11 @@ extends: capitalization
 message: "'%s' should use sentence-style capitalization."
 link: https://docs.microsoft.com/en-us/style-guide/capitalization
 level: suggestion
-scope: heading.h2,heading.h3,heading.h4,heading.h5
+scope:
+  - heading.h2
+  - heading.h3
+  - heading.h4
+  - heading.h5
 match: $sentence
 indicators:
   - ':'

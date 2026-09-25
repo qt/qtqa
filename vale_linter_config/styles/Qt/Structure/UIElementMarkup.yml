@@ -1,0 +1,13 @@
+# R42 (skill-language-style): UI element names must be marked (bold in
+# tools docs, \uicontrol in QDoc), not bare. PROOF-OF-CONCEPT ONLY: a
+# hand-curated 6-entry blocklist of known Qt Creator UI element names,
+# flagged when they appear as bare prose (not already wrapped in ** or
+# \uicontrol{}). A real implementation would need this list generated from
+# Qt Creator's actual UI strings, not hand-picked.
+extends: existence
+message: "UI element '%s' should be marked (bold, or \\uicontrol{} in QDoc) (see R42)."
+level: suggestion
+scope: text
+nonword: true
+tokens:
+  - '(?<!\*\*)\b(?:File|Edit|Build|Debug|Cancel|Preferences)\b(?!\*\*)'

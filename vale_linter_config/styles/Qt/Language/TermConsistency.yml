@@ -1,0 +1,12 @@
+# R8 (skill-language-style): same word for same concept throughout a
+# document. Vale's built-in `consistency` rule type: whichever variant in
+# `either:` appears first in the file wins; later occurrences of the other
+# variant are flagged. Note: the rule only supplies one %s substitution
+# (the flagged term), not both variants -- verified empirically.
+extends: consistency
+message: "Inconsistent terminology: '%s' -- use one term for this concept throughout, matching the first occurrence (see R8)."
+level: warning
+ignorecase: true
+nonword: true
+either:
+  list view: ListView

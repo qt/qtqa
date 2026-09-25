@@ -1,0 +1,15 @@
+# R2 (skill-language-style) SCAN trigger: informal filler phrases with no
+# single fixed replacement (the fix is deletion/rewording, not a swap) --
+# distinct from Microsoft.Wordiness/Qt.Language.HedgingWords, and from
+# Qt.Language.WordyQuantifier.yml, which extends Microsoft.Wordiness
+# directly for 'a lot of' (a vague-quantifier phrase with a fixed
+# replacement, same category as Wordiness's existing "a number of: many").
+extends: existence
+message: "'%s' is informal filler; state the point directly."
+link: https://learn.microsoft.com/en-us/style-guide/word-choice/use-simple-words-concise-sentences
+level: suggestion
+ignorecase: true
+tokens:
+  - 'kind of'
+  - 'sort of'
+  - 'pretty much'

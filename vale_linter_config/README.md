@@ -26,7 +26,7 @@ Follow these steps to get started:
      nor from https://github.com/vale-cli/vale/releases — reliably
      passes the QDoc functional probe below (for example, fork release
      v3.15.1-qdoc predates the `text.class.brief` scope that
-     `Qt.QDocBrief` now uses). Build from source instead:
+     `Qt.Structure.QDocBrief` now uses). Build from source instead:
 
      ```
      git clone --branch v3 https://github.com/vale-cli/vale.git
@@ -61,7 +61,7 @@ Follow these steps to get started:
    indicator — see step 1):
 
    ```
-   vale --config=.vale-qdoc.ini --output=line tests/QDocBrief.qdoc | grep Qt.QDocBrief
+   vale --config=.vale-qdoc.ini --output=line tests/QDocBrief.qdoc | grep Qt.Structure.QDocBrief
    ```
 
    If this prints no output, the binary does not have QDoc parser
@@ -88,6 +88,28 @@ Vale rules are simple text files in YAML format. You can either enable
 or disable individual rules in a style, which is a directory with
 different YAML files for each rule. You could also add a new rule under
 a custom style. See https://vale.sh/docs/topics/styles/ for more info.
+
+The Qt-specific rules live under the `styles/Qt` style, in subdirectories
+grouped by what they check, not by how mature they are. Vale
+resolves a nested style directory into a dotted rule name (`styles/Qt/Language/FutureTense.yml`
+becomes `Qt.Language.FutureTense`). Each subdirectory mixes enabled and
+disabled/research rules, with the reason recorded in `.vale-qdoc.ini` and in
+its own README:
+
+- `styles/Qt/Language` covers wording: grammar, tense, tone, terminology, and
+  word choice. See `styles/Qt/Language/README.md`.
+- `styles/Qt/Structure` covers QDoc topic/document structure: whether a
+  brief, title, anchor, table, image, version clause, or module section is
+  present and correctly formed. See `styles/Qt/Structure/README.md`.
+- `styles/Qt/Mechanics` covers generic text mechanics: line length, spacing,
+  repetition, and spelling. See `styles/Qt/Mechanics/README.md`.
+- `styles/QtSelectors` is a research style testing the `doc(...)`
+  scope-selector syntax added in Vale 3.21.0. It's not wired into
+  `.vale-qdoc.ini`, because the pinned Homebrew build predates it.
+
+When adding a new Qt-specific rule, use whichever of these three
+subdirectories matches what it checks. Only start a new one when a rule
+truly doesn't fit any of them.
 
 ## Vocabularies or terms list
 

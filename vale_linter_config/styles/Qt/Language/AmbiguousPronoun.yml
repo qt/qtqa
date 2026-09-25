@@ -1,0 +1,10 @@
+# R10 (skill-language-style): avoid ambiguous pronouns; repeat the noun
+# when in doubt. Heuristic: sentence-initial "This/It is/was/does/has"
+# not immediately followed by a noun is a vague-referent smell.
+extends: existence
+message: "Vague pronoun reference: '%s'. Consider naming the noun (see R10)."
+level: suggestion
+scope: sentence
+nonword: true
+tokens:
+  - '^(?:This|It)\s+(?:is|was|does|has|will|can|should)\b'

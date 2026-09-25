@@ -1,0 +1,29 @@
+# R59 (skill-language-style): an example group page (\group
+# {module}_examples) must include \ingroup all-examples, or the module's
+# examples never appear on the global "All Qt Examples" page. This is a
+# whole-file presence check (occurrence, scope: raw, min: 1 on the command
+# token) rather than a doc()-scoped one, since \ingroup produces no heading
+# or distinct block to select structurally -- verified against a fixture
+# with and without the command (see styles/Qt/Structure/README.md).
+#
+# APPLICABILITY: scoped in .vale-qdoc.ini to a [*-examples.qdoc] section, the
+# real Qt filename convention for example-group definition pages (verified
+# against qtwidgets-examples.qdoc, qtdbus-examples.qdoc, qtconcurrent-examples.qdoc
+# in qtbase/qtdeclarative/qttools), not the general [*.{qdoc,...}] section --
+# this keeps it from firing on unrelated \group pages (cmake property/variable
+# groups, xml-tools, richtext-processing, etc.) that have no business
+# declaring \ingroup all-examples.
+#
+# Residual gap: an individual example write-up page (documents one \example,
+# has no \group at all) can share the same *-examples.qdoc / *-example.qdoc
+# naming and would still be misflagged. Vale can't additionally require "this
+# file contains \group" -- \group/\ingroup produce no distinct doc() node
+# (see vale-source's qdoc.go qdocSkipLine), and RE2 has no lookaround to
+# express that AND/negation in one rule.
+extends: occurrence
+message: "Example group is missing \\ingroup all-examples (see R59)."
+link: https://doc.qt.io/qt-6/qdoc-guide-writing.html
+level: warning
+scope: raw
+token: '\\ingroup[ \t]+all-examples'
+min: 1

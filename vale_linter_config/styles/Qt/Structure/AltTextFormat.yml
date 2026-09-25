@@ -1,0 +1,20 @@
+# R24 (skill-language-style): alt text starts with a capital letter and has
+# no trailing period.
+#
+# NOTE: styles/Qt/Structure/QDocImageAltInlineCmd.yml uses `scope:
+# text.comment.image.alt`, which looked like the right scope to reuse for
+# alt-text *content* rules (as opposed to that rule's own inline-command
+# check). Empirically it never fires -- not even on
+# tests/QDocImageAlt.qdoc's own "SHOULD WARN" fixture lines under the
+# installed Vale 3.21.0 build (see styles/Qt/Structure/README.md) -- so this rule
+# is written against scope: raw instead, matching the QDoc source directly.
+# A single alternation with (?m): see the test report for why a
+# multi-entry raw list and an unanchored $ don't work in this Vale build.
+extends: existence
+message: "Alt text should start with a capital letter and have no trailing period: '%s'."
+link: https://doc.qt.io/qt-6/qdoc-guide-writing.html
+level: warning
+scope: raw
+nonword: true
+raw:
+  - '(?m)\\(?:inline)?image\s+\S+\s+\{(?:[a-z][^}]*|[^}]*\.\s*)\}'

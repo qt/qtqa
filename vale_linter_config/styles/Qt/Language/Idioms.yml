@@ -1,0 +1,13 @@
+# R7 (skill-language-style): idioms don't translate for a non-native-English
+# audience. Fixed phrase list, not a general idiom detector.
+extends: existence
+message: "'%s' is an idiom; use a literal equivalent for an international audience."
+link: https://wiki.qt.io/Qt_Writing_Guidelines
+level: suggestion
+ignorecase: true
+tokens:
+  - 'double-edged sword'
+  - 'behind the scenes'
+  - 'under the hood'
+  - 'out of the box'
+  - 'on the fly'

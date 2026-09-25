@@ -1,0 +1,25 @@
+# R3 (skill-language-style): Qt product/module names and version numbers
+# have one correct spelling; QDoc never validates prose terminology, so a
+# wrong form (Qt5, QtQuick in prose, Qt Gui) survives silently otherwise.
+#
+# Scoped to text so this doesn't fire inside \c{}/\l{}/code spans, where
+# QtQuick/Qt5 are legitimate identifier fragments (e.g. QtQuick.Controls).
+extends: existence
+message: "Use '%s' — Qt product/module names take a space before the version or word (see S7, Qt Terms and Concepts)."
+link: https://wiki.qt.io/Qt_Terms_and_Concepts
+level: warning
+scope: text
+nonword: true
+tokens:
+  - '\bQt[0-9]\b'
+  - '\bQt5-based\b'
+  - '\bQtQuick\b(?!\.[A-Za-z])'
+  - '\bQtCreator\b'
+  - '\bQt [Gg]ui\b'
+  - '\bQt [Ss]ql\b'
+  - '\bQt [Ss]vg\b'
+  - '\bQt [Nn]fc\b'
+  - '\bQt [Pp]df\b'
+  - '\bQt [Xx]ml\b'
+  - '\bQt [Dd]bus\b'
+  - '\bQt DBUS\b'

@@ -1,0 +1,13 @@
+# scope: meta.noalt, not meta.image -- Vale's scope match is subset-based, so
+# meta.image matches both the "image" class (alt text present) and the
+# "image noalt" class (alt text absent): every image line was flagged
+# regardless of alt text. meta.noalt matches only the noalt-classed data
+# node the converter writes when nothing followed the file name (see
+# imageMeta/imageMetaHTML in vale's internal/lint/qdoc.go).
+extends: existence
+message: "Add alt text for image '%s'."
+link: https://doc.qt.io/qt-6/qdoc-guide-writing.html
+level: warning
+scope: meta.noalt
+raw:
+  - '\S+'

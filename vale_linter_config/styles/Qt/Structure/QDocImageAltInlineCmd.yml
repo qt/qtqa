@@ -1,0 +1,12 @@
+# Previously believed non-functional: scope: text.comment.image.alt never
+# exposes image alt text as lintable content in this Vale build (the scanner
+# stops at the first backslash even in the braced form). Matched directly
+# against the raw \image/\inlineimage {...} command text instead -- the same
+# fix AltTextFormat.yml and AltTextClassNames.yml already use.
+extends: existence
+message: "Alt text must be plain text; remove the inline QDoc command '%s'."
+link: https://doc.qt.io/qt-6/qdoc-guide-writing.html
+level: warning
+scope: raw
+raw:
+  - '(?m)\\(?:inline)?image\s+\S+\s+\{[^}]*\\[a-z]+[^}]*\}'

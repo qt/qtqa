@@ -1,0 +1,15 @@
+# R18/R19 (skill-language-style): property/signal briefs must open with one
+# of the documented approved phrases. REFRAMED AS POLICY: R18/R19 list these
+# as "common patterns" (examples), not a mandatory closed set -- this rule
+# enforces them as a closed allow-list, a deliberate policy tightening, not
+# a literal reading of the skill's current wording. Scoped to
+# text.class.brief. Single-quoted YAML strings below (double-quoted style
+# treats \c as an invalid YAML escape); \\c in the regex is a literal
+# backslash-c (RE2 has no \c control-character escape either).
+extends: existence
+message: 'Property/signal brief must open with an approved phrase; got ''%s'' (see R18/R19).'
+level: warning
+scope: text.class.brief
+nonword: true
+tokens:
+  - '^(?!This property (?:holds|describes|represents)\b)(?!Returns \\c true when\b)(?!Sets the\b)(?!This signal is emitted when\b)(?!Emitted when\b)(?!Triggered when\b)(?!Hides\b)(?!Shows\b)(?!Constructs\b)(?!Destroys\b)(?!Returns\b)(?!Sets\b)(?!Updates\b)(?!Changes\b)[A-Z][a-z]+ .*[a-z]\.$'

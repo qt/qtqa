@@ -1,7 +1,7 @@
 // Copyright (C) 2026 The Qt Company Ltd.
 // SPDX-License-Identifier: LicenseRef-Qt-Commercial OR LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only
 
-// Fixture for Qt.LineLength. Lines are tagged to say whether the rule must
+// Fixture for Qt.Mechanics.LineLength. Lines are tagged to say whether the rule must
 // report them. Run with tests/run-linelength-test.sh.
 //
 // The rule was previously `extends: existence` with a raw regex. That form

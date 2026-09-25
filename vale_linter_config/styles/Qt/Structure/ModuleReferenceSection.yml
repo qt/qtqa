@@ -1,0 +1,15 @@
+# R58 (skill-language-style): a module landing page must include a
+# Reference section (with links to C++ Classes/QML Types). Same proven
+# pattern as ModuleExamplesSection.yml / PageOverview.yml.
+# APPLICABILITY: this is a whole-file presence check, scoped in
+# .vale-qdoc.ini to a [*-index.qdoc] section, not the general [*.{qdoc,...}]
+# section, so it only applies to {module}-index.qdoc files -- the real Qt
+# filename convention for module landing pages (verified against
+# qtwidgets-index.qdoc, qtcore-index.qdoc, qtxml-index.qdoc in qtbase/qtdeclarative).
+extends: occurrence
+message: "This page has no Reference section (see R58)."
+link: https://doc.qt.io/qt-6/qdoc-guide-writing.html
+level: warning
+scope: 'doc(section:has(> h2:contains("Reference")))'
+token: '(?s).'
+min: 1

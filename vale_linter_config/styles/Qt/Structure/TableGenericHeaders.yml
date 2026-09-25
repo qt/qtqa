@@ -1,0 +1,17 @@
+# R56 (skill-language-style): table headers must be specific, not generic
+# labels like "Name"/"Value". Scoped with `text & doc(th)` (see
+# docs.vale.sh/topics/scopes#class-scopes) so this reaches only real
+# `\header` cells -- verified empirically that `\header \li` converts to
+# <th>, distinct from `\row \li` (<td>) and from plain `\list \li` (<li>).
+# The previous `scope: raw` version matched any `\li` line, including
+# ordinary list items; this version cannot.
+extends: existence
+message: "Use a specific column header instead of '%s' (see R56)."
+link: https://learn.microsoft.com/en-us/style-guide/scannable-content/tables
+level: suggestion
+scope: text & doc(th)
+ignorecase: false
+nonword: true
+tokens:
+  - 'Name'
+  - 'Value'

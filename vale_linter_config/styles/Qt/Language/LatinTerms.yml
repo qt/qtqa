@@ -1,0 +1,10 @@
+# Extends Microsoft.Foreign directly instead of duplicating a substitution
+# rule for the same category (Latin-origin word choice not suited to a
+# non-native-English audience) -- the same pattern
+# Qt.Language.WordyQuantifier already uses for Microsoft.Wordiness. Foreign
+# already covers eg/e.g./ie/i.e./viz./ergo; this adds the two Latin-adjacent
+# terms Foreign doesn't, which come up in Qt doc prose: "via" and "etc."
+extends: Microsoft.Foreign
+swap+:
+  '\bvia\b': through
+  '\betc\.': (list specific items)

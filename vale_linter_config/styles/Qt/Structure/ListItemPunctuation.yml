@@ -1,0 +1,23 @@
+# R53 (skill-language-style): list items never end with a comma before a
+# trailing conjunction -- a sign of a run-on sentence split across \li
+# items instead of one item per fragment/sentence.
+#
+# The trailing-semicolon half of R53 was dropped: Microsoft.Semicolon
+# (scope: sentence, already enabled in .vale-qdoc.ini) already flags any
+# semicolon, including inside \li text -- verified empirically, both rules
+# fired on the same fixture line ("First item;" produced Microsoft.Semicolon
+# at col 40 and this rule at col 5). Keeping both duplicated the warning on
+# every semicolon-terminated list item; the comma+conjunction case has no
+# equivalent Microsoft rule, so it stays here.
+extends: existence
+message: "Don't end a list item with a trailing comma before a conjunction ('%s'); split into separate items or use a period — see R53."
+link: https://learn.microsoft.com/en-us/style-guide/scannable-content/lists
+level: warning
+scope: raw
+nonword: true
+# A single alternation with (?m): scope: raw sees the whole file as one
+# string, so `$` needs the multiline flag to anchor per line, and a
+# multi-entry raw list only reliably evaluates its first entry in this
+# Vale build (both empirically confirmed -- see styles/Qt/Structure/README.md).
+raw:
+  - '(?m)\\li\b.*,\s+(?:and|or)\s*$'

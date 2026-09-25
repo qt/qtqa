@@ -1,0 +1,10 @@
+# R47 (skill-language-style): section links in type docs must use
+# TypeName#Section Title, not a literal page.html#anchor fragment.
+extends: existence
+message: "Use 'TypeName#Section Title', not a literal '%s' fragment (see R47)."
+link: https://doc.qt.io/qt-6/qdoc-guide-writing.html
+level: warning
+scope: raw
+nonword: true
+raw:
+  - '\\l\{[^}]*\.html#[^}]*\}'
