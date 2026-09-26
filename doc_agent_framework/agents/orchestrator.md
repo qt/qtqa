@@ -251,8 +251,25 @@ format only when the task requires one.
 |--------|----------|
 | `doc-diff` | Detailed review with full validation (default) |
 | `gerrit` | Inline comments for Gerrit code review |
-| `codereview` | Export to file with verification checklist |
+| `codereview` | A document that explains each proposed change, for sharing |
 | `plain` | Quick summary for simple patches |
+
+**Agents that write records** (skill-doc-diff 7.0.0; qdoc-warning-fixer
+today) return `records.jsonl`, the evidence JSON, and `verify.json`, not
+the view. The orchestrator:
+
+1. Runs the gate: `tools/doc-diff/lint_record.py` and
+   `tools/doc-diff/verify_after.py` (exit 0), and checks `verify.json`.
+2. Renders with `tools/doc-diff/render_record.py --format <format>
+   --verify verify.json`. Every format comes from the same records, at no
+   extra model cost.
+3. Reviews only each record's `cause` and `judge` with the LLM.
+4. Shows the rendered view in full; the approval prompt is unchanged.
+5. For an audit, records how the agent ran: `tools/doc-diff/execution_record.py <agent transcript>
+   --agent-def <agent.md> --input <each input> --output <each output> --work-dir <dir> -o exec.json`,
+   then `render_record.py --format audit --execution exec.json`. The audit then shows the prompt,
+   model (pinned vs actual), effort, time, tokens, cost, every tool call, and the input and output
+   files, as tables and as JSON.
 
 Never summarize agent output into bare bullets or tables when the agent
 returned actionable suggestions. Verbatim completeness takes precedence

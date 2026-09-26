@@ -35,3 +35,4 @@ tools/
 | Tool | What it does | Used by |
 |------|--------------|---------|
 | [`check-artifact`](check-artifact/README.md) | Deterministic checks on an agent, skill, scenario, or tool before it lands | `framework-tester` Step 3 |
+| [`doc-diff`](doc-diff/README.md) | The record schema; lint records, check new text, and render them as git diffs from the real file | `skill-doc-diff`, pipeline A agents |

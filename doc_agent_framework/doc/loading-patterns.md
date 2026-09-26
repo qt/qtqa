@@ -40,7 +40,7 @@ Decision tree (in order — take the first `YES`):
 | # | Where |
 |---|-------|
 | 1 | Orchestration rules embedded in [`../CLAUDE.md`](../CLAUDE.md). |
-| 2 | Initial-check pair (`skill-framework-fitness` + `skill-security-hygiene`) loaded upfront on every dispatch. |
+| 2 | Small entry files needed on every run of one agent, such as the skill-doc-diff template. The initial-check pair is no longer upfront: it runs as a tool first (see orchestrator.md, "Initial check"). |
 | 3 | Stage agents GATE-load skills at the decision point they apply to. Recommended default for new agents. |
 | 5 | Tool wrappers live in [`../tools/`](../tools/); a skill invokes them at a specific step. No tool shipped yet. |
 | 6 | The four-layer chain (**harness → orchestrator → agent → skill**) is Pattern 6 by construction. |
@@ -89,19 +89,16 @@ and the content goes stale: by the time the agent reaches Step 8 and
 needs formatting rules it read at Step 1, that content is far back in
 the conversation and Claude pays less attention to it.
 
-**Example in this framework.** The orchestrator's pre-flight loads the
-initial-check pair upfront on every dispatch:
+**Example in this framework.** skill-doc-diff's SKILL.md (about 5 KB)
+holds the suggestion template, which every suggestion needs, so agents
+that write suggestions load it upfront. Its references load by GATE.
 
-```
-Load before routing to the stage agent:
-  - skills/skill-framework-fitness/SKILL.md
-  - skills/skill-security-hygiene/SKILL.md
-```
-
-These two skills apply to *every* framework artifact regardless of
-pipeline, so paying the upfront cost is worth it — a GATE at every
-possible decision point would be wasteful. Every other framework skill
-is a candidate for Pattern 3 instead.
+**Counter-example.** The orchestrator used to load skill-framework-fitness
+and skill-security-hygiene (30 KB together) on every dispatch. Most
+dispatches don't touch a framework artifact, so the cost bought nothing.
+They now run as `tools/check-artifact/check_artifact.py` first, and the
+skills load only when the tool finds something or the input is a
+framework artifact.
 
 **When to use it:**
 
