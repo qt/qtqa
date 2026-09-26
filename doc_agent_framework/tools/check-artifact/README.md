@@ -47,6 +47,15 @@ one is, 2 on a usage error.
 | `boundary-host` | all | Medium, a person confirms | skill-security-hygiene, framework boundary |
 | `secret` | all | Critical | skill-security-hygiene, hardcoded secrets |
 | `ai-tell-tier1` | Markdown | Medium, High once a person confirms | skill-ai-tells Tier 1 patterns |
+| `hygiene-password`, `hygiene-connection` | all | High | skill-security-hygiene, credentials in text |
+| `hygiene-http-auth`, `hygiene-logging`, `hygiene-email` | all | Medium | skill-security-hygiene, auth, logging, PII |
+| `hygiene-crypto` | all | Low (MD5 and SHA-1 also have non-security uses) | skill-security-hygiene, deprecated algorithms |
+| `skill-dir-files` | skill | (runs the common checks) | Every other file in the skill directory: CHANGELOG, references, scripts |
+| `skill-name` | agent, skill (Markdown, not CHANGELOG) | Low, a person confirms | A bare `skill-<name>` that isn't in `skills/`: a missing port, or a source citation |
+| `port-fitness` | skill | Medium | A skill with `metadata.ported-from` needs `metadata.fitness` (date, layers run, hygiene result); CONTRIBUTING, "Porting from Phase 1" |
+
+Lines that show a regex, grep pattern, or elided example (`…`) are
+skipped by the hygiene checks, so rule text doesn't flag itself.
 
 Two checks report candidates, not verdicts. The Tier 1 AI-tell
 patterns also match quoted patterns and literal uses ("not only the

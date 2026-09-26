@@ -1,0 +1,207 @@
+# Register dials: tunable settings for G23-G30 and the C types.
+#
+# Each register is a set of dials. G-rules (references/registers.md) and
+# C-rules (skill-c-rules) read their settings from here, so a team policy
+# change is one edit in this file, not a rewrite of rule prose.
+#
+# Dial kinds:
+#   [tool]  numeric or pattern dial; tools/register-dials/check_dials.py
+#           checks it deterministically.
+#   [LLM]   judgment dial; the reviewer reads the value and applies it.
+#
+# Precedence: a Qt S-source beats any dial. A dial can narrow an S9
+# default (see the Microsoft baseline table in registers.md), never a Qt
+# S-source. A content-type override beats the register default.
+#
+# Initial values: sentence_words_target 20 comes from G21 ("about 20
+# words"). The other sentence targets and maxima, analogies_max, and
+# intro_sentences_max are starting points set on 2026-09-26 with no
+# S-source. Tune them against the corpus (per ground rule 7).
+#
+# Tune a value, then run: python3 tools/register-dials/check_dials.py --selftest
+
+version = "0.1.0"
+
+# --------------------------------------------------------------------------
+# Doc registers (used on doc.qt.io)
+# --------------------------------------------------------------------------
+
+[registers.reference]            # G23
+rule = "G23"
+purpose = "Look up one fact fast."
+person = "third; 'you' only when the reader acts, chooses, or must do something (G4 test)"   # [LLM]
+tense = "present"                                    # [LLM]; R4 is the tool check
+mood = "indicative"                                  # [LLM]; briefs follow G3, G9, G10
+tone = "plain, factual"                              # [LLM]
+structure = "one fact per sentence; subject is the API"   # [LLM]
+sentence_words_target = 15                           # [LLM] guidance
+sentence_words_max = 25                              # [tool]
+analogies_max = 0                                    # [LLM]
+asides = "rare"                                      # [LLM] none | rare | some (G32)
+steps_allowed = false                                # [LLM]
+api_facts_allowed = true                             # [LLM]
+we_allowed = "sparingly: 'we recommend' only (S9)"   # [tool] counts 'we'
+first_person_singular = false                        # [tool]
+contractions = "allowed, don't add"                  # [LLM] (S9)
+contraction_density_max = 2.0                        # [tool] per 1,000 words (T19)
+
+[registers.tutorial]             # G24
+rule = "G24"
+purpose = "Walk the reader through steps to a working result."
+person = "second ('you'); imperative steps"
+tense = "present; state the result of each step"
+mood = "imperative for steps, indicative for results"
+tone = "direct, encouraging without reassurance filler"
+structure = "prerequisites first, then numbered steps in order, then the result"
+sentence_words_target = 20
+sentence_words_max = 30
+analogies_max = 1
+asides = "some"
+steps_allowed = true
+api_facts_allowed = false        # link to reference pages instead
+we_allowed = "inclusive 'we' in existing walkthroughs only; new text uses 'you'"
+first_person_singular = false
+contractions = "allowed (S9)"
+contraction_density_max = 2.0
+
+[registers.conceptual]           # G25
+rule = "G25"
+purpose = "Build a mental model: what it is, why it exists, when to use it."
+person = "third, or 'you' when the reader makes a choice (G4 test: 'Use X when you need...')"
+tense = "present"
+mood = "indicative: states things rather than giving commands"
+tone = "calm and factual"
+structure = "each paragraph opens with a plain topic sentence; sections go what, why, how"
+sentence_words_target = 20       # a little longer than reference is fine
+sentence_words_max = 30
+analogies_max = 1                # as support, never as the definition
+asides = "some"
+steps_allowed = false            # link to a tutorial instead
+api_facts_allowed = false        # link to the reference page instead
+we_allowed = "sparingly: 'we recommend' only (S9)"
+first_person_singular = false
+contractions = "allowed (S9)"
+contraction_density_max = 2.0
+
+[registers.legal]                # G28
+rule = "G28"
+purpose = "State obligations without ambiguity."
+person = "third; keep the license's own terms ('Licensee')"
+tense = "present"
+mood = "indicative; 'shall' and 'must' allowed"
+tone = "formal, precise"
+structure = "never rewrite third-party license text; report it"
+sentence_words_target = 30
+sentence_words_max = 60
+analogies_max = 0
+asides = "none"
+steps_allowed = false
+api_facts_allowed = false
+we_allowed = "as in the license text"
+first_person_singular = false
+contractions = "none"
+contraction_density_max = 0.0
+
+[registers.release_notes]        # G29
+rule = "G29"
+purpose = "Record what changed, one change per item."
+person = "none; start with the verb"
+tense = "past ('Removed', 'Added'); 'will be removed' for planned removals (R4)"
+mood = "indicative"
+tone = "clipped"
+structure = "one change per list item; name the replacement API"
+sentence_words_target = 12
+sentence_words_max = 25
+analogies_max = 0
+asides = "none"
+steps_allowed = false
+api_facts_allowed = true
+we_allowed = "no"
+first_person_singular = false
+contractions = "none"
+contraction_density_max = 0.0
+
+# --------------------------------------------------------------------------
+# Registers of other Qt channels (drift detectors in docs)
+# scope: expected = not a finding; limited = allowed within the limit;
+# finding = report it. Values name C types from skill-c-rules.
+# --------------------------------------------------------------------------
+
+[registers.essay]                # G26
+rule = "G26"
+markers = ["'X, not Y' antithesis", "aphorisms", "rhetorical questions", "drama framing ('the paradox', 'the catch')", "one-sentence punch paragraphs"]
+expected = ["C13", "QUIPs"]
+limited = { C6 = "one contrast in a 'why' section, no aphorisms" }
+finding = ["C1", "C2", "C3", "C4", "C5", "C7", "C8", "C9", "C12"]
+
+[registers.marketing]            # G27
+rule = "G27"
+markers = ["benefit-led openings", "superlatives (T13, T18)", "exclamation marks", "fragments"]
+expected = ["C14", "launch posts"]
+limited = { C3 = "1-2 factual intro sentences, no T13/T18 words", C8 = "1-2 factual intro sentences, no T13/T18 words" }
+finding = ["C1", "C2", "C4", "C5", "C6", "C7", "C9", "C12"]
+intro_sentences_max = 2          # [LLM] for the limited scope; house practice, no S-source
+
+[registers.conversational]       # G30
+rule = "G30"
+markers = ["filler", "loose grammar", "first person singular", "sentence-initial 'So'"]
+expected = ["C15", "chat", "code review"]
+limited = { all = "'we recommend' sparingly; common contractions; inclusive 'we' in existing C4/C5" }
+finding = ["C1", "C2", "C3", "C4", "C5", "C6", "C7", "C8", "C9", "C12"]
+so_pattern = '(^|[.!?] )So,? '   # [tool] candidates; the LLM decides filler vs result
+
+# --------------------------------------------------------------------------
+# Content types: which register, and per-type overrides of register dials.
+# An override names the dial and the new value. Empty = register defaults.
+# --------------------------------------------------------------------------
+
+[content_types.C1]
+registers = ["reference"]
+[content_types.C1.overrides]
+
+[content_types.C2]
+registers = ["reference"]
+[content_types.C2.overrides]
+
+[content_types.C3]
+registers = ["conceptual"]
+[content_types.C3.overrides]
+
+[content_types.C4]
+registers = ["conceptual", "tutorial"]   # description, walkthrough (S6)
+[content_types.C4.overrides]
+
+[content_types.C5]
+registers = ["tutorial"]
+[content_types.C5.overrides]
+
+[content_types.C6]
+registers = ["conceptual"]
+[content_types.C6.overrides]
+
+[content_types.C7]
+registers = ["tutorial", "conceptual"]   # steps, explanations
+[content_types.C7.overrides]
+
+[content_types.C8]
+registers = ["release_notes", "tutorial", "conceptual"]   # change lists, porting steps, explanations
+[content_types.C8.overrides]
+
+[content_types.C9]
+registers = ["tutorial", "reference"]    # how-to and tutorial pages, preferences and UI reference
+[content_types.C9.overrides]
+
+[content_types.C10]
+registers = []                           # declaration only, no prose
+
+[content_types.C11]
+registers = ["legal"]
+[content_types.C11.overrides]
+
+[content_types.C12]
+registers = ["reference", "tutorial"]    # options and diagnostics, usage and UI manuals
+[content_types.C12.overrides]
+
+[content_types.C16]
+registers = ["conceptual", "release_notes"]   # body (G25), [ChangeLog] entries (G29)
+[content_types.C16.overrides]

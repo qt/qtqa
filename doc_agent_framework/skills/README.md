@@ -40,6 +40,18 @@ tool reports a finding (see `agents/orchestrator.md`, "Initial check").
 | [`skill-framework-fitness`](skill-framework-fitness/SKILL.md) | 9-layer fitness test — pipeline mapping, four-layer chain, S/R/T grounding, cross-links, registration |
 | [`skill-security-hygiene`](skill-security-hygiene/SKILL.md) | Hardcoded secrets, PII, deprecated crypto, plain-text auth, logging hygiene, public/internal boundary |
 
+## Language rules
+
+Content type first, then tools, then judgment.
+
+| Skill | Purpose |
+|-------|---------|
+| [`skill-c-rules`](skill-c-rules/SKILL.md) | Content types C1-C12 and C16 (commit messages): how to detect each and which R- and G-rules apply |
+| [`skill-r-rules`](skill-r-rules/SKILL.md) | Deterministic R-rules, each with the Vale rule, regex, or QDoc message that checks it |
+| [`skill-g-rules`](skill-g-rules/SKILL.md) | Judgment rules G1-G22; registers G23-G30 in a reference loaded at the register check (`tools/register-dials`) |
+| [`skill-ai-tells`](skill-ai-tells/SKILL.md) | AI-tell catalogue T1-T19 in tiers; Tier 1 runs as a tool, this file judges Tier 2 and confirms Tier 1 hits |
+| [`skill-alttext`](skill-alttext/SKILL.md) | Alt text rules (QUIP 21), loaded only when an `\image` is in scope |
+
 ## Pipeline mapping
 
 | Pipeline | Load pattern | Skills |

@@ -46,15 +46,28 @@ BAD_SKILL = """---
 name: skill-other
 description: A seeded skill for the checker self-test.
 model: claude-opus-5-5
+metadata:
+  version: "1.0.0"
+  ported-from: "documentation_review/skills/skill-other 1.0"
 ---
 
 # Bad skill
+
+Apply the rules in skill-missing-thing.
 """
+
+# A CHANGELOG next to the skill: the checker must scan it too.
+BAD_CHANGELOG = (f"- 1.0: moved from {HOME}code/old/\n"
+                 "- api_" + "key = \"abcd1234\"\n"
+                 "- mirror at https://bot:" + "hunter2@example.com/repo\n"
+                 "- login form posts to http://" + "intranet.example.com/login\n"
+                 "- contact jane@" + "gmail.com\n")
 
 # (artifact, check, severity) triples the checker must report.
 EXPECTED = {
     ("agents/bad-agent.md", "frontmatter", "High"),               # name differs from file
     ("agents/bad-agent.md", "model-pin", "High"),                 # alias, not pinned
+    ("agents/bad-agent.md", "effort-pin", "Medium"),              # no effort pin
     ("agents/bad-agent.md", "description-length", "Low"),         # 160 > 150
     ("agents/bad-agent.md", "overview-fields", "Medium"),         # no overview table
     ("agents/bad-agent.md", "verification-gate", "Medium"),       # no gate section
@@ -70,6 +83,13 @@ EXPECTED = {
     ("skills/skill-bad/SKILL.md", "model-pin", "Medium"),         # skills carry no model
     ("skills/skill-bad/SKILL.md", "registered-skills-readme", "Medium"),
     ("skills/skill-bad/SKILL.md", "loaded-by-agent", "Medium"),
+    ("skills/skill-bad/SKILL.md", "port-fitness", "Medium"),      # ported-from, no fitness
+    ("skills/skill-bad/SKILL.md", "boundary-home-path", "High"),  # found in CHANGELOG.md
+    ("skills/skill-bad/SKILL.md", "hygiene-password", "High"),
+    ("skills/skill-bad/SKILL.md", "hygiene-connection", "High"),
+    ("skills/skill-bad/SKILL.md", "hygiene-http-auth", "Medium"),
+    ("skills/skill-bad/SKILL.md", "hygiene-email", "Medium"),
+    ("skills/skill-bad/SKILL.md", "skill-name", "Low"),          # bare name, no such skill
 }
 
 
@@ -89,6 +109,7 @@ def main():
         (root / "agents" / "bad-agent.md").write_text(BAD_AGENT)
         (root / "skills" / "skill-bad").mkdir()
         (root / "skills" / "skill-bad" / "SKILL.md").write_text(BAD_SKILL)
+        (root / "skills" / "skill-bad" / "CHANGELOG.md").write_text(BAD_CHANGELOG)
 
         report = run(root, str(root / "agents/bad-agent.md"), str(root / "skills/skill-bad/SKILL.md"))
         found = {(r["artifact"], f["check"], f["severity"])

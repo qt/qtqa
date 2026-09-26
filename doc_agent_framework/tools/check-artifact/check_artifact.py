@@ -31,7 +31,9 @@ import sys
 from pathlib import Path
 
 FRAMEWORK = Path(__file__).resolve().parent.parent.parent
-MODEL = "claude-opus-5-5"
+MODEL = "claude-sonnet-5-5"
+EFFORT = "low"
+MODELS = (MODEL, "claude-opus-5-5")   # Opus 5.5 only for a step whose scenario test failed on Sonnet
 SEVERITIES = ["Critical", "High", "Medium", "Low", "Info"]
 BLOCKING = {"Critical", "High"}
 
@@ -44,10 +46,30 @@ SECRET_RE = re.compile(
     r"|xox[bp]-[A-Za-z0-9-]+|AIza[0-9A-Za-z_-]{35}|sk_live_[A-Za-z0-9]{20,}"
     r"|ssh-(rsa|ed25519|dss) AAAA[0-9A-Za-z+/=]+)")
 HOME_RE = re.compile(r"(/Users/[^/\s]+/|/home/[^/\s]+/|[A-Z]:\\Users\\[^\\]+\\|~/code/)")
+# The other "Quick grep patterns" from skill-security-hygiene:
+# (check, severity, pattern, message).
+HYGIENE = [
+    ("hygiene-password", "High", re.compile(
+        r"(password|passwd|pwd|secret|api[_-]?key|token)\s*[:=]\s*[\"'][^\"']{4,}[\"']", re.I),
+     "plain-text credential assignment"),
+    ("hygiene-connection", "High", re.compile(r"[A-Za-z]+://[^\"\s/:]+:[^\"\s/@]+@"),
+     "connection string with embedded credentials"),
+    ("hygiene-http-auth", "Medium", re.compile(r"http://[^\"\s]+/(login|auth|token|session|api)"),
+     "plain HTTP for an auth or API endpoint"),
+    ("hygiene-crypto", "Low", re.compile(r"\b(MD5|SHA-?1|DES|RC4|SSLv[23]|TLSv?1[._]?[01])\b"),
+     "deprecated algorithm named; Low because MD5 and SHA-1 also have non-security uses"),
+    ("hygiene-logging", "Medium", re.compile(
+        r"\blog[a-z]*[._].*\b(password|passwd|secret|token|api[_-]?key|credit[_-]?card|ssn|cvv|pin)\b",
+        re.I), "sensitive field in a log statement"),
+    ("hygiene-email", "Medium", re.compile(
+        r"[A-Za-z0-9._%+-]+@(?!(?:qt\.io|qt-project\.org|example\.(?:com|org|net))\b)"
+        r"[A-Za-z0-9.-]+\.[A-Za-z]{2,}"), "email outside qt.io, possible PII"),
+]
 QT_HOST_RE = re.compile(r"\b([a-z0-9-]+(?:\.[a-z0-9-]+)*\.(?:qt-project\.org|qt\.io))\b")
 PUBLIC_HOSTS = {"doc.qt.io", "doc-snapshots.qt.io", "wiki.qt.io", "code.qt.io",
                 "contribute.qt-project.org", "codereview.qt-project.org",
-                "bugreports.qt.io", "qt-project.atlassian.net", "www.qt.io", "qt.io"}
+                "bugreports.qt.io", "qt-project.atlassian.net", "www.qt.io", "qt.io",
+                "download.qt.io"}
 
 # Tier 1 patterns from skill-ai-tells. Each hit is a finding; a person
 # confirms it is prose and not a quoted pattern.
@@ -67,7 +89,10 @@ AI_TELLS = [
                        r"|intricate|effortless|effortlessly|boasts|synergy|undoubtedly)\b", re.I)),
 ]
 
+TEXT_SUFFIXES = {".md", ".py", ".sh", ".tsv", ".txt", ".toml", ".ini", ".yml", ".yaml", ".json"}
+
 LINK_RE = re.compile(r"\[[^\]]*\]\(([^)\s]+)\)")
+SKILL_NAME_RE = re.compile(r"(?<![\w/.-])(skill-[a-z][a-z0-9]*(?:-[a-z0-9]+)*)(?![\w{-])")
 SKILL_REF_RE = re.compile(r"\.\./skills/([A-Za-z0-9_./-]+?)/SKILL\.md")
 
 
@@ -112,7 +137,7 @@ def frontmatter(text):
             data[key] = " ".join(p for p in folded if p)
             continue
         folded = None
-        match = re.match(r"^(\s*)([A-Za-z_]+):\s*(.*)$", raw)
+        match = re.match(r"^(\s*)([A-Za-z_][A-Za-z0-9_-]*):\s*(.*)$", raw)
         if not match:
             continue
         indent, name, value = match.groups()
@@ -166,8 +191,15 @@ def check_common(path, report):
     is_md = path.suffix == ".md"
     for check in ("boundary-home-path", "boundary-host", "secret", "ai-tell-tier1"):
         report.ran(check)
+    for check, *_ in HYGIENE:
+        report.ran(check)
     if is_md:
         report.ran("link")
+    names_skills = is_md and path.name != "CHANGELOG.md" and rel(path).split("/")[0] in ("agents", "skills")
+    if names_skills:
+        report.ran("skill-name")
+        known = {p.name for p in (FRAMEWORK / "skills").glob("*/") if p.is_dir()}
+        known |= {p.name for p in (FRAMEWORK / "skills").glob("*/*/") if p.is_dir()}
     for number, line, fenced in (prose_lines(text) if is_md else
                                  ((n, l, False) for n, l in enumerate(text.splitlines(), 1))):
         if SECRET_RE.search(line):
@@ -177,10 +209,21 @@ def check_common(path, report):
                 continue
             report.add("High", "boundary-home-path", path,
                        f"user-specific path: {match.group(0)}", number)
+        if not is_pattern_line(line):
+            for check, severity, pattern, message in HYGIENE:
+                if pattern.search(line):
+                    report.add(severity, check, path, message, number)
         for host in QT_HOST_RE.findall(line):
             if host not in PUBLIC_HOSTS:
                 report.add("Medium", "boundary-host", path,
                            f"Qt host not on the public list, needs a human check: {host}", number)
+        if names_skills and "ported-from" not in line:
+            for name in SKILL_NAME_RE.findall(line):
+                if name not in known:
+                    # Low: a name can be a source citation or a naming example.
+                    report.add("Low", "skill-name", path,
+                               f"names '{name}', which is not in the framework's skills/ "
+                               f"(confirm: missing port, or a citation)", number)
         if is_md and not fenced:
             for target in LINK_RE.findall(line):
                 check_link(path, target, number, report)
@@ -190,6 +233,11 @@ def check_common(path, report):
                     report.add("Medium", "ai-tell-tier1", path,
                                f"{tell} pattern: {pattern.search(line).group(0)!r} "
                                f"(confirm it is a tell, then treat as High)", number)
+
+
+def is_pattern_line(line):
+    """True for a line that shows a regex, grep pattern, or elided example, as rule text does."""
+    return any(t in line for t in ("[^", "(?!", "\\b", "\\s", "grep ", "…"))
 
 
 def is_placeholder(match, line):
@@ -223,8 +271,15 @@ def check_agent(path, report):
     if data.get("name") and data["name"] != name:
         report.add("High", "frontmatter", path, f"name '{data['name']}' differs from file name '{name}'")
     report.ran("model-pin")
-    if data.get("model") and data["model"] != MODEL:
-        report.add("High", "model-pin", path, f"model is '{data['model']}', expected '{MODEL}'")
+    if data.get("model") and data["model"] not in MODELS:
+        report.add("High", "model-pin", path, f"model is '{data['model']}', expected one of {', '.join(MODELS)}")
+    elif data.get("model") and data["model"] != MODEL:
+        report.add("Info", "model-pin", path, f"model is '{data['model']}'; the baseline is '{MODEL}'. Write down which scenario test failed on it")
+    report.ran("effort-pin")
+    if not data.get("effort"):
+        report.add("Medium", "effort-pin", path, f"missing 'effort'; the baseline is '{EFFORT}'")
+    elif str(data["effort"]) != EFFORT:
+        report.add("Low", "effort-pin", path, f"effort is '{data['effort']}'; the baseline is '{EFFORT}'. Write down why")
     check_description(path, data.get("description", ""), report)
     check_size(path, body, report, lines_soft=None)
 
@@ -313,6 +368,22 @@ def check_skill(path, report):
     check_description(path, data.get("description", ""), report)
     check_size(path, body, report, lines_soft=BODY_LINES_SOFT)
 
+    report.ran("port-fitness")
+    if data.get("metadata.ported-from"):
+        record = data.get("metadata.fitness", "")
+        if not re.match(r"\d{4}-\d{2}-\d{2}\b", record):
+            report.add("Medium", "port-fitness", path,
+                       "ported skill has no 'metadata.fitness' record (date; layers run; hygiene "
+                       "result), see CONTRIBUTING, Porting from Phase 1")
+
+    # Every other file in the skill directory gets the common checks:
+    # CHANGELOGs and references carry paths and hosts too.
+    report.ran("skill-dir-files")
+    for extra in sorted(path.parent.rglob("*")):
+        if (extra.is_file() and extra != path and extra.suffix in TEXT_SUFFIXES
+                and "__pycache__" not in extra.parts):
+            check_common(extra, report)
+
     report.ran("registered-skills-readme")
     # A skill in a group directory (skills/personas/) may be listed in
     # the group README instead of skills/README.md.
@@ -323,6 +394,8 @@ def check_skill(path, report):
     if not any(name in read(r) for r in readmes):
         report.add("Medium", "registered-skills-readme", readmes[0],
                    f"'{name}' is not listed in skills/README.md")
+    if name == "skill-c-rules":
+        check_c_index(path, report)
     report.ran("loaded-by-agent")
     # A skill in a group directory can be loaded through a template
     # path such as ../skills/personas/skill-persona-{name}/SKILL.md.
@@ -336,6 +409,19 @@ def check_skill(path, report):
     else:
         report.add("Medium", "loaded-by-agent", path, "no agent in agents/ references this skill")
 
+
+def check_c_index(path, report):
+    """Run the content-type index check (tools/c-rules-index/)."""
+    report.ran("c-rules-index")
+    script = FRAMEWORK / "tools" / "c-rules-index" / "check_c_index.py"
+    if not script.is_file():
+        report.add("Medium", "c-rules-index", script, "index checker is missing")
+        return
+    result = subprocess.run([sys.executable, str(script), "--root", str(FRAMEWORK)],
+                            capture_output=True, text=True)
+    if result.returncode:
+        for line in result.stdout.splitlines()[:-1]:
+            report.add("Medium", "c-rules-index", path, line)
 
 
 # Scenarios and tools ------------------------------------------------------
