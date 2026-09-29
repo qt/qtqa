@@ -1,0 +1,36 @@
+- name: flags a module landing page missing an Examples section
+  format: qdoc
+  input: |
+    /*!
+        \page mod2-index.html
+        \title Mod2
+
+        \brief The Mod2 module.
+
+        \section1 Using the Module
+
+        Some text.
+    */
+  contains: Qt.Structure.ModuleExamplesSection
+
+- name: stays silent when an Examples section is present
+  format: qdoc
+  input: |
+    /*!
+        \page mod-index.html
+        \title Mod
+
+        \brief The Mod module.
+
+        \section1 Using the Module
+
+        Some text.
+
+        \section1 Examples
+
+        \list
+            \li \l{Mod Examples}
+        \endlist
+    */
+  absent:
+    - Qt.Structure.ModuleExamplesSection

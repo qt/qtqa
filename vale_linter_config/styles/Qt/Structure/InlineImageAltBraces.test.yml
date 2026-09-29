@@ -1,0 +1,34 @@
+- name: flags unbraced text after \inlineimage
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        Click the \inlineimage filemenu.png to open the dialog.
+    */
+  contains: Qt.Structure.InlineImageAltBraces
+
+- name: stays silent on braced \inlineimage alt text
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        Click the \inlineimage filemenu.png {File Menu} to open the dialog.
+    */
+  absent:
+    - Qt.Structure.InlineImageAltBraces
+
+- name: stays silent on \inlineimage with nothing following
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        \inlineimage filemenu.png
+    */
+  absent:
+    - Qt.Structure.InlineImageAltBraces

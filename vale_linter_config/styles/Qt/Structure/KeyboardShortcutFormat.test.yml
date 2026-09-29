@@ -1,0 +1,22 @@
+- name: flags "Control+B" instead of the compact form
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        Press Control+B to build the project.
+    */
+  contains: Qt.Structure.KeyboardShortcutFormat
+
+- name: stays silent on the compact "Ctrl+B" form
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        Press Ctrl+B to build the project.
+    */
+  absent:
+    - Qt.Structure.KeyboardShortcutFormat

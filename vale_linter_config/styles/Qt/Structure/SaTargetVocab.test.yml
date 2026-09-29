@@ -1,0 +1,22 @@
+- name: flags an \sa target outside the known-valid proof-of-concept list
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        \sa QFooBar::nonExistentTarget()
+    */
+  contains: Qt.Structure.SaTargetVocab
+
+- name: stays silent on a known-valid \sa target
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        \sa QWidget::show()
+    */
+  absent:
+    - Qt.Structure.SaTargetVocab

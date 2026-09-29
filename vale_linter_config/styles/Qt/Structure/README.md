@@ -37,11 +37,15 @@ own header comment for the file it originally moved from.
 | `Qt.Structure.QDocAnchorAPIName` | `\target`/`\keyword` uses a topic name instead of a raw API identifier | `existence`, `scope: meta.anchor` |
 | `Qt.Structure.QDocVersionClauseOrder` | `\value [since X]` clause immediately follows `\value` (QDoc silently drops a misplaced one) | `existence`, `scope: text & doc(p)` |
 | `Qt.Structure.QDocDeprecatedVersionOrder` | `\deprecated`/`\obsolete [X]` version bracket comes first (same silent-drop failure mode) | `existence`, `scope: text & doc(p)` |
+| `Qt.Structure.QDocImplicitLink` | An API mention that relies on autolinking (`Class::name()`, `Class::Member`, `WA_Name`) is wrapped in `\l`, so an API rename breaks the build instead of silently unlinking it (QTDCS-7) | [`script`](https://vale.sh/docs/keys/script), `scope: raw` |
+| `Qt.Structure.QDocUnresolvedBareCall` | An unqualified `name()` on a `\page`/`\group`/`\module` page, where QDoc has no class context to autolink it | `script`, `scope: raw` |
+| `Qt.Structure.QDocQmlDotLink` | A bare `Type.member` QML mention, which never autolinks, uses `\l {Type::member}` | `script`, `scope: raw` |
+| `Qt.Structure.QDocGenusQualifier` | In a `\qmlproperty`/`\qmlmethod` block, an `\l` whose target case-folds to the documented member has `[QML]`, so it can't resolve to a same-named C++ member | `script`, `scope: raw` |
 | `Qt.Structure.KeyboardShortcutFormat` | Keyboard shortcuts read `Ctrl+B`, not `Control+B` or `Ctrl + B` | `existence` |
 | `Qt.Structure.SectionLinkAntiPattern` | Section links use `TypeName#Section Title`, not a literal `page.html#anchor` | `existence` |
 | `Qt.Structure.NoSpaceBeforeBrace` | No space before a QDoc command's opening brace (`\l{target}`, not `\l {target}`) | `existence`, `scope: raw` |
 | `Qt.Structure.ListItemPunctuation` | No trailing comma-before-conjunction in a `\li` item (a run-on split across items) | `existence`, `scope: raw` |
-| `Qt.Structure.TableEmptyCell` | No blank table/list cell (best-effort, see [Known gaps](#known-gaps) below) | `existence`, `scope: raw` |
+| `Qt.Structure.TableEmptyCell` | No blank data cell in a table row (`\header` cells and list items are exempt; see [Known gaps](#known-gaps) below) | `existence`, `scope: doc(tr:has(> td:empty))` |
 | `Qt.Structure.TableGenericHeaders` | `\header` cells aren't generic labels like "Name"/"Value" | `existence`, `scope: text & doc(th)` |
 | `Qt.Structure.AltTextFormat` | Alt text starts with a capital letter, no trailing period | `existence`, `scope: raw` |
 | `Qt.Structure.AltTextClassNames` | Alt text uses a generic UI term instead of a Qt class name (`Button` instead of `QPushButton`) | `existence`, `scope: raw` |
@@ -87,16 +91,12 @@ content stays silent when the filename doesn't match either glob.
 
 ## Known gaps
 
-- **`TableEmptyCell`** flags any blank `\li` line, not just blank table
-  cells. QDoc uses `\li` for both table cells and list items, so this also
-  matches an ordinary blank list item. A `doc(td)`-scoped version was
-  attempted and reverted, because `occurrence`/`metric` rules can't measure a
-  leaf element (`td`, `th`, `li`) in this Vale build (see
-  [Engine quirks](#engine-quirks)). `existence` can only assert the presence
-  of a bad pattern, not the absence of any content: an anchor-only pattern
-  like `^\s*$` never survives Vale's `MightMatch` pre-filter, which requires a
-  literal. This file-wide version is the best available option today, and the
-  gap is documented here and in the rule file itself.
+- **`TableEmptyCell`** selects each table row that has a blank data cell
+  (`tr:has(> td:empty)`) and reports one alert at the row's first text. A
+  row whose cells are *all* blank has no text for `existence` to match, so
+  it isn't flagged. The rule also can't tell an intentionally blank
+  "Notes"-style column (R55's own exception) from a data column. An
+  `occurrence` rule can't do better (see [Engine quirks](#engine-quirks)).
 
 ## Engine quirks
 
@@ -111,16 +111,18 @@ and `Qt.Mechanics` rules using the same mechanisms.
 - `scope: raw` sees the whole file as one string. Anchors like `$` and `^`
   need the `(?m)` flag to bind per line.
 - Vale's `MightMatch` pre-filter needs a literal in the pattern before it
-  considers a rule at all. A pure anchor like `^\s*$` never fires. An
-  `existence` check can't express "this cell is empty."
+  considers a rule at all. A pure anchor like `^\s*$` never fires. To find
+  an empty element, put the emptiness in the selector instead (`td:empty`)
+  and match the surrounding container's text.
 - RE2, Vale's regex engine, has no lookaround. A `raw`-scope pattern can't be
   bounded to stay inside `\table...\endtable`. It can match past that
   boundary.
-- `occurrence` and `metric` rules measure containers like `table`, `ul`,
-  `p`, and `section`. They don't measure leaf elements like `td`, `th`, or
-  `li`. This is the root cause behind the `TableEmptyCell` gap above, and the
-  reason a `doc(td)`-scoped `ListIntroPresence`-style check isn't buildable
-  either.
+- An `occurrence` rule scoped to a leaf element like `doc(td)` measures
+  each cell that has text (verified with Vale 3.23.0), but an empty cell
+  produces no text block, so it's never counted. An `occurrence` rule whose
+  selector matches nothing still reports a zero count at 1:1, so `min:`
+  can't express "fire only when this selector matches." Use `existence` on
+  a container selector instead, as `TableEmptyCell` does.
 - A `scope:` value only needs to name a *subset* of a block's scope
   sections, so a scope naming just the shared prefix of two different
   variants matches both of them. This broke `Qt.Structure.QDocImageAlt`:

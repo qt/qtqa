@@ -1,0 +1,48 @@
+- name: flags unbraced \image alt text that spills onto a continuation line
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        \image menuitem.png This is a file name
+            that spans multiple lines without braces
+    */
+  contains: Qt.Structure.ImageAltTextContinuation
+
+- name: stays silent on single-line unbraced \image alt text
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        \image menuitem.png This is a file name
+    */
+  absent:
+    - Qt.Structure.ImageAltTextContinuation
+
+- name: stays silent on braced multi-line \image alt text
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        \image filemenu.png {This is file menu with options to open
+            new project, folder, file, and export to new formats}
+    */
+  absent:
+    - Qt.Structure.ImageAltTextContinuation
+
+- name: stays silent on \image with nothing following on its own line
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        \image menuitem.png
+    */
+  absent:
+    - Qt.Structure.ImageAltTextContinuation

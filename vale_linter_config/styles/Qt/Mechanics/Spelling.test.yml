@@ -1,0 +1,22 @@
+- name: flags a plain misspelled word
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        Click here to recieve the update.
+    */
+  contains: Qt.Mechanics.Spelling
+
+- name: stays silent when the word is spelled correctly
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        Click here to receive the update.
+    */
+  absent:
+    - Qt.Mechanics.Spelling

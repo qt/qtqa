@@ -1,0 +1,22 @@
+- name: flags an API identifier used as a \target
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        \target QWidget
+    */
+  contains: Qt.Structure.QDocAnchorAPIName
+
+- name: stays silent when a topic name is used instead
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        \target widget-overview
+    */
+  absent:
+    - Qt.Structure.QDocAnchorAPIName

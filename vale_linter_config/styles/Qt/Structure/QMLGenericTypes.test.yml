@@ -1,0 +1,20 @@
+- name: flags a C++ type in a \qmlmethod signature
+  format: qdoc
+  input: |
+    /*!
+        \qmlmethod QObject* NodeInstantiator::badObjectAt(int index)
+
+        Returns the object at \a index -- exposes a C++ type.
+    */
+  contains: Qt.Structure.QMLGenericTypes
+
+- name: stays silent with a generic QML type
+  format: qdoc
+  input: |
+    /*!
+        \qmlmethod object NodeInstantiator::objectAt(int index)
+
+        Returns the object at \a index.
+    */
+  absent:
+    - Qt.Structure.QMLGenericTypes

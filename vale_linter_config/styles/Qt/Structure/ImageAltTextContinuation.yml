@@ -1,0 +1,41 @@
+# skill-alttext: unlike \inlineimage, block \image's unbraced alt-text
+# argument is valid QDoc -- but qdoc only reads the rest of that one
+# physical line as the argument. A continuation line straight after it
+# (no blank line, no braces) is not part of the alt text at all; it is
+# ordinary body prose that happens to sit right under the image. If the
+# alt text genuinely needs more than one line, it must be wrapped in
+# braces so qdoc keeps reading past the line break:
+#   \image file.png {This is a long alt text spanning
+#       more than one line}
+#
+# scope: raw, matched directly against the QDoc source -- see
+# Qt.Structure.AltTextFormat for why (text.comment.image.alt never fires).
+#
+# Heuristic, not exhaustive: fires when an unbraced \image alt-text line is
+# immediately followed (no blank line) by a line that is not itself a QDoc
+# command. This is the shape of a forgotten-braces mistake, but it can also
+# match a deliberate new paragraph placed directly under an \image with no
+# blank line separating them -- an unusual style in Qt docs, but possible.
+#
+# Uses [ \t]+, not \s+, between the file name and the alt-text check: \s+
+# also matches a newline, so it would cross onto the next physical line
+# when nothing at all follows the file name on its own line -- a false
+# positive for the plain "no alt text" case Qt.Structure.QDocImageAlt
+# already covers.
+#
+# Anchored to the start of the line (`^[ \t]*\\image`, not just `\\image`):
+# block \image is always the first thing on its own line in real QDoc
+# source. Without the anchor, this rule also matches a plain-English "//"
+# comment that merely mentions "\image" mid-sentence followed by another
+# comment line -- as this very style pack's own fixture and rule-header
+# comments do. `scope: raw` can't otherwise tell prose about the command
+# apart from the command itself (RE2 has no lookbehind to rule out "// ...
+# \image" specifically).
+extends: existence
+message: "Wrap this \\image alt text in braces: unbraced alt text ends at the line break, so qdoc won't read the next line as part of it."
+link: https://doc.qt.io/qt-6/qdoc-guide-writing.html
+level: suggestion
+scope: raw
+nonword: true
+raw:
+  - '(?m)^[ \t]*\\image[ \t]+\S+[ \t]+[^{\s][^\n]*\n[ \t]*[^\\\s*][^\n]*'

@@ -1,0 +1,36 @@
+# Redesigned from an infeasible doc()-sibling-selector attempt (see the
+# rule's header comment) into a scope: raw heuristic: flags a \list/\table
+# whose nearest preceding non-blank line is itself a QDoc command, not
+# prose.
+- name: flags a list with no introductory sentence
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        \section1 A Heading
+
+        \list
+            \li An item with no introductory sentence before the list.
+        \endlist
+    */
+  contains: Qt.Structure.ListIntroPresence
+
+- name: stays silent when prose introduces the list
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        \section1 A Heading
+
+        The following items are supported.
+
+        \list
+            \li An item with an introductory sentence before the list.
+        \endlist
+    */
+  absent:
+    - Qt.Structure.ListIntroPresence

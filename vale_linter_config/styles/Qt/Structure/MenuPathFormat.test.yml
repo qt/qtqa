@@ -1,0 +1,22 @@
+- name: flags an unbolded menu navigation path
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        Go to File > New Project to start.
+    */
+  contains: Qt.Structure.MenuPathFormat
+
+- name: stays silent when each menu element is bolded
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        Go to **File** > **New Project** to start.
+    */
+  absent:
+    - Qt.Structure.MenuPathFormat

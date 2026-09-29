@@ -1,0 +1,34 @@
+- name: flags a hedging phrase inside \warning
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        \warning Be careful, this cannot be undone.
+    */
+  contains: Qt.Language.AdmonitionHedging
+
+- name: stays silent on a warning with a concrete consequence
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        \warning This operation permanently deletes the file.
+    */
+  absent:
+    - Qt.Language.AdmonitionHedging
+
+- name: stays silent when the same phrase appears in \note, not \warning
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        \note Be careful is fine to say here since this is just a note.
+    */
+  absent:
+    - Qt.Language.AdmonitionHedging

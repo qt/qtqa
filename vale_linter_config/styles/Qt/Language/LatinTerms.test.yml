@@ -1,0 +1,22 @@
+- name: flags "via" and suggests a substitute
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        Access the file via the API.
+    */
+  contains: Qt.Language.LatinTerms
+
+- name: stays silent when the substitute is already used
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        Access the file through the API.
+    */
+  absent:
+    - Qt.Language.LatinTerms

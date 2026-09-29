@@ -1,0 +1,22 @@
+- name: flags future tense in prose
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        The dialog will close automatically.
+    */
+  contains: Qt.Language.FutureTense
+
+- name: stays silent on present tense
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        The dialog closes automatically.
+    */
+  absent:
+    - Qt.Language.FutureTense

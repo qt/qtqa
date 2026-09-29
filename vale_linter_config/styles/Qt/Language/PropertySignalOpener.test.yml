@@ -1,0 +1,22 @@
+- name: flags a property brief not opening with an approved phrase
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        \brief The widget becomes visible on screen.
+    */
+  contains: Qt.Language.PropertySignalOpener
+
+- name: stays silent on an approved property-brief opener
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        \brief This property holds whether the widget is enabled.
+    */
+  absent:
+    - Qt.Language.PropertySignalOpener

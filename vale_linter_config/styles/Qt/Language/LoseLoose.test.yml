@@ -1,0 +1,22 @@
+- name: flags "loose" used as a verb after a modal
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        The app will loose data if you quit now.
+    */
+  contains: Qt.Language.LoseLoose
+
+- name: stays silent when "lose" is already correct
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        The app will lose data if you quit now.
+    */
+  absent:
+    - Qt.Language.LoseLoose

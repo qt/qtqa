@@ -1,0 +1,22 @@
+- name: flags a missing space after a sentence period
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        End of sentence.Next sentence starts immediately.
+    */
+  contains: Qt.Mechanics.Spacing
+
+- name: stays silent with a normal space after the period
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        End of sentence. Next sentence starts with a space.
+    */
+  absent:
+    - Qt.Mechanics.Spacing

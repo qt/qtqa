@@ -1,0 +1,64 @@
+- name: flags a brief missing terminal punctuation
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        \brief Returns the value
+    */
+  contains: Qt.Structure.QDocBrief
+
+- name: flags a brief missing terminal punctuation in a C++ source file
+  format: qdoc
+  input: |
+    #ifndef QSETTINGSMANAGER_H
+    #define QSETTINGSMANAGER_H
+
+    #include <QObject>
+    #include <QString>
+
+    /*!
+        \class QSettingsManager
+        \brief Manages application settings and preferences
+
+        We provide a centralized interface for reading and writing settings.
+        Configuration is easily loaded from the disk using this class.
+        Settings are organized by group, key, and value.
+
+    */
+    class QSettingsManager : public QObject
+    {
+        Q_OBJECT
+
+    public:
+
+        explicit QSettingsManager(QObject *parent = nullptr);
+
+        /*!
+            \fn QString QSettingsManager::value(const QString &key) const
+            \brief Returns the value for a given key,
+
+            This function was designed to facilitate the retrieval of settings.
+            Basically, it looks up the key in the current group.
+            Consequently, if the key is not found, an empty string is returned.
+        */
+        QString value(const QString &key) const;
+        void setValue(const QString &key, const QString &value);
+        void removeKey(const QString &key);
+    };
+
+    #endif // QSETTINGSMANAGER_H
+  contains: Qt.Structure.QDocBrief
+
+- name: brief ending in a period stays silent
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        \brief Returns the value.
+    */
+  absent:
+    - Qt.Structure.QDocBrief

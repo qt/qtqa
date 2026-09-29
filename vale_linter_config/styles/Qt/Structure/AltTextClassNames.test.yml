@@ -1,0 +1,22 @@
+- name: flags a Qt class name in image alt text
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        \image dialog.png {Dialog for entering PushButton contact details}
+    */
+  contains: Qt.Structure.AltTextClassNames
+
+- name: stays silent on a generic UI term
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        \image button.png {Button in various interaction states}
+    */
+  absent:
+    - Qt.Structure.AltTextClassNames

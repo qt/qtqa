@@ -1,0 +1,37 @@
+# skill-alttext: \inlineimage sits mid-sentence, so unlike block \image,
+# qdoc has no line boundary to mark where the alt-text argument ends and
+# the surrounding sentence resumes. Braces are the only way qdoc recognizes
+# a mid-sentence argument as alt text (\inlineimage file.png {File Menu});
+# unbraced text after the file name is read as ordinary prose, not alt
+# text, even though it can look like a caption to a human reader.
+#
+# scope: raw, matched directly against the QDoc source -- see
+# Qt.Structure.AltTextFormat for why (text.comment.image.alt never fires).
+#
+# Heuristic, not exhaustive: fires only when non-brace text immediately
+# follows the file name. An \inlineimage with nothing after it at all is
+# already caught by Qt.Structure.QDocImageAlt (scope: meta.noalt); this
+# rule targets the narrower, easy-to-miss case of an author writing what
+# they intend as alt text but forgetting the braces.
+#
+# Uses [ \t]+, not \s+, between the file name and the check: \s+ also
+# matches a newline, so it would cross into the next line's content when
+# nothing at all follows the file name on its own line -- a false positive
+# for the already-handled "no alt text" case above.
+#
+# The file name must look like one (\S+\.\w+, a dot then an extension), not
+# just any token -- \inlineimage sits mid-sentence, so unlike block \image
+# this rule can't anchor to the start of the line (see
+# Qt.Structure.ImageAltTextContinuation) to rule out a "//" comment that
+# merely mentions "\inlineimage" in running prose. Requiring a filename-
+# shaped token rules out the common case (the word right after \inlineimage
+# isn't a file name); it does not rule out a comment that happens to quote
+# a realistic-looking example filename, which is a known residual gap.
+extends: existence
+message: "Wrap the text after '\\inlineimage' in braces: qdoc reads unbraced text as ordinary prose, not alt text."
+link: https://doc.qt.io/qt-6/qdoc-guide-writing.html
+level: suggestion
+scope: raw
+nonword: true
+raw:
+  - '(?m)\\inlineimage[ \t]+\S+\.\w+[ \t]+[^{\s]'

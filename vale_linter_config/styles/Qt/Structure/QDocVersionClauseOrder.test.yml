@@ -1,0 +1,20 @@
+- name: flags a since clause placed after the value name
+  format: qdoc
+  input: |
+    /*!
+        \enum Qt::InputMethodHint
+
+        \value ImhNoFullscreen [since 6.12] Do not use full screen input.
+    */
+  contains: Qt.Structure.QDocVersionClauseOrder
+
+- name: stays silent when the since clause precedes the value name
+  format: qdoc
+  input: |
+    /*!
+        \enum Qt::Alignment
+
+        \value [since 6.5] AlignBaseline Align with the baseline.
+    */
+  absent:
+    - Qt.Structure.QDocVersionClauseOrder

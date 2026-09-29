@@ -1,0 +1,34 @@
+- name: flags an \image with no alt text
+  format: qdoc
+  input: |
+    /*!
+        \class QWidget
+        \brief The base class for all UI objects.
+
+        \image widget-overview.png
+    */
+  contains: Qt.Structure.QDocImageAlt
+
+- name: stays silent when alt text is present
+  format: qdoc
+  input: |
+    /*!
+        \class QDialog
+        \brief The base class of dialog windows.
+
+        \image dialog-layout.png Dialog layout overview
+    */
+  absent:
+    - Qt.Structure.QDocImageAlt
+
+- name: stays silent on \inlineimage with braced alt text
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        Click the \inlineimage filemenu.png {File Menu} to open the dialog.
+    */
+  absent:
+    - Qt.Structure.QDocImageAlt

@@ -1,0 +1,36 @@
+- name: flags a blank data cell
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        \table
+            \header
+                \li
+                \li
+            \row
+                \li height
+                \li
+        \endtable
+    */
+  contains: Qt.Structure.TableEmptyCell
+
+- name: stays silent when the cell has content
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        \table
+            \header
+                \li
+                \li
+            \row
+                \li height
+                \li 42
+        \endtable
+    */
+  absent:
+    - Qt.Structure.TableEmptyCell

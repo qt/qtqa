@@ -1,0 +1,22 @@
+- name: flags a literal page.html#anchor section link
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        See \l{qcolor.html#the-hsv-color-model} for details.
+    */
+  contains: Qt.Structure.SectionLinkAntiPattern
+
+- name: stays silent on a TypeName#Section Title link
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        See \l{QColor#The HSV Color Model} for details.
+    */
+  absent:
+    - Qt.Structure.SectionLinkAntiPattern

@@ -1,0 +1,22 @@
+- name: flags a space before the opening brace
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        See \l {QWidget} for details.
+    */
+  contains: Qt.Structure.NoSpaceBeforeBrace
+
+- name: stays silent with no space before the brace
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        See \l{QWidget} for details.
+    */
+  absent:
+    - Qt.Structure.NoSpaceBeforeBrace

@@ -1,0 +1,65 @@
+- name: flags a line over 80 columns
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        This documentation paragraph deliberately runs on well past the eighty column limit for testing purposes.
+    */
+  contains: Qt.Mechanics.LineLength
+
+- name: flags a \li entry with \l{}{} that spans over 80 columns
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        The following list includes entries that span over eighty columns:
+        \list
+        \li \l{This is longer link target that should be caught}{This is an alias text for the link}.
+        \li Another entry that is within he 80 column target.
+        \endlist
+
+        This documentation paragraph deliberately runs on well past the eighty
+        column limit for testing purposes.
+    */
+  contains: Qt.Mechanics.LineLength
+
+- name: stays silent on a short line
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        Short line under the limit.
+    */
+  absent:
+    - Qt.Mechanics.LineLength
+
+- name: stays silent on a long code line with a trailing inline comment
+  format: qdoc
+  input: |
+    /*!
+        \class Foo
+        \brief Short brief.
+    */
+    int Foo::bar() const
+    {
+        int value = computeSomething(); // this trailing inline comment pushes the line past eighty columns
+        return value;
+    }
+  absent:
+    - Qt.Mechanics.LineLength
+
+- name: stays silent on a long code line outside a doc comment
+  format: qdoc
+  input: |
+    /*!
+        \class Foo
+    */
+    int Foo::bar() const { return computeSomethingVeryLongNamed(argumentOne, argumentTwo, argumentThree); }
+  absent:
+    - Qt.Mechanics.LineLength

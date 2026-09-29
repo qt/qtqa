@@ -1,0 +1,29 @@
+# Previously believed non-functional: scope: text.comment.image.alt never
+# exposes image alt text as lintable content in this Vale build. Rewritten to
+# scope: raw, matched directly against the \image {...} command text -- the
+# same fix AltTextFormat.yml and AltTextClassNames.yml already use. This rule
+# is YES-enabled in .vale-qdoc.ini, so this fix changes real production lint
+# behavior: it now actually catches inline QDoc commands in alt text.
+- name: flags an inline QDoc command in alt text
+  format: qdoc
+  input: |
+    /*!
+        \class QToolButton
+        \brief The base class of tool buttons.
+
+        \image toolbar.png {Click the \e widget to proceed}
+    */
+  contains: Qt.Structure.QDocImageAltInlineCmd
+
+- name: stays silent on plain-text alt text
+  format: qdoc
+  input: |
+    /*!
+        \class QToolButton
+        \brief The base class of tool buttons.
+
+        \image toolbar.png {Click the widget to proceed}
+
+    */
+  absent:
+    - Qt.Structure.QDocImageAltInlineCmd

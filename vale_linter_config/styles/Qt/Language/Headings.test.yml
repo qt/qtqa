@@ -1,0 +1,34 @@
+# Previously believed non-functional: `scope: heading.h2,heading.h3,heading.h4,heading.h5`
+# was a single comma-joined YAML string. Vale's `Fields.Scope` is `[]string`,
+# decoded via mapstructure with WeaklyTypedInput, which wraps a bare string
+# into a one-element slice rather than splitting it on commas -- so the whole
+# comma-joined string became one selector that could never match anything.
+# Writing `scope` as an actual YAML list (one entry per heading level) fixes
+# it. Still disabled in .vale-qdoc.ini -- that's a separate policy call about
+# overlap with Microsoft.Headings/the R12 gap, not a functionality issue.
+- name: flags a title-case section heading
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        \section1 This Is A Heading Title
+
+        Some text.
+    */
+  contains: Qt.Language.Headings
+
+- name: stays silent on a sentence-case section heading
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        \section1 This is a heading title
+
+        Some text.
+    */
+  absent:
+    - Qt.Language.Headings

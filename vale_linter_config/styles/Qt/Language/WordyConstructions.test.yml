@@ -1,0 +1,22 @@
+- name: flags a wordy "causes ... to occur" construction
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        This setting causes the dialog to occur.
+    */
+  contains: Qt.Language.WordyConstructions
+
+- name: stays silent on a direct verb
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        This setting causes the dialog to open.
+    */
+  absent:
+    - Qt.Language.WordyConstructions

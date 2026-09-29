@@ -1,0 +1,22 @@
+- name: flags a bare UI element name
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        Go to File > New Project to start.
+    */
+  contains: Qt.Structure.UIElementMarkup
+
+- name: stays silent when the UI element is bolded
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        Go to **Build** > **Debug** to start debugging.
+    */
+  absent:
+    - Qt.Structure.UIElementMarkup

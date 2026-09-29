@@ -1,0 +1,26 @@
+- name: flags a list item ending in a trailing comma before a conjunction
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        \list
+            \li Second item, and
+        \endlist
+    */
+  contains: Qt.Structure.ListItemPunctuation
+
+- name: stays silent on a complete-sentence list item
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        \list
+            \li Third item is a complete sentence.
+        \endlist
+    */
+  absent:
+    - Qt.Structure.ListItemPunctuation

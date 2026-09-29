@@ -1,0 +1,22 @@
+- name: flags a hedging filler adverb
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        Simply call the function to enable it.
+    */
+  contains: Qt.Language.HedgingWords
+
+- name: stays silent with no filler adverb
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        Call the function to enable it.
+    */
+  absent:
+    - Qt.Language.HedgingWords

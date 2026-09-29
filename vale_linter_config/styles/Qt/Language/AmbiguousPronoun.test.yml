@@ -1,0 +1,22 @@
+- name: flags a sentence-initial ambiguous pronoun
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        The item updates its geometry first. It is updated before the layout runs.
+    */
+  contains: Qt.Language.AmbiguousPronoun
+
+- name: stays silent when the noun is named
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        This property holds whether the widget is visible.
+    */
+  absent:
+    - Qt.Language.AmbiguousPronoun

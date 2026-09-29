@@ -1,0 +1,37 @@
+- name: flags an example group missing \ingroup all-examples
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        Some text.
+    */
+
+    /*!
+        \group t_examples
+        \title T Examples
+
+        \brief Examples demonstrating T.
+    */
+  contains: Qt.Structure.ExampleGroupIngroup
+
+- name: stays silent when \ingroup all-examples is present
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        Some text.
+    */
+
+    /*!
+        \group t_examples
+        \title T Examples
+        \ingroup all-examples
+
+        \brief Examples demonstrating T.
+    */
+  absent:
+    - Qt.Structure.ExampleGroupIngroup

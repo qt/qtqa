@@ -1,0 +1,24 @@
+- name: flags a later variant term after an earlier one sets the baseline
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        Use a list view to display the items. Later, configure the ListView to
+        sort items by name.
+    */
+  contains: Qt.Language.TermConsistency
+
+- name: stays silent when the same term is used throughout
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        Use a list view to display the items. Later, configure the list view to
+        sort items by name.
+    */
+  absent:
+    - Qt.Language.TermConsistency

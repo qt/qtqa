@@ -1,0 +1,22 @@
+- name: flags alt text that starts lowercase
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        \image toolbar.png {toolbar with dark mode toggle}
+    */
+  contains: Qt.Structure.AltTextFormat
+
+- name: stays silent on alt text starting with a capital and no trailing period
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        \image button.png {Button in various interaction states}
+    */
+  absent:
+    - Qt.Structure.AltTextFormat

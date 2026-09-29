@@ -1,0 +1,22 @@
+- name: flags causal "Since" that should be "because"
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        Since the buffer was full, the write failed.
+    */
+  contains: Qt.Language.CausationSinceAs
+
+- name: stays silent on temporal "Since" with a version
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        Since Qt 6.0, this property is read-only.
+    */
+  absent:
+    - Qt.Language.CausationSinceAs

@@ -1,0 +1,18 @@
+- name: flags a page title that isn't title-case
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title widget configuration guide
+    */
+  contains: Qt.Language.QDocPageTitle
+
+- name: stays silent on a title-case page title
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title Widget Configuration Guide
+    */
+  absent:
+    - Qt.Language.QDocPageTitle

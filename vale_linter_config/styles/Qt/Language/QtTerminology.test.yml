@@ -1,0 +1,22 @@
+- name: flags a run-together Qt version mention
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        Qt5 is the previous major version.
+    */
+  contains: Qt.Language.QtTerminology
+
+- name: stays silent when the version has a space
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        Qt 5 is the previous major version.
+    */
+  absent:
+    - Qt.Language.QtTerminology

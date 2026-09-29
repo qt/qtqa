@@ -1,0 +1,22 @@
+- name: flags the vague quantifier "a lot of"
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        This is a lot of configuration for one call.
+    */
+  contains: Qt.Language.WordyQuantifier
+
+- name: stays silent with a direct quantifier
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        This is substantial configuration for one call.
+    */
+  absent:
+    - Qt.Language.WordyQuantifier

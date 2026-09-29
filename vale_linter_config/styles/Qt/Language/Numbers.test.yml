@@ -1,0 +1,22 @@
+- name: flags a spelled-out-range digit in prose
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        The widget accepts 3 arguments.
+    */
+  contains: Qt.Language.Numbers
+
+- name: stays silent when the count is spelled out
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        The widget accepts several arguments.
+    */
+  absent:
+    - Qt.Language.Numbers

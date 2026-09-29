@@ -1,0 +1,22 @@
+- name: flags an idiom
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        The cache works under the hood without configuration.
+    */
+  contains: Qt.Language.Idioms
+
+- name: stays silent with a literal equivalent
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        The cache works automatically without configuration.
+    */
+  absent:
+    - Qt.Language.Idioms

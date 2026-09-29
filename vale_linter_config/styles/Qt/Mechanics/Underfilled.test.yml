@@ -1,0 +1,24 @@
+- name: flags a line where the next line's first word would still fit
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        Short filler line here.
+        Word continues the sentence across the wrap point of this paragraph.
+    */
+  contains: Qt.Mechanics.Underfilled
+
+- name: stays silent when the next word would not fit
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        This line is deliberately padded out to sit right at the eighty column mark ok.
+        Supercalifragilisticexpialidocious is a long word that would not fit on the line above.
+    */
+  absent:
+    - Qt.Mechanics.Underfilled

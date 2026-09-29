@@ -1,0 +1,22 @@
+- name: flags an immediately repeated word
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        This is the the widget.
+    */
+  contains: Qt.Mechanics.Repetition
+
+- name: stays silent with no repeated word
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        This is the widget.
+    */
+  absent:
+    - Qt.Mechanics.Repetition

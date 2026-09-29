@@ -1,0 +1,30 @@
+- name: flags a generic table header
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        \table
+            \header
+                \li Name
+                \li Value
+        \endtable
+    */
+  contains: Qt.Structure.TableGenericHeaders
+
+- name: stays silent on a specific table header
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        \table
+            \header
+                \li Property
+                \li Behavior
+        \endtable
+    */
+  absent:
+    - Qt.Structure.TableGenericHeaders

@@ -1,0 +1,36 @@
+- name: flags a module landing page missing a Reference section
+  format: qdoc
+  input: |
+    /*!
+        \page mod2-index.html
+        \title Mod2
+
+        \brief The Mod2 module.
+
+        \section1 Using the Module
+
+        Some text.
+    */
+  contains: Qt.Structure.ModuleReferenceSection
+
+- name: stays silent when a Reference section is present
+  format: qdoc
+  input: |
+    /*!
+        \page mod-index.html
+        \title Mod
+
+        \brief The Mod module.
+
+        \section1 Using the Module
+
+        Some text.
+
+        \section1 Reference
+
+        \list
+            \li \l{Mod C++ Classes}
+        \endlist
+    */
+  absent:
+    - Qt.Structure.ModuleReferenceSection

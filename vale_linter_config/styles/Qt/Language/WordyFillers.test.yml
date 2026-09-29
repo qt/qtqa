@@ -1,0 +1,22 @@
+- name: flags an informal filler phrase
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        This is kind of complex for one call.
+    */
+  contains: Qt.Language.WordyFillers
+
+- name: stays silent with no filler phrase
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        This is complex for one call.
+    */
+  absent:
+    - Qt.Language.WordyFillers

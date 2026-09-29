@@ -1,0 +1,22 @@
+- name: flags a brief not in imperative mood
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        \brief This function is used to show the widget.
+    */
+  contains: Qt.Language.ImperativeBrief
+
+- name: stays silent on an imperative brief
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        \brief Hides the widget.
+    */
+  absent:
+    - Qt.Language.ImperativeBrief
