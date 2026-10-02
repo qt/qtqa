@@ -107,18 +107,20 @@ def classify(path):
 
 
 def load_sboms(sbomdir):
-    """Return ({relpath: (document, sha1 or None)}, {cdx document: occurrences}).
+    """Return ({relpath: (document, sha1 or None)}, {spdx document: file
+    entries}, {cdx document: occurrences}).
 
     Paths are normalized by stripping the leading './' that Qt's SPDX
     writer emits. The first document mentioning a path wins; duplicates
     across modules are harmless for a coverage check.
     """
-    claimed, cdx = {}, {}
+    claimed, spdx, cdx = {}, {}, {}
     for path in sorted(glob.glob(os.path.join(sbomdir, "*.json"))):
         name = os.path.basename(path)
         with open(path) as f:
             doc = json.load(f)
         if name.endswith(".spdx.json"):
+            spdx[name] = len(doc.get("files", []))
             for entry in doc.get("files", []):
                 sha1 = next((c["checksumValue"].lower()
                              for c in entry.get("checksums", [])
@@ -127,7 +129,7 @@ def load_sboms(sbomdir):
         elif name.endswith(".cdx.json"):
             cdx[name] = sum(len(c.get("evidence", {}).get("occurrences", []))
                             for c in doc.get("components", []))
-    return claimed, cdx
+    return claimed, spdx, cdx
 
 
 def scan_tree(prefix, dirs):
@@ -319,12 +321,14 @@ def main():
     if not os.path.isdir(sbomdir):
         sys.exit(f"error: no sbom/ directory under {prefix}")
 
-    claimed, cdx = load_sboms(sbomdir)
+    claimed, spdx, cdx = load_sboms(sbomdir)
     incomplete = check_document_set(sbomdir)
 
     print(f"prefix        {prefix}")
-    print(f"SPDX          {len({doc for doc, _ in claimed.values()})} documents, "
-          f"{len(claimed)} file entries")
+    empty = sorted(name for name, count in spdx.items() if not count)
+    print(f"SPDX          {len(spdx)} documents, {len(claimed)} file entries"
+          + (f" ({len(empty)} without file entries: {', '.join(empty)})"
+             if empty else ""))
     print(f"CycloneDX     {len(cdx)} documents, {sum(cdx.values())} file-level "
           f"occurrences" + (" (no file data — see module docstring)"
                             if not sum(cdx.values()) else ""))
