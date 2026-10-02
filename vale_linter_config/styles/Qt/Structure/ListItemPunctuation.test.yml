@@ -24,3 +24,129 @@
     */
   absent:
     - Qt.Structure.ListItemPunctuation
+
+- name: stays silent on a wrapped list item whose line ends in a comma and conjunction
+  format: qdoc
+  input: |
+    /*!
+        \l{AbstractButton::icon}{AbstractButton} and \l{Action::icon}{Action}
+        provide the following properties for icons:
+
+        \list
+            \li Icon name, source, width, height, color, test, new name, and
+                cache invalidation that is the main difficulty in using icons in
+                Qt Quick Controls.
+            \li The icon name is used to look up the icon in the current theme.
+        \endlist
+    */
+  absent:
+    - Qt.Structure.ListItemPunctuation
+
+- name: stays silent on a wrapped list item whose continuation starts with an inline command
+  format: qdoc
+  input: |
+    /*!
+        \list
+            \li Use the width, height, and
+                \l{Item::color}{color} properties.
+        \endlist
+    */
+  absent:
+    - Qt.Structure.ListItemPunctuation
+
+- name: flags a wrapped list item that ends in a comma and conjunction before the next item
+  format: qdoc
+  input: |
+    /*!
+        \list
+            \li Icon name, source, width, height,
+                color, or
+            \li The icon name is used to look up the icon.
+        \endlist
+    */
+  contains: Qt.Structure.ListItemPunctuation
+
+- name: flags a list item that ends in a comma and conjunction before a blank line
+  format: qdoc
+  input: |
+    /*!
+        \list
+            \li First item, and
+
+            \li Second item.
+        \endlist
+    */
+  contains: Qt.Structure.ListItemPunctuation
+
+- name: flags a list item that ends in a comma and conjunction before a block command
+  format: qdoc
+  input: |
+    /*!
+        \list
+            \li Set the source, and
+                \code
+                    icon.source: "a.png"
+                \endcode
+        \endlist
+    */
+  contains: Qt.Structure.ListItemPunctuation
+
+- name: stays silent on a wrapped list item whose continuation starts with a macro
+  format: qdoc
+  input: |
+    /*!
+        \list
+            \li Open the project, build it, and
+                \QC runs the application.
+        \endlist
+    */
+  absent:
+    - Qt.Structure.ListItemPunctuation
+
+- name: flags a list item whose conjunction wraps onto its own line
+  format: qdoc
+  input: |
+    /*!
+        \list
+            \li Icon name, source, width,
+                or
+            \li Next item.
+        \endlist
+    */
+  contains: Qt.Structure.ListItemPunctuation
+
+- name: stays silent on a comma and conjunction inside a code block in a list item
+  format: qdoc
+  input: |
+    /*!
+        \list
+            \li Set the properties:
+                \code
+                    // width, height, and
+                \endcode
+        \endlist
+    */
+  absent:
+    - Qt.Structure.ListItemPunctuation
+
+- name: flags a list item that ends in a comma and conjunction before a note
+  format: qdoc
+  input: |
+    /*!
+        \list
+            \li Set the source, and
+                \note The source must exist.
+        \endlist
+    */
+  contains: Qt.Structure.ListItemPunctuation
+
+- name: flags a table cell that ends in a comma and conjunction
+  format: qdoc
+  input: |
+    /*!
+        \table
+        \row
+            \li {2,1} Width, height, and
+        \endtable
+    */
+  contains: Qt.Structure.ListItemPunctuation

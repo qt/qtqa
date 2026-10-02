@@ -9,15 +9,24 @@
 # at col 40 and this rule at col 5). Keeping both duplicated the warning on
 # every semicolon-terminated list item; the comma+conjunction case has no
 # equivalent Microsoft rule, so it stays here.
+#
+# A \li entry can wrap across lines, so the rule checks the end of the whole
+# entry, not the end of the \li line. Vale's QDoc converter already ends an
+# entry where QDoc's DocParser does (the next \li, \endlist, or a block
+# command such as \code or \image), drops code blocks, and keeps inline
+# commands and macros as text. A \li in a \list becomes <li>, one in a
+# \table becomes <td>, hence doc(li, td); `doc(li) | doc(td)` matches
+# nothing. `\z` anchors to the end of the entry: `$` also matches at each
+# line break inside it, which flagged a wrapped line ending in "name, and".
+#
+# Known gap: the converter doesn't split a multi-paragraph entry into
+# separate blocks, so a first paragraph ending in ", and" before a blank
+# line and a second paragraph isn't flagged.
 extends: existence
 message: "Don't end a list item with a trailing comma before a conjunction ('%s'); split into separate items or use a period — see R53."
 link: https://learn.microsoft.com/en-us/style-guide/scannable-content/lists
 level: warning
-scope: raw
+scope: text & doc(li, td)
 nonword: true
-# A single alternation with (?m): scope: raw sees the whole file as one
-# string, so `$` needs the multiline flag to anchor per line, and a
-# multi-entry raw list only reliably evaluates its first entry in this
-# Vale build (both empirically confirmed -- see styles/Qt/Structure/README.md).
-raw:
-  - '(?m)\\li\b.*,\s+(?:and|or)\s*$'
+tokens:
+  - ',\s*(?:and|or)\s*\z'
