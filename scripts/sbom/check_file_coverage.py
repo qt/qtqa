@@ -136,6 +136,11 @@ def scan_tree(prefix, dirs):
     Symlinks are skipped on both files and directories: following them would
     count every macOS framework twice (Versions/Current, and the top-level
     Headers/QtCore aliases) and every versioned .dylib three times.
+
+    Relative paths are returned with '/' separators on every platform, so
+    that they compare equal to the POSIX fileName values the SPDX documents
+    record. Without this, os.sep makes every lookup miss on Windows and the
+    forward check reports every installed file as unrecorded.
     """
     totals, files = Counter(), defaultdict(list)
     for d in dirs:
@@ -148,7 +153,8 @@ def scan_tree(prefix, dirs):
                     continue
                 kind = classify(full)
                 totals[kind] += 1
-                files[kind].append(os.path.relpath(full, prefix))
+                files[kind].append(
+                    os.path.relpath(full, prefix).replace(os.sep, "/"))
     return totals, files
 
 
