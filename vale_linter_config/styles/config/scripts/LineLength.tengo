@@ -38,15 +38,37 @@ runelen := func(s) {
 // Qt coding style. .qdoc/.qdocinc/.qml keep their docs in `/*!` blocks too.
 in_doc := false
 
+// Snippet lines inside \code, \badcode, or \qml are code, not prose, so
+// they're exempt for the same reason. The opener can follow another
+// command on its line (`\li \code`); the line holding the opener or the
+// closer is still measured, since the rest of it is doc markup. The block
+// set mirrors opens_code() in QDocImplicitLink.tengo; keep them in sync.
+CODE_END := {"code": "endcode", "badcode": "endcode", "qml": "endqml"}
+code_end := ""
+
+// The verbatim-block closer a line opens ("endcode" for `\code`), or "".
+opens_code := func(line) {
+    found := text.re_find("\\\\(code|badcode|qml)\\b", line, 1)
+    if is_undefined(found) { return "" }
+    return CODE_END[found[0][1].text]
+}
+
 lines := text.split(scope, "\n")
 offset := 0
 for line in lines {
     if text.contains(line, "/*!") { in_doc = true }
     n := len(line)
-    if in_doc && n > MAX && !is_comment(line) && runelen(line) > MAX {
+    in_code := code_end != ""
+    if in_code && text.contains(line, "\\" + code_end) {
+        code_end = ""
+        in_code = false
+    } else if in_doc && !in_code {
+        code_end = opens_code(line)
+    }
+    if in_doc && !in_code && n > MAX && !is_comment(line) && runelen(line) > MAX {
         matches = append(matches, {begin: offset, end: offset + n})
     }
-    if in_doc && text.contains(line, "*/") { in_doc = false }
+    if in_doc && text.contains(line, "*/") { in_doc = false; code_end = "" }
     // +1 for the newline consumed by the split.
     offset = offset + n + 1
 }

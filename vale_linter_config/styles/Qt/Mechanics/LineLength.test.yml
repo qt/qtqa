@@ -63,3 +63,66 @@
     int Foo::bar() const { return computeSomethingVeryLongNamed(argumentOne, argumentTwo, argumentThree); }
   absent:
     - Qt.Mechanics.LineLength
+
+- name: stays silent on a long line inside a \code block
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        Short line under the limit.
+
+        \code
+            QObject::connect(sender, &Sender::valueChanged, receiver, &Receiver::updateValue);
+        \endcode
+    */
+  absent:
+    - Qt.Mechanics.LineLength
+
+- name: stays silent on a long line inside a \badcode block
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        Short line under the limit.
+
+        \badcode
+            cmake -S . -B build -DCMAKE_PREFIX_PATH=/opt/Qt/6.12.0/macos -DCMAKE_BUILD_TYPE=Release
+        \endcode
+    */
+  absent:
+    - Qt.Mechanics.LineLength
+
+- name: stays silent on a long line inside a \qml block
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        Short line under the limit.
+
+        \qml
+            Rectangle { width: 200; height: 100; color: "steelblue"; border.color: "black"; radius: 8 }
+        \endqml
+    */
+  absent:
+    - Qt.Mechanics.LineLength
+
+- name: flags a long prose line after a code block ends
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        \code
+            int x = 0;
+        \endcode
+
+        This documentation paragraph deliberately runs on well past the eighty column limit for testing purposes.
+    */
+  contains: Qt.Mechanics.LineLength
