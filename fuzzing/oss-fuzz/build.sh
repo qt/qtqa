@@ -33,9 +33,15 @@ $SOURCES/qtbase/configure -opensource -confirm-license -prefix $PWD \
                           -DQT_USE_DEFAULT_CMAKE_OPTIMIZATION_FLAGS=ON
 VERBOSE=1 cmake --build . --parallel
 
+# work around QTBUG-93261
+echo vptr:$SOURCES/qtshadertools/src/3rdparty/SPIRV-Cross/spirv_cross_c.cpp > ubsan_suppressions.txt
+export UBSAN_OPTIONS=suppressions=$PWD/ubsan_suppressions.txt
+
 # build additional modules
 for module in qtimageformats \
-              qtsvg
+              qtshadertools \
+              qtsvg \
+              qtmultimedia
 do
     buildDir="$WORK/build-$module"
     mkdir -p $buildDir
