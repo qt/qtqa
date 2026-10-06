@@ -21,14 +21,54 @@
   absent:
     - Qt.Structure.QDocImageAlt
 
-- name: stays silent on \inlineimage with braced alt text
+- name: stays silent when alt text on the following line
   format: qdoc
   input: |
     /*!
-        \page t.html
-        \title T
+        \section1 TreeViewDelegate Control
 
-        Click the \inlineimage filemenu.png {File Menu} to open the dialog.
+        \image qtquickcontrols-treeviewdelegate.png
+               {Tree view delegate showing hierarchical items}
+
+        A \l TreeViewDelegate is a delegate that can be assigned to the delegate property
+        of a TreeView.
     */
   absent:
     - Qt.Structure.QDocImageAlt
+
+- name: stays silent when same-line alt text has no braces
+  format: qdoc
+  input: |
+    /*!
+        \class QDialog
+        \brief The base class of dialog windows.
+
+        \image dialog-layout.png alt text without braces
+    */
+  absent:
+    - Qt.Structure.QDocImageAlt
+
+- name: flags an \image followed by a blank line and a paragraph
+  format: qdoc
+  input: |
+    /*!
+        \class QWidget
+        \brief The base class for all UI objects.
+
+        \image widget-overview.png
+
+        Some paragraph text.
+    */
+  contains: Qt.Structure.QDocImageAlt
+
+- name: flags an \image followed by unbraced text on the next line
+  format: qdoc
+  input: |
+    /*!
+        \class QWidget
+        \brief The base class for all UI objects.
+
+        \image widget-overview.png
+        Some paragraph text.
+    */
+  contains: Qt.Structure.QDocImageAlt

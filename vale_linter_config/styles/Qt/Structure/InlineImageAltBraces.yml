@@ -9,7 +9,9 @@
 # Qt.Structure.AltTextFormat for why (text.comment.image.alt never fires).
 #
 # Heuristic, not exhaustive: fires only when non-brace text immediately
-# follows the file name. An \inlineimage with nothing after it at all is
+# follows the file name, on the same line or at the start of the next line
+# (alt text may wrap, but then the brace must open the next line). A blank
+# line, a command, or the end of the comment after the file name does not fire. An \inlineimage with nothing after it at all is
 # already caught by Qt.Structure.QDocImageAlt (scope: meta.noalt); this
 # rule targets the narrower, easy-to-miss case of an author writing what
 # they intend as alt text but forgetting the braces.
@@ -34,4 +36,4 @@ level: suggestion
 scope: raw
 nonword: true
 raw:
-  - '(?m)\\inlineimage[ \t]+\S+\.\w+[ \t]+[^{\s]'
+  - '(?m)\\inlineimage[ \t]+\S+\.\w+(?:[ \t]+[^{\s]|[ \t]*\r?\n[ \t]*\*?[ \t]*[^\s{\\*/])'

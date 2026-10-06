@@ -1,13 +1,16 @@
-# scope: meta.noalt, not meta.image -- Vale's scope match is subset-based, so
-# meta.image matches both the "image" class (alt text present) and the
-# "image noalt" class (alt text absent): every image line was flagged
-# regardless of alt text. meta.noalt matches only the noalt-classed data
-# node the converter writes when nothing followed the file name (see
-# imageMeta/imageMetaHTML in vale's internal/lint/qdoc.go).
+# scope: raw, not meta.noalt -- the converter marks an image `noalt` when
+# nothing follows the file name on the same line, so alt text wrapped onto the
+# next line, which QDoc accepts, was flagged. This rule matches an \image whose
+# line holds only a file name and whose next line does not start with a brace.
+# Alt text on the same line, with or without braces, never matches.
+# \inlineimage is not checked here.
 extends: existence
 message: "Add alt text for image '%s'."
 link: https://doc.qt.io/qt-6/qdoc-guide-writing.html
 level: warning
-scope: meta.noalt
+scope: raw
+# A raw multi-word match silently never fires when the sentence holds a Vocab
+# accept-list term, so opt out of the Vocab.
+vocab: false
 raw:
-  - '\S+'
+  - '\\image[ \t]+\S+[ \t]*\r?\n(?![ \t]*\*?[ \t]*\{)'

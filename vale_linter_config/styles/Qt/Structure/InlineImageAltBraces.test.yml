@@ -32,3 +32,28 @@
     */
   absent:
     - Qt.Structure.InlineImageAltBraces
+
+- name: stays silent on braced \inlineimage alt text on the next line
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        This is a \inlineimage filemenu.png
+        {File Menu} that you can click.
+    */
+  absent:
+    - Qt.Structure.InlineImageAltBraces
+
+- name: flags unbraced text on the line after \inlineimage
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        This is a \inlineimage filemenu.png
+        that you can click.
+    */
+  contains: Qt.Structure.InlineImageAltBraces
