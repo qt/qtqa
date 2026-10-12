@@ -26,8 +26,8 @@ mkdir -p $WORK/qt
 cd $WORK/qt
 
 $SOURCES/qtbase/configure -opensource -confirm-license -prefix $PWD \
-                          -platform linux-clang-libc++ -release -static \
-                          -qt-libmd4c -no-opengl -no-widgets -force-asserts -- \
+                          -platform linux-clang-libc++ -release -static -qt-libmd4c -qt-pcre \
+                          -no-glib -no-opengl -no-widgets -force-asserts -- \
                           -DCMAKE_C_FLAGS_RELEASE="-O1" \
                           -DCMAKE_CXX_FLAGS_RELEASE="-O1" \
                           -DQT_USE_DEFAULT_CMAKE_OPTIMIZATION_FLAGS=ON
