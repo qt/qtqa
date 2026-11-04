@@ -114,8 +114,8 @@ def get_essential_tools():
     return result
 
 
-def get_installed_tools():
-    """Find the installed tools based on the wheels installed"""
+def get_installed_pyside_tools():
+    """Find the installed PySide tools based on the wheels installed"""
     if (has_module("PySide6_Addons") or has_module("PySide6-Addons")) and VERSION >= (6, 6, 0):
         return get_essential_tools() + ADDONS_TOOLS
     return get_essential_tools()
@@ -354,29 +354,32 @@ def test_project_generation():
 def test_tools(installed_wheels: InstalledWheels):
     result = True
     print("\nTesting command line tools...")
-    installed_tools = get_installed_tools()
 
-    for tool in installed_tools:
+    tools_cmd_lines = []
+    if has_module("shiboken6_generator"):
+        tools_cmd_lines.append(["shiboken6", "--help"])
+    for tool in get_installed_pyside_tools():
         if isinstance(tool, tuple):
             tool_name, *arguments = tool
             binary = f"pyside6-{tool_name}"
         else:
             binary = f"pyside6-{tool}"
             arguments = ["--help"]
+        tools_cmd_lines.append([binary] + arguments)
+
+    for tools_cmd_line in tools_cmd_lines:
         exit_code = 0
         error = ""
         try:
-            cmd = [binary]
-            cmd.extend(arguments)
-            exit_code, error = run_process(cmd)
+            exit_code, error = run_process(tools_cmd_line)
         except Exception as e:
             error = str(e)
             exit_code = 1
         if exit_code == 0:
-            print(f"  {binary}: succeeded.")
+            print(f"  {tools_cmd_line[0]}: succeeded.")
         else:
             result = False
-            print(f"  {binary}: FAILED: {error}")
+            print(f"  {tools_cmd_line[0]}: FAILED: {error}")
     return result
 
 
