@@ -9,6 +9,19 @@
     */
   contains: Qt.Structure.QDocBrief
 
+- name: flags a brief with a Qt term missing terminal punctuation
+  format: qdoc
+  input: |
+    /*!
+        \page platform-porting-guide-board-defaults.html
+        \title Defining default variables for the platform
+        \brief Defining default values for the QML project
+
+        \nextpage Linker script setup
+        \previouspage Creating the platform configuration file
+    */
+  contains: Qt.Structure.QDocBrief
+
 - name: flags a brief missing terminal punctuation in a C++ source file
   format: qdoc
   input: |
@@ -59,6 +72,60 @@
         \title T
 
         \brief Returns the value.
+    */
+  absent:
+    - Qt.Structure.QDocBrief
+
+- name: brief ending in a period followed by an image with alt text stays silent
+  format: qdoc
+  input: |
+    /*!
+        \example joints
+        \ingroup quick3dphysics-examples
+        \title Qt Quick 3D Physics - Joints Example
+        \brief Demonstrates using joints in a physics scene.
+        \image joints-example.png {Blue and yellow box segments connected by
+               joints, with a pendulum}
+
+        This example demonstrates using a few of the joints available in Quick 3D
+        Physics.
+    */
+  absent:
+    - Qt.Structure.QDocBrief
+
+- name: wrapped brief ending in a period stays silent
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        \brief Demonstrates using joints
+        in a physics scene.
+    */
+  absent:
+    - Qt.Structure.QDocBrief
+
+- name: wrapped brief missing terminal punctuation is flagged
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        \brief Demonstrates using joints
+        in a physics scene
+    */
+  contains: Qt.Structure.QDocBrief
+
+- name: brief with a Qt term ending in a period stays silent
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        \brief Describes the QML project.
     */
   absent:
     - Qt.Structure.QDocBrief

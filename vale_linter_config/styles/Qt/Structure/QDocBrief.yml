@@ -2,6 +2,13 @@ extends: existence
 message: "Brief descriptions should end with a period."
 link: https://doc.qt.io/qt-6/qdoc-guide-writing.html
 level: warning
-scope: text.class.brief
+# Only the first paragraph of the brief div: the sentence after \brief. Later
+# paragraphs in the div can come from a block command such as \image, whose
+# alt text is not brief text (QDoc's Text::toString skips it too).
+scope: 'doc(div.brief > p:first-child)'
+# vocab: false -- with Vocab = Qt, qul, Figma active, Vale drops an alert whose
+# matched text contains an accepted term, and this raw pattern matches the whole
+# brief. A brief with "QML" or "Qt" in it was never reported.
+vocab: false
 raw:
   - '.*[^.!?]\s*$'
