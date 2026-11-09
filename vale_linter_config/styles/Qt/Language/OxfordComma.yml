@@ -1,0 +1,19 @@
+# Serial (Oxford) comma in a list of bare nouns. Replaces
+# Microsoft.OxfordComma, whose pattern treats a comma before a verb phrase
+# ("..., declare it and make it a QML module.") as a list.
+#
+# A sequence rule matches tagged tokens in order, so a verb such as
+# "declare" never matches a noun tag. The cost is recall: it only matches
+# lists of single nouns, not lists whose items start with a determiner
+# ("the scope and the token URL") or are multi-word.
+extends: sequence
+message: "Use the Oxford comma in '%s'."
+link: https://learn.microsoft.com/en-us/style-guide/punctuation/commas
+level: suggestion
+scope: sentence
+tokens:
+  - tag: NN|NNS
+  - pattern: ','
+  - tag: NN|NNS
+  - pattern: and|or
+  - tag: NN|NNS

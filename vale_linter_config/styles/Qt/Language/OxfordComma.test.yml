@@ -1,0 +1,104 @@
+# Inputs are real paragraphs from qtbase and qtdeclarative.
+
+- name: flags a list of nouns in the middle of a sentence (qtbase, custom-types.qdoc)
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        Standard types such as QSize, QColor and QString can all be stored in QVariant objects,
+        used as the types of properties in QObject-based classes, and emitted in signal-slot
+        communication.
+    */
+  contains: Qt.Language.OxfordComma
+
+- name: flags a list of nouns (qtdeclarative, cppintegration/definetypes.qdoc)
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        A singleton type enables properties, signals and methods to be exposed in
+        a namespace without requiring the client to manually instantiate an
+        object instance. QObject singleton types in particular are an efficient and
+        convenient way to provide functionality or global property values.
+    */
+  contains: Qt.Language.OxfordComma
+
+- name: stays silent on a comma before a participial phrase (qtbase, eventsandfilters.qdoc)
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        the events for a target object in its QObject::eventFilter()
+        function. An event filter gets to process events before the target
+        object does, allowing it to inspect and discard the events as
+        required. An existing event filter can be removed using the
+        QObject::removeEventFilter() function.
+    */
+  absent:
+    - Qt.Language.OxfordComma
+
+- name: stays silent on a comma after a sentence opener (qtdeclarative, qmllint/unqualified.qdoc)
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        Indeed, \l{Item} does neither have any attached type nor any grouped property called \c{item}.
+        To fix this warning, remove the attached type and the grouped property.
+    */
+  absent:
+    - Qt.Language.OxfordComma
+
+- name: stays silent on a comma before "with" (qtbase, filestorage.qdoc)
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        The QFile class provides functions for reading from and writing to files.
+        A QFile may be used by itself or, more conveniently, with a QTextStream or
+        QDataStream.
+    */
+  absent:
+    - Qt.Language.OxfordComma
+
+# Known gaps: the rule matches only lists of single-word nouns, so it does not
+# flag the lists below. If it gains support for multi-word items, change these
+# cases to `contains`.
+
+- name: does not flag a list of multi-word items (qtbase, cmake/policy/qtp0007.qdoc)
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        If the policy is set to \c OLD, the values are written unquoted. When the
+        generated script runs, cmake splits each value at whitespace and interprets
+        backslashes in it as escape sequences. This causes issues with values that
+        contain whitespace, backslashes or double quotes.
+    */
+  absent:
+    - Qt.Language.OxfordComma
+
+- name: does not flag a list that ends with "or similar" (qtdeclarative, scenegraph.qdoc)
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        Clipping breaks batching. Never use on a per-item basis, inside
+        table cells, item delegates or similar. Instead of clipping text,
+        use eliding.
+    */
+  absent:
+    - Qt.Language.OxfordComma
