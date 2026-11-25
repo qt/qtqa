@@ -9,6 +9,17 @@
     */
   contains: Qt.Mechanics.Repetition
 
+- name: flags a repeat that differs only in capitalization
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        The the widget is ready.
+    */
+  contains: Qt.Mechanics.Repetition
+
 - name: stays silent with no repeated word
   format: qdoc
   input: |
@@ -20,3 +31,154 @@
     */
   absent:
     - Qt.Mechanics.Repetition
+
+- name: flags a repeat that wraps across source lines
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        The value is the
+        the default.
+    */
+  contains: Qt.Mechanics.Repetition
+
+- name: flags a repeat at the start of a line
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        Use the widget with
+        with care.
+    */
+  contains: Qt.Mechanics.Repetition
+
+- name: flags a repeat inside a section heading
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        \section1 Using the the widget
+
+        This paragraph is fine.
+    */
+  contains: Qt.Mechanics.Repetition
+
+- name: flags a repeat in a later paragraph
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        This paragraph is fine.
+
+        This one has has a repeat.
+    */
+  contains: Qt.Mechanics.Repetition
+
+- name: flags a repeat in a \brief sentence
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        \brief A widget that that is used
+    */
+  contains: Qt.Mechanics.Repetition
+
+- name: stays silent when a heading ends with the word that starts the next paragraph
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        \section2 Testing C++ models with Qt Test
+
+        Test the C++ classes that contain the logic.
+    */
+  absent:
+    - Qt.Mechanics.Repetition
+
+- name: stays silent when a paragraph ends with the word that starts the next one
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        Use the default value.
+
+        Value is optional.
+    */
+  absent:
+    - Qt.Mechanics.Repetition
+
+- name: stays silent when a sentence ends with the word that starts the next sentence
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        Set the mode to fast. Fast mode is the default.
+    */
+  absent:
+    - Qt.Mechanics.Repetition
+
+- name: stays silent for a repeat inside a code block
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        \code
+        int x = the the;
+        \endcode
+
+        A normal sentence.
+    */
+  absent:
+    - Qt.Mechanics.Repetition
+
+- name: stays silent for similar but different words
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        The widget widgets are rendered here.
+    */
+  absent:
+    - Qt.Mechanics.Repetition
+
+- name: flags a word repeated in link text (known false positive)
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        Visit qtwasmserver \l{https://example.com/}{qtwasmserver} for details.
+    */
+  contains: Qt.Mechanics.Repetition
+
+- name: flags a word repeated around a macro (known false positive)
+  format: qdoc
+  input: |
+    /*!
+        \page t.html
+        \title T
+
+        Many users interact with \macos with assistive devices.
+    */
+  contains: Qt.Mechanics.Repetition
